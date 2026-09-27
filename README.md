@@ -50,4 +50,4 @@ pnpm typecheck
 pnpm test
 ```
 
-預設模型：Claude `claude-opus-5`、OpenAI `gpt-5`、Gemini `gemini-2.5-pro`，都可以用 `-m` 換。
+預設模型：Claude `claude-opus-5`、OpenAI `gpt-5`、Gemini `gemini-3.1-pro-preview`。各家常會下架舊模型，可以在 `.env` 設 `CLAUDE_MODEL`、`OPENAI_MODEL`、`GEMINI_MODEL` 換掉預設，或單次用 `-m` 指定。

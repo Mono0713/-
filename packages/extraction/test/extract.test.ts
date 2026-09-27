@@ -67,3 +67,21 @@ describe('extractPage', () => {
     expect(result.error).toBe('refused')
   })
 })
+
+describe('extractPage client errors', () => {
+  it('does not retry a 4xx such as an unknown model', async () => {
+    const notFound = Object.assign(new Error('models/old-model is no longer available'), { status: 404 })
+    const provider = fakeProvider([notFound, JSON.stringify(page([]))])
+    const result = await extractPage(provider, image, 'quiz.pdf', 2)
+    expect(result.attempts).toBe(1)
+    expect(result.error).toMatch(/no longer available/)
+  })
+
+  it('still retries rate limits', async () => {
+    const rateLimited = Object.assign(new Error('slow down'), { status: 429 })
+    const provider = fakeProvider([rateLimited, JSON.stringify(page([]))])
+    const result = await extractPage(provider, image, 'quiz.pdf', 1)
+    expect(result.page).not.toBeNull()
+    expect(result.attempts).toBe(2)
+  })
+})

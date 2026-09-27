@@ -49,12 +49,21 @@ export async function extractPage(
       lastError = `reply did not match the schema: ${parsed.error.message}`
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err)
-      if (err instanceof ProviderStopError) {
+      if (err instanceof ProviderStopError || isClientError(err)) {
         return { pageNumber: page.pageNumber, provider: provider.id, model, page: null, error: lastError, attempts: attempt, usage }
       }
     }
   }
   return { pageNumber: page.pageNumber, provider: provider.id, model, page: null, error: lastError, attempts: retries + 1, usage }
+}
+
+/**
+ * A 4xx other than 429 (bad key, unknown model, invalid request) fails the same
+ * way on every retry. All three SDKs expose the HTTP status as `status`.
+ */
+function isClientError(err: unknown): boolean {
+  const status = (err as { status?: unknown } | null)?.status
+  return typeof status === 'number' && status >= 400 && status < 500 && status !== 429
 }
 
 /** Extracts every page of a document, a few pages at a time, keeping page order. */

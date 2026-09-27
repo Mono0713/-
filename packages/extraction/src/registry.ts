@@ -25,8 +25,14 @@ export function providerIds(): string[] {
   return [...factories.keys()]
 }
 
+/**
+ * Creates a provider. When no model is given, `<ID>_MODEL` from the environment
+ * (e.g. GEMINI_MODEL) wins over the adapter's built-in default, so a retired
+ * model can be swapped without a code change.
+ */
 export function createProvider(id: string, config: ProviderConfig = {}): VisionProvider {
   const factory = factories.get(id)
   if (!factory) throw new Error(`Unknown provider "${id}". Available: ${providerIds().join(', ')}`)
-  return factory(config)
+  const model = config.model ?? (process.env[`${id.toUpperCase()}_MODEL`] || undefined)
+  return factory({ ...config, model })
 }
