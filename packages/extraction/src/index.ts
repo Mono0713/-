@@ -1,4 +1,4 @@
-export { extractDocument, extractPage, type ExtractOptions, type PageResult } from './extract.ts'
+export { extractDocument, extractPage, retryDelayMs, type ExtractOptions, type PageOptions, type PageResult } from './extract.ts'
 export { mergePages } from './merge.ts'
 export { SYSTEM_PROMPT, userPrompt } from './prompt.ts'
 export { ProviderStopError, type PageRequest, type ProviderReply, type VisionProvider } from './provider.ts'

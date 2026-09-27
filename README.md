@@ -26,6 +26,8 @@ pnpm extract 考卷.pdf --pages-only        # 只轉圖，不呼叫模型
 | `<provider>.json` | 合併跨頁後的題目資料，之後匯入題庫用 |
 | `<provider>.raw.json` | 每頁的原始回覆、錯誤與 token 用量 |
 
+有頁面失敗時（例如免費額度用完），用 `--pages 3-5` 只重跑那幾頁，其他頁的結果會保留。遇到 429 或伺服器忙碌會依模型建議的秒數自動等待重試；免費方案建議加 `--concurrency 1`。
+
 ## 架構
 
 pnpm monorepo，每個模組是獨立套件，彼此只透過 `@exam/core` 的資料格式溝通。

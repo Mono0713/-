@@ -12,6 +12,7 @@ export function mergePages(fileName: string, results: PageResult[]): DraftExam {
   const exam: DraftExam = { fileName, meta, groups: [], questions: [], pages: [] }
 
   let open: DraftQuestion | null = null
+  let section: string | null = null
   for (const result of ordered) {
     exam.pages.push({
       pageNumber: result.pageNumber,
@@ -38,7 +39,9 @@ export function mergePages(fileName: string, results: PageResult[]): DraftExam {
       if (index === 0 && open && q.continuesFromPreviousPage) {
         appendContinuation(open, q, location)
       } else {
-        exam.questions.push(toDraft(q, groupId(q.groupId), location))
+        // A page that starts mid-section does not repeat the heading.
+        section = q.section ?? section
+        exam.questions.push(tidy(toDraft({ ...q, section }, groupId(q.groupId), location)))
       }
     }
     const last = page.questions.at(-1)
@@ -50,6 +53,23 @@ export function mergePages(fileName: string, results: PageResult[]): DraftExam {
 function toDraft(q: ExtractedQuestion, groupId: string | null, location: DraftQuestion['locations'][number]): DraftQuestion {
   const { continuesFromPreviousPage: _from, continuesOnNextPage: _to, bbox: _bbox, ...rest } = q
   return { ...rest, groupId, locations: [location] }
+}
+
+/** Brackets and trailing punctuation some models leave on option labels: "(1)", "A.", "（B）". */
+export function normalizeLabel(label: string): string {
+  return label.trim().replace(/^[(（\[]\s*/, '').replace(/\s*[)）\].:：、]$/, '').trim()
+}
+
+/** Evens out what different models return so drafts look the same whichever model made them. */
+function tidy(q: DraftQuestion): DraftQuestion {
+  for (const option of q.options) option.label = normalizeLabel(option.label)
+  if (q.options.length > 0) q.answer.values = q.answer.values.map(normalizeLabel)
+  if (q.explanation && q.explanation.trim() === q.answer.values.join('\n').trim()) q.explanation = null
+  if (q.points === null && q.section) {
+    const perQuestion = /每題\s*(\d+(?:\.\d+)?)\s*分|(\d+(?:\.\d+)?)\s*(?:points?|pts?)\s*(?:for\s+)?each/i.exec(q.section)
+    if (perQuestion) q.points = Number(perQuestion[1] ?? perQuestion[2])
+  }
+  return q
 }
 
 const CONFIDENCE_RANK = { high: 2, medium: 1, low: 0 } as const

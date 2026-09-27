@@ -52,3 +52,33 @@ describe('mergePages', () => {
     expect(exam.questions).toHaveLength(1)
   })
 })
+
+describe('mergePages clean-up', () => {
+  it('strips brackets from option labels and choice answers', () => {
+    const exam = mergePages('exam.pdf', [
+      result(1, page([question({ options: [{ label: '(1)', content: 'NMR' }, { label: '（2）', content: 'X-ray' }], answer: { values: ['(2)'], source: 'printed' } })])),
+    ])
+    const q = exam.questions[0]!
+    expect(q.options.map((o) => o.label)).toEqual(['1', '2'])
+    expect(q.answer.values).toEqual(['2'])
+  })
+
+  it('drops an explanation that only repeats the answer', () => {
+    const text = 'DNA wraps around histones.'
+    const exam = mergePages('exam.pdf', [
+      result(1, page([question({ type: 'essay', options: [], answer: { values: [text], source: 'printed' }, explanation: text })])),
+    ])
+    expect(exam.questions[0]!.explanation).toBeNull()
+  })
+
+  it('carries the section onto the next page and fills points from a per-question rule', () => {
+    const exam = mergePages('exam.pdf', [
+      result(1, page([question({ number: '1', section: '問答題（每題 25 分）', points: null })])),
+      result(2, page([question({ number: '2', section: null, points: null })])),
+    ])
+    expect(exam.questions.map((q) => [q.section, q.points])).toEqual([
+      ['問答題（每題 25 分）', 25],
+      ['問答題（每題 25 分）', 25],
+    ])
+  })
+})

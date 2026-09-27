@@ -14,7 +14,7 @@ Structure
 - One entry per question as numbered on the paper. Sub-questions that are answered separately, like (1) and (2), may stay in one question when they share one answer area; say so in the stem.
 - A passage, data table or figure shared by several questions goes in "groups", and each of those questions sets groupId to that group's id.
 - "section" is the heading the question sits under, including any points rule, e.g. "選擇題（每題 5 分）".
-- Options go in "options" with the label as printed (A, B, 1, 甲, ...) and without the label in the content. The stem must not repeat the options.
+- Options go in "options". "label" is the label as printed without brackets or punctuation (A, B, 1, 甲, ...; "(1)" becomes "1") and the content does not repeat it. The stem must not repeat the options.
 - Pick the closest type: single_choice, multiple_choice (more than one answer allowed, e.g. 多選), true_false (是非, O/X), fill_in_blank, short_answer, essay, calculation (worked math/physics/chemistry problems and proofs), matching, other.
 - "points" is the score for this question when the paper states it, else null.
 - Set continuesFromPreviousPage / continuesOnNextPage when the question is visibly cut at the top or bottom of the page.
@@ -25,7 +25,7 @@ Answers and handwriting
 - Printed questions are the priority. Handwriting, stamps, scores and grading marks are not part of the question text.
 - When a correct answer is visible, put it in "answer.values": option labels without brackets for choice questions, "true"/"false" for true/false (O means true, X means false), one entry per blank for fill-in, or the full text for open questions. Set answer.source to "printed" or "handwritten". When no answer is visible, use an empty list and "none".
 - Handwritten student work may be wrong. Record a handwritten answer, but if grading marks show it was marked wrong, leave values empty and add an issue.
-- Typed or printed worked solutions go in "explanation".
+- For open questions, a model answer written on the page is the answer; put it in answer.values only. Use "explanation" only for a separate worked solution or rationale, never for a copy of the answer.
 
 Quality
 - confidence is "high" only when every character is legible. Use "medium" or "low" and add an entry to "issues" whenever you guessed a symbol, a word is unreadable, handwriting covers printed text, or part of the question is cut off.
