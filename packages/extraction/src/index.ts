@@ -6,3 +6,4 @@ export { createProvider, providerIds, registerProvider, type ProviderConfig } fr
 export { ClaudeProvider, CLAUDE_DEFAULT_MODEL } from './providers/claude.ts'
 export { OpenAIProvider, OPENAI_DEFAULT_MODEL } from './providers/openai.ts'
 export { GeminiProvider, GEMINI_DEFAULT_MODEL } from './providers/gemini.ts'
+export { ManualProvider, chatPrompt, extractJson } from './providers/manual.ts'

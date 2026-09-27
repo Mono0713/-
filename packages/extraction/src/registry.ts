@@ -1,11 +1,14 @@
 import type { VisionProvider } from './provider.ts'
 import { ClaudeProvider } from './providers/claude.ts'
 import { GeminiProvider } from './providers/gemini.ts'
+import { ManualProvider } from './providers/manual.ts'
 import { OpenAIProvider } from './providers/openai.ts'
 
 export interface ProviderConfig {
   apiKey?: string
   model?: string
+  /** Folder for providers that exchange files instead of calling an API (manual). */
+  workDir?: string
 }
 
 type Factory = (config: ProviderConfig) => VisionProvider
@@ -14,6 +17,13 @@ const factories = new Map<string, Factory>([
   ['claude', (c) => new ClaudeProvider(c)],
   ['openai', (c) => new OpenAIProvider(c)],
   ['gemini', (c) => new GeminiProvider(c)],
+  [
+    'manual',
+    (c) => {
+      if (!c.workDir) throw new Error('The manual provider needs a workDir')
+      return new ManualProvider({ workDir: c.workDir, model: c.model })
+    },
+  ],
 ])
 
 /** Adds or replaces a provider, e.g. a self-hosted model. */

@@ -22,7 +22,11 @@ Options:
   -h, --help             Show this help
 
 API keys come from the environment or a .env file in the repo root:
-  ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY`
+  ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY
+
+Without an API key, use -p manual: the first run writes a prompt per page to
+out/<file>/manual/; paste it with the page image into a chat app, save the
+JSON reply as page-N.reply.json in the same folder, and run the command again.`
 
 async function main() {
   const { values, positionals } = parseArgs({
@@ -68,16 +72,22 @@ async function main() {
     if (values['pages-only']) continue
 
     for (const id of providers) {
-      const provider = createProvider(id, { model: values.model })
+      const provider = createProvider(id, { model: values.model, workDir: join(dir, 'manual') })
       const started = Date.now()
       const fresh = await extractDocument(provider, doc, {
         concurrency,
         pages: onlyPages,
-        onPage: (r) =>
-          console.log(
-            `  [${id}] page ${r.pageNumber}: ${r.page ? `${r.page.questions.length} question(s)` : `FAILED (${r.error})`}`,
-          ),
+        onPage: (r) => {
+          const status = r.page
+            ? `${r.page.questions.length} question(s)`
+            : r.error?.startsWith('waiting for a reply')
+              ? 'waiting for a pasted reply'
+              : `FAILED (${r.error})`
+          console.log(`  [${id}] page ${r.pageNumber}: ${status}`)
+        },
       })
+      const waiting = fresh.filter((r) => r.error?.startsWith('waiting for a reply')).map((r) => r.pageNumber)
+      if (waiting.length) printManualSteps(join(dir, 'manual'), join(dir, 'pages'), waiting)
       const rawPath = join(dir, `${id}.raw.json`)
       const results = onlyPages ? await withEarlierPages(rawPath, fresh) : fresh
       const exam = mergePages(doc.fileName, results)
@@ -85,7 +95,7 @@ async function main() {
       await writeFile(join(dir, `${id}.json`), JSON.stringify(exam, null, 2))
       await writeFile(join(dir, `${id}.md`), renderMarkdown(exam))
 
-      const failed = results.filter((r) => !r.page).map((r) => r.pageNumber)
+      const failed = results.filter((r) => !r.page && !r.error?.startsWith('waiting for a reply')).map((r) => r.pageNumber)
       if (failed.length) {
         console.log(`  [${id}] failed page(s): ${failed.join(', ')}. Re-run just those with --pages ${failed.join(',')}`)
       }
@@ -98,6 +108,15 @@ async function main() {
       )
     }
   }
+}
+
+function printManualSteps(manualDir: string, pagesDir: string, pages: number[]) {
+  console.log(`
+  Manual mode: for each page ${pages.join(', ')}
+    1. Open a new chat in Claude, Gemini or ChatGPT.
+    2. Attach ${join(pagesDir, 'page-N.png')} and paste the whole of ${join(manualDir, 'page-N.prompt.md')}.
+    3. Save the reply as ${join(manualDir, 'page-N.reply.json')}.
+  Then run the same command again to validate the replies and build the result.`)
 }
 
 /** "3-5,7" -> [3, 4, 5, 7] */

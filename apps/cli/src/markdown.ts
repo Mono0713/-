@@ -26,7 +26,11 @@ export function renderMarkdown(exam: DraftExam): string {
   out.push(facts.join(' · '), '')
 
   for (const page of exam.pages) {
-    if (page.notes) out.push(`> 第 ${page.pageNumber} 頁：${page.notes}`, '')
+    if (page.notes?.startsWith('extraction failed: waiting for a reply')) {
+      out.push(`> 第 ${page.pageNumber} 頁：等待貼上聊天回覆（manual/page-${page.pageNumber}.reply.json）`, '')
+    } else if (page.notes) {
+      out.push(`> 第 ${page.pageNumber} 頁：${page.notes}`, '')
+    }
   }
 
   const groups = new Map(exam.groups.map((g) => [g.id, g]))

@@ -28,6 +28,17 @@ pnpm extract 考卷.pdf --pages-only        # 只轉圖，不呼叫模型
 
 有頁面失敗時（例如免費額度用完），用 `--pages 3-5` 只重跑那幾頁，其他頁的結果會保留。遇到 429 或伺服器忙碌會依模型建議的秒數自動等待重試；免費方案建議加 `--concurrency 1`。
 
+## 不用 API 金鑰：手動模式
+
+用 Claude、Gemini 或 ChatGPT 的網頁版／App 訂閱來辨識，不需要 API 額度：
+
+1. `pnpm extract 考卷.pdf -p manual`，程式會在 `out/<檔名>/manual/` 產生每頁的 `page-N.prompt.md`。
+2. 在聊天 App 開新對話，附上 `out/<檔名>/pages/page-N.png`，把 `page-N.prompt.md` 的全部內容貼上送出。
+3. 把回覆的 JSON 存成 `out/<檔名>/manual/page-N.reply.json`（有沒有 ```json 框線都可以）。
+4. 再跑一次同樣的指令，程式會驗證回覆格式並產生 `manual.md` 和 `manual.json`。
+
+可以用 `-m claude-web` 之類的名稱標記是哪個 App 回覆的，方便之後比較。
+
 ## 架構
 
 pnpm monorepo，每個模組是獨立套件，彼此只透過 `@exam/core` 的資料格式溝通。
