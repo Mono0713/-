@@ -26,7 +26,7 @@ export function renderMarkdown(exam: DraftExam): string {
   out.push(facts.join(' · '), '')
 
   for (const page of exam.pages) {
-    if (page.notes?.startsWith('辨識失敗：waiting for a reply')) {
+    if (page.notes?.startsWith('extraction failed: waiting for a reply')) {
       out.push(`> 第 ${page.pageNumber} 頁：等待貼上聊天回覆（manual/page-${page.pageNumber}.reply.json）`, '')
     } else if (page.notes) {
       out.push(`> 第 ${page.pageNumber} 頁：${page.notes}`, '')

@@ -22,6 +22,8 @@ export interface ImporterOptions {
   concurrency?: number
   /** Extra provider settings, e.g. API keys from a settings page. */
   providerConfig?: (providerId: string) => ProviderConfig
+  /** Interface language of the uploader (e.g. "en", "zh-Hant"); the model writes review notes in it. */
+  reviewLanguage?: (ownerId: string) => string
 }
 
 export interface ManualState {
@@ -176,6 +178,7 @@ export class Importer {
     const fresh = await extractDocument(provider, doc, {
       concurrency: this.opts.concurrency ?? 2,
       pages: selected,
+      reviewLanguage: this.opts.reviewLanguage?.(imp.ownerId),
       onPage: () => this.bank.updateImport(id, { progress: { done: ++done, total: selected.length } }),
     })
     const results = await this.saveResults(id, fresh)

@@ -1,7 +1,7 @@
 import type { PageImage } from '@exam/core'
 
 /** Shared by every provider so results are comparable across models. */
-export const SYSTEM_PROMPT = `You digitise exam papers into a question bank. You receive one page image of an exam (a scan, a PDF render or a phone photo) and return every question on it as structured data.
+const BASE_PROMPT = `You digitise exam papers into a question bank. You receive one page image of an exam (a scan, a PDF render or a phone photo) and return every question on it as structured data.
 
 Transcription
 - Copy printed text exactly, in its original language. Do not translate, summarise or fix the author's wording.
@@ -33,7 +33,34 @@ Quality
 - confidence is "high" only when every character is legible. Use "medium" or "low" and add an entry to "issues" whenever you guessed a symbol, a word is unreadable, handwriting covers printed text, or part of the question is cut off.
 - Never invent content that is not on the page.
 - "meta" describes the exam as printed on this page (title, subject, institution, term, main language); use null for anything not shown.
-- Write "issues" and "notes" in Traditional Chinese (繁體中文) whatever the language of the exam, since the reviewer reads them; quote printed words in their original language.`
+`
+
+/** Names the model understands for the interface languages; any other value is passed through as is. */
+const LANGUAGE_NAMES: Record<string, string> = {
+  'zh-Hant': 'Traditional Chinese (繁體中文)',
+  'zh-TW': 'Traditional Chinese (繁體中文)',
+  'zh-Hans': 'Simplified Chinese (简体中文)',
+  'zh-CN': 'Simplified Chinese (简体中文)',
+  en: 'English',
+  ja: 'Japanese (日本語)',
+  ko: 'Korean (한국어)',
+}
+
+/** Language review notes are written in when the caller does not say. */
+export const DEFAULT_REVIEW_LANGUAGE = 'zh-Hant'
+
+/**
+ * The instructions shared by every provider. reviewLanguage is the language of
+ * the person checking the result (a tag such as "en" or "zh-Hant"): the model
+ * writes its review notes in it, while the exam content stays as printed.
+ */
+export function systemPrompt(reviewLanguage: string = DEFAULT_REVIEW_LANGUAGE): string {
+  const name = LANGUAGE_NAMES[reviewLanguage] ?? reviewLanguage
+  return `${BASE_PROMPT.trimEnd()}
+- Write "issues" and "notes" in ${name} whatever the language of the exam, since the reviewer reads them; quote printed words in their original language.`
+}
+
+export const SYSTEM_PROMPT = systemPrompt()
 
 export function userPrompt(page: PageImage, fileName: string): string {
   const lines = [`File: ${fileName}, page ${page.pageNumber}.`, 'Extract every question on this page.']

@@ -1,5 +1,5 @@
 import { ExtractedPage, toStrictJsonSchema, type IngestedDocument, type PageImage } from '@exam/core'
-import { SYSTEM_PROMPT, userPrompt } from './prompt.ts'
+import { systemPrompt, userPrompt } from './prompt.ts'
 import { ProviderStopError, type VisionProvider } from './provider.ts'
 
 const PAGE_JSON_SCHEMA = toStrictJsonSchema(ExtractedPage)
@@ -21,6 +21,8 @@ export interface PageOptions {
   busyRetries?: number
   /** Longest single wait before retrying a busy provider. Default 120 s. */
   maxWaitMs?: number
+  /** Language the model writes its review notes in, e.g. "en" or "zh-Hant". Default zh-Hant. */
+  reviewLanguage?: string
   /** Injected in tests. */
   sleep?: (ms: number) => Promise<void>
 }
@@ -68,7 +70,7 @@ export async function extractPage(
     try {
       const reply = await provider.complete({
         page,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt(opts.reviewLanguage),
         prompt: userPrompt(page, fileName),
         jsonSchema: PAGE_JSON_SCHEMA,
       })

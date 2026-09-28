@@ -20,6 +20,7 @@ Options:
       --concurrency <n>  Pages in flight per provider (default: 2; use 1 on free tiers)
       --pages <list>     Only these pages, e.g. 3-5,7; other pages keep their earlier results
       --pages-only       Only render page images, do not call any model
+      --lang <tag>       Language of the review notes, e.g. zh-Hant, en, ja (default: zh-Hant)
   -h, --help             Show this help
 
 API keys come from the environment or a .env file in the repo root:
@@ -40,6 +41,7 @@ async function main() {
       concurrency: { type: 'string', default: '2' },
       pages: { type: 'string' },
       'pages-only': { type: 'boolean', default: false },
+      lang: { type: 'string' },
       help: { type: 'boolean', short: 'h', default: false },
     },
   })
@@ -78,6 +80,7 @@ async function main() {
       const fresh = await extractDocument(provider, doc, {
         concurrency,
         pages: onlyPages,
+        reviewLanguage: values.lang,
         onPage: (r) => {
           const status = r.page
             ? `${r.page.questions.length} question(s)`
