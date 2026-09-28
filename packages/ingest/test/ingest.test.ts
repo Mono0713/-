@@ -5,15 +5,17 @@ import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 import { ingestFile } from '../src/index.ts'
 
-/** Smallest useful PDF: one A4 page with a line of text. */
-function tinyPdf(text: string): Buffer {
-  const content = `BT /F1 24 Tf 72 720 Td (${text}) Tj ET`
+/** Smallest useful PDF: one A4 page with a line of text, plus optional invisible (render mode 3) text in another font. */
+function tinyPdf(text: string, hidden?: string): Buffer {
+  const invisible = hidden ? ` BT 3 Tr /F2 24 Tf 72 600 Td (${hidden}) Tj ET` : ''
+  const content = `BT /F1 24 Tf 72 720 Td (${text}) Tj ET${invisible}`
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>',
     `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>',
   ]
   let body = '%PDF-1.4\n'
   const offsets: number[] = []
@@ -43,6 +45,13 @@ describe('ingestFile', async () => {
     expect(page.textLayer).toContain('Question 1')
     const meta = await sharp(page.data).metadata()
     expect(meta.format).toBe('png')
+  })
+
+  it('leaves out invisible text, such as a note app\'s handwriting recognition', async () => {
+    const path = join(dir, 'notes.pdf')
+    await writeFile(path, tinyPdf('Question 1', 'FEENT2DNA'))
+    const doc = await ingestFile(path, { maxEdge: 500 })
+    expect(doc.pages[0]!.textLayer).toBe('Question 1')
   })
 
   it('shrinks large photos and applies EXIF rotation', async () => {
