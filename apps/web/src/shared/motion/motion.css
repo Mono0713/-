@@ -131,7 +131,7 @@
 /* a soft ring that keeps pulsing out of an element (e.g. the action button while work is waiting) */
 @keyframes m-ring { from { transform: scale(1); opacity: 0.45; } to { transform: scale(1.65); opacity: 0; } }
 .m-ring::before {
-  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: inherit;
+  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: inherit; pointer-events: none;
   animation: m-ring 2.4s var(--m-ease-out) infinite;
 }
 .m-fab[data-open] .m-ring::before { animation: none; opacity: 0; }
