@@ -38,7 +38,7 @@ export default async function BankPage({ searchParams }: { searchParams: Promise
           {empty ? '匯入考卷、校對後按「存入題庫」，考卷就會出現在這裡。' : '換個關鍵字或篩選條件試試。'}
         </EmptyState>
       ) : (
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="m-stagger grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {exams.map((exam) => (
             <li key={exam.id}>
               <ExamCard exam={exam} />
@@ -52,10 +52,10 @@ export default async function BankPage({ searchParams }: { searchParams: Promise
           <h2 className="mb-3 text-sm font-semibold text-muted">
             符合「{search}」的題目 · {matches.total} 題{matches.total > matches.items.length ? `（顯示前 ${matches.items.length} 題）` : ''}
           </h2>
-          <ul className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <ul className="m-stagger grid grid-cols-1 gap-4 xl:grid-cols-2">
             {matches.items.map((q) => (
               <li key={q.id}>
-                <Link href={`/bank/${q.id}`} className="block h-full rounded-xl border border-line bg-surface p-4 transition-colors hover:border-accent/50">
+                <Link href={`/bank/${q.id}`} className="m-lift block h-full rounded-xl border border-line bg-surface p-4 hover:border-accent/50">
                   <p className="mb-2 truncate text-xs text-muted">{q.examTitle ?? '未命名考卷'}</p>
                   <QuestionView q={q} compact />
                 </Link>

@@ -12,10 +12,10 @@ export function StatusBadge({ status }: { status: ImportRecord['status'] }) {
 export function ImportList({ imports }: { imports: ImportRecord[] }) {
   if (!imports.length) return <EmptyState title="還沒有匯入任何考卷">上傳第一份考卷後會出現在這裡。</EmptyState>
   return (
-    <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+    <ul className="m-stagger divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
       {imports.map((imp) => (
         <li key={imp.id}>
-          <Link href={`/imports/${imp.id}`} className="flex items-center gap-x-4 px-4 py-3 hover:bg-paper">
+          <Link href={`/imports/${imp.id}`} className="flex items-center gap-x-4 px-4 py-3 transition-colors hover:bg-paper">
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 font-medium sm:truncate">{imp.title ?? imp.fileName}</p>
               <p className="truncate text-xs text-muted">

@@ -4,6 +4,7 @@ import type { Grade, QuizAttempt, QuizItem, QuizResponse } from '@exam/quiz'
 import { gradeItem } from '@exam/quiz/logic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { IconChevronLeft, IconChevronRight, IconFinish, IconSparkles, IconTimer } from '@/shared/icons'
 import { Button, Card } from '@/shared/ui'
 import { checkAnswer, finishQuiz, markAnswer, saveResponse } from './actions'
 import { QuizQuestion } from './QuizQuestion'
@@ -81,7 +82,9 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
 
   const secondsLeft = useCountdown(practice ? null : attempt.deadline, finish)
   const [navOpen, setNavOpen] = useState(false)
+  const [direction, setDirection] = useState<1 | -1>(1)
   const go = (i: number) => {
+    setDirection(i >= current ? 1 : -1)
     setCurrent(i)
     setNavOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -110,7 +113,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
                 ? 'border-accent/30 bg-accent-soft text-accent'
                 : 'border-line bg-surface text-muted'
         return (
-          <button key={i} type="button" onClick={() => go(i)} className={`h-9 rounded-md border text-xs tabular-nums lg:h-8 ${tone}`}>
+          <button key={i} type="button" onClick={() => go(i)} className={`m-press h-9 rounded-md border text-xs tabular-nums lg:h-8 ${tone}`}>
             {i + 1}
           </button>
         )
@@ -126,7 +129,12 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
           <span className="text-sm font-medium tabular-nums">
             第 {current + 1} / {total} 題
           </span>
-          {secondsLeft !== null && <span className={`text-sm font-semibold tabular-nums ${secondsLeft <= 60 ? 'text-bad' : ''}`}>⏱ {clock(secondsLeft)}</span>}
+          {secondsLeft !== null && (
+            <span className={`flex items-center gap-1 text-sm font-semibold tabular-nums ${secondsLeft <= 60 ? 'text-bad' : ''}`}>
+              <IconTimer size={15} className={secondsLeft <= 60 ? 'm-pop' : ''} />
+              {clock(secondsLeft)}
+            </span>
+          )}
           <button type="button" onClick={() => setNavOpen(!navOpen)} className="ml-auto rounded-md border border-line bg-surface px-3 py-1 text-sm" aria-expanded={navOpen}>
             題號 {navOpen ? '▴' : '▾'}
           </button>
@@ -145,37 +153,42 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
       </div>
 
       <div className="min-w-0 space-y-4">
-        <Card className="p-4 sm:p-5">
-          <QuizQuestion
-            item={item}
-            index={current}
-            response={responses[current] ?? null}
-            onChange={isChecked ? undefined : (r) => update(current, r)}
-            reveal={practice && isChecked}
-          />
-        </Card>
+        {/* keyed by question, so each one slides in from the side you're moving toward */}
+        <div key={current} className={direction > 0 ? 'm-slide-next' : 'm-slide-prev'}>
+          <Card className="p-4 sm:p-5">
+            <QuizQuestion
+              item={item}
+              index={current}
+              response={responses[current] ?? null}
+              onChange={isChecked ? undefined : (r) => update(current, r)}
+              reveal={practice && isChecked}
+              celebrate={practice && isChecked}
+            />
+          </Card>
+        </div>
 
         {practice && isChecked && grades[current] && (
           <Reveal item={item} grade={grades[current]!} marking={markings[current] ?? null} onMark={(credit) => mark(current, credit)} />
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Button onClick={() => go(current - 1)} disabled={current === 0}>
+          <Button onClick={() => go(current - 1)} disabled={current === 0} icon={<IconChevronLeft size={16} />}>
             上一題
           </Button>
           <div className="flex gap-2">
             {practice && !isChecked && (
-              <Button variant="primary" onClick={check} disabled={pending}>
+              <Button variant="primary" onClick={check} disabled={pending} loading={pending} icon={<IconSparkles size={16} />}>
                 {pending ? '檢查中…' : '看答案'}
               </Button>
             )}
             {(!practice || isChecked) && !last && (
               <Button variant={practice ? 'primary' : 'secondary'} onClick={() => go(current + 1)}>
                 下一題
+                <IconChevronRight size={16} />
               </Button>
             )}
             {last && (!practice || isChecked) && (
-              <Button variant="primary" onClick={() => (practice ? finish() : submit())} disabled={pending}>
+              <Button variant="primary" onClick={() => (practice ? finish() : submit())} disabled={pending} loading={pending} icon={<IconFinish size={16} />}>
                 {practice ? '完成練習' : '交卷'}
               </Button>
             )}

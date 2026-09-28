@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '../shared/motion/motion.css';
 
 @theme {
   --font-sans: 'Inter', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;

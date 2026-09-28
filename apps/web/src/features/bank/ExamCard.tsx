@@ -6,7 +6,7 @@ import { Badge } from '@/shared/ui'
 export function ExamCard({ exam }: { exam: BankExam }) {
   const details = [exam.institution, exam.term].filter(Boolean).join(' · ')
   return (
-    <Link href={`/bank/exams/${exam.id}`} className="flex h-full flex-col rounded-xl border border-line bg-surface p-4 transition-colors hover:border-accent/50">
+    <Link href={`/bank/exams/${exam.id}`} className="m-lift m-press flex h-full flex-col rounded-xl border border-line bg-surface p-4 hover:border-accent/50">
       <div className="mb-2 flex flex-wrap gap-1.5">
         {exam.subject && <Badge tone="accent">{exam.subject}</Badge>}
         <Badge>{exam.questionCount} 題</Badge>

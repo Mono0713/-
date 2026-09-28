@@ -1,24 +1,39 @@
 import Link from 'next/link'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { IconEmpty, IconLoader } from '@/shared/icons'
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-accent text-white hover:bg-accent/90 disabled:bg-accent/50',
+  primary: 'm-shine bg-accent text-white shadow-[0_6px_16px_-8px_var(--color-accent)] hover:bg-accent/90 disabled:bg-accent/50 disabled:shadow-none',
   secondary: 'bg-surface text-ink border border-line hover:bg-paper disabled:text-muted',
   ghost: 'text-muted hover:text-ink hover:bg-paper',
   danger: 'text-bad hover:bg-bad-soft',
 }
 
-const BASE = 'inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed'
+const BASE = 'm-press inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium disabled:cursor-not-allowed'
 
-export function Button({ variant = 'secondary', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
-  return <button type="button" className={`${BASE} ${VARIANTS[variant]} ${className}`} {...props} />
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: Variant
+  /** Leading icon, e.g. <IconUpload size={16} /> */
+  icon?: ReactNode
+  /** Shows a spinner in place of the icon. */
+  loading?: boolean
 }
 
-export function ButtonLink({ href, variant = 'secondary', children }: { href: string; variant?: Variant; children: ReactNode }) {
+export function Button({ variant = 'secondary', className = '', icon, loading = false, children, ...props }: ButtonProps) {
+  return (
+    <button type="button" className={`${BASE} ${VARIANTS[variant]} ${className}`} {...props}>
+      {loading ? <IconLoader size={16} className="m-spin" aria-hidden /> : icon}
+      {children}
+    </button>
+  )
+}
+
+export function ButtonLink({ href, variant = 'secondary', icon, children }: { href: string; variant?: Variant; icon?: ReactNode; children: ReactNode }) {
   return (
     <Link href={href} className={`${BASE} ${VARIANTS[variant]}`}>
+      {icon}
       {children}
     </Link>
   )
@@ -37,13 +52,13 @@ export function Badge({ tone = 'neutral', children }: { tone?: Tone; children: R
   return <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ${TONES[tone]}`}>{children}</span>
 }
 
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-xl border border-line bg-surface ${className}`}>{children}</div>
+export function Card({ children, className = '', interactive = false }: { children: ReactNode; className?: string; interactive?: boolean }) {
+  return <div className={`rounded-xl border border-line bg-surface ${interactive ? 'm-lift' : ''} ${className}`}>{children}</div>
 }
 
 export function PageHeader({ title, subtitle, actions }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="m-enter mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
@@ -53,9 +68,12 @@ export function PageHeader({ title, subtitle, actions }: { title: ReactNode; sub
   )
 }
 
-export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
+export function EmptyState({ title, icon, children }: { title: string; icon?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-line px-6 py-12 text-center">
+    <div className="m-enter rounded-xl border border-dashed border-line px-6 py-12 text-center">
+      <div className="m-float mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-surface text-muted shadow-[0_0_0_1px_var(--color-line)]">
+        {icon ?? <IconEmpty size={22} strokeWidth={1.8} />}
+      </div>
       <p className="font-medium">{title}</p>
       {children && <div className="mt-2 text-sm text-muted">{children}</div>}
     </div>

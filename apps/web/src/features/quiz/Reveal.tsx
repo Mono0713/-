@@ -43,7 +43,7 @@ export function Reveal({
         : null
 
   return (
-    <div className="space-y-3 rounded-lg border border-line bg-paper p-4 text-sm">
+    <div className="m-expand space-y-3 rounded-lg border border-line bg-paper p-4 text-sm">
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone={tone}>{label}</Badge>
         {grade.max > 0 && (
