@@ -24,7 +24,7 @@ export function PageViewer({
   const boxes = questions.flatMap((q, index) => q.locations.filter((l) => l.pageNumber === page.pageNumber).map((l) => ({ index, bbox: l.bbox, number: q.number })))
   return (
     <div>
-      <div className="mb-2 flex flex-wrap gap-1">
+      <div className="mb-2 flex flex-wrap items-center gap-1">
         {pages.map((p) => (
           <button
             key={p.pageNumber}
@@ -35,6 +35,9 @@ export function PageViewer({
             第 {p.pageNumber} 頁
           </button>
         ))}
+        <a href={fileUrl(page.image)} target="_blank" rel="noreferrer" className="ml-auto text-xs text-muted hover:text-ink">
+          看大圖 ↗
+        </a>
       </div>
       <div className="relative overflow-hidden rounded-lg border border-line bg-surface">
         {/* eslint-disable-next-line @next/next/no-img-element */}

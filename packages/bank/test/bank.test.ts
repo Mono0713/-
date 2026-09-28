@@ -1,3 +1,7 @@
+import { DatabaseSync } from 'node:sqlite'
+import { mkdtemp } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { DraftExam, DraftQuestion } from '@exam/core'
 import { SqliteBank } from '../src/index.ts'
@@ -12,46 +16,92 @@ function draftQuestion(overrides: Partial<DraftQuestion> = {}): DraftQuestion {
 }
 
 const meta = { title: '期中考', subject: '數學', institution: null, term: null, language: 'zh-Hant' }
+const draft = (questions: DraftQuestion[], extra: Partial<DraftExam> = {}): DraftExam => ({ fileName: 'exam.pdf', meta, groups: [], questions, pages: [], ...extra })
 
 describe('SqliteBank', () => {
-  it('tracks an import from upload to saved questions', () => {
+  it('tracks an import from upload to a saved exam', () => {
     const bank = new SqliteBank(':memory:')
     const imp = bank.createImport({ ownerId: 'local', fileName: 'exam.pdf', pageCount: 2, provider: 'manual', model: null })
     expect(imp.status).toBe('processing')
 
     bank.updateImport(imp.id, { status: 'review', progress: { done: 2, total: 2 } })
-    const draft: DraftExam = { fileName: 'exam.pdf', meta, groups: [], questions: [draftQuestion(), draftQuestion({ number: '2', type: 'essay', stem: 'Explain gravity.' })], pages: [] }
-    bank.saveDraft(imp.id, draft)
+    const d = draft([draftQuestion(), draftQuestion({ number: '2', type: 'essay', stem: 'Explain gravity.', groupId: 'g1' })], {
+      groups: [{ id: 'g1', stem: 'Read the passage.', figures: [], pageNumber: 1 }],
+    })
+    bank.saveDraft(imp.id, d)
     expect(bank.getDraft(imp.id)?.questions).toHaveLength(2)
     expect(bank.getImport(imp.id)).toMatchObject({ status: 'review', title: '期中考', subject: '數學', progress: { done: 2, total: 2 } })
 
-    const saved = bank.saveQuestions(imp.id, meta, draft.questions)
+    const exam = bank.saveExam(imp.id, d)
+    expect(exam).toMatchObject({ title: '期中考', subject: '數學', importId: imp.id, questionCount: 2, groups: [{ id: 'g1' }] })
+    const saved = bank.listQuestions({ ownerId: 'local', examId: exam.id }).items
     expect(saved.map((q) => q.number)).toEqual(['1', '2'])
-    expect(saved[0]).toMatchObject({ subject: '數學', examTitle: '期中考', importId: imp.id })
+    expect(saved[0]).toMatchObject({ subject: '數學', examTitle: '期中考', examId: exam.id, position: 0 })
     expect(bank.getImport(imp.id)).toMatchObject({ status: 'saved', questionCount: 2 })
 
-    // Saving the same import again replaces its questions instead of duplicating them.
-    bank.saveQuestions(imp.id, meta, draft.questions.slice(0, 1))
-    expect(bank.listQuestions({ ownerId: 'local' }).total).toBe(1)
+    // Saving the same import again replaces the exam's questions instead of making a second exam.
+    const again = bank.saveExam(imp.id, draft(d.questions.slice(0, 1), { meta: { ...meta, title: '期中考（修正）' } }))
+    expect(again.id).toBe(exam.id)
+    expect(bank.listExams({ ownerId: 'local' })).toMatchObject([{ title: '期中考（修正）', questionCount: 1 }])
+
+    // Deleting the import keeps the exam.
+    bank.deleteImport(imp.id)
+    expect(bank.getExam(exam.id)).toMatchObject({ importId: null, questionCount: 1 })
+    bank.deleteExam(exam.id)
+    expect(bank.listQuestions({ ownerId: 'local' }).total).toBe(0)
   })
 
-  it('searches, filters and edits questions', () => {
+  it('searches exams and questions, and edits them', () => {
     const bank = new SqliteBank(':memory:')
     const imp = bank.createImport({ ownerId: 'local', fileName: 'exam.pdf', pageCount: 1, provider: 'claude', model: null })
-    bank.saveQuestions(imp.id, meta, [draftQuestion(), draftQuestion({ number: '2', type: 'essay', stem: 'Explain Gravity.' })])
+    const exam = bank.saveExam(imp.id, draft([draftQuestion(), draftQuestion({ number: '2', type: 'essay', stem: 'Explain Gravity.' })]))
     const other = bank.createImport({ ownerId: 'someone-else', fileName: 'x.pdf', pageCount: 1, provider: 'claude', model: null })
-    bank.saveQuestions(other.id, meta, [draftQuestion({ stem: 'gravity again' })])
+    bank.saveExam(other.id, draft([draftQuestion({ stem: 'gravity again' })]))
 
     expect(bank.listQuestions({ ownerId: 'local', search: 'gravity' }).items.map((q) => q.number)).toEqual(['2'])
     expect(bank.listQuestions({ ownerId: 'local', type: 'single_choice' }).total).toBe(1)
+    expect(bank.listExams({ ownerId: 'local', search: 'gravity' })).toHaveLength(1)
+    expect(bank.listExams({ ownerId: 'local', search: '期中' })).toHaveLength(1)
+    expect(bank.listExams({ ownerId: 'local', search: 'nothing' })).toHaveLength(0)
     expect(bank.subjects('local')).toEqual(['數學'])
 
+    bank.updateExam(exam.id, { subject: '物理', term: '113-1' })
+    expect(bank.getExam(exam.id)).toMatchObject({ subject: '物理', term: '113-1', title: '期中考' })
+    expect(bank.listQuestions({ ownerId: 'local', subject: '物理' }).total).toBe(2)
+
     const q = bank.listQuestions({ ownerId: 'local', type: 'essay' }).items[0]!
-    const updated = bank.updateQuestion(q.id, { ...q, stem: 'Explain magnetism.', subject: '物理' })
-    expect(updated).toMatchObject({ stem: 'Explain magnetism.', subject: '物理', id: q.id })
+    const updated = bank.updateQuestion(q.id, { ...q, stem: 'Explain magnetism.' })
+    expect(updated).toMatchObject({ stem: 'Explain magnetism.', id: q.id, examId: exam.id })
     expect(bank.listQuestions({ ownerId: 'local', search: 'magnetism' }).total).toBe(1)
+    expect(bank.getQuestions([q.id, 'missing'])).toHaveLength(1)
 
     bank.deleteQuestion(q.id)
     expect(bank.getQuestion(q.id)).toBeNull()
+  })
+
+  it('files questions saved before exams existed under one exam per import', async () => {
+    const path = join(await mkdtemp(join(tmpdir(), 'bank-')), 'old.sqlite')
+    const old = new DatabaseSync(path)
+    old.exec(`
+      CREATE TABLE imports (id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, file_name TEXT NOT NULL, page_count INTEGER NOT NULL, provider TEXT NOT NULL, model TEXT, status TEXT NOT NULL, progress_done INTEGER NOT NULL DEFAULT 0, progress_total INTEGER NOT NULL DEFAULT 0, error TEXT, title TEXT, subject TEXT, draft TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+      CREATE TABLE questions (id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, import_id TEXT REFERENCES imports (id) ON DELETE SET NULL, position INTEGER NOT NULL, type TEXT NOT NULL, subject TEXT, exam_title TEXT, search_text TEXT NOT NULL, data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+    `)
+    const d = draft([draftQuestion()], { groups: [{ id: 'g', stem: 'shared', figures: [], pageNumber: 1 }] })
+    old.prepare(`INSERT INTO imports VALUES ('i1', 'local', 'a.pdf', 1, 'manual', NULL, 'saved', 1, 1, NULL, '期中考', '數學', ?, 't0', 't0')`).run(JSON.stringify(d))
+    const insert = old.prepare(`INSERT INTO questions VALUES (?, 'local', ?, ?, 'single_choice', ?, ?, 'x', ?, 't1', 't1')`)
+    insert.run('q1', 'i1', 0, '數學', '期中考', JSON.stringify(draftQuestion({ number: '1' })))
+    insert.run('q2', 'i1', 1, '數學', '期中考', JSON.stringify(draftQuestion({ number: '2' })))
+    insert.run('q3', null, 0, null, '小考', JSON.stringify(draftQuestion({ number: '9' })))
+    old.close()
+
+    const bank = new SqliteBank(path)
+    const exams = bank.listExams({ ownerId: 'local' })
+    expect(exams.map((e) => [e.title, e.questionCount, e.importId]).sort()).toEqual([['小考', 1, null], ['期中考', 2, 'i1']])
+    const midterm = exams.find((e) => e.title === '期中考')!
+    expect(midterm.groups).toEqual([{ id: 'g', stem: 'shared', figures: [], pageNumber: 1 }])
+    expect(bank.listQuestions({ ownerId: 'local', examId: midterm.id }).items.map((q) => q.number)).toEqual(['1', '2'])
+    bank.close()
+    // A second open does not migrate again.
+    expect(new SqliteBank(path).listExams({ ownerId: 'local' })).toHaveLength(2)
   })
 })

@@ -144,17 +144,17 @@ export class Importer {
     this.bank.saveDraft(id, draft)
   }
 
-  /** Puts the reviewed draft into the bank. */
+  /** Puts the reviewed draft into the bank as an exam; publishing again updates that exam. */
   publish(id: string, draft: DraftExam) {
     this.bank.saveDraft(id, draft)
-    return this.bank.saveQuestions(id, draft.meta, draft.questions)
+    return this.bank.saveExam(id, draft)
   }
 
   /** Deletes the import and its files. Questions already in the bank stay, and so do the figure images they show. */
   async remove(id: string): Promise<void> {
     await this.settled(id)
     const imp = this.require(id)
-    const inBank = this.bank.listQuestions({ ownerId: imp.ownerId, importId: id, limit: 1 }).total > 0
+    const inBank = this.bank.examForImport(imp.id) !== null
     this.bank.deleteImport(id)
     if (!inBank) {
       await rm(this.dir(id), { recursive: true, force: true })

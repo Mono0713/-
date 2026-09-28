@@ -103,22 +103,32 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-/** Text area with a live preview, since stems mix Markdown, tables and LaTeX. */
+/** Text area with a preview tab, since stems mix Markdown, tables and LaTeX. It grows with its content. */
 function MarkdownField({ label, value, onChange, rows }: { label: string; value: string; onChange: (v: string) => void; rows: number }) {
-  const [preview, setPreview] = useState(true)
+  const [tab, setTab] = useState<'edit' | 'preview'>('edit')
+  const tabClass = (t: typeof tab) => `rounded px-2 py-0.5 text-xs ${tab === t ? 'bg-paper font-medium text-ink' : 'text-muted hover:text-ink'}`
   return (
     <div className="text-sm">
       <div className="mb-1 flex items-center justify-between">
         <span className="text-xs font-medium text-muted">{label}</span>
-        <button type="button" onClick={() => setPreview(!preview)} className="text-xs text-muted hover:text-ink">
-          {preview ? '隱藏預覽' : '顯示預覽'}
-        </button>
-      </div>
-      <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} className={`${inputClass} font-mono text-[13px]`} />
-      {preview && value.trim() && (
-        <div className="mt-1.5 rounded-lg border border-dashed border-line px-3 py-2">
-          <Markdown>{value}</Markdown>
+        <div className="flex gap-0.5">
+          <button type="button" onClick={() => setTab('edit')} className={tabClass('edit')}>
+            編輯
+          </button>
+          <button type="button" onClick={() => setTab('preview')} className={tabClass('preview')}>
+            預覽
+          </button>
         </div>
+      </div>
+      {tab === 'edit' ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={Math.max(rows, Math.min(20, value.split('\n').length + 1))}
+          className={`${inputClass} font-mono text-[13px]`}
+        />
+      ) : (
+        <div className="min-h-16 rounded-lg border border-line px-3 py-2">{value.trim() ? <Markdown>{value}</Markdown> : <span className="text-muted">（空白）</span>}</div>
       )}
     </div>
   )
@@ -150,8 +160,8 @@ function OptionsEditor({ q, onChange }: { q: DraftQuestion; onChange: (q: DraftQ
               className={`${inputBase} min-w-0 flex-1`}
               aria-label={`選項 ${o.label} 內容`}
             />
-            <Button variant="ghost" className="shrink-0" onClick={() => setOptions(q.options.filter((_, j) => j !== i))} aria-label={`刪除選項 ${o.label}`}>
-              刪除
+            <Button variant="ghost" className="shrink-0 px-2 text-muted" onClick={() => setOptions(q.options.filter((_, j) => j !== i))} aria-label={`刪除選項 ${o.label}`} title="刪除選項">
+              ✕
             </Button>
           </div>
         ))}
