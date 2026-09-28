@@ -34,7 +34,8 @@ export function Fab({ actions, badge, label = '更多動作' }: { actions: FabAc
   return (
     <div className="m-fab" data-open={open ? '' : undefined}>
       <div className="m-fab-scrim fixed inset-0 z-40 bg-ink/10 backdrop-blur-[1px]" onClick={() => setOpen(false)} aria-hidden />
-      <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3 sm:bottom-7 sm:right-7">
+      {/* The column is click-through; only the button and, while open, the items take clicks. */}
+      <div className="pointer-events-none fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3 sm:bottom-7 sm:right-7">
         <ul className="flex flex-col-reverse items-end gap-2.5 pr-1.5" aria-hidden={!open}>
           {actions.map((a, i) => (
             <li key={a.id} className={`m-fab-item flex items-center gap-3 ${a.className ?? ''}`} style={{ '--i': i, '--n': n } as React.CSSProperties}>
@@ -63,7 +64,7 @@ export function Fab({ actions, badge, label = '更多動作' }: { actions: FabAc
           onClick={() => setOpen(!open)}
           aria-expanded={open}
           aria-label={label}
-          className={`m-fab-main m-press relative isolate grid h-14 w-14 place-items-center rounded-full bg-brand text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_14px_30px_-12px_var(--color-brand-to)] ${badge ? 'm-ring' : ''}`}
+          className={`m-fab-main m-press pointer-events-auto relative isolate grid h-14 w-14 place-items-center rounded-full bg-brand text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_14px_30px_-12px_var(--color-brand-to)] ${badge ? 'm-ring' : ''}`}
         >
           <IconPlus size={26} strokeWidth={2.2} />
           {!!badge && !open && <Count value={badge} />}
