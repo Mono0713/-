@@ -1,4 +1,4 @@
-import type { BoundingBox, DraftExam, DraftFigure, Figure, FigureBlank, PageImage } from '@exam/core'
+import { defaultPrintedText, type BoundingBox, type DraftExam, type DraftFigure, type Figure, type FigureBlank, type PageImage } from '@exam/core'
 import sharp from 'sharp'
 
 export interface CleanFigure {
@@ -22,13 +22,19 @@ interface Rect { x1: number; y1: number; x2: number; y2: number }
  * so each blank is first snapped to the printed box or line around it; coloured
  * handwriting (red, blue) in and just around the blank is then painted over with
  * the paper colour, leaving printed labels such as "7." untouched.
+ *
+ * Pencil and black pen look like print, so a blank marked `ink: "dark"` is cleared
+ * inside its border instead and its `printedText` (or just its label) is typeset back in.
  */
 export async function cleanFigure(pageImage: Buffer, figure: Figure, opts: CleanOptions = {}): Promise<CleanFigure> {
   const { data, info } = await sharp(pageImage).removeAlpha().raw().toBuffer({ resolveWithObject: true })
   const page = new Page(data, info.width, info.height, info.channels)
 
-  const blanks = figure.blanks.map((b) => ({ label: b.label, rect: page.snap(page.toRect(b.bbox)) }))
-  for (const b of blanks) page.removeInk(b.rect)
+  const blanks = figure.blanks.map((b) => ({ ...b, rect: page.snap(page.toRect(b.bbox)) }))
+  for (const b of blanks) {
+    page.removeInk(b.rect)
+    if (b.ink === 'dark') page.clearInside(b.rect)
+  }
 
   const pad = Math.round((opts.padding ?? 0.005) * page.width)
   const crop = [page.toRect(figure.bbox), ...blanks.map((b) => b.rect)].reduce((a, r) => ({
@@ -37,19 +43,55 @@ export async function cleanFigure(pageImage: Buffer, figure: Figure, opts: Clean
   const left = Math.max(0, crop.x1 - pad), top = Math.max(0, crop.y1 - pad)
   const width = Math.min(page.width, crop.x2 + pad) - left, height = Math.min(page.height, crop.y2 + pad) - top
 
+  const retyped = blanks.filter((b) => b.ink === 'dark')
   const png = await sharp(page.data, { raw: { width: page.width, height: page.height, channels: page.channels as 3 | 4 } })
     .extract({ left, top, width, height })
+    .composite(
+      retyped.map((b) => ({
+        input: Buffer.from(printedTextSvg(b.printedText?.trim() || defaultPrintedText(b.label), b.rect.x2 - b.rect.x1, b.rect.y2 - b.rect.y1, page.borderInset)),
+        left: b.rect.x1 - left,
+        top: b.rect.y1 - top,
+      })),
+    )
     .png()
     .toBuffer()
   return {
     png,
     width,
     height,
-    blanks: blanks.map(({ label, rect }) => ({
-      label,
+    blanks: blanks.map(({ rect, ...blank }) => ({
+      ...blank,
       bbox: { x: (rect.x1 - left) / width, y: (rect.y1 - top) / height, width: (rect.x2 - rect.x1) / width, height: (rect.y2 - rect.y1) / height },
     })),
   }
+}
+
+/**
+ * Printed text of a blank as an SVG the size of the box. Each line of `text` fills
+ * an equal row; "___" splits a line into pieces spread across the box, so
+ * "7. ___ host" puts "7." at the left edge and "host" at the right one.
+ */
+export function printedTextSvg(text: string, width: number, height: number, inset = 3): string {
+  const lines = text.split(/\r?\n/).map((line) => line.split(/_{2,}/).map((part) => part.trim()))
+  const innerW = width - 2 * inset, innerH = height - 2 * inset
+  const pad = Math.max(2, Math.round(0.04 * innerW))
+  const rowH = innerH / lines.length
+  // Bold sans glyphs average about 0.6 em; keep a gap for the answer between pieces.
+  const widest = Math.max(...lines.map((parts) => parts.join('').length * 0.6 + (parts.length > 1 ? 2 : 0)))
+  const size = Math.max(6, Math.min(0.55 * rowH, (innerW - 2 * pad) / Math.max(widest, 1)))
+  const escape = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  const texts = lines.flatMap((parts, row) => {
+    const y = inset + rowH * (row + 0.5) + 0.35 * size
+    return parts.flatMap((part, k) => {
+      if (!part) return []
+      const at = parts.length === 1 ? 0 : k / (parts.length - 1)
+      const anchor = at === 0 ? 'start' : at === 1 ? 'end' : 'middle'
+      const x = inset + pad + at * (innerW - 2 * pad)
+      return [`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}">${escape(part)}</text>`]
+    })
+  })
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><g font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="${size.toFixed(1)}" fill="#1a1a1a">${texts.join('')}</g></svg>`
 }
 
 /**
@@ -164,6 +206,23 @@ class Page {
       }
     }
     for (const i of wipe) paper.forEach((v, c) => (this.data[i + c] = v))
+  }
+
+  /** How far inside a snapped box its printed border reaches. */
+  get borderInset(): number {
+    return Math.max(3, Math.round(0.003 * this.width))
+  }
+
+  /** Paints everything inside the box's border in the paper colour: the fallback for pencil and black pen. */
+  clearInside(box: Rect) {
+    const inset = this.borderInset
+    const paper = this.paperColour(box, inset)
+    for (let y = box.y1 + inset; y < box.y2 - inset; y++) {
+      for (let x = box.x1 + inset; x < box.x2 - inset; x++) {
+        const i = this.at(x, y)
+        paper.forEach((v, c) => (this.data[i + c] = v))
+      }
+    }
   }
 
   /** Median colour of the plain paper inside the box. */

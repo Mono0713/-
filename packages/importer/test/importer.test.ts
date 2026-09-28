@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -43,6 +44,35 @@ describe('Importer', () => {
 
     importer.publish(imp.id, draft)
     expect(bank.getImport(imp.id)).toMatchObject({ status: 'saved', questionCount: 2 })
+  })
+
+  it('crops a figure again with its blanks switched to pencil mode', async () => {
+    const imp = await importer.create({ ownerId: 'local', files: [{ name: 'p1.png', data: await png() }], provider: 'fake' })
+    await importer.settled(imp.id)
+    const figure = {
+      description: 'diagram',
+      pageNumber: 1,
+      bbox: { x: 0.1, y: 0.1, width: 0.8, height: 0.5 },
+      blanks: [{ label: '1', bbox: { x: 0.2, y: 0.2, width: 0.3, height: 0.1 }, ink: 'dark' as const, printedText: '1. ___' }],
+      image: null,
+    }
+    const first = await importer.recropFigure(imp.id, figure)
+    expect(first.image).toMatchObject({ width: 162, blanks: [{ label: '1', ink: 'dark', printedText: '1. ___' }] })
+    expect(existsSync(join(dataDir, first.image!.file))).toBe(true)
+    const second = await importer.recropFigure(imp.id, first)
+    expect(second.image!.file).not.toBe(first.image!.file)
+    expect(second.image!.file).toMatch(/^imports\/[\w-]+\/figures\/figure-r\d+\.png$/)
+  })
+
+  it('keeps figure images of saved questions when the import is deleted', async () => {
+    const imp = await importer.create({ ownerId: 'local', files: [{ name: 'p1.png', data: await png() }], provider: 'fake' })
+    await importer.settled(imp.id)
+    const figure = await importer.recropFigure(imp.id, { description: 'd', pageNumber: 1, bbox: { x: 0, y: 0, width: 1, height: 1 }, blanks: [], image: null })
+    importer.publish(imp.id, bank.getDraft(imp.id)!)
+    await importer.remove(imp.id)
+    expect(bank.getImport(imp.id)).toBeNull()
+    expect(existsSync(join(dataDir, figure.image!.file))).toBe(true)
+    expect(existsSync(join(dataDir, importer.pageImage(imp.id, 1)))).toBe(false)
   })
 
   it('waits for pasted chat replies in manual mode', async () => {
