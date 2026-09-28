@@ -244,7 +244,7 @@ export function ReviewEditor({
           </div>
         </div>
         {/* Question numbers; wide screens show them in the outline column instead. */}
-        <nav className="flex gap-1 overflow-x-auto px-4 pb-2.5 sm:px-6 min-[1440px]:hidden" aria-label="題號">
+        <nav className="flex gap-1 overflow-x-auto px-4 pb-2.5 sm:px-6 min-[90rem]:hidden" aria-label="題號">
           {draft.questions.map((q, index) =>
             flaggedOnly && !isFlagged(q) ? null : (
               <button
@@ -268,7 +268,7 @@ export function ReviewEditor({
       </div>
 
       <div
-        className="grid grid-cols-1 gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] min-[1440px]:grid-cols-[236px_minmax(0,5fr)_minmax(0,6fr)] 2xl:gap-8"
+        className="grid grid-cols-1 gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] min-[90rem]:grid-cols-[236px_minmax(0,5fr)_minmax(0,6fr)] 2xl:gap-8"
         style={{ '--bar': `${barHeight}px` } as React.CSSProperties}
       >
         <Outline
@@ -289,7 +289,7 @@ export function ReviewEditor({
 
         <div className={`min-w-0 space-y-4 pb-24 lg:block ${mobileView === 'questions' ? '' : 'hidden'}`}>
           {notice}
-          <details className="group rounded-2xl bg-surface shadow-sheet min-[1440px]:hidden">
+          <details className="group rounded-2xl bg-surface shadow-sheet min-[90rem]:hidden">
             <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
               <span className="font-medium">考卷資訊</span>
               <span className="min-w-0 flex-1 truncate text-muted">{[meta.subject, meta.institution, meta.term].filter(Boolean).join(' · ')}</span>
@@ -379,7 +379,7 @@ function Outline({
   meta: React.ReactNode
 }) {
   return (
-    <nav aria-label="題目大綱" className="hidden space-y-6 self-start min-[1440px]:sticky min-[1440px]:top-[calc(var(--bar)+1.25rem)] min-[1440px]:block min-[1440px]:max-h-[calc(100vh-var(--bar)-2.5rem)] min-[1440px]:overflow-y-auto min-[1440px]:pb-4">
+    <nav aria-label="題目大綱" className="hidden space-y-6 self-start min-[90rem]:sticky min-[90rem]:top-[calc(var(--bar)+1.25rem)] min-[90rem]:block min-[90rem]:max-h-[calc(100vh-var(--bar)-2.5rem)] min-[90rem]:overflow-y-auto min-[90rem]:pb-4">
       <section>
         <p className="mb-2 px-1 text-[11px] font-semibold tracking-[0.12em] text-muted">考卷資訊</p>
         <div className="space-y-2.5 rounded-2xl bg-surface p-3 shadow-sheet">{meta}</div>
