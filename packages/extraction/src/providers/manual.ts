@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { ProviderStopError, type PageRequest, type ProviderReply, type VisionProvider } from '../provider.ts'
+import { typeNotation } from '../type-notation.ts'
 
 export interface ManualOptions {
   /** Folder that holds the prompts to copy and the replies pasted back. */
@@ -105,33 +106,21 @@ export function chatPrompt(req: PageRequest): string {
     '',
     req.prompt,
     '',
-    'Reply with a single JSON object and nothing else (no explanation, no Markdown fence). It must match this JSON Schema exactly; every property is required and uses null when unknown:',
+    'Reply with a single JSON object of type Page and nothing else (no explanation, no Markdown fence).',
+    REPLY_RULES,
     '',
-    JSON.stringify(req.jsonSchema),
+    typeNotation(req.jsonSchema, 'Page'),
     '',
   ].join('\n')
 }
+
+const REPLY_RULES =
+  'Every field is required: use null where the type allows it and the value is unknown, and [] for empty lists. // comments explain a field and are not part of the JSON.'
 
 /** One message covering several pages; the reply wraps each page's result with its page number. */
 export function batchChatPrompt(requests: PageRequest[]): string {
   const first = requests[0]!
   const numbers = requests.map((r) => r.page.pageNumber)
-  const schema = {
-    type: 'object',
-    properties: {
-      pages: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: { pageNumber: { type: 'integer' }, result: first.jsonSchema },
-          required: ['pageNumber', 'result'],
-          additionalProperties: false,
-        },
-      },
-    },
-    required: ['pages'],
-    additionalProperties: false,
-  }
   const lines = [
     first.system,
     '',
@@ -146,9 +135,10 @@ export function batchChatPrompt(requests: PageRequest[]): string {
   }
   lines.push(
     '',
-    'Reply with a single JSON object and nothing else (no explanation, no Markdown fence). It must match this JSON Schema exactly; every property is required and uses null when unknown:',
+    `Reply with a single JSON object and nothing else (no explanation, no Markdown fence): { "pages": [{ "pageNumber": ${numbers[0]}, "result": Page }, ...] }, one entry per page, where each result has type Page.`,
+    REPLY_RULES,
     '',
-    JSON.stringify(schema),
+    typeNotation(first.jsonSchema, 'Page'),
     '',
   )
   return lines.join('\n')

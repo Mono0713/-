@@ -73,7 +73,7 @@ export const Figure = z.object({
 export type Figure = z.infer<typeof Figure>
 
 export const Option = z.object({
-  label: z.string().describe('Label exactly as printed, e.g. "A", "(B)", "1", "甲"'),
+  label: z.string().describe('Label as printed, without brackets or punctuation, e.g. "A", "1", "甲"'),
   content: z.string().describe('Option text in Markdown/LaTeX, without the label'),
 })
 export type Option = z.infer<typeof Option>

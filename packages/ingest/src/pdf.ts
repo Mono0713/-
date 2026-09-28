@@ -1,5 +1,5 @@
 import { createCanvas } from '@napi-rs/canvas'
-import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
+import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import type { PageImage } from '@exam/core'
 
 export interface RenderOptions {
@@ -30,8 +30,9 @@ export async function renderPdf(data: Uint8Array, opts: RenderOptions): Promise<
       const png = canvas.toBuffer('image/png')
 
       const text = await page.getTextContent()
+      const hidden = await invisibleFonts(page)
       const textLayer = text.items
-        .map((item) => ('str' in item ? item.str + (item.hasEOL ? '\n' : '') : ''))
+        .map((item) => ('str' in item && !hidden.has(item.fontName) ? item.str + (item.hasEOL ? '\n' : '') : ''))
         .join('')
         .trim()
 
@@ -49,4 +50,26 @@ export async function renderPdf(data: Uint8Array, opts: RenderOptions): Promise<
   } finally {
     await doc.destroy()
   }
+}
+
+/**
+ * Fonts the page only draws invisibly (text render mode 3 or 7). Scanner apps and
+ * note apps put their own recognition of the image there, handwriting included,
+ * which is noise next to the image the model already sees.
+ */
+async function invisibleFonts(page: { getOperatorList(): Promise<{ fnArray: number[]; argsArray: unknown[] }> }): Promise<Set<string>> {
+  const ops = await page.getOperatorList()
+  const visible = new Set<string>(), invisible = new Set<string>()
+  const stack: [number, string | null][] = []
+  let mode = 0, font: string | null = null
+  ops.fnArray.forEach((fn, i) => {
+    const args = ops.argsArray[i] as unknown[]
+    if (fn === OPS.save) stack.push([mode, font])
+    else if (fn === OPS.restore) [mode, font] = stack.pop() ?? [0, null]
+    else if (fn === OPS.setTextRenderingMode) mode = Number(args[0])
+    else if (fn === OPS.setFont) font = String(args[0])
+    else if ((fn === OPS.showText || fn === OPS.showSpacedText) && font) (mode === 3 || mode === 7 ? invisible : visible).add(font)
+  })
+  for (const f of visible) invisible.delete(f)
+  return invisible
 }

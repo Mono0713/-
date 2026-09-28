@@ -18,7 +18,9 @@ describe('manual provider', () => {
     expect(result.error).toMatch(/^waiting for a reply/)
     const prompt = await readFile(join(workDir, 'page-2.prompt.md'), 'utf8')
     expect(prompt).toContain('Extract every question on this page.')
-    expect(prompt).toContain('"additionalProperties":false')
+    expect(prompt).toContain('type Page = {')
+    expect(prompt).toContain('type Box = {')
+    expect(prompt).not.toContain('additionalProperties')
   })
 
   it('validates a pasted reply, even inside a code fence', async () => {
@@ -55,7 +57,7 @@ describe('manual provider batches', () => {
     const prompt = await readFile(join(workDir, 'batch.prompt.md'), 'utf8')
     expect(prompt).toContain('attached in this order: page 1, page 2')
     expect(prompt).toContain('Embedded PDF text layer of page 1')
-    expect(prompt).toContain('"pageNumber":{"type":"integer"}')
+    expect(prompt).toContain('{ "pages": [{ "pageNumber": 1, "result": Page }, ...] }')
   })
 
   it('skips the batch prompt for a single page', async () => {
