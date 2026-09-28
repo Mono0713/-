@@ -1,6 +1,7 @@
 'use server'
 
-import { buildItems, grade, isOver, type QuizAttempt, type QuizResponse, type QuizSettings, type QuizSource } from '@exam/quiz'
+import { buildItems, gradeItem, isOver, type QuizAttempt, type QuizResponse, type QuizSettings, type QuizSource } from '@exam/quiz'
+import { draftOf } from '@exam/bank'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { currentOwner, services } from '@/server/context'
@@ -31,9 +32,8 @@ export async function createQuiz(input: NewQuiz): Promise<{ error: string } | un
   }
   const exams = new Map([...new Set(questions.map((q) => q.examId))].map((id) => [id, bank.getExam(id)]))
   const sources: QuizSource[] = questions.map((q) => {
-    const { id, ownerId: _o, examId, position: _p, subject: _s, examTitle: _t, createdAt: _c, updatedAt: _u, ...question } = q
-    const group = q.groupId ? exams.get(examId)?.groups.find((g) => g.id === q.groupId) : undefined
-    return { questionId: id, question, group: group ? { stem: group.stem, figures: group.figures } : null }
+    const group = q.groupId ? exams.get(q.examId)?.groups.find((g) => g.id === q.groupId) : undefined
+    return { questionId: q.id, question: draftOf(q), group: group ? { stem: group.stem, figures: group.figures } : null }
   })
   const titles = [...exams.values()].map((e) => e?.title ?? '未命名考卷')
   const settings: QuizSettings = {
@@ -77,7 +77,7 @@ export async function checkAnswer(id: string, index: number, response: QuizRespo
     services().quizzes.save(attempt)
   }
   const item = attempt.items[index]!
-  return { item: revealedItem(item), grade: grade(item.question, attempt.responses[index] ?? null, attempt.markings[index] ?? null) }
+  return { item: revealedItem(item), grade: gradeItem(item, attempt.responses[index] ?? null, attempt.markings[index] ?? null) }
 }
 
 /** The person marks their own open answer against the model answer: credit 1 is right, 0 is wrong, null clears it. */
@@ -90,7 +90,7 @@ export async function markAnswer(id: string, index: number, credit: number | nul
   services().quizzes.save(attempt)
   revalidatePath(`/quiz/${id}`)
   const item = attempt.items[index]!
-  return { marking, grade: grade(item.question, attempt.responses[index] ?? null, marking) }
+  return { marking, grade: gradeItem(item, attempt.responses[index] ?? null, marking) }
 }
 
 export async function finishQuiz(id: string) {

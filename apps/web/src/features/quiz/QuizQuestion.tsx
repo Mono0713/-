@@ -1,7 +1,7 @@
 'use client'
 
 import type { QuizItem, QuizResponse } from '@exam/quiz'
-import { answerKind, matches } from '@exam/quiz/logic'
+import { answerKind, matches, toPaperLabels } from '@exam/quiz/logic'
 import { FigureView } from '@/shared/FigureView'
 import { TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
@@ -41,7 +41,7 @@ export function QuizQuestion({
       kind.kind === 'blanks' && count
         ? (_label: string, k: number) => {
             const slot = offset + k
-            const right = reveal && matches(key[slot] ?? '', values[slot] ?? '')
+            const right = reveal && matches(key[slot] ?? '', toPaperLabels(item, values[slot] ?? ''))
             return (
               <input
                 value={values[slot] ?? ''}
@@ -104,10 +104,10 @@ export function QuizQuestion({
         </ul>
       ) : q.options.length > 0 ? (
         <ul className="grid gap-1.5 sm:grid-cols-2">
-          {q.options.map((o, i) => (
-            <li key={`${o.label}-${i}`} className="flex gap-2 rounded-lg bg-paper px-2.5 py-1.5 text-sm">
-              <span className="font-semibold text-muted">({o.label})</span>
-              <Markdown className="min-w-0 flex-1">{o.content}</Markdown>
+          {item.optionOrder.map((label, i) => (
+            <li key={`${label}-${i}`} className="flex gap-2 rounded-lg bg-paper px-2.5 py-1.5 text-sm">
+              <span className="font-semibold text-muted">({item.displayLabels[i]})</span>
+              <Markdown className="min-w-0 flex-1">{q.options.find((o) => o.label === label)?.content ?? ''}</Markdown>
             </li>
           ))}
         </ul>

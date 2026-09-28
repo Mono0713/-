@@ -39,7 +39,19 @@ export function ReviewEditor({
   const [published, setPublished] = useState(savedExam ? { count: savedExam.questionCount, examId: savedExam.id } : null)
   const [flaggedOnly, setFlaggedOnly] = useState(false)
   const [publishing, startPublish] = useTransition()
+  // Phones show one side at a time.
+  const [mobileView, setMobileView] = useState<'questions' | 'page'>('questions')
   const cards = useRef(new Map<number, HTMLElement>())
+  // The toolbar wraps to more lines on narrow screens; the page viewer sticks just below it.
+  const bar = useRef<HTMLDivElement>(null)
+  const [barHeight, setBarHeight] = useState(120)
+  useEffect(() => {
+    const el = bar.current
+    if (!el) return
+    const observer = new ResizeObserver(() => setBarHeight(el.offsetHeight))
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
   // Autosave shortly after the last edit.
   useEffect(() => {
     if (draft === initial) return
@@ -56,7 +68,10 @@ export function ReviewEditor({
     setSelected(index)
     const page = draft.questions[index]?.locations[0]?.pageNumber
     if (page) setPageNumber(page)
-    if (scroll) cards.current.get(index)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    if (!scroll) return
+    setMobileView('questions')
+    // Wait a frame so the question list is visible again on phones before scrolling to it.
+    requestAnimationFrame(() => cards.current.get(index)?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   }
 
   const updateQuestion = (index: number, q: DraftQuestion) => setDraft((d) => ({ ...d, questions: d.questions.map((x, i) => (i === index ? q : x)) }))
@@ -110,7 +125,7 @@ export function ReviewEditor({
 
   return (
     <div>
-      <div className="sticky top-14 z-20 -mx-4 mb-6 border-b border-line bg-paper/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+      <div ref={bar} className="sticky top-14 z-20 -mx-4 mb-6 border-b border-line bg-paper/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
         <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-sm">
@@ -118,6 +133,23 @@ export function ReviewEditor({
               {flagged > 0 && <span className="text-warn"> · {flagged} 題待確認</span>}
               <span className="text-muted"> · {saveState === 'saved' ? '草稿已自動儲存' : saveState === 'saving' ? '儲存中…' : '有未儲存的修改'}</span>
             </p>
+          </div>
+          <div className="flex rounded-lg border border-line bg-surface p-0.5 text-sm lg:hidden">
+            {(
+              [
+                ['questions', '題目'],
+                ['page', '原卷'],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setMobileView(value)}
+                className={`rounded-md px-3 py-1 ${mobileView === value ? 'bg-ink text-paper' : 'text-muted'}`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
           {flagged > 0 && (
             <label className="flex items-center gap-1.5 text-sm text-muted">
@@ -160,11 +192,14 @@ export function ReviewEditor({
       {notice}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-        <aside className="lg:sticky lg:top-36 lg:max-h-[calc(100vh-10rem)] lg:self-start lg:overflow-auto">
+        <aside
+          className={`lg:sticky lg:top-[calc(3.5rem+var(--bar)+0.75rem)] lg:block lg:max-h-[calc(100vh-3.5rem-var(--bar)-1.5rem)] lg:self-start lg:overflow-auto ${mobileView === 'page' ? '' : 'hidden'}`}
+          style={{ '--bar': `${barHeight}px` } as React.CSSProperties}
+        >
           <PageViewer pages={pages} pageNumber={pageNumber} onPageChange={setPageNumber} questions={draft.questions} selected={selected} onSelect={(i) => select(i, true)} />
         </aside>
 
-        <div className="space-y-4">
+        <div className={`space-y-4 lg:block ${mobileView === 'questions' ? '' : 'hidden'}`}>
           <Card className="p-4">
             <div className="grid gap-3 sm:grid-cols-2">
               {(

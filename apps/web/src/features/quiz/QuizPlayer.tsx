@@ -1,7 +1,7 @@
 'use client'
 
 import type { Grade, QuizAttempt, QuizItem, QuizResponse } from '@exam/quiz'
-import { grade as gradeOf } from '@exam/quiz/logic'
+import { gradeItem } from '@exam/quiz/logic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { Button, Card } from '@/shared/ui'
@@ -21,7 +21,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
   const [responses, setResponses] = useState(attempt.responses)
   // Checked practice questions arrive with their answers, so they can be graded here after a reload.
   const [grades, setGrades] = useState<(Grade | null)[]>(() =>
-    attempt.items.map((item, i) => (attempt.checked[i] ? gradeOf(item.question, attempt.responses[i] ?? null, attempt.markings[i] ?? null) : null)),
+    attempt.items.map((item, i) => (attempt.checked[i] ? gradeItem(item, attempt.responses[i] ?? null, attempt.markings[i] ?? null) : null)),
   )
   const [markings, setMarkings] = useState(attempt.markings)
   const [checked, setChecked] = useState(attempt.checked)
@@ -79,14 +79,73 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
       setGrades((all) => all.map((x, j) => (j === i ? result.grade : x)))
     })
 
+  const secondsLeft = useCountdown(practice ? null : attempt.deadline, finish)
+  const [navOpen, setNavOpen] = useState(false)
+  const go = (i: number) => {
+    setCurrent(i)
+    setNavOpen(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const item = items[current]!
   const isChecked = checked[current]
   const last = current === total - 1
+  const progress = practice ? `已完成 ${checked.filter(Boolean).length} / ${total} 題` : `已作答 ${answeredCount} / ${total} 題`
+  const submit = () => confirm(confirmText(total - answeredCount)) && finish()
+
+  const navGrid = (
+    <div className="grid grid-cols-6 gap-1 sm:grid-cols-8 lg:grid-cols-6">
+      {items.map((_, i) => {
+        const g = grades[i]
+        const tone =
+          i === current
+            ? 'border-accent bg-accent text-white'
+            : practice && checked[i]
+              ? g?.status === 'correct'
+                ? 'border-good/40 bg-good-soft text-good'
+                : g?.status === 'wrong' || g?.status === 'unanswered'
+                  ? 'border-bad/40 bg-bad-soft text-bad'
+                  : 'border-line bg-paper text-muted'
+              : answered(i)
+                ? 'border-accent/30 bg-accent-soft text-accent'
+                : 'border-line bg-surface text-muted'
+        return (
+          <button key={i} type="button" onClick={() => go(i)} className={`h-9 rounded-md border text-xs tabular-nums lg:h-8 ${tone}`}>
+            {i + 1}
+          </button>
+        )
+      })}
+    </div>
+  )
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-6">
+      {/* Phones: progress, time and the question list in a bar that stays on screen. */}
+      <div className="sticky top-14 z-20 -mx-4 border-b border-line bg-paper/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium tabular-nums">
+            第 {current + 1} / {total} 題
+          </span>
+          {secondsLeft !== null && <span className={`text-sm font-semibold tabular-nums ${secondsLeft <= 60 ? 'text-bad' : ''}`}>⏱ {clock(secondsLeft)}</span>}
+          <button type="button" onClick={() => setNavOpen(!navOpen)} className="ml-auto rounded-md border border-line bg-surface px-3 py-1 text-sm" aria-expanded={navOpen}>
+            題號 {navOpen ? '▴' : '▾'}
+          </button>
+        </div>
+        {navOpen && (
+          <div className="mt-3 space-y-3 pb-1">
+            <p className="text-xs text-muted">{progress}</p>
+            {navGrid}
+            {!practice && (
+              <Button variant="primary" className="w-full" onClick={submit} disabled={pending}>
+                {pending ? '交卷中…' : '交卷'}
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="min-w-0 space-y-4">
-        <Card className="p-5">
+        <Card className="p-4 sm:p-5">
           <QuizQuestion
             item={item}
             index={current}
@@ -101,7 +160,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Button onClick={() => setCurrent(current - 1)} disabled={current === 0}>
+          <Button onClick={() => go(current - 1)} disabled={current === 0}>
             上一題
           </Button>
           <div className="flex gap-2">
@@ -111,12 +170,12 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
               </Button>
             )}
             {(!practice || isChecked) && !last && (
-              <Button variant={practice ? 'primary' : 'secondary'} onClick={() => setCurrent(current + 1)}>
+              <Button variant={practice ? 'primary' : 'secondary'} onClick={() => go(current + 1)}>
                 下一題
               </Button>
             )}
             {last && (!practice || isChecked) && (
-              <Button variant="primary" onClick={() => (practice || confirm(confirmText(total - answeredCount))) && finish()} disabled={pending}>
+              <Button variant="primary" onClick={() => (practice ? finish() : submit())} disabled={pending}>
                 {practice ? '完成練習' : '交卷'}
               </Button>
             )}
@@ -124,37 +183,19 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
         </div>
       </div>
 
-      <aside className="space-y-3 lg:sticky lg:top-20 lg:self-start">
-        {attempt.deadline && !practice && <Countdown deadline={attempt.deadline} onEnd={finish} />}
+      <aside className="hidden space-y-3 lg:sticky lg:top-20 lg:block lg:self-start">
+        {secondsLeft !== null && (
+          <Card className={`p-3 text-center ${secondsLeft <= 60 ? 'border-bad/40' : ''}`}>
+            <p className="text-xs text-muted">剩餘時間</p>
+            <p className={`text-2xl font-semibold tabular-nums ${secondsLeft <= 60 ? 'text-bad' : ''}`}>{clock(secondsLeft)}</p>
+          </Card>
+        )}
         <Card className="p-3">
-          <p className="mb-2 text-xs text-muted">
-            {practice ? `已完成 ${checked.filter(Boolean).length} / ${total} 題` : `已作答 ${answeredCount} / ${total} 題`}
-          </p>
-          <div className="grid grid-cols-6 gap-1">
-            {items.map((_, i) => {
-              const g = grades[i]
-              const tone =
-                i === current
-                  ? 'border-accent bg-accent text-white'
-                  : practice && checked[i]
-                    ? g?.status === 'correct'
-                      ? 'border-good/40 bg-good-soft text-good'
-                      : g?.status === 'wrong' || g?.status === 'unanswered'
-                        ? 'border-bad/40 bg-bad-soft text-bad'
-                        : 'border-line bg-paper text-muted'
-                    : answered(i)
-                      ? 'border-accent/30 bg-accent-soft text-accent'
-                      : 'border-line bg-surface text-muted'
-              return (
-                <button key={i} type="button" onClick={() => setCurrent(i)} className={`h-8 rounded-md border text-xs tabular-nums ${tone}`}>
-                  {i + 1}
-                </button>
-              )
-            })}
-          </div>
+          <p className="mb-2 text-xs text-muted">{progress}</p>
+          {navGrid}
         </Card>
         {!practice && (
-          <Button variant="primary" className="w-full" onClick={() => confirm(confirmText(total - answeredCount)) && finish()} disabled={pending}>
+          <Button variant="primary" className="w-full" onClick={submit} disabled={pending}>
             {pending ? '交卷中…' : '交卷'}
           </Button>
         )}
@@ -167,28 +208,28 @@ function confirmText(unanswered: number) {
   return unanswered ? `還有 ${unanswered} 題沒作答，確定要交卷嗎？` : '確定要交卷嗎？'
 }
 
-/** Time left in a timed exam; submits when it reaches zero. */
-function Countdown({ deadline, onEnd }: { deadline: string; onEnd: () => void }) {
-  const end = new Date(deadline).getTime()
-  const [left, setLeft] = useState(() => end - Date.now())
+/** Seconds left in a timed exam, or null without a limit; calls onEnd once at zero. */
+function useCountdown(deadline: string | null, onEnd: () => void): number | null {
+  const end = deadline ? new Date(deadline).getTime() : null
+  const [left, setLeft] = useState(() => (end === null ? null : end - Date.now()))
   const ended = useRef(false)
+  const onEndRef = useRef(onEnd)
+  onEndRef.current = onEnd
   useEffect(() => {
+    if (end === null) return
     const timer = setInterval(() => {
       const ms = end - Date.now()
       setLeft(ms)
       if (ms <= 0 && !ended.current) {
         ended.current = true
-        onEnd()
+        onEndRef.current()
       }
     }, 500)
     return () => clearInterval(timer)
-  }, [end, onEnd])
-  const seconds = Math.max(0, Math.ceil(left / 1000))
-  const text = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
-  return (
-    <Card className={`p-3 text-center ${seconds <= 60 ? 'border-bad/40' : ''}`}>
-      <p className="text-xs text-muted">剩餘時間</p>
-      <p className={`text-2xl font-semibold tabular-nums ${seconds <= 60 ? 'text-bad' : ''}`}>{text}</p>
-    </Card>
-  )
+  }, [end])
+  return left === null ? null : Math.max(0, Math.ceil(left / 1000))
+}
+
+function clock(seconds: number): string {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DraftQuestion } from '@exam/core'
-import { answerKind, buildItems, displayLabel, grade, isOver, matches, SqliteQuizStore, summarize, type QuizSettings } from '../src/index.ts'
+import { answerKind, buildItems, displayLabel, grade, gradeItem, isOver, matches, SqliteQuizStore, summarize, toQuizLabels, type QuizSettings } from '../src/index.ts'
 
 function q(overrides: Partial<DraftQuestion> = {}): DraftQuestion {
   return {
@@ -91,14 +91,29 @@ describe('buildItems', () => {
     expect(items[0]!.optionOrder).toEqual(['A', 'B', 'C', 'D'])
   })
 
-  it('shuffles questions and relabels shuffled choice options, leaving other options alone', () => {
+  it('shuffles questions and relabels shuffled options', () => {
     const items = buildItems(sources, { ...settings, shuffleQuestions: true, shuffleOptions: true }, sequence(0, 0, 0, 0))
     expect(items.map((i) => i.questionId)).toEqual(['q1', 'q0'])
     const choice = items[1]!
     expect(choice.optionOrder).toEqual(['B', 'C', 'D', 'A'])
     expect(choice.displayLabels).toEqual(['A', 'B', 'C', 'D'])
     expect(displayLabel(choice, 'C')).toBe('B')
-    expect(items[0]!.optionOrder).toEqual(['A', 'B'])
+    expect(items[0]!.optionOrder).toEqual(['B', 'A'])
+  })
+
+  it('grades blanks answered with the shuffled labels', () => {
+    const fill = q({
+      type: 'fill_in_blank',
+      options: ['A', 'B', 'C'].map((label) => ({ label, content: `word ${label}` })),
+      answer: { values: ['A', 'C', 'A, B', 'free text'], source: 'printed' },
+      points: 4,
+    })
+    const [item] = buildItems([{ questionId: 'q', question: fill, group: null }], { ...settings, shuffleOptions: true }, sequence(0, 0))
+    expect(item!.optionOrder).toEqual(['B', 'C', 'A'])
+    // Shown as A=B, B=C, C=A, so the paper's A is typed as C.
+    expect(toQuizLabels(item!, 'A, B')).toBe('C, A')
+    expect(gradeItem(item!, { values: ['C', 'b', 'a、c', 'free text'] }).status).toBe('correct')
+    expect(gradeItem(item!, { values: ['A', 'C', 'A, B', 'free text'] }).score).toBe(1)
   })
 })
 

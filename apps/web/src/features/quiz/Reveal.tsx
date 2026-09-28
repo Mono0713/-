@@ -1,7 +1,7 @@
 'use client'
 
 import type { Grade, Marking, QuizItem } from '@exam/quiz'
-import { answerKind, displayLabel } from '@exam/quiz/logic'
+import { answerKind, displayLabel, toQuizLabels } from '@exam/quiz/logic'
 import { Markdown } from '@/shared/Markdown'
 import { Badge, Button } from '@/shared/ui'
 
@@ -31,7 +31,8 @@ export function Reveal({
   const kind = answerKind(q)
   const self = marking?.by === 'self' ? marking : null
   const [label, tone] = GRADE_LABELS[grade.status]
-  const key = q.answer.values
+  // Blanks answered with option labels show them as labelled in this quiz.
+  const key = kind.kind === 'blanks' ? q.answer.values.map((v) => toQuizLabels(item, v)) : q.answer.values
   const answer =
     kind.kind === 'single' || kind.kind === 'multiple'
       ? key.map((l) => displayLabel(item, l)).join('、')

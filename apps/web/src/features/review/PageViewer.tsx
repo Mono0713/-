@@ -24,7 +24,7 @@ export function PageViewer({
   const boxes = questions.flatMap((q, index) => q.locations.filter((l) => l.pageNumber === page.pageNumber).map((l) => ({ index, bbox: l.bbox, number: q.number })))
   return (
     <div>
-      <div className="mb-2 flex flex-wrap items-center gap-1">
+      <div className="sticky top-0 z-10 mb-2 flex flex-wrap items-center gap-1 bg-paper py-1">
         {pages.map((p) => (
           <button
             key={p.pageNumber}

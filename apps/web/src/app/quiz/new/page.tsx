@@ -1,3 +1,4 @@
+import { draftOf } from '@exam/bank'
 import { QuizSetup, type SetupExam } from '@/features/quiz/QuizSetup'
 import { currentOwner, services } from '@/server/context'
 import { ButtonLink, EmptyState, PageHeader } from '@/shared/ui'
@@ -17,10 +18,9 @@ export default async function NewQuizPage({ searchParams }: { searchParams: Prom
       subject: e.subject,
       questions: bank.listQuestions({ ownerId: owner, examId: e.id, limit: 1000 }).items.map((q) => ({
         id: q.id,
-        section: q.section,
-        number: q.number,
-        type: q.type,
-        preview: q.stem.replace(/[#*_`>$|\\]/g, '').replace(/\s+/g, ' ').slice(0, 80),
+        // Previews must not give answers away.
+        question: { ...draftOf(q), answer: { values: [], source: 'none' as const }, explanation: null, translation: null, issues: [], confidence: 'high' as const },
+        preview: q.stem.replace(/[#*_`>$|\\]/g, '').replace(/\s+/g, ' ').slice(0, 200),
         hasKey: q.answer.values.some((v) => v.trim()),
       })),
     }))

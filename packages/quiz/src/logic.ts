@@ -27,14 +27,16 @@ export interface QuizSource {
   group: { stem: string; figures: DraftFigure[] } | null
 }
 
-/** Lays out the chosen questions for one quiz, shuffling questions and choice options if asked. */
+/**
+ * Lays out the chosen questions for one quiz, shuffling questions and options if asked.
+ * Shuffled options of any question type are relabelled in the new order; answers typed
+ * with the new labels are translated back when graded (see gradeItem).
+ */
 export function buildItems(sources: QuizSource[], settings: QuizSettings, random: () => number = Math.random): QuizItem[] {
   const ordered = settings.shuffleQuestions ? shuffle(sources, random) : sources
   return ordered.map(({ questionId, question, group }) => {
     const labels = question.options.map((o) => o.label)
-    const kind = answerKind(question).kind
-    const choice = kind === 'single' || kind === 'multiple'
-    if (!choice || !settings.shuffleOptions) return { questionId, question, group, optionOrder: labels, displayLabels: labels }
+    if (labels.length < 2 || !settings.shuffleOptions) return { questionId, question, group, optionOrder: labels, displayLabels: labels }
     const optionOrder = shuffle(labels, random)
     return { questionId, question, group, optionOrder, displayLabels: relabel(labels) }
   })
@@ -57,6 +59,35 @@ function shuffle<T>(items: T[], random: () => number): T[] {
     ;[out[i], out[j]] = [out[j]!, out[i]!]
   }
   return out
+}
+
+/** Marks an answer in a quiz, translating option labels typed in blanks back to the paper's labels. */
+export function gradeItem(item: QuizItem, response: QuizResponse | null, marking: Marking | null = null): Grade {
+  if (answerKind(item.question).kind !== 'blanks' || !response) return grade(item.question, response, marking)
+  return grade(item.question, { values: response.values.map((v) => toPaperLabels(item, v)) }, marking)
+}
+
+/**
+ * A typed answer made only of option labels as shown in this quiz ("B", "b, d") in
+ * the paper's labels; any other text is returned unchanged.
+ */
+export function toPaperLabels(item: QuizItem, value: string): string {
+  return mapLabels(value, item.displayLabels, item.optionOrder)
+}
+
+/** The reverse of toPaperLabels, for showing an answer key in this quiz's labels. */
+export function toQuizLabels(item: QuizItem, value: string): string {
+  return mapLabels(value, item.optionOrder, item.displayLabels)
+}
+
+function mapLabels(value: string, from: string[], to: string[]): string {
+  if (from.every((label, i) => label === to[i])) return value
+  const key = (s: string) => normalize(s)
+  const lookup = new Map(from.map((label, i) => [key(label), to[i]!]))
+  const parts = value.trim().split(/([\s,，、;；]+)/)
+  const tokens = parts.filter((_, i) => i % 2 === 0)
+  if (!tokens.length || !tokens.every((t) => lookup.has(key(t)))) return value
+  return parts.map((p, i) => (i % 2 === 0 ? lookup.get(key(p))! : p)).join('')
 }
 
 /** Marks one answer against the question's answer key. */
@@ -136,7 +167,7 @@ export interface QuizSummary {
 }
 
 export function summarize(attempt: Pick<QuizAttempt, 'items' | 'responses' | 'markings'>): QuizSummary {
-  const grades = attempt.items.map((item, i) => grade(item.question, attempt.responses[i] ?? null, attempt.markings[i] ?? null))
+  const grades = attempt.items.map((item, i) => gradeItem(item, attempt.responses[i] ?? null, attempt.markings[i] ?? null))
   const round = (n: number) => Math.round(n * 100) / 100
   return {
     grades,

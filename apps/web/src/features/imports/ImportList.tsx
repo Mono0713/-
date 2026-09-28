@@ -15,17 +15,20 @@ export function ImportList({ imports }: { imports: ImportRecord[] }) {
     <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
       {imports.map((imp) => (
         <li key={imp.id}>
-          <Link href={`/imports/${imp.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 hover:bg-paper">
+          <Link href={`/imports/${imp.id}`} className="flex items-center gap-x-4 px-4 py-3 hover:bg-paper">
             <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{imp.title ?? imp.fileName}</p>
+              <p className="line-clamp-2 font-medium sm:truncate">{imp.title ?? imp.fileName}</p>
               <p className="truncate text-xs text-muted">
                 {[imp.subject, imp.title ? imp.fileName : null, `${imp.pageCount} 頁`, imp.questionCount ? `${imp.questionCount} 題在題庫` : null]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
+              <p className="text-xs text-muted sm:hidden">{new Date(imp.createdAt).toLocaleString('zh-TW', { dateStyle: 'short', timeStyle: 'short' })}</p>
             </div>
-            <span className="text-xs text-muted">{new Date(imp.createdAt).toLocaleString('zh-TW', { dateStyle: 'short', timeStyle: 'short' })}</span>
-            <StatusBadge status={imp.status} />
+            <span className="hidden text-xs text-muted sm:inline">{new Date(imp.createdAt).toLocaleString('zh-TW', { dateStyle: 'short', timeStyle: 'short' })}</span>
+            <span className="shrink-0">
+              <StatusBadge status={imp.status} />
+            </span>
           </Link>
         </li>
       ))}

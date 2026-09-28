@@ -27,20 +27,23 @@ export default async function QuizListPage() {
             const done = a.finishedAt !== null
             return (
               <li key={a.id}>
-                <Link href={`/quiz/${a.id}`} className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-paper">
-                  <Badge tone={a.settings.mode === 'exam' ? 'accent' : 'neutral'}>{a.settings.mode === 'exam' ? '考試' : '練習'}</Badge>
-                  <span className="min-w-0 flex-1 truncate font-medium">{a.title}</span>
-                  <span className="text-sm text-muted">{a.items.length} 題</span>
+                <Link href={`/quiz/${a.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-paper">
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-2 font-medium sm:truncate">{a.title}</p>
+                    <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+                      <Badge tone={a.settings.mode === 'exam' ? 'accent' : 'neutral'}>{a.settings.mode === 'exam' ? '考試' : '練習'}</Badge>
+                      {a.items.length} 題 · {new Date(a.startedAt).toLocaleDateString('zh-TW')}
+                    </p>
+                  </div>
                   {done ? (
-                    <span className="w-24 text-right text-sm font-semibold tabular-nums">
+                    <span className="shrink-0 text-sm font-semibold tabular-nums">
                       {s.score} / {s.max}
                     </span>
                   ) : (
-                    <span className="w-24 text-right">
+                    <span className="shrink-0">
                       <Badge tone="warn">進行中</Badge>
                     </span>
                   )}
-                  <span className="w-24 text-right text-xs text-muted">{new Date(a.startedAt).toLocaleDateString('zh-TW')}</span>
                 </Link>
               </li>
             )
