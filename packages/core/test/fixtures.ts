@@ -7,6 +7,7 @@ export function question(overrides: Partial<ExtractedQuestion> = {}): ExtractedQ
     groupId: null,
     type: 'single_choice',
     stem: 'Evaluate $\\lim_{x \\to 0} \\frac{\\sin x}{x}$.',
+    translation: null,
     options: [
       { label: 'A', content: '$0$' },
       { label: 'B', content: '$1$' },

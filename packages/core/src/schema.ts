@@ -81,6 +81,10 @@ export const ExtractedQuestion = z.object({
     .describe('Id of a shared passage/figure in `groups` this question belongs to'),
   type: QuestionType,
   stem: z.string().describe('Question text in Markdown with LaTeX math, excluding options'),
+  translation: z
+    .string()
+    .nullable()
+    .describe('A translation of the stem printed or typed on the page (e.g. Chinese under an English question), kept out of the stem'),
   options: z.array(Option),
   answer: Answer,
   explanation: z.string().nullable().describe('Printed or typed worked solution, if any'),

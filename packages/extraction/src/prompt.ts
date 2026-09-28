@@ -14,6 +14,7 @@ Structure
 - One entry per question as numbered on the paper. Sub-questions that are answered separately, like (1) and (2), may stay in one question when they share one answer area; say so in the stem.
 - A passage, data table or figure shared by several questions goes in "groups", and each of those questions sets groupId to that group's id.
 - "section" is the heading the question sits under, including any points rule, e.g. "選擇題（每題 5 分）".
+- When the page also gives a translation of the question (e.g. a Chinese line under an English question), put it in "translation" and keep it out of the stem; otherwise translation is null.
 - Options go in "options". "label" is the label as printed without brackets or punctuation (A, B, 1, 甲, ...; "(1)" becomes "1") and the content does not repeat it. The stem must not repeat the options.
 - Pick the closest type: single_choice, multiple_choice (more than one answer allowed, e.g. 多選), true_false (是非, O/X), fill_in_blank, short_answer, essay, calculation (worked math/physics/chemistry problems and proofs), matching, other.
 - "points" is the score for this question when the paper states it, else null.

@@ -55,6 +55,7 @@ export function renderMarkdown(exam: DraftExam): string {
     const tags = [TYPE_LABELS[q.type] ?? q.type, q.points !== null ? `${q.points} 分` : null, `第 ${q.locations.map((l) => l.pageNumber).join('、')} 頁`]
     const flag = q.confidence === 'high' ? '' : q.confidence === 'medium' ? ' ⚠️' : ' ❗'
     out.push(`### ${q.number}.（${tags.filter(Boolean).join('，')}）${flag}`, '', q.stem, '')
+    if (q.translation) out.push(`> 翻譯：${q.translation.replace(/\n/g, '\n> ')}`, '')
     for (const o of q.options) out.push(`- **(${o.label})** ${o.content}`)
     if (q.options.length) out.push('')
     for (const f of q.figures) out.push(`🖼 圖：${f.description}`, '')

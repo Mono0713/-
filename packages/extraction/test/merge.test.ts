@@ -82,3 +82,13 @@ describe('mergePages clean-up', () => {
     ])
   })
 })
+
+describe('mergePages translations', () => {
+  it('keeps translations and joins them across a page break', () => {
+    const exam = mergePages('exam.pdf', [
+      result(1, page([question({ stem: 'What is epigenetics?', translation: '什麼是表觀遺傳？', continuesOnNextPage: true })])),
+      result(2, page([question({ stem: 'Explain.', translation: '請說明。', continuesFromPreviousPage: true })])),
+    ])
+    expect(exam.questions[0]!.translation).toBe('什麼是表觀遺傳？\n\n請說明。')
+  })
+})

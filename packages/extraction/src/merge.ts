@@ -76,6 +76,7 @@ const CONFIDENCE_RANK = { high: 2, medium: 1, low: 0 } as const
 
 function appendContinuation(target: DraftQuestion, part: ExtractedQuestion, location: DraftQuestion['locations'][number]) {
   target.stem = [target.stem, part.stem].filter(Boolean).join('\n\n')
+  if (part.translation) target.translation = [target.translation, part.translation].filter(Boolean).join('\n\n')
   target.options.push(...part.options)
   target.figures.push(...part.figures)
   if (target.answer.values.length === 0 && part.answer.values.length > 0) target.answer = part.answer
