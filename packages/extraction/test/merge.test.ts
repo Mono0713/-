@@ -66,7 +66,7 @@ describe('mergePages', () => {
       result(1, null, 'timeout'),
       result(2, page([question()])),
     ])
-    expect(exam.pages[0]?.notes).toBe('extraction failed: timeout')
+    expect(exam.pages[0]?.notes).toBe('辨識失敗：timeout')
     expect(exam.meta.subject).toBe('微積分')
     expect(exam.questions).toHaveLength(1)
   })

@@ -32,7 +32,8 @@ Answers and handwriting
 Quality
 - confidence is "high" only when every character is legible. Use "medium" or "low" and add an entry to "issues" whenever you guessed a symbol, a word is unreadable, handwriting covers printed text, or part of the question is cut off.
 - Never invent content that is not on the page.
-- "meta" describes the exam as printed on this page (title, subject, institution, term, main language); use null for anything not shown.`
+- "meta" describes the exam as printed on this page (title, subject, institution, term, main language); use null for anything not shown.
+- Write "issues" and "notes" in Traditional Chinese (繁體中文) whatever the language of the exam, since the reviewer reads them; quote printed words in their original language.`
 
 export function userPrompt(page: PageImage, fileName: string): string {
   const lines = [`File: ${fileName}, page ${page.pageNumber}.`, 'Extract every question on this page.']

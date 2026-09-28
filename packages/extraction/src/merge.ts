@@ -18,7 +18,7 @@ export function mergePages(fileName: string, results: PageResult[]): DraftExam {
       pageNumber: result.pageNumber,
       provider: result.provider,
       model: result.model,
-      notes: result.error ? `extraction failed: ${result.error}` : (result.page?.notes ?? null),
+      notes: result.error ? `辨識失敗：${result.error}` : (result.page?.notes ?? null),
     })
     if (!result.page) {
       open = null
