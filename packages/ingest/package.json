@@ -1,0 +1,11 @@
+{
+  "name": "@exam/ingest",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit -p ." },
+  "dependencies": { "@exam/core": "workspace:*", "pdfjs-dist": "^5.7.284", "@napi-rs/canvas": "^0.1.100", "sharp": "^0.34.0" }
+}
