@@ -1,0 +1,15 @@
+/* Small UI primitives reused across components (pill, chip, badge, option). */
+.pill{height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line);display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted);background:#fff}
+.chip{height:36px;padding:0 16px;border-radius:999px;display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:600}
+.chip.dark{background:var(--ink);color:#fff}
+.chip.blue{background:var(--blue-soft);color:var(--blue)}
+.chead{display:flex;align-items:center;gap:10px}
+.badge{height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--line);font-size:13px;color:var(--muted);display:inline-flex;align-items:center;font-weight:500}
+.badge.amber{background:var(--amber-soft);border-color:#F4D8A8;color:var(--amber)}
+.badge.blue{background:var(--blue-soft);border-color:var(--blue-line);color:var(--blue)}
+.badge.green{background:var(--green-soft);border-color:#BFE6D3;color:var(--green)}
+.stem{font-size:18px;margin-top:10px}
+.og{height:38px;border-radius:10px;background:#F6F4F0;display:flex;align-items:center;padding:0 14px;font-size:15px;gap:10px}
+.og b{color:var(--muted);font-weight:600}
+.og.ok{background:var(--green-soft);color:#11633F}
+.og.ok b{color:var(--green)}

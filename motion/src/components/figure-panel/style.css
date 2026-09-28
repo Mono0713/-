@@ -1,0 +1,10 @@
+#figPanel{left:1040px;top:196px;width:660px;height:760px;border-radius:24px;background:#fff;border:1px solid var(--line);box-shadow:0 30px 60px -30px rgba(40,30,10,.3);padding:32px}
+#figPanel h3{font-size:30px;font-weight:800;display:flex;align-items:center;gap:12px}
+.tgl{position:absolute;left:32px;top:132px;width:596px;height:64px;border-radius:16px;background:#F6F4F0;display:flex;align-items:center;padding:0 20px;font-size:17px;font-weight:600;gap:12px}
+.sw{margin-left:auto;width:52px;height:30px;border-radius:15px;background:#D6D1C8;position:relative}
+.sw i{position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.inks{position:absolute;left:32px;top:212px;display:flex;gap:8px}
+.frow{position:absolute;left:32px;width:596px;height:80px;border-radius:18px;border:1px solid var(--line);display:flex;align-items:center;padding:0 20px 0 96px;font-size:20px;font-weight:600;gap:12px}
+.frow .num{position:absolute;left:20px;width:56px;height:56px;border-radius:50%;border:2px dashed #D0CCC4}
+.frow .nm{color:var(--muted);font-weight:500;font-size:15px;margin-left:auto}
+.fchipFly{position:absolute;left:0;top:0;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff}

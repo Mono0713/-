@@ -1,0 +1,16 @@
+#resHead{left:810px;top:188px;width:880px;height:44px;display:flex;align-items:center;gap:14px}
+#resHead h3{font-size:28px;font-weight:800}
+#resCount{margin-left:auto;font-size:17px;color:var(--muted)}
+#resCount b{color:var(--ink);font-size:22px;font-variant-numeric:tabular-nums}
+.card{position:absolute;left:810px;width:880px;border-radius:20px;background:#fff;border:1px solid var(--line);box-shadow:0 24px 50px -28px rgba(40,30,10,.3);padding:20px 24px;transform-origin:50% 50%}
+.qn{font-size:22px;font-weight:800;width:22px}
+.ogrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.formula{display:flex;align-items:center;gap:6px;font-family:"Times New Roman",var(--serif);font-size:34px;margin-top:8px}
+.intg{font-size:48px;font-style:normal;line-height:1}
+.lims{display:flex;flex-direction:column;font-size:16px;line-height:1.1;margin-left:-4px;height:56px;justify-content:space-between}
+.frac{display:inline-flex;flex-direction:column;align-items:center;font-size:24px;line-height:1.05;padding:2px 10px;border-radius:10px;background:var(--green-soft);color:#11633F;font-style:normal}
+.frac i{display:block;width:100%;height:2px;background:currentColor;margin:1px 0}
+.mini{margin-top:10px;border-collapse:separate;border-spacing:0;font-size:15px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.mini td,.mini th{padding:6px 22px;border-bottom:1px solid var(--line);text-align:center}
+.mini th{background:#F6F4F0;font-weight:600;color:var(--muted)}
+.mini tr:last-child td{border-bottom:0}
