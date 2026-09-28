@@ -50,6 +50,9 @@ importers:
       '@exam/importer':
         specifier: workspace:*
         version: link:../../packages/importer
+      '@exam/quiz':
+        specifier: workspace:*
+        version: link:../../packages/quiz
       katex:
         specifier: ^0.18.9
         version: 0.18.9
@@ -163,6 +166,12 @@ importers:
       sharp:
         specifier: ^0.34.0
         version: 0.34.5
+
+  packages/quiz:
+    dependencies:
+      '@exam/core':
+        specifier: workspace:*
+        version: link:../core
 
 packages:
 
