@@ -3,14 +3,18 @@
 import { QuestionType, type Answer, type DraftQuestion } from '@exam/core'
 import { useState } from 'react'
 import { FigureView } from '@/shared/FigureView'
+import { FigureBlanksEditor } from './FigureBlanksEditor'
 import { TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
 import { Button, inputBase, inputClass } from '@/shared/ui'
 
 const TYPES = QuestionType.options
 
-/** Editable form for one question. Controlled: the caller owns the value. */
-export function QuestionEditor({ value: q, onChange }: { value: DraftQuestion; onChange: (q: DraftQuestion) => void }) {
+/**
+ * Editable form for one question. Controlled: the caller owns the value.
+ * importId is the upload the question came from, used to crop its figures again.
+ */
+export function QuestionEditor({ value: q, onChange, importId = null }: { value: DraftQuestion; onChange: (q: DraftQuestion) => void; importId?: string | null }) {
   const set = <K extends keyof DraftQuestion>(key: K, v: DraftQuestion[K]) => onChange({ ...q, [key]: v })
   const setAnswer = (patch: Partial<Answer>) => set('answer', { ...q.answer, ...patch })
   const hasChoices = q.options.length > 0 || q.type === 'single_choice' || q.type === 'multiple_choice'
@@ -53,6 +57,9 @@ export function QuestionEditor({ value: q, onChange }: { value: DraftQuestion; o
             className={`${inputClass} mt-2`}
             aria-label="圖片說明"
           />
+          {f.blanks.length ? (
+            <FigureBlanksEditor figure={f} importId={importId} onChange={(g) => set('figures', q.figures.map((x, j) => (j === i ? g : x)))} />
+          ) : null}
         </div>
       ))}
 

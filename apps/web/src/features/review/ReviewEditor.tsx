@@ -166,7 +166,7 @@ export function ReviewEditor({
                     q.confidence !== 'high' || q.issues.length ? 'border-l-4 border-l-warn' : ''
                   }`}
                 >
-                  {isEditing ? <QuestionEditor value={q} onChange={(v) => updateQuestion(index, v)} /> : <QuestionView q={q} />}
+                  {isEditing ? <QuestionEditor value={q} onChange={(v) => updateQuestion(index, v)} importId={importId} /> : <QuestionView q={q} />}
                   <div className="mt-3 flex flex-wrap justify-end gap-1 border-t border-line pt-3">
                     <Button variant="ghost" onClick={() => moveQuestion(index, -1)} disabled={index === 0} aria-label="上移">
                       ↑

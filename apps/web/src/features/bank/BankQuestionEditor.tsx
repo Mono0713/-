@@ -34,6 +34,7 @@ export function BankQuestionEditor({ question }: { question: BankQuestion }) {
       </label>
       <QuestionEditor
         value={q}
+        importId={question.importId}
         onChange={(v) => {
           setQ(v)
           setState('dirty')

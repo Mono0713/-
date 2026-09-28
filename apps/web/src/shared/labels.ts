@@ -23,3 +23,9 @@ export const STATUS_LABELS = {
 } as const
 
 export const CONFIDENCE_LABELS = { high: '可信', medium: '請確認', low: '需檢查' } as const
+
+export const INK_LABELS = {
+  colour: '彩色筆（只擦筆跡）',
+  dark: '鉛筆或黑筆（整格清空重打字）',
+  none: '空白',
+} as const

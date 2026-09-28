@@ -47,9 +47,21 @@ export const BoundingBox = z.object({
 })
 export type BoundingBox = z.infer<typeof BoundingBox>
 
+/** Pen of the handwriting in a figure blank; decides how the blank is cleaned. */
+export const BlankInk = z.enum(['none', 'colour', 'dark'])
+export type BlankInk = z.infer<typeof BlankInk>
+
 export const FigureBlank = z.object({
   label: z.string().describe('Number or label of the blank as printed on the figure, e.g. "7"'),
   bbox: BoundingBox.describe('The box or line the student writes in, including any handwriting in it'),
+  ink: BlankInk.nullable()
+    .default(null)
+    .describe('Handwriting in the blank: "colour" for red, blue or other coloured pen, "dark" for pencil or black pen, "none" when empty'),
+  printedText: z
+    .string()
+    .nullable()
+    .default(null)
+    .describe('Text printed inside the box (not handwriting), with ___ where the student writes and \\n between printed lines, e.g. "7. ___ host" or "Organ\\n5. ___"'),
 })
 export type FigureBlank = z.infer<typeof FigureBlank>
 

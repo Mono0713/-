@@ -1,10 +1,10 @@
 import { existsSync } from 'node:fs'
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { extname, join } from 'node:path'
+import { basename, extname, join } from 'node:path'
 import type { Bank, ImportRecord } from '@exam/bank'
-import type { DraftExam, IngestedDocument, PageImage } from '@exam/core'
+import type { DraftExam, DraftFigure, IngestedDocument, PageImage } from '@exam/core'
 import { createProvider, extractDocument, ManualProvider, mergePages, type PageResult, type ProviderConfig } from '@exam/extraction'
-import { cropExamFigures } from '@exam/figures'
+import { cleanFigure, cropExamFigures } from '@exam/figures'
 import { ingestBuffer } from '@exam/ingest'
 
 export interface UploadFile {
@@ -89,6 +89,22 @@ export class Importer {
     return `imports/${id}/pages/page-${pageNumber}.png`
   }
 
+  /**
+   * Crops a figure again from its page, e.g. after a blank was switched to pencil mode
+   * during review. The new image gets a new file name so browsers do not show a cached
+   * one; the old file stays because saved questions may still use it.
+   */
+  async recropFigure(id: string, figure: DraftFigure): Promise<DraftFigure> {
+    this.require(id)
+    const page = await readFile(join(this.opts.dataDir, this.pageImage(id, figure.pageNumber)))
+    const clean = await cleanFigure(page, figure)
+    const base = figure.image ? basename(figure.image.file, '.png').replace(/-r\d+$/, '') : 'figure'
+    const name = `${base.replace(/[^\w-]+/g, '-')}-r${Date.now()}`
+    await mkdir(join(this.dir(id), 'figures'), { recursive: true })
+    await writeFile(join(this.dir(id), 'figures', `${name}.png`), clean.png)
+    return { ...figure, image: { file: `imports/${id}/figures/${name}.png`, width: clean.width, height: clean.height, blanks: clean.blanks } }
+  }
+
   /** Prompts to paste into a chat app for pages still waiting in manual mode. */
   async manualState(id: string): Promise<ManualState> {
     const imp = this.require(id)
@@ -134,11 +150,19 @@ export class Importer {
     return this.bank.saveQuestions(id, draft.meta, draft.questions)
   }
 
-  /** Deletes the import and its files. Questions already in the bank stay. */
+  /** Deletes the import and its files. Questions already in the bank stay, and so do the figure images they show. */
   async remove(id: string): Promise<void> {
     await this.settled(id)
+    const imp = this.require(id)
+    const inBank = this.bank.listQuestions({ ownerId: imp.ownerId, importId: id, limit: 1 }).total > 0
     this.bank.deleteImport(id)
-    await rm(this.dir(id), { recursive: true, force: true })
+    if (!inBank) {
+      await rm(this.dir(id), { recursive: true, force: true })
+      return
+    }
+    for (const entry of await readdir(this.dir(id))) {
+      if (entry !== 'figures') await rm(join(this.dir(id), entry), { recursive: true, force: true })
+    }
   }
 
   private async run(id: string, pages?: number[]): Promise<void> {
