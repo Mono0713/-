@@ -4,13 +4,14 @@
   "type": "module",
   "packageManager": "pnpm@10.33.0",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13"
   },
   "scripts": {
+    "dev": "pnpm --filter @exam/web dev",
+    "extract": "pnpm --filter @exam/cli start",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
-    "test": "vitest run",
-    "extract": "pnpm --filter @exam/cli start"
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
