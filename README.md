@@ -37,6 +37,8 @@ pnpm extract 考卷.pdf --pages-only        # 只轉圖，不呼叫模型
 3. 把回覆的 JSON 存成 `out/<檔名>/manual/page-N.reply.json`（有沒有 ```json 框線都可以）。
 4. 再跑一次同樣的指令，程式會驗證回覆格式並產生 `manual.md` 和 `manual.json`。
 
+**多頁一次送**：等待中的頁面超過一頁時，還會產生 `batch.prompt.md`。把所有 `page-N.png` 依照終端機列出的順序一起附上，貼上 `batch.prompt.md`，回覆存成 `manual/batch.reply.json` 即可。頁數多時聊天 App 可能輸出不完整，建議一次 5 頁以內。
+
 可以用 `-m claude-web` 之類的名稱標記是哪個 App 回覆的，方便之後比較。
 
 ## 架構

@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, extname, join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
-import { createProvider, extractDocument, mergePages, providerIds, type PageResult } from '@exam/extraction'
+import { createProvider, extractDocument, ManualProvider, mergePages, providerIds, type PageResult } from '@exam/extraction'
 import { ingestFile } from '@exam/ingest'
 import { renderMarkdown } from './markdown.ts'
 
@@ -87,7 +87,10 @@ async function main() {
         },
       })
       const waiting = fresh.filter((r) => r.error?.startsWith('waiting for a reply')).map((r) => r.pageNumber)
-      if (waiting.length) printManualSteps(join(dir, 'manual'), join(dir, 'pages'), waiting)
+      if (waiting.length && provider instanceof ManualProvider) {
+        const batch = await provider.writeBatchPrompt()
+        printManualSteps(join(dir, 'manual'), join(dir, 'pages'), waiting, batch)
+      }
       const rawPath = join(dir, `${id}.raw.json`)
       const results = onlyPages ? await withEarlierPages(rawPath, fresh) : fresh
       const exam = mergePages(doc.fileName, results)
@@ -110,7 +113,18 @@ async function main() {
   }
 }
 
-function printManualSteps(manualDir: string, pagesDir: string, pages: number[]) {
+function printManualSteps(manualDir: string, pagesDir: string, pages: number[], batch: number[]) {
+  if (batch.length) {
+    console.log(`
+  Manual mode, all pages in one message:
+    1. Open a new chat in Claude, Gemini or ChatGPT.
+    2. Attach ${batch.map((n) => `page-${n}.png`).join(', ')} from ${pagesDir} in that order,
+       and paste the whole of ${join(manualDir, 'batch.prompt.md')}.
+    3. Save the reply as ${join(manualDir, 'batch.reply.json')}.
+  Or one page at a time: send page-N.png with page-N.prompt.md and save page-N.reply.json.
+  Then run the same command again to validate the replies and build the result.`)
+    return
+  }
   console.log(`
   Manual mode: for each page ${pages.join(', ')}
     1. Open a new chat in Claude, Gemini or ChatGPT.
