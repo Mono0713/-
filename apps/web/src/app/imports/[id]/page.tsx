@@ -85,7 +85,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         importId={id}
         initial={draft}
         pages={pages}
-        alreadySaved={imp.status === 'saved'}
+        savedExam={bank.examForImport(id)}
         notice={
           failed.length > 0 && (
             <Card className="mb-6 space-y-3 border-bad/30 p-4">

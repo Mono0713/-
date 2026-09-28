@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
 import { QuestionView } from '@/features/questions/QuestionView'
+import { FigureView } from '@/shared/FigureView'
+import { Markdown } from '@/shared/Markdown'
 import { Button, Card, inputClass } from '@/shared/ui'
 import { publishDraft, saveDraft } from './actions'
 import { PageViewer } from './PageViewer'
@@ -19,13 +21,14 @@ export function ReviewEditor({
   importId,
   initial,
   pages,
-  alreadySaved,
+  savedExam,
   notice,
 }: {
   importId: string
   initial: DraftExam
   pages: { pageNumber: number; image: string }[]
-  alreadySaved: boolean
+  /** The exam this import was already saved as. */
+  savedExam: { id: string; questionCount: number } | null
   notice?: React.ReactNode
 }) {
   const [draft, setDraft] = useState(initial)
@@ -33,9 +36,22 @@ export function ReviewEditor({
   const [editing, setEditing] = useState<number | null>(null)
   const [pageNumber, setPageNumber] = useState(pages[0]?.pageNumber ?? 1)
   const [saveState, setSaveState] = useState<SaveState>('saved')
-  const [published, setPublished] = useState<number | null>(alreadySaved ? draft.questions.length : null)
+  const [published, setPublished] = useState(savedExam ? { count: savedExam.questionCount, examId: savedExam.id } : null)
+  const [flaggedOnly, setFlaggedOnly] = useState(false)
   const [publishing, startPublish] = useTransition()
+  // Phones show one side at a time.
+  const [mobileView, setMobileView] = useState<'questions' | 'page'>('questions')
   const cards = useRef(new Map<number, HTMLElement>())
+  // The toolbar wraps to more lines on narrow screens; the page viewer sticks just below it.
+  const bar = useRef<HTMLDivElement>(null)
+  const [barHeight, setBarHeight] = useState(120)
+  useEffect(() => {
+    const el = bar.current
+    if (!el) return
+    const observer = new ResizeObserver(() => setBarHeight(el.offsetHeight))
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
   // Autosave shortly after the last edit.
   useEffect(() => {
     if (draft === initial) return
@@ -52,7 +68,10 @@ export function ReviewEditor({
     setSelected(index)
     const page = draft.questions[index]?.locations[0]?.pageNumber
     if (page) setPageNumber(page)
-    if (scroll) cards.current.get(index)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    if (!scroll) return
+    setMobileView('questions')
+    // Wait a frame so the question list is visible again on phones before scrolling to it.
+    requestAnimationFrame(() => cards.current.get(index)?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   }
 
   const updateQuestion = (index: number, q: DraftQuestion) => setDraft((d) => ({ ...d, questions: d.questions.map((x, i) => (i === index ? q : x)) }))
@@ -94,44 +113,93 @@ export function ReviewEditor({
   const publish = () =>
     startPublish(async () => {
       if (saveState !== 'saved') await saveDraft(importId, draft)
-      const { count } = await publishDraft(importId, draft)
-      setPublished(count)
+      setPublished(await publishDraft(importId, draft))
       setSaveState('saved')
     })
 
-  const flagged = draft.questions.filter((q) => q.confidence !== 'high' || q.issues.length).length
+  const isFlagged = (q: DraftQuestion) => q.confidence !== 'high' || q.issues.length > 0
+  const flagged = draft.questions.filter(isFlagged).length
   const meta = draft.meta
   const setMeta = (key: keyof typeof meta, value: string) => setDraft((d) => ({ ...d, meta: { ...d.meta, [key]: value.trim() ? value : null } }))
+  const setGroupStem = (id: string, stem: string) => setDraft((d) => ({ ...d, groups: d.groups.map((g) => (g.id === id ? { ...g, stem } : g)) }))
 
   return (
     <div>
-      <div className="sticky top-14 z-20 -mx-4 mb-6 border-b border-line bg-paper/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
+      <div ref={bar} className="sticky top-14 z-20 -mx-4 mb-6 border-b border-line bg-paper/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
         <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">{meta.title ?? draft.fileName}</p>
-            <p className="text-xs text-muted">
-              {draft.questions.length} 題{flagged ? ` · ${flagged} 題待確認` : ''} · {saveState === 'saved' ? '草稿已自動儲存' : saveState === 'saving' ? '儲存中…' : '有未儲存的修改'}
+            <p className="text-sm">
+              <span className="font-semibold">{draft.questions.length} 題</span>
+              {flagged > 0 && <span className="text-warn"> · {flagged} 題待確認</span>}
+              <span className="text-muted"> · {saveState === 'saved' ? '草稿已自動儲存' : saveState === 'saving' ? '儲存中…' : '有未儲存的修改'}</span>
             </p>
           </div>
+          <div className="flex rounded-lg border border-line bg-surface p-0.5 text-sm lg:hidden">
+            {(
+              [
+                ['questions', '題目'],
+                ['page', '原卷'],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setMobileView(value)}
+                className={`rounded-md px-3 py-1 ${mobileView === value ? 'bg-ink text-paper' : 'text-muted'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {flagged > 0 && (
+            <label className="flex items-center gap-1.5 text-sm text-muted">
+              <input type="checkbox" checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} className="accent-accent" />
+              只看待確認
+            </label>
+          )}
           {published !== null && (
-            <Link href={`/bank?import=${importId}`} className="text-sm text-good hover:underline">
-              已存入題庫 {published} 題 →
+            <Link href={`/bank/exams/${published.examId}`} className="text-sm text-good hover:underline">
+              已存入題庫 {published.count} 題 →
             </Link>
           )}
           <Button variant="primary" onClick={publish} disabled={publishing || !draft.questions.length}>
             {publishing ? '存入中…' : published !== null ? '更新題庫' : '存入題庫'}
           </Button>
         </div>
+        <nav className="-mx-1 mt-2 flex gap-1 overflow-x-auto px-1 pb-1" aria-label="題號">
+          {draft.questions.map((q, index) =>
+            flaggedOnly && !isFlagged(q) ? null : (
+              <button
+                key={index}
+                type="button"
+                onClick={() => select(index, true)}
+                title={isFlagged(q) ? '待確認' : undefined}
+                className={`h-7 min-w-8 shrink-0 rounded-md border px-1.5 text-xs tabular-nums transition-colors ${
+                  selected === index
+                    ? 'border-accent bg-accent text-white'
+                    : isFlagged(q)
+                      ? 'border-warn/40 bg-warn-soft text-warn hover:border-warn'
+                      : 'border-line bg-surface text-muted hover:border-accent/50 hover:text-ink'
+                }`}
+              >
+                {q.number}
+              </button>
+            ),
+          )}
+        </nav>
       </div>
 
       {notice}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
-        <aside className="lg:sticky lg:top-36 lg:max-h-[calc(100vh-10rem)] lg:self-start lg:overflow-auto">
+        <aside
+          className={`lg:sticky lg:top-[calc(3.5rem+var(--bar)+0.75rem)] lg:block lg:max-h-[calc(100vh-3.5rem-var(--bar)-1.5rem)] lg:self-start lg:overflow-auto ${mobileView === 'page' ? '' : 'hidden'}`}
+          style={{ '--bar': `${barHeight}px` } as React.CSSProperties}
+        >
           <PageViewer pages={pages} pageNumber={pageNumber} onPageChange={setPageNumber} questions={draft.questions} selected={selected} onSelect={(i) => select(i, true)} />
         </aside>
 
-        <div className="space-y-4">
+        <div className={`space-y-4 lg:block ${mobileView === 'questions' ? '' : 'hidden'}`}>
           <Card className="p-4">
             <div className="grid gap-3 sm:grid-cols-2">
               {(
@@ -151,19 +219,23 @@ export function ReviewEditor({
           </Card>
 
           {draft.questions.map((q, index) => {
+            if (flaggedOnly && !isFlagged(q)) return null
             const showSection = q.section && q.section !== draft.questions[index - 1]?.section
+            const group = q.groupId && q.groupId !== draft.questions[index - 1]?.groupId ? draft.groups.find((g) => g.id === q.groupId) : undefined
             const isEditing = editing === index
             return (
               <div key={index}>
                 {showSection && <h3 className="mb-2 mt-6 text-sm font-semibold text-muted">{q.section}</h3>}
+                {group && <GroupCard group={group} onChange={(stem) => setGroupStem(group.id, stem)} />}
                 <section
                   ref={(el) => {
                     if (el) cards.current.set(index, el)
                     else cards.current.delete(index)
                   }}
                   onClick={() => !isEditing && select(index, false)}
+                  onDoubleClick={() => !isEditing && setEditing(index)}
                   className={`rounded-xl border bg-surface p-4 transition-shadow ${selected === index ? 'border-accent shadow-[0_0_0_3px] shadow-accent/15' : 'border-line'} ${
-                    q.confidence !== 'high' || q.issues.length ? 'border-l-4 border-l-warn' : ''
+                    isFlagged(q) ? 'border-l-4 border-l-warn' : ''
                   }`}
                 >
                   {isEditing ? <QuestionEditor value={q} onChange={(v) => updateQuestion(index, v)} importId={importId} /> : <QuestionView q={q} />}
@@ -191,6 +263,29 @@ export function ReviewEditor({
           </Button>
         </div>
       </div>
+    </div>
+  )
+}
+
+/** A passage or figure shared by the questions after it; its text can be edited in place. */
+function GroupCard({ group, onChange }: { group: DraftExam['groups'][number]; onChange: (stem: string) => void }) {
+  const [editing, setEditing] = useState(false)
+  return (
+    <div className="mb-3 rounded-xl border border-line bg-paper p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-xs font-medium text-muted">題組共用內容</span>
+        <button type="button" onClick={() => setEditing(!editing)} className="text-xs text-accent hover:underline">
+          {editing ? '完成' : '編輯'}
+        </button>
+      </div>
+      {editing ? (
+        <textarea value={group.stem} onChange={(e) => onChange(e.target.value)} rows={Math.min(16, group.stem.split('\n').length + 2)} className={`${inputClass} font-mono text-[13px]`} />
+      ) : (
+        <Markdown>{group.stem}</Markdown>
+      )}
+      {group.figures.map((f, i) => (
+        <FigureView key={i} figure={f} />
+      ))}
     </div>
   )
 }

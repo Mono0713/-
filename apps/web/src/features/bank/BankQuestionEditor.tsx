@@ -4,37 +4,26 @@ import type { BankQuestion } from '@exam/bank'
 import type { DraftQuestion } from '@exam/core'
 import { useState, useTransition } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
-import { Button, Card, inputClass } from '@/shared/ui'
+import { Button, Card } from '@/shared/ui'
 import { deleteBankQuestion, updateBankQuestion } from './actions'
 
-export function BankQuestionEditor({ question }: { question: BankQuestion }) {
+/** Edits one saved question. importId is the upload its exam came from, if it still exists. */
+export function BankQuestionEditor({ question, importId }: { question: BankQuestion; importId: string | null }) {
   const [q, setQ] = useState<DraftQuestion>(question)
-  const [subject, setSubject] = useState(question.subject ?? '')
   const [state, setState] = useState<'saved' | 'dirty'>('saved')
   const [pending, start] = useTransition()
 
   const save = () =>
     start(async () => {
-      await updateBankQuestion(question.id, q, subject.trim() || null)
+      await updateBankQuestion(question.id, q)
       setState('saved')
     })
 
   return (
     <Card className="p-5">
-      <label className="mb-4 block text-sm">
-        <span className="mb-1 block text-xs font-medium text-muted">科目</span>
-        <input
-          value={subject}
-          onChange={(e) => {
-            setSubject(e.target.value)
-            setState('dirty')
-          }}
-          className={inputClass}
-        />
-      </label>
       <QuestionEditor
         value={q}
-        importId={question.importId}
+        importId={importId}
         onChange={(v) => {
           setQ(v)
           setState('dirty')

@@ -7,8 +7,10 @@ export const dynamic = 'force-dynamic'
 
 export default async function BankQuestionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const q = services().bank.getQuestion(id)
+  const { bank } = services()
+  const q = bank.getQuestion(id)
   if (!q || q.ownerId !== currentOwner()) notFound()
+  const exam = bank.getExam(q.examId)
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
@@ -16,12 +18,11 @@ export default async function BankQuestionPage({ params }: { params: Promise<{ i
         subtitle={[q.subject, q.examTitle].filter(Boolean).join(' · ')}
         actions={
           <>
-            {q.importId && <ButtonLink href={`/imports/${q.importId}`}>看原始考卷</ButtonLink>}
-            <ButtonLink href="/bank">回題庫</ButtonLink>
+            <ButtonLink href={`/bank/exams/${q.examId}`}>回考卷</ButtonLink>
           </>
         }
       />
-      <BankQuestionEditor question={q} />
+      <BankQuestionEditor question={q} importId={exam?.importId ?? null} />
     </div>
   )
 }

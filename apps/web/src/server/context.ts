@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { SqliteBank, type Bank } from '@exam/bank'
 import { Importer } from '@exam/importer'
+import { SqliteQuizStore, type QuizStore } from '@exam/quiz'
 
 /**
  * The one place the web app wires its modules together. Swapping the database,
@@ -18,6 +19,7 @@ export const dataDir = resolve(process.env.EXAM_DATA_DIR ?? join(repoRoot, 'data
 interface Services {
   bank: Bank
   importer: Importer
+  quizzes: QuizStore
 }
 
 // Kept on globalThis so hot reloads in development reuse one database connection
@@ -27,8 +29,13 @@ const globals = globalThis as typeof globalThis & { __examServices?: Services }
 export function services(): Services {
   if (!globals.__examServices) {
     mkdirSync(dataDir, { recursive: true })
-    const bank = new SqliteBank(join(dataDir, 'bank.sqlite'))
-    globals.__examServices = { bank, importer: new Importer({ bank, dataDir }) }
+    const dbFile = join(dataDir, 'bank.sqlite')
+    const bank = new SqliteBank(dbFile)
+    globals.__examServices = {
+      bank,
+      importer: new Importer({ bank, dataDir, reviewLanguage: localeOf }),
+      quizzes: new SqliteQuizStore(dbFile),
+    }
   }
   return globals.__examServices
 }
@@ -36,6 +43,15 @@ export function services(): Services {
 /** Everyone is the same local user until sign-in is added. */
 export function currentOwner(): string {
   return 'local'
+}
+
+/**
+ * Interface language of a user, as a language tag. One setting for now
+ * (EXAM_LOCALE, default zh-Hant); a per-user choice replaces this once sign-in exists.
+ * The model writes its review notes (⚠ issues) in this language.
+ */
+export function localeOf(_ownerId: string): string {
+  return process.env.EXAM_LOCALE || 'zh-Hant'
 }
 
 /** Which model providers have an API key configured. */

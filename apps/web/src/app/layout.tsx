@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 const NAV = [
   { href: '/imports', label: '匯入考卷' },
   { href: '/bank', label: '題庫' },
+  { href: '/quiz', label: '線上測驗' },
 ]
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -28,9 +29,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   {item.label}
                 </Link>
               ))}
-              <span className="cursor-default rounded-md px-3 py-1.5 text-muted/50" title="之後加入">
-                線上測驗
-              </span>
             </nav>
           </div>
         </header>

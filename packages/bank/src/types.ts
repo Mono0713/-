@@ -1,4 +1,4 @@
-import type { DraftQuestion } from '@exam/core'
+import type { DraftExam, DraftQuestion, ExamMeta } from '@exam/core'
 
 /**
  * processing: pages are being read by a model.
@@ -36,12 +36,37 @@ export interface NewImport {
   model: string | null
 }
 
-/** A question in the bank: the reviewed draft plus where it came from. */
+/**
+ * An exam in the bank: the unit questions are filed under. Imports create exams;
+ * later, courses and sharing attach here too.
+ */
+export interface BankExam extends ExamMeta {
+  id: string
+  ownerId: string
+  /** The upload it came from, while that still exists. */
+  importId: string | null
+  /** Passages and figures shared by several of its questions. */
+  groups: DraftExam['groups']
+  questionCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ExamQuery {
+  ownerId: string
+  /** Matches the exam title or any of its questions, case-insensitive. */
+  search?: string
+  subject?: string
+}
+
+/** A question in the bank: the reviewed draft plus the exam it belongs to. */
 export interface BankQuestion extends DraftQuestion {
   id: string
   ownerId: string
-  importId: string | null
-  /** Subject and exam title copied from the exam, so the question stands on its own. */
+  examId: string
+  /** Position within its exam. */
+  position: number
+  /** Copied from the exam for display. */
   subject: string | null
   examTitle: string | null
   createdAt: string
@@ -54,7 +79,7 @@ export interface QuestionQuery {
   search?: string
   type?: string
   subject?: string
-  importId?: string
+  examId?: string
   limit?: number
   offset?: number
 }

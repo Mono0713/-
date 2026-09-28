@@ -45,6 +45,14 @@ describe('extractPage', () => {
     expect(req.jsonSchema).toMatchObject({ type: 'object', additionalProperties: false })
   })
 
+  it('asks for review notes in the reviewer\'s language', async () => {
+    const provider = fakeProvider([JSON.stringify(page([])), JSON.stringify(page([]))])
+    await extractPage(provider, image, 'quiz.pdf')
+    await extractPage(provider, image, 'quiz.pdf', { reviewLanguage: 'en' })
+    expect(provider.requests[0]!.system).toContain('"notes" in Traditional Chinese (繁體中文)')
+    expect(provider.requests[1]!.system).toContain('"notes" in English whatever')
+  })
+
   it('retries after a reply that fails validation', async () => {
     const provider = fakeProvider(['{"questions": "nope"}', JSON.stringify(page([question()]))])
     const result = await extractPage(provider, image, 'quiz.pdf')
