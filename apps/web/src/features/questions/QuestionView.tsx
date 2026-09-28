@@ -15,7 +15,7 @@ export function QuestionView({ q, compact = false }: { q: DraftQuestion; compact
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-lg font-semibold tabular-nums">{q.number}.</span>
+        <span className="num text-xl leading-none">{q.number}.</span>
         <Badge>{TYPE_LABELS[q.type]}</Badge>
         {q.points !== null && <Badge>{q.points} 分</Badge>}
         {q.confidence !== 'high' && <Badge tone={q.confidence === 'low' ? 'bad' : 'warn'}>{CONFIDENCE_LABELS[q.confidence]}</Badge>}

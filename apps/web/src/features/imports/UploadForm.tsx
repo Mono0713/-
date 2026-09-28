@@ -45,7 +45,7 @@ export function UploadForm({ providers }: { providers: { id: string; label: stri
         }}
         onClick={() => input.current?.click()}
         className={`group cursor-pointer rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors duration-300 ${
-          dragging ? 'border-accent bg-accent-soft' : 'border-line bg-surface hover:border-accent/50'
+          dragging ? 'border-accent bg-accent-soft' : 'border-line bg-surface'
         }`}
       >
         <input ref={input} type="file" accept={ACCEPT} multiple hidden onChange={(e) => addFiles(e.target.files)} />
@@ -61,7 +61,7 @@ export function UploadForm({ providers }: { providers: { id: string; label: stri
       </div>
 
       {files.length > 0 && (
-        <ul className="divide-y divide-line rounded-xl border border-line bg-surface text-sm">
+        <ul className="divide-y divide-line rounded-2xl bg-surface shadow-sheet text-sm">
           {files.map((f, i) => (
             <li key={`${f.name}-${i}`} className="m-enter flex items-center justify-between gap-3 px-4 py-2">
               <span className="flex min-w-0 items-center gap-2">

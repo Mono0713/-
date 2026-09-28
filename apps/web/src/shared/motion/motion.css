@@ -27,15 +27,15 @@
 @keyframes m-expand { from { opacity: 0; transform: translateY(-6px) scaleY(0.96); } }
 
 /* entrances */
-.m-page { animation: m-fade-up var(--m-slow) var(--m-ease-out) both; }
-.m-enter { animation: m-fade-up var(--m-slow) var(--m-ease-out) both; }
-.m-scale-in { animation: m-scale-in var(--m-base) var(--m-spring) both; }
-.m-expand { transform-origin: top; animation: m-expand var(--m-slow) var(--m-ease-out) both; }
-.m-slide-next { animation: m-slide-next var(--m-slow) var(--m-ease-out) both; }
-.m-slide-prev { animation: m-slide-prev var(--m-slow) var(--m-ease-out) both; }
+.m-page { animation: m-fade-up var(--m-slow) var(--m-ease-out) backwards; }
+.m-enter { animation: m-fade-up var(--m-slow) var(--m-ease-out) backwards; }
+.m-scale-in { animation: m-scale-in var(--m-base) var(--m-spring) backwards; }
+.m-expand { transform-origin: top; animation: m-expand var(--m-slow) var(--m-ease-out) backwards; }
+.m-slide-next { animation: m-slide-next var(--m-slow) var(--m-ease-out) backwards; }
+.m-slide-prev { animation: m-slide-prev var(--m-slow) var(--m-ease-out) backwards; }
 
 /* children enter one after another */
-.m-stagger > * { animation: m-fade-up var(--m-slow) var(--m-ease-out) both; }
+.m-stagger > * { animation: m-fade-up var(--m-slow) var(--m-ease-out) backwards; }
 .m-stagger > :nth-child(2) { animation-delay: 40ms; }
 .m-stagger > :nth-child(3) { animation-delay: 80ms; }
 .m-stagger > :nth-child(4) { animation-delay: 120ms; }
@@ -95,4 +95,43 @@
   }
 }
 
-/* ProgressRing: draws from empty to its value */
+/*
+ * Floating action button (shared/chrome/Fab.tsx). The root gets data-open; each item
+ * sets --i (its index from the button up) so items spring out one after another and
+ * fold back in reverse order.
+ */
+.m-fab-item {
+  opacity: 0;
+  transform: translateY(16px) scale(0.6);
+  pointer-events: none;
+  transition: opacity var(--m-base) var(--m-ease-out), transform var(--m-slow) var(--m-spring);
+  transition-delay: calc((var(--n) - var(--i) - 1) * 22ms);
+}
+.m-fab[data-open] .m-fab-item {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition-delay: calc(var(--i) * 38ms);
+}
+.m-fab-label {
+  opacity: 0;
+  transform: translateX(10px);
+  transition: opacity var(--m-base) var(--m-ease-out), transform var(--m-slow) var(--m-spring);
+}
+.m-fab[data-open] .m-fab-label {
+  opacity: 1;
+  transform: none;
+  transition-delay: calc(var(--i) * 38ms + 70ms);
+}
+.m-fab-main > svg { transition: transform var(--m-slow) var(--m-spring); }
+.m-fab[data-open] .m-fab-main > svg { transform: rotate(135deg); }
+.m-fab-scrim { opacity: 0; pointer-events: none; transition: opacity var(--m-base) var(--m-ease-out); }
+.m-fab[data-open] .m-fab-scrim { opacity: 1; pointer-events: auto; }
+
+/* a soft ring that keeps pulsing out of an element (e.g. the action button while work is waiting) */
+@keyframes m-ring { from { transform: scale(1); opacity: 0.45; } to { transform: scale(1.65); opacity: 0; } }
+.m-ring::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: inherit;
+  animation: m-ring 2.4s var(--m-ease-out) infinite;
+}
+.m-fab[data-open] .m-ring::before { animation: none; opacity: 0; }

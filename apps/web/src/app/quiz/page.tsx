@@ -21,7 +21,7 @@ export default async function QuizListPage() {
       {attempts.length === 0 ? (
         <EmptyState title="還沒有測驗紀錄">從題庫挑考卷或題目，選擇考試或單題練習。</EmptyState>
       ) : (
-        <ul className="m-stagger divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+        <ul className="m-stagger divide-y divide-line overflow-hidden rounded-2xl bg-surface shadow-sheet">
           {attempts.map((a) => {
             const s = summarize(a)
             const done = a.finishedAt !== null

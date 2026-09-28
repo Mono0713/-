@@ -49,7 +49,7 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
                   ))}
                 </div>
               )}
-              <section className="rounded-xl border border-line bg-surface p-4">
+              <section className="rounded-2xl bg-surface shadow-sheet p-4">
                 <QuestionView q={q} />
                 <div className="mt-3 flex justify-end border-t border-line pt-3">
                   <Link href={`/bank/${q.id}`} className="text-sm text-accent hover:underline">

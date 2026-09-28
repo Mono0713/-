@@ -2,20 +2,29 @@
 @import '../shared/motion/motion.css';
 
 @theme {
-  --font-sans: 'Inter', 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
-  --color-paper: #f6f5f1;
+  --font-sans: var(--font-inter), 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  --font-mono: var(--font-jbmono), ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  /* paper and ink */
+  --color-paper: #f3f1ec;
   --color-surface: #ffffff;
-  --color-ink: #1d2126;
-  --color-muted: #6b7078;
-  --color-line: #e3e1da;
-  --color-accent: #2f5bd3;
-  --color-accent-soft: #e8eefc;
+  --color-ink: #16182b;
+  --color-muted: #686b7c;
+  --color-line: #e4e1d9;
+  /* the Sheetloop blue-violet */
+  --color-accent: #4a55f0;
+  --color-accent-soft: #eceeff;
+  --color-brand-from: #3d6bff;
+  --color-brand-to: #6a45f5;
+  /* sidebar */
+  --color-night: #15172b;
+  --color-night-soft: #222542;
   --color-good: #1f7a4d;
   --color-good-soft: #e3f3ea;
   --color-warn: #a15c00;
   --color-warn-soft: #fdf1dc;
-  --color-bad: #b42318;
+  --color-bad: #c42b1c;
   --color-bad-soft: #fde8e6;
+  --shadow-sheet: 0 0 0 1px rgb(22 24 43 / 0.06), 0 1px 2px rgb(22 24 43 / 0.04), 0 12px 32px -24px rgb(22 24 43 / 0.25);
 }
 
 html {
@@ -23,8 +32,24 @@ html {
 }
 
 body {
-  background: var(--color-paper);
+  background-color: var(--color-paper);
+  /* the same faint dot grid as the brand video */
+  background-image: radial-gradient(rgb(22 24 43 / 0.07) 1px, transparent 1.2px);
+  background-size: 22px 22px;
+  background-attachment: fixed;
   color: var(--color-ink);
+}
+
+/* numbers set in the mono face: question numbers, counts, scores */
+.num {
+  font-family: var(--font-mono);
+  font-feature-settings: 'zero' 0;
+  letter-spacing: -0.02em;
+}
+
+/* the gradient used by primary actions and the active nav item */
+.bg-brand {
+  background-image: linear-gradient(135deg, var(--color-brand-from), var(--color-brand-to));
 }
 
 /* Rendered question text */

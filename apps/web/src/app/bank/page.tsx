@@ -3,6 +3,7 @@ import { BankFilters } from '@/features/bank/BankFilters'
 import { ExamCard } from '@/features/bank/ExamCard'
 import { QuestionView } from '@/features/questions/QuestionView'
 import { currentOwner, services } from '@/server/context'
+import { IconQuiz, IconUpload } from '@/shared/icons'
 import { ButtonLink, EmptyState, PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -24,8 +25,10 @@ export default async function BankPage({ searchParams }: { searchParams: Promise
         subtitle={`${exams.length} 份考卷`}
         actions={
           <>
-            <ButtonLink href="/quiz/new">開始測驗</ButtonLink>
-            <ButtonLink href="/imports" variant="primary">
+            <ButtonLink href="/quiz/new" icon={<IconQuiz size={16} />}>
+              開始測驗
+            </ButtonLink>
+            <ButtonLink href="/imports" variant="primary" icon={<IconUpload size={16} />}>
               匯入考卷
             </ButtonLink>
           </>
@@ -38,7 +41,7 @@ export default async function BankPage({ searchParams }: { searchParams: Promise
           {empty ? '匯入考卷、校對後按「存入題庫」，考卷就會出現在這裡。' : '換個關鍵字或篩選條件試試。'}
         </EmptyState>
       ) : (
-        <ul className="m-stagger grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="m-stagger grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {exams.map((exam) => (
             <li key={exam.id}>
               <ExamCard exam={exam} />
@@ -55,7 +58,7 @@ export default async function BankPage({ searchParams }: { searchParams: Promise
           <ul className="m-stagger grid grid-cols-1 gap-4 xl:grid-cols-2">
             {matches.items.map((q) => (
               <li key={q.id}>
-                <Link href={`/bank/${q.id}`} className="m-lift block h-full rounded-xl border border-line bg-surface p-4 hover:border-accent/50">
+                <Link href={`/bank/${q.id}`} className="m-lift block h-full rounded-2xl bg-surface shadow-sheet p-4">
                   <p className="mb-2 truncate text-xs text-muted">{q.examTitle ?? '未命名考卷'}</p>
                   <QuestionView q={q} compact />
                 </Link>

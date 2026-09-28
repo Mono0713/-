@@ -78,17 +78,21 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
   const failed = results.filter((r) => !r.page).map((r) => r.pageNumber)
   const pages = Array.from({ length: imp.pageCount }, (_, i) => ({ pageNumber: i + 1, image: importer.pageImage(id, i + 1) }))
   return (
-    <div>
-      {header}
-      <ReviewEditor
+    <ReviewEditor
         key={id}
         importId={id}
         initial={draft}
         pages={pages}
         savedExam={bank.examForImport(id)}
+        heading={{
+          title: imp.title ?? imp.fileName,
+          status: <StatusBadge key="status" status={imp.status} />,
+          meta: `${imp.pageCount} 頁 · ${imp.provider}${imp.model ? ` / ${imp.model}` : ''}`,
+          actions: <DeleteImportButton key="actions" importId={id} compact />,
+        }}
         notice={
           failed.length > 0 && (
-            <Card className="mb-6 space-y-3 border-bad/30 p-4">
+            <Card key="notice" className="space-y-3 p-4 ring-1 ring-bad/30">
               <p className="text-sm">
                 <span className="font-medium text-bad">第 {failed.join('、')} 頁沒有讀到。</span>
                 <span className="text-muted">重讀只處理這幾頁，但完成後草稿會重新產生，目前在這頁做的修改會被覆蓋。</span>
@@ -98,6 +102,5 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
           )
         }
       />
-    </div>
   )
 }

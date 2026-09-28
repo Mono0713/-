@@ -3,18 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useLayoutEffect, useRef, useState } from 'react'
-import { IconBank, IconQuiz, IconUpload, type Icon } from '@/shared/icons'
-
-const NAV: { href: string; label: string; icon: Icon }[] = [
-  { href: '/imports', label: '匯入考卷', icon: IconUpload },
-  { href: '/bank', label: '題庫', icon: IconBank },
-  { href: '/quiz', label: '線上測驗', icon: IconQuiz },
-]
+import { NAV, activeNav } from './nav'
 
 /** Main navigation with a pill that slides to the current section. */
 export function NavLinks() {
-  const pathname = usePathname()
-  const active = NAV.findIndex((n) => pathname === n.href || pathname.startsWith(n.href + '/'))
+  const active = activeNav(usePathname())
   const refs = useRef<(HTMLAnchorElement | null)[]>([])
   const [pill, setPill] = useState<{ left: number; width: number } | null>(null)
   const [ready, setReady] = useState(false)

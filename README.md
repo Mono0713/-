@@ -91,12 +91,12 @@ apps/
       brand/        名稱、標語、Logo（產品名稱只寫在 brand.ts）
       icons/        全站 icon 的唯一出口（lucide-react）
       motion/       動畫 token、CSS 動畫 class、數字/進度環/打勾小元件
-      chrome/       頁首與導覽列
+      chrome/       寬螢幕的深色側邊欄、窄螢幕的頁首、右下角懸浮功能球（Fab）
 ```
 - **換模型**：`packages/extraction/src/providers/` 每家一個檔案，只負責翻譯 API 格式。提示詞和輸出格式三家共用，回覆一律經過同一個 schema 驗證，格式不對會自動重試一次。新增模型用 `registerProvider()`。
 - **內容格式**：題幹和選項是 Markdown，數學用 LaTeX（`$...$`），化學式用 mhchem（`$\ce{H2O}$`），表格用 Markdown 表格，圖形會裁成獨立圖片。
 - **圖片填空**：模型回報圖上每個空格的編號和大概位置，程式再把它對齊到印刷的方框或底線，清除框內和周圍的紅筆、藍筆字跡，保留印刷的編號文字。答案依空格順序存放，空格位置以裁切後的圖為基準，線上測驗可以直接在圖上對應位置放輸入框。鉛筆和黑筆跟印刷字同色，無法逐筆分辨，所以模型也會回報每格的筆色和格內印刷字（例如 `7. ___ host`）：深色筆的格子會整格清空，再把印刷字打回原位（沒有印刷字時只印編號）。模型判斷錯時，可在網頁審閱畫面的「圖上空格的筆跡清理」逐格切換後重新清理。
-- **介面動畫**：全站動畫只從 `src/shared/motion/` 取用，功能模組只加 class（`m-press`、`m-lift`、`m-stagger`、`m-enter`、`m-pop`…）或用其中的元件，不自己寫 keyframes。時長與曲線是 `motion.css` 開頭的 token；系統設定「減少動態效果」時全部關閉。icon 一律從 `@/shared/icons` 匯入，換 icon 套件只改那一個檔案。
+- **介面動畫**：全站動畫只從 `src/shared/motion/` 取用，功能模組只加 class（`m-press`、`m-lift`、`m-stagger`、`m-enter`、`m-pop`…）或用其中的元件，不自己寫 keyframes。時長與曲線是 `motion.css` 開頭的 token；系統設定「減少動態效果」時全部關閉。icon 一律從 `@/shared/icons` 匯入，換 icon 套件只改那一個檔案。顏色、字型、紙張陰影（`shadow-sheet`）是 `globals.css` 的 token；數字用 `.num`（等寬字），主要按鈕用 `.bg-brand`（Logo 的漸層）。
 - **手寫答案**：答案會標明來源是印刷還是手寫；手寫且被批改為錯的答案不會當成正解，並列入待檢查。
 
 ## 開發

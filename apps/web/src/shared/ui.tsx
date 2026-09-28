@@ -5,9 +5,10 @@ import { IconEmpty, IconLoader } from '@/shared/icons'
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'm-shine bg-accent text-white shadow-[0_6px_16px_-8px_var(--color-accent)] hover:bg-accent/90 disabled:bg-accent/50 disabled:shadow-none',
-  secondary: 'bg-surface text-ink border border-line hover:bg-paper disabled:text-muted',
-  ghost: 'text-muted hover:text-ink hover:bg-paper',
+  primary:
+    'm-shine bg-brand text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.22),0_8px_20px_-10px_var(--color-brand-to)] hover:brightness-110 disabled:opacity-50 disabled:shadow-none',
+  secondary: 'bg-surface text-ink shadow-[0_0_0_1px_var(--color-line),0_1px_2px_rgb(22_24_43/0.05)] hover:shadow-[0_0_0_1px_rgb(22_24_43/0.18),0_1px_2px_rgb(22_24_43/0.05)] disabled:text-muted',
+  ghost: 'text-muted hover:text-ink hover:bg-ink/[0.05]',
   danger: 'text-bad hover:bg-bad-soft',
 }
 
@@ -53,15 +54,15 @@ export function Badge({ tone = 'neutral', children }: { tone?: Tone; children: R
 }
 
 export function Card({ children, className = '', interactive = false }: { children: ReactNode; className?: string; interactive?: boolean }) {
-  return <div className={`rounded-xl border border-line bg-surface ${interactive ? 'm-lift' : ''} ${className}`}>{children}</div>
+  return <div className={`rounded-2xl bg-surface shadow-sheet ${interactive ? 'm-lift' : ''} ${className}`}>{children}</div>
 }
 
 export function PageHeader({ title, subtitle, actions }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="m-enter mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="m-enter mb-7 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+        <h1 className="text-2xl font-bold tracking-[-0.02em] sm:text-[28px]">{title}</h1>
+        {subtitle && <p className="mt-1.5 text-sm text-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
@@ -70,7 +71,7 @@ export function PageHeader({ title, subtitle, actions }: { title: ReactNode; sub
 
 export function EmptyState({ title, icon, children }: { title: string; icon?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="m-enter rounded-xl border border-dashed border-line px-6 py-12 text-center">
+    <div className="m-enter rounded-2xl border border-dashed border-ink/15 bg-surface/50 px-6 py-12 text-center">
       <div className="m-float mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-surface text-muted shadow-[0_0_0_1px_var(--color-line)]">
         {icon ?? <IconEmpty size={22} strokeWidth={1.8} />}
       </div>
@@ -81,5 +82,5 @@ export function EmptyState({ title, icon, children }: { title: string; icon?: Re
 }
 
 /** Input look without a width, for inputs sized by their container. */
-export const inputBase = 'rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/15'
+export const inputBase = 'rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition-shadow focus:border-accent focus:ring-[3px] focus:ring-accent/15'
 export const inputClass = `${inputBase} w-full`
