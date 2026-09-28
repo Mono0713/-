@@ -24,6 +24,25 @@ describe('mergePages', () => {
     expect(q2.locations.map((l) => l.pageNumber)).toEqual([1, 2])
   })
 
+  it('joins an option cut by a page break', () => {
+    const cut = [{ label: 'A', content: '能自動判斷' }, { label: 'E', content: '具模組功' }]
+    const first = result(1, page([question({ number: '2', stem: 'Perl 的精神?', options: cut, continuesOnNextPage: true })]))
+    const asOption = mergePages('exam.pdf', [
+      first,
+      result(2, page([question({ number: '2', stem: '', options: [{ label: '(E)', content: '能但不支援物件導向。' }], continuesFromPreviousPage: true })])),
+    ])
+    const asStem = mergePages('exam.pdf', [
+      result(1, page([question({ number: '2', stem: 'Perl 的精神?', options: cut, continuesOnNextPage: true })])),
+      result(2, page([question({ number: '2', stem: '能但不支援物件導向。', options: [], continuesFromPreviousPage: true })])),
+    ])
+    for (const exam of [asOption, asStem]) {
+      const q = exam.questions[0]!
+      expect(q.stem).toBe('Perl 的精神?')
+      expect(q.options.map((o) => o.label)).toEqual(['A', 'E'])
+      expect(q.options[1]!.content).toBe('具模組功能但不支援物件導向。')
+    }
+  })
+
   it('does not join when the previous page did not flag a continuation', () => {
     const exam = mergePages('exam.pdf', [
       result(1, page([question({ number: '1' })])),

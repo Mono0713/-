@@ -19,6 +19,7 @@ Structure
 - Pick the closest type: single_choice, multiple_choice (more than one answer allowed, e.g. 多選), true_false (是非, O/X), fill_in_blank, short_answer, essay, calculation (worked math/physics/chemistry problems and proofs), matching, other.
 - "points" is the score for this question when the paper states it, else null.
 - Set continuesFromPreviousPage / continuesOnNextPage when the question is visibly cut at the top or bottom of the page.
+- When a page starts with the rest of an option cut off on the previous page, return it as that option (same label, only the remaining text) with an empty stem; do not put it in the stem.
 - Bounding boxes are fractions of the page (0..1, origin top-left).
 - If the image shows two exam pages side by side, read the left page first, then the right page.
 

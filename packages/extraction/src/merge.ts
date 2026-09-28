@@ -52,7 +52,7 @@ export function mergePages(fileName: string, results: PageResult[]): DraftExam {
 
 function toDraft(q: ExtractedQuestion, groupId: string | null, location: DraftQuestion['locations'][number]): DraftQuestion {
   const { continuesFromPreviousPage: _from, continuesOnNextPage: _to, bbox: _bbox, ...rest } = q
-  return { ...rest, groupId, locations: [location] }
+  return { ...rest, options: rest.options.map((o) => ({ ...o })), groupId, locations: [location] }
 }
 
 /** Brackets and trailing punctuation some models leave on option labels: "(1)", "A.", "（B）". */
@@ -75,9 +75,19 @@ function tidy(q: DraftQuestion): DraftQuestion {
 const CONFIDENCE_RANK = { high: 2, medium: 1, low: 0 } as const
 
 function appendContinuation(target: DraftQuestion, part: ExtractedQuestion, location: DraftQuestion['locations'][number]) {
+  const options = part.options.map((o) => ({ ...o, label: normalizeLabel(o.label) }))
+  const lastOption = target.options.at(-1)
+  if (lastOption && options[0]?.label === lastOption.label) {
+    // The page break cut an option in two: the new page carries the rest of it.
+    lastOption.content += options.shift()!.content
+  } else if (lastOption && options.length === 0 && part.stem) {
+    // Some models return the tail of a cut option as a stem fragment.
+    lastOption.content += part.stem
+    part = { ...part, stem: '' }
+  }
   target.stem = [target.stem, part.stem].filter(Boolean).join('\n\n')
   if (part.translation) target.translation = [target.translation, part.translation].filter(Boolean).join('\n\n')
-  target.options.push(...part.options)
+  target.options.push(...options)
   target.figures.push(...part.figures)
   if (target.answer.values.length === 0 && part.answer.values.length > 0) target.answer = part.answer
   if (part.explanation) target.explanation = [target.explanation, part.explanation].filter(Boolean).join('\n\n')
