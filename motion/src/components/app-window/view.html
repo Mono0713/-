@@ -1,0 +1,32 @@
+    <div id="win" class="abs">
+      <div id="hdr">
+        <div id="slot"></div>
+        <div id="hdrWord"></div>
+        <div id="nav"><span class="on">匯入考卷</span><span>題庫</span><span>線上測驗</span></div>
+        <div id="navBar"></div>
+        <div id="hdrRight"><div class="pill"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>繁體中文</div><div class="avatar"></div></div>
+      </div>
+      <div id="s2title" class="abs" style="left:64px;top:106px"><div class="h-title">匯入考卷</div></div>
+      <div id="s2sub" class="abs h-sub" style="left:64px;top:170px">PDF、掃描檔、手機照片都可以，任何科目皆可辨識</div>
+      <div id="drop" class="abs">
+        <div id="dropInner">
+          <div class="icoCircle" id="dropIco"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2F5BE0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></div>
+          <div style="font-size:22px;font-weight:700">拖曳考卷到這裡</div>
+          <div style="font-size:16px;color:var(--muted)">或點擊選擇檔案</div>
+        </div>
+        <div id="dropCount"><div class="chip blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>3 份考卷 · 共 7 頁</div></div>
+      </div>
+      <div id="panel" class="abs">
+        <div class="lbl" style="top:30px">辨識模型</div>
+        <div id="mSel" style="top:64px"></div>
+        <div class="mrow" style="top:64px"><div class="mdot" style="background:#D97757">C</div><div><div class="mname">Claude</div><div class="mdesc">Anthropic · 公式與圖表</div></div><div class="radio"><i id="r0"></i></div></div>
+        <div class="mrow" style="top:146px"><div class="mdot" style="background:#10A37F">G</div><div><div class="mname">GPT</div><div class="mdesc">OpenAI</div></div><div class="radio"><i id="r1"></i></div></div>
+        <div class="mrow" style="top:228px"><div class="mdot" style="background:#4C8DF6">G</div><div><div class="mname">Gemini</div><div class="mdesc">Google</div></div><div class="radio"><i id="r2"></i></div></div>
+        <div class="lbl" style="top:334px">註記語言</div>
+        <div id="sel"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6C73" stroke-width="2" stroke-linecap="round"><path d="M4 5h9M8.5 3v2M6 5c1 4 4 7 7 8M11 5c-1 4-4 7-7 8M13 21l4-10 4 10M14.5 17.5h5"/></svg>繁體中文<svg style="margin-left:auto" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E6C73" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></div>
+        <div id="btn"><div id="btnFill"></div>
+          <div class="btnTxt" id="btnA"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>開始辨識</div>
+          <div class="btnTxt" id="btnB">辨識中…</div>
+        </div>
+      </div>
+    </div>

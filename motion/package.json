@@ -1,0 +1,19 @@
+{
+  "name": "exam-bank-motion",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic UI motion piece: modular seek(t) sources bundled to one HTML, Playwright subframe renderer, FFmpeg motion blur",
+  "scripts": {
+    "build": "node build.mjs",
+    "render": "node render.mjs",
+    "draft": "node render.mjs --draft",
+    "stills": "node render.mjs --stills 1.2,4.6,7.6,9.5,12.4,15.4,17,18.9",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "dependencies": {
+    "playwright": "1.56.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
+  }
+}

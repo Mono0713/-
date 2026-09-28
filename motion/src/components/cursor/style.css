@@ -1,0 +1,2 @@
+#cursor{width:40px;height:40px;transform-origin:4px 4px}
+.ripple{position:absolute;border-radius:50%;border:2px solid var(--blue)}

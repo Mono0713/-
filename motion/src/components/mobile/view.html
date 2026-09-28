@@ -1,0 +1,41 @@
+  <div id="mobile" class="abs">
+    <div id="mTxt" class="abs">
+      <div class="eb" data-m="0">線上測驗</div>
+      <h2 data-m="1">隨時隨地練習</h2>
+      <p data-m="2">考試模式限時計分，練習模式逐題看解析</p>
+      <div id="mPills" data-m="3"><span class="chip">題目隨機</span><span class="chip">選項隨機</span><span class="chip">翻譯對照</span></div>
+    </div>
+    <div id="phone" class="abs">
+      <div id="screen">
+        <div id="island"></div>
+        <div class="sbar">9:41</div>
+        <div class="sicons"><svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="#1C1C21"/><rect x="5" y="5" width="3" height="7" rx="1" fill="#1C1C21"/><rect x="10" y="2" width="3" height="10" rx="1" fill="#1C1C21"/><rect x="15" y="0" width="3" height="12" rx="1" fill="#1C1C21"/></svg><svg width="26" height="13" viewBox="0 0 26 13"><rect x=".5" y=".5" width="22" height="12" rx="3.5" fill="none" stroke="#1C1C21" opacity=".4"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#1C1C21"/><rect x="23.5" y="4" width="2" height="5" rx="1" fill="#1C1C21" opacity=".4"/></svg></div>
+        <div id="scrA" class="scr">
+          <div class="mh"><span class="l">‹</span>練習模式<span class="r" id="mCount">3 / 14</span></div>
+          <div class="prog"><i id="mProg"></i></div>
+          <div class="mcard">
+            <div class="chead"><span class="badge">單選</span><span class="badge">2 分</span></div>
+            <div class="mstem">Which type of toxins is the best type to make toxoids?</div>
+            <div class="mopt" style="top:156px"><b>(A)</b>Superantigens</div>
+            <div class="mopt" style="top:222px" id="optB"><div class="mrip" id="mrip"></div><b>(B)</b>A-B toxins<div class="ck" id="ck"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path id="ckPath" d="M5 12.5l4.5 4.5L19 7.5" pathLength="1" stroke-dasharray="1"/></svg></div></div>
+            <div class="mopt" style="top:288px"><b>(C)</b>LPS</div>
+            <div class="mopt" style="top:354px"><b>(D)</b>Membrane-disrupting toxins</div>
+          </div>
+          <div id="expl"><div id="explIn"><h4>解析</h4>A-B 毒素經甲醛處理後失去毒性、保留抗原性，可製成類毒素疫苗。<div class="tr">翻譯：哪一種毒素最適合用來製作類毒素？</div></div></div>
+          <div class="mbtn">下一題</div>
+        </div>
+        <div id="scrB" class="scr">
+          <div class="mh"><span class="l">‹</span>測驗結果<span class="r">普通生物學</span></div>
+          <svg class="abs" style="left:85px;top:130px" width="220" height="220" viewBox="0 0 220 220"><circle cx="110" cy="110" r="94" stroke="#E6E2DA" stroke-width="18" fill="none"/><circle id="ring" cx="110" cy="110" r="94" stroke="url(#rg)" stroke-width="18" fill="none" stroke-linecap="round" pathLength="1" stroke-dasharray="1" transform="rotate(-90 110 110)"/><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6F8BFF"/><stop offset="1" stop-color="#2F5BE0"/></linearGradient></defs></svg>
+          <div id="ringTxt"><b id="score">0</b><span>分</span></div>
+          <div class="abs" style="left:0;top:376px;width:390px;text-align:center;font-size:16px;color:var(--muted)">14 題答對 13 題 · 用時 12:08</div>
+          <div class="stat" style="top:440px" data-s="0"><div class="row">單選題<span>100%</span></div><div class="tr"><i style="background:var(--green)"></i></div></div>
+          <div class="stat" style="top:510px" data-s="1"><div class="row">圖片填空<span>90%</span></div><div class="tr"><i style="background:var(--blue)"></i></div></div>
+          <div class="stat" style="top:580px" data-s="2"><div class="row">計算題<span>75%</span></div><div class="tr"><i style="background:#F2A33A"></i></div></div>
+          <div class="mbtn" style="background:var(--ink)">查看錯題</div>
+        </div>
+        <div id="toast" class="abs"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>答對！+2 分</div>
+      </div>
+    </div>
+    <div id="finger" class="abs"></div>
+  </div>

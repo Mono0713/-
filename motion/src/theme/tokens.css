@@ -1,0 +1,12 @@
+/* Design tokens: colours and font stacks shared by every component.
+   Fonts are inlined as data URLs by build.mjs, so the built page stands alone. */
+@font-face{font-family:"Inter Variable";font-weight:100 900;font-display:block;src:url(../fonts/inter-latin-wght-normal.woff2) format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-weight:500;font-display:block;src:url(../fonts/jetbrains-mono-latin-500-normal.woff2) format("woff2")}
+:root{
+  --bg:#F2F0EB; --ink:#1C1C21; --muted:#6E6C73; --faint:#A19E98; --line:#E8E4DD;
+  --card:#FFFFFF; --win:#FCFBF9; --blue:#2F5BE0; --blue-soft:#EEF2FF; --blue-line:#C9D6FF;
+  --green:#1F9D6B; --green-soft:#E5F5EE; --red:#D8333A; --amber:#C77A12; --amber-soft:#FFF3DF;
+  --sans:"Inter Variable","Noto Sans CJK TC","Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --serif:"Noto Serif CJK TC","Songti TC","PMingLiU","Times New Roman",serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}

@@ -1,0 +1,38 @@
+#mTxt{left:180px;top:318px}
+#mTxt .eb{font-size:22px;color:var(--blue);font-weight:700;letter-spacing:.12em}
+#mTxt h2{font-size:88px;font-weight:800;letter-spacing:.02em;margin-top:10px;white-space:nowrap}
+#mTxt p{font-size:26px;color:var(--muted);margin-top:14px}
+#mPills{display:flex;gap:12px;margin-top:34px}
+#mPills .chip{height:46px;font-size:18px;background:#fff;border:1px solid var(--line);color:var(--ink);padding:0 20px}
+#phone{width:414px;height:868px;border-radius:62px;background:linear-gradient(145deg,#2C2C33,#0E0E12);padding:12px;box-shadow:0 60px 110px -40px rgba(20,20,40,.55),0 0 0 2px #3A3A42,inset 0 0 0 1px rgba(255,255,255,.08);transform-origin:50% 50%}
+#screen{position:relative;width:390px;height:844px;border-radius:50px;background:#F6F5F2;overflow:hidden}
+#island{position:absolute;left:140px;top:11px;width:110px;height:32px;border-radius:16px;background:#000;z-index:5}
+.sbar{position:absolute;left:34px;top:16px;font-size:16px;font-weight:600}
+.sicons{position:absolute;right:30px;top:19px;display:flex;gap:6px;align-items:center}
+.scr{position:absolute;left:0;top:0;width:390px;height:844px}
+.mh{position:absolute;left:0;top:56px;width:390px;height:48px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700}
+.mh .l{position:absolute;left:20px;color:var(--blue);font-size:24px;font-weight:400}
+.mh .r{position:absolute;right:22px;font-size:15px;color:var(--muted);font-weight:500}
+.prog{position:absolute;left:20px;top:108px;width:350px;height:6px;border-radius:3px;background:#E6E2DA;overflow:hidden}
+.prog i{position:absolute;left:0;top:0;height:6px;width:350px;border-radius:3px;background:var(--blue);transform-origin:0 0}
+.mcard{position:absolute;left:16px;top:130px;width:358px;height:430px;border-radius:24px;background:#fff;box-shadow:0 10px 30px -18px rgba(40,30,10,.3);padding:20px}
+.mstem{font-size:19px;font-weight:600;line-height:1.42;margin-top:14px}
+.mopt{position:absolute;left:20px;width:318px;height:56px;border-radius:14px;border:1.5px solid #E6E2DA;display:flex;align-items:center;padding:0 16px;gap:12px;font-size:16px;overflow:hidden;background:#fff}
+.mopt b{color:var(--muted);font-weight:600;width:28px}
+.mopt .ck{position:absolute;right:14px;top:14px;width:28px;height:28px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center}
+.mrip{position:absolute;width:40px;height:40px;border-radius:50%;background:rgba(31,157,107,.25);left:0;top:0}
+#expl{position:absolute;left:16px;top:576px;width:358px;border-radius:20px;background:#fff;overflow:hidden;box-shadow:0 10px 30px -18px rgba(40,30,10,.3)}
+#explIn{padding:18px 20px;font-size:15px;line-height:1.6;color:#3a3a40}
+#explIn h4{font-size:15px;color:var(--green);margin-bottom:4px}
+#explIn .tr{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);color:var(--muted)}
+.mbtn{position:absolute;left:16px;top:768px;width:358px;height:54px;border-radius:16px;background:var(--blue);color:#fff;font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center}
+#toast{left:95px;top:0;width:200px;height:46px;border-radius:23px;background:var(--green);color:#fff;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 14px 30px -12px rgba(31,157,107,.7);z-index:6}
+#finger{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.75);border:2px solid rgba(28,28,33,.25);box-shadow:0 10px 26px rgba(20,20,30,.28);transform-origin:50% 50%}
+#ringTxt{position:absolute;left:0;top:195px;width:390px;text-align:center}
+#ringTxt b{font-size:68px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+#ringTxt span{font-size:20px;color:var(--muted);margin-left:4px}
+.stat{position:absolute;left:24px;width:342px;font-size:15px}
+.stat .row{display:flex;justify-content:space-between;margin-bottom:8px;font-weight:600}
+.stat .row span{color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums}
+.stat .tr{height:10px;border-radius:5px;background:#E6E2DA;overflow:hidden}
+.stat .tr i{display:block;height:10px;border-radius:5px;transform-origin:0 0}

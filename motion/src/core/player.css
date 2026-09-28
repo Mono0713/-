@@ -1,0 +1,5 @@
+/* Preview player bar, hidden when rendering. */
+#ui{position:fixed;left:0;right:0;bottom:0;height:56px;display:flex;align-items:center;gap:14px;padding:0 18px;background:rgba(17,17,17,.9);color:#ddd;font:13px/1 var(--mono);z-index:10}
+#ui input{flex:1}
+#ui button{background:#333;color:#eee;border:0;border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
+.render #ui{display:none}
