@@ -1,24 +1,40 @@
 import Link from 'next/link'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { IconEmpty, IconLoader } from '@/shared/icons'
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-accent text-white hover:bg-accent/90 disabled:bg-accent/50',
-  secondary: 'bg-surface text-ink border border-line hover:bg-paper disabled:text-muted',
-  ghost: 'text-muted hover:text-ink hover:bg-paper',
+  primary:
+    'm-shine bg-brand text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.22),0_8px_20px_-10px_var(--color-brand-to)] hover:brightness-110 disabled:opacity-50 disabled:shadow-none',
+  secondary: 'bg-surface text-ink shadow-[0_0_0_1px_var(--color-line),0_1px_2px_rgb(22_24_43/0.05)] hover:shadow-[0_0_0_1px_rgb(22_24_43/0.18),0_1px_2px_rgb(22_24_43/0.05)] disabled:text-muted',
+  ghost: 'text-muted hover:text-ink hover:bg-ink/[0.05]',
   danger: 'text-bad hover:bg-bad-soft',
 }
 
-const BASE = 'inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed'
+const BASE = 'm-press inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium disabled:cursor-not-allowed'
 
-export function Button({ variant = 'secondary', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
-  return <button type="button" className={`${BASE} ${VARIANTS[variant]} ${className}`} {...props} />
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: Variant
+  /** Leading icon, e.g. <IconUpload size={16} /> */
+  icon?: ReactNode
+  /** Shows a spinner in place of the icon. */
+  loading?: boolean
 }
 
-export function ButtonLink({ href, variant = 'secondary', children }: { href: string; variant?: Variant; children: ReactNode }) {
+export function Button({ variant = 'secondary', className = '', icon, loading = false, children, ...props }: ButtonProps) {
+  return (
+    <button type="button" className={`${BASE} ${VARIANTS[variant]} ${className}`} {...props}>
+      {loading ? <IconLoader size={16} className="m-spin" aria-hidden /> : icon}
+      {children}
+    </button>
+  )
+}
+
+export function ButtonLink({ href, variant = 'secondary', icon, children }: { href: string; variant?: Variant; icon?: ReactNode; children: ReactNode }) {
   return (
     <Link href={href} className={`${BASE} ${VARIANTS[variant]}`}>
+      {icon}
       {children}
     </Link>
   )
@@ -37,25 +53,28 @@ export function Badge({ tone = 'neutral', children }: { tone?: Tone; children: R
   return <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ${TONES[tone]}`}>{children}</span>
 }
 
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-xl border border-line bg-surface ${className}`}>{children}</div>
+export function Card({ children, className = '', interactive = false }: { children: ReactNode; className?: string; interactive?: boolean }) {
+  return <div className={`rounded-2xl bg-surface shadow-sheet ${interactive ? 'm-lift' : ''} ${className}`}>{children}</div>
 }
 
 export function PageHeader({ title, subtitle, actions }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="m-enter mb-7 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+        <h1 className="text-2xl font-bold tracking-[-0.02em] sm:text-[28px]">{title}</h1>
+        {subtitle && <p className="mt-1.5 text-sm text-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
   )
 }
 
-export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
+export function EmptyState({ title, icon, children }: { title: string; icon?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-line px-6 py-12 text-center">
+    <div className="m-enter rounded-2xl border border-dashed border-ink/15 bg-surface/50 px-6 py-12 text-center">
+      <div className="m-float mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-surface text-muted shadow-[0_0_0_1px_var(--color-line)]">
+        {icon ?? <IconEmpty size={22} strokeWidth={1.8} />}
+      </div>
       <p className="font-medium">{title}</p>
       {children && <div className="mt-2 text-sm text-muted">{children}</div>}
     </div>
@@ -63,5 +82,5 @@ export function EmptyState({ title, children }: { title: string; children?: Reac
 }
 
 /** Input look without a width, for inputs sized by their container. */
-export const inputBase = 'rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/15'
+export const inputBase = 'rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition-shadow focus:border-accent focus:ring-[3px] focus:ring-accent/15'
 export const inputClass = `${inputBase} w-full`

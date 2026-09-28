@@ -5,6 +5,8 @@ import { answerKind, matches, toPaperLabels } from '@exam/quiz/logic'
 import { FigureView } from '@/shared/FigureView'
 import { TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
+import { IconX } from '@/shared/icons'
+import { DrawnCheck } from '@/shared/motion/DrawnCheck'
 import { Badge, inputBase, inputClass } from '@/shared/ui'
 
 /**
@@ -17,12 +19,15 @@ export function QuizQuestion({
   response,
   onChange,
   reveal = false,
+  celebrate = false,
 }: {
   item: QuizItem
   index: number
   response: QuizResponse | null
   onChange?: (response: QuizResponse) => void
   reveal?: boolean
+  /** Play the right / wrong feedback animation (when the answer has just been checked). */
+  celebrate?: boolean
 }) {
   const q = item.question
   const kind = answerKind(q)
@@ -91,12 +96,21 @@ export function QuizQuestion({
             const option = q.options.find((o) => o.label === label)
             const picked = values.includes(label)
             const correct = reveal && key.includes(label)
-            const tone = correct ? 'border-good bg-good-soft' : reveal && picked ? 'border-bad bg-bad-soft' : picked ? 'border-accent bg-accent-soft' : 'border-line bg-surface hover:border-accent/50'
+            const wrong = reveal && picked && !correct
+            const tone = correct ? 'border-good bg-good-soft' : wrong ? 'border-bad bg-bad-soft' : picked ? 'border-accent bg-accent-soft' : 'border-line bg-surface hover:border-accent/50'
+            // feedback plays once when the answer is revealed: the right option pops, a wrong pick shakes
+            const feedback = !celebrate ? '' : correct && picked ? 'm-pop' : wrong ? 'm-shake' : ''
             return (
               <li key={label}>
-                <button type="button" disabled={locked} onClick={() => toggle(label)} className={`flex w-full gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors ${tone}`}>
+                <button type="button" disabled={locked} onClick={() => toggle(label)} className={`m-press flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left text-sm ${tone} ${feedback}`}>
                   <span className={`font-semibold ${picked ? 'text-accent' : 'text-muted'}`}>({item.displayLabels[i]})</span>
                   <Markdown className="min-w-0 flex-1">{option?.content ?? ''}</Markdown>
+                  {correct && <DrawnCheck size={20} />}
+                  {wrong && (
+                    <span className="m-scale-in grid h-5 w-5 shrink-0 place-items-center rounded-full bg-bad text-white">
+                      <IconX size={13} strokeWidth={3} />
+                    </span>
+                  )}
                 </button>
               </li>
             )

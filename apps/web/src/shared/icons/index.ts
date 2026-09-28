@@ -1,0 +1,33 @@
+/**
+ * The app's icon set. Features import icons from here, never from the icon
+ * library directly, so the library (lucide) can be swapped in one place.
+ */
+export {
+  ArrowDown as IconArrowDown,
+  ArrowUp as IconArrowUp,
+  ArrowUpToLine as IconTop,
+  BookmarkCheck as IconSave,
+  Check as IconCheck,
+  ChevronDown as IconChevronDown,
+  ChevronLeft as IconChevronLeft,
+  ChevronRight as IconChevronRight,
+  ClipboardCheck as IconQuiz,
+  Ellipsis as IconMore,
+  FileText as IconFile,
+  Flag as IconFinish,
+  Inbox as IconEmpty,
+  Library as IconBank,
+  List as IconList,
+  ListFilter as IconFilter,
+  LoaderCircle as IconLoader,
+  Pencil as IconEdit,
+  Plus as IconPlus,
+  ScanText as IconScan,
+  Sparkles as IconSparkles,
+  Timer as IconTimer,
+  Trash2 as IconTrash,
+  TriangleAlert as IconAlert,
+  Upload as IconUpload,
+  X as IconX,
+} from 'lucide-react'
+export type { LucideIcon as Icon } from 'lucide-react'

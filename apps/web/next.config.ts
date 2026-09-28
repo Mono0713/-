@@ -7,6 +7,8 @@ const config: NextConfig = {
   serverExternalPackages: ['sharp', 'pdfjs-dist', '@napi-rs/canvas'],
   experimental: { serverActions: { bodySizeLimit: '50mb' } },
   agentRules: false,
+  // The dev badge sits over the sidebar and the review page's action button.
+  devIndicators: false,
 }
 
 export default config

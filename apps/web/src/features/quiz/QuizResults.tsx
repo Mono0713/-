@@ -3,6 +3,9 @@
 import type { QuizAttempt, QuizSummary } from '@exam/quiz'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
+import { AnimatedNumber } from '@/shared/motion/AnimatedNumber'
+import { ProgressRing } from '@/shared/motion/ProgressRing'
+import { Segmented } from '@/shared/Segmented'
 import { Card } from '@/shared/ui'
 import { markAnswer } from './actions'
 import { QuizQuestion } from './QuizQuestion'
@@ -33,20 +36,22 @@ export function QuizResults({ attempt, summary }: { attempt: QuizAttempt; summar
 
   return (
     <div className="space-y-6">
-      <Card className="flex flex-wrap items-center gap-x-10 gap-y-4 p-5">
+      <Card className="m-enter flex flex-wrap items-center gap-x-10 gap-y-4 p-5">
+        {percent !== null && (
+          <div className="relative grid place-items-center">
+            <ProgressRing value={percent / 100} size={84} stroke={9} tone={percent >= 60 ? 'var(--color-good)' : 'var(--color-warn)'} />
+            <span className="absolute text-lg font-semibold">
+              <AnimatedNumber value={percent} />%
+            </span>
+          </div>
+        )}
         <div>
           <p className="text-xs text-muted">得分</p>
           <p className="text-3xl font-semibold tabular-nums">
-            {summary.score}
+            <AnimatedNumber value={summary.score} format={(n) => (Number.isInteger(summary.score) ? String(Math.round(n)) : n.toFixed(1))} />
             <span className="text-lg text-muted"> / {summary.max}</span>
           </p>
         </div>
-        {percent !== null && (
-          <div>
-            <p className="text-xs text-muted">得分率</p>
-            <p className="text-3xl font-semibold tabular-nums">{percent}%</p>
-          </div>
-        )}
         {minutes !== null && (
           <div>
             <p className="text-xs text-muted">用時</p>
@@ -66,27 +71,18 @@ export function QuizResults({ attempt, summary }: { attempt: QuizAttempt; summar
         {summary.pending > 0 && <p className="w-full text-sm text-accent">有 {summary.pending} 題問答題要對照參考答案自己評分，分數會跟著更新。</p>}
       </Card>
 
-      <div className="flex gap-1 text-sm">
-        {(
-          [
-            ['all', `全部 ${attempt.items.length}`],
-            ['missed', `答錯與未作答 ${attempt.items.filter((_, i) => missed(i)).length}`],
-            ['pending', `待自評 ${summary.pending}`],
-          ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => setFilter(value)}
-            className={`rounded-md px-3 py-1.5 ${filter === value ? 'bg-ink text-paper' : 'bg-surface text-muted hover:text-ink'}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        value={filter}
+        onChange={setFilter}
+        options={[
+          ['all', `全部 ${attempt.items.length}`],
+          ['missed', `答錯與未作答 ${attempt.items.filter((_, i) => missed(i)).length}`],
+          ['pending', `待自評 ${summary.pending}`],
+        ] as const}
+      />
 
       {shown.map((i) => (
-        <Card key={i} className="space-y-4 p-5">
+        <Card key={i} className="m-enter space-y-4 p-5">
           <QuizQuestion item={attempt.items[i]!} index={i} response={attempt.responses[i] ?? null} reveal />
           <Reveal item={attempt.items[i]!} grade={grades[i]!} marking={attempt.markings[i] ?? null} onMark={(credit) => mark(i, credit)} />
         </Card>
