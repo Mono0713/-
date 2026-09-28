@@ -15,6 +15,7 @@
   "dependencies": {
     "@exam/core": "workspace:*",
     "@exam/ingest": "workspace:*",
-    "@exam/extraction": "workspace:*"
+    "@exam/extraction": "workspace:*",
+    "@exam/figures": "workspace:*"
   }
 }

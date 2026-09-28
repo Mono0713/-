@@ -1,4 +1,4 @@
-import type { ExamMeta, ExtractedPage, ExtractedQuestion, QuestionGroup } from './schema.ts'
+import type { ExamMeta, ExtractedPage, ExtractedQuestion, Figure, FigureBlank, QuestionGroup } from './schema.ts'
 
 /** One rendered page image handed from ingest to extraction. */
 export interface PageImage {
@@ -19,8 +19,16 @@ export interface IngestedDocument {
   pages: PageImage[]
 }
 
+/** A figure after pages are merged: the page it is on and, once cropped, its own image. */
+export interface DraftFigure extends Figure {
+  pageNumber: number
+  /** Cropped figure with handwriting removed from its blanks; blank boxes are relative to this image. */
+  image: { file: string; width: number; height: number; blanks: FigureBlank[] } | null
+}
+
 /** A question after pages are merged, ready for human review. */
-export interface DraftQuestion extends Omit<ExtractedQuestion, 'continuesFromPreviousPage' | 'continuesOnNextPage' | 'bbox'> {
+export interface DraftQuestion extends Omit<ExtractedQuestion, 'continuesFromPreviousPage' | 'continuesOnNextPage' | 'bbox' | 'figures'> {
+  figures: DraftFigure[]
   /** Where the question sits on the source pages, one entry per page it spans. */
   locations: { pageNumber: number; bbox: ExtractedQuestion['bbox'] }[]
 }
@@ -28,7 +36,7 @@ export interface DraftQuestion extends Omit<ExtractedQuestion, 'continuesFromPre
 export interface DraftExam {
   fileName: string
   meta: ExamMeta
-  groups: (QuestionGroup & { pageNumber: number })[]
+  groups: (Omit<QuestionGroup, 'figures'> & { pageNumber: number; figures: DraftFigure[] })[]
   questions: DraftQuestion[]
   pages: { pageNumber: number; provider: string; model: string; notes: string | null }[]
 }

@@ -1,4 +1,4 @@
-import type { DraftExam } from '@exam/core'
+import type { DraftExam, DraftFigure } from '@exam/core'
 
 const TYPE_LABELS: Record<string, string> = {
   single_choice: '單選',
@@ -47,7 +47,7 @@ export function renderMarkdown(exam: DraftExam): string {
       if (group) {
         shownGroups.add(q.groupId)
         out.push('> **題組**', '>', ...group.stem.split('\n').map((line) => `> ${line}`), '')
-        for (const f of group.figures) out.push(`> 🖼 ${f.description}`)
+        for (const f of group.figures) out.push(...renderFigure(f).map((line) => `> ${line}`))
         out.push('')
       }
     }
@@ -58,14 +58,23 @@ export function renderMarkdown(exam: DraftExam): string {
     if (q.translation) out.push(`> 翻譯：${q.translation.replace(/\n/g, '\n> ')}`, '')
     for (const o of q.options) out.push(`- **(${o.label})** ${o.content}`)
     if (q.options.length) out.push('')
-    for (const f of q.figures) out.push(`🖼 圖：${f.description}`, '')
+    for (const f of q.figures) out.push(...renderFigure(f), '')
     if (q.answer.values.length) {
       const source = q.answer.source === 'handwritten' ? '（手寫）' : q.answer.source === 'printed' ? '（印刷）' : ''
-      out.push(`**答案${source}：** ${q.answer.values.join('、')}`, '')
+      const blanks = q.figures.flatMap((f) => f.blanks)
+      const values = blanks.length === q.answer.values.length ? q.answer.values.map((v, i) => `(${blanks[i]!.label}) ${v}`) : q.answer.values
+      out.push(`**答案${source}：** ${values.join('、')}`, '')
     }
     if (q.explanation) out.push(`**詳解：** ${q.explanation}`, '')
     for (const issue of q.issues) out.push(`- ⚠️ ${issue}`)
     if (q.issues.length) out.push('')
   }
   return out.join('\n')
+}
+
+function renderFigure(f: DraftFigure): string[] {
+  const lines = [`🖼 圖：${f.description}`]
+  if (f.image) lines.push('', `![${f.description.replace(/[[\]]/g, '')}](${encodeURI(f.image.file)})`)
+  if (f.blanks.length) lines.push('', `圖上空格：${f.blanks.map((b) => b.label).join('、')}`)
+  return lines
 }

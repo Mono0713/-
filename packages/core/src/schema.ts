@@ -47,9 +47,16 @@ export const BoundingBox = z.object({
 })
 export type BoundingBox = z.infer<typeof BoundingBox>
 
+export const FigureBlank = z.object({
+  label: z.string().describe('Number or label of the blank as printed on the figure, e.g. "7"'),
+  bbox: BoundingBox.describe('The box or line the student writes in, including any handwriting in it'),
+})
+export type FigureBlank = z.infer<typeof FigureBlank>
+
 export const Figure = z.object({
   description: z.string().describe('What the figure shows, in the language of the exam'),
   bbox: BoundingBox,
+  blanks: z.array(FigureBlank).describe('Blanks drawn on the figure for the student to fill in; empty for most figures'),
 })
 export type Figure = z.infer<typeof Figure>
 

@@ -29,6 +29,9 @@ importers:
       '@exam/extraction':
         specifier: workspace:*
         version: link:../../packages/extraction
+      '@exam/figures':
+        specifier: workspace:*
+        version: link:../../packages/figures
       '@exam/ingest':
         specifier: workspace:*
         version: link:../../packages/ingest
@@ -56,6 +59,15 @@ importers:
       zod:
         specifier: ^4.1.0
         version: 4.6.5
+
+  packages/figures:
+    dependencies:
+      '@exam/core':
+        specifier: workspace:*
+        version: link:../core
+      sharp:
+        specifier: ^0.34.0
+        version: 0.34.5
 
   packages/ingest:
     dependencies:

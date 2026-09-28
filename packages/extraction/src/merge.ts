@@ -1,4 +1,4 @@
-import type { DraftExam, DraftQuestion, ExamMeta, ExtractedQuestion } from '@exam/core'
+import type { DraftExam, DraftFigure, DraftQuestion, ExamMeta, ExtractedQuestion, Figure } from '@exam/core'
 import type { PageResult } from './extract.ts'
 
 /**
@@ -30,18 +30,19 @@ export function mergePages(fileName: string, results: PageResult[]): DraftExam {
     }
 
     const groupId = (id: string | null) => (id === null ? null : `p${result.pageNumber}:${id}`)
+    const draftFigures = (figures: Figure[]): DraftFigure[] => figures.map((f) => ({ ...f, pageNumber: result.pageNumber, image: null }))
     for (const group of page.groups) {
-      exam.groups.push({ ...group, id: groupId(group.id)!, pageNumber: result.pageNumber })
+      exam.groups.push({ ...group, id: groupId(group.id)!, pageNumber: result.pageNumber, figures: draftFigures(group.figures) })
     }
 
     for (const [index, q] of page.questions.entries()) {
       const location = { pageNumber: result.pageNumber, bbox: q.bbox }
       if (index === 0 && open && q.continuesFromPreviousPage) {
-        appendContinuation(open, q, location)
+        appendContinuation(open, q, location, draftFigures(q.figures))
       } else {
         // A page that starts mid-section does not repeat the heading.
         section = q.section ?? section
-        exam.questions.push(tidy(toDraft({ ...q, section }, groupId(q.groupId), location)))
+        exam.questions.push(tidy(toDraft({ ...q, section }, groupId(q.groupId), location, draftFigures(q.figures))))
       }
     }
     const last = page.questions.at(-1)
@@ -50,9 +51,9 @@ export function mergePages(fileName: string, results: PageResult[]): DraftExam {
   return exam
 }
 
-function toDraft(q: ExtractedQuestion, groupId: string | null, location: DraftQuestion['locations'][number]): DraftQuestion {
+function toDraft(q: ExtractedQuestion, groupId: string | null, location: DraftQuestion['locations'][number], figures: DraftFigure[]): DraftQuestion {
   const { continuesFromPreviousPage: _from, continuesOnNextPage: _to, bbox: _bbox, ...rest } = q
-  return { ...rest, options: rest.options.map((o) => ({ ...o })), groupId, locations: [location] }
+  return { ...rest, options: rest.options.map((o) => ({ ...o })), figures, groupId, locations: [location] }
 }
 
 /** Brackets and trailing punctuation some models leave on option labels: "(1)", "A.", "（B）". */
@@ -74,7 +75,7 @@ function tidy(q: DraftQuestion): DraftQuestion {
 
 const CONFIDENCE_RANK = { high: 2, medium: 1, low: 0 } as const
 
-function appendContinuation(target: DraftQuestion, part: ExtractedQuestion, location: DraftQuestion['locations'][number]) {
+function appendContinuation(target: DraftQuestion, part: ExtractedQuestion, location: DraftQuestion['locations'][number], figures: DraftFigure[]) {
   const options = part.options.map((o) => ({ ...o, label: normalizeLabel(o.label) }))
   const lastOption = target.options.at(-1)
   if (lastOption && options[0]?.label === lastOption.label) {
@@ -88,7 +89,7 @@ function appendContinuation(target: DraftQuestion, part: ExtractedQuestion, loca
   target.stem = [target.stem, part.stem].filter(Boolean).join('\n\n')
   if (part.translation) target.translation = [target.translation, part.translation].filter(Boolean).join('\n\n')
   target.options.push(...options)
-  target.figures.push(...part.figures)
+  target.figures.push(...figures)
   if (target.answer.values.length === 0 && part.answer.values.length > 0) target.answer = part.answer
   if (part.explanation) target.explanation = [target.explanation, part.explanation].filter(Boolean).join('\n\n')
   target.points ??= part.points
