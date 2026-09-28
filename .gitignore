@@ -6,3 +6,7 @@ dist/
 out/
 *.log
 .DS_Store
+data/
+.next/
+*.tsbuildinfo
+apps/web/next-env.d.ts

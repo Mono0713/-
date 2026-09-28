@@ -2,9 +2,8 @@ import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, extname, join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
-import type { DraftExam, DraftFigure, IngestedDocument } from '@exam/core'
 import { createProvider, extractDocument, ManualProvider, mergePages, providerIds, type PageResult } from '@exam/extraction'
-import { cleanFigure } from '@exam/figures'
+import { cropExamFigures } from '@exam/figures'
 import { ingestFile } from '@exam/ingest'
 import { renderMarkdown } from './markdown.ts'
 
@@ -96,7 +95,13 @@ async function main() {
       const rawPath = join(dir, `${id}.raw.json`)
       const results = onlyPages ? await withEarlierPages(rawPath, fresh) : fresh
       const exam = mergePages(doc.fileName, results)
-      await cropFigures(exam, doc, dir, join('figures', id))
+      await mkdir(join(dir, 'figures', id), { recursive: true })
+      const cropFailures = await cropExamFigures(exam, doc.pages, async (name, png) => {
+        const file = `figures/${id}/${name}.png`
+        await writeFile(join(dir, file), png)
+        return file
+      })
+      for (const f of cropFailures) console.log(`  could not crop figure ${f.name}: ${f.error}`)
       await writeFile(rawPath, JSON.stringify(results, null, 2))
       await writeFile(join(dir, `${id}.json`), JSON.stringify(exam, null, 2))
       await writeFile(join(dir, `${id}.md`), renderMarkdown(exam))
@@ -112,27 +117,6 @@ async function main() {
         `  [${id}] ${exam.questions.length} question(s), ${flagged} flagged for review, ` +
           `${tokensIn} in / ${tokensOut} out tokens, ${((Date.now() - started) / 1000).toFixed(1)}s -> ${join(dir, `${id}.md`)}`,
       )
-    }
-  }
-}
-
-/** Saves each figure as its own image, with handwriting removed from its blanks. */
-async function cropFigures(exam: DraftExam, doc: IngestedDocument, outDir: string, figuresDir: string) {
-  const named: [string, DraftFigure][] = [
-    ...exam.groups.flatMap((g) => g.figures.map((f, k): [string, DraftFigure] => [`group-${g.id.replace(/\W+/g, '-')}-${k + 1}`, f])),
-    ...exam.questions.flatMap((q, n) => q.figures.map((f, k): [string, DraftFigure] => [`q${n + 1}-${k + 1}`, f])),
-  ]
-  if (named.length) await mkdir(join(outDir, figuresDir), { recursive: true })
-  for (const [name, figure] of named) {
-    const page = doc.pages.find((p) => p.pageNumber === figure.pageNumber)
-    if (!page) continue
-    try {
-      const clean = await cleanFigure(page.data, figure)
-      const file = `${figuresDir}/${name}.png`.replaceAll('\\', '/')
-      await writeFile(join(outDir, file), clean.png)
-      figure.image = { file, width: clean.width, height: clean.height, blanks: clean.blanks }
-    } catch (err) {
-      console.log(`  could not crop figure ${name}: ${err instanceof Error ? err.message : err}`)
     }
   }
 }

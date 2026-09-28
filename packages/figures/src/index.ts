@@ -1,4 +1,4 @@
-import type { BoundingBox, Figure, FigureBlank } from '@exam/core'
+import type { BoundingBox, DraftExam, DraftFigure, Figure, FigureBlank, PageImage } from '@exam/core'
 import sharp from 'sharp'
 
 export interface CleanFigure {
@@ -50,6 +50,33 @@ export async function cleanFigure(pageImage: Buffer, figure: Figure, opts: Clean
       bbox: { x: (rect.x1 - left) / width, y: (rect.y1 - top) / height, width: (rect.x2 - rect.x1) / width, height: (rect.y2 - rect.y1) / height },
     })),
   }
+}
+
+/**
+ * Crops every figure of a draft exam and records the saved image on the figure.
+ * `save` stores one PNG under a stable name (e.g. "q6-1") and returns the path to record.
+ */
+export async function cropExamFigures(
+  exam: DraftExam,
+  pages: PageImage[],
+  save: (name: string, png: Buffer) => Promise<string>,
+): Promise<{ name: string; error: string }[]> {
+  const named: [string, DraftFigure][] = [
+    ...exam.groups.flatMap((g) => g.figures.map((f, k): [string, DraftFigure] => [`group-${g.id.replace(/\W+/g, '-')}-${k + 1}`, f])),
+    ...exam.questions.flatMap((q, n) => q.figures.map((f, k): [string, DraftFigure] => [`q${n + 1}-${k + 1}`, f])),
+  ]
+  const failures: { name: string; error: string }[] = []
+  for (const [name, figure] of named) {
+    const page = pages.find((p) => p.pageNumber === figure.pageNumber)
+    if (!page) continue
+    try {
+      const clean = await cleanFigure(page.data, figure)
+      figure.image = { file: await save(name, clean.png), width: clean.width, height: clean.height, blanks: clean.blanks }
+    } catch (err) {
+      failures.push({ name, error: err instanceof Error ? err.message : String(err) })
+    }
+  }
+  return failures
 }
 
 /** Pixels whose red or blue channel clearly exceeds the others: pen ink on a grey scan. */
