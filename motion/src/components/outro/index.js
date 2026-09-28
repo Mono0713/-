@@ -5,6 +5,7 @@ import './style.css';
 import { $, put, show, letters } from '../../core/dom.js';
 import { E, clamp, ease, lerp, spring } from '../../core/math.js';
 import { outroFade } from '../../shared/timeline.js';
+import { BRAND } from '../../shared/brand.js';
 
 const STEPS = [
   ['上傳', '#2F5BE0', '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>'],
@@ -20,7 +21,7 @@ export default {
   mount() {
     root = $('outro'); line = $('stepLine');
     root.style.transformOrigin = '960px 540px';
-    chars = letters($('outWord'), '考卷題庫');
+    chars = letters($('outWord'), BRAND.name);
     steps = STEPS.map(([name, col, icon], i) => {
       const d = document.createElement('div'); d.className = 'step abs';
       d.innerHTML = `<span class="si" style="background:${col}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${icon}</svg></span>${name}`;

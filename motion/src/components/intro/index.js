@@ -3,11 +3,16 @@ import view from './view.html';
 import './style.css';
 import { $, put, letters } from '../../core/dom.js';
 import { E, ease, lerp } from '../../core/math.js';
+import { BRAND } from '../../shared/brand.js';
 
 let chars, tag;
 export default {
   id: 'intro', layer: 'stage', view,
-  mount() { chars = letters($('introWord'), '考卷題庫'); tag = $('introTag'); },
+  mount() {
+    chars = letters($('introWord'), BRAND.name);
+    tag = $('introTag');
+    tag.innerHTML = `<span class="local">${BRAND.local}</span>${BRAND.tagline}`;
+  },
   seek(t) {
     const out = ease(t, 2.25, 2.75, E.in);
     chars.forEach((c, i) => {

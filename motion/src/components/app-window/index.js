@@ -5,6 +5,7 @@ import './style.css';
 import { $, put, show } from '../../core/dom.js';
 import { E, clamp, ease, lerp, mixRgb, pulse, spring } from '../../core/math.js';
 import { CUE, winMotion } from '../../shared/timeline.js';
+import { BRAND, markSvg } from '../../shared/brand.js';
 
 const GREY = [214, 209, 200], BLUE = [47, 91, 224];
 let r;
@@ -14,6 +15,8 @@ export default {
     r = Object.fromEntries(['win', 'slot', 'hdrWord', 'nav', 'navBar', 'hdrRight', 'drop', 'dropInner', 'dropCount', 'mSel', 'btn', 'btnFill', 'btnA', 'btnB']
       .map(id => [id, $(id)]));
     r.radios = [$('r0'), $('r1'), $('r2')];
+    r.slot.innerHTML = markSvg();
+    r.hdrWord.innerHTML = `${BRAND.name}<small>${BRAND.local}</small>`;
   },
   seek(t) {
     // chrome

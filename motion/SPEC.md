@@ -1,4 +1,4 @@
-# 模組規格：考卷題庫 UI Motion
+# 模組規格：Sheetloop UI Motion
 
 這份文件說明動畫程式怎麼拆、每一塊負責什麼、彼此之間只能透過什麼溝通。改動畫前先看這裡，就知道要動哪個檔案、會不會影響別的段落。
 
@@ -32,9 +32,10 @@ motion/
 │  ├─ theme/               全域樣式
 │  │  ├─ tokens.css        色票、字型堆疊、@font-face
 │  │  ├─ base.css          reset、#stage、.abs
-│  │  ├─ brand.css         Logo 方塊、字標
+│  │  ├─ brand.css         Logo 外框、字標、標語
 │  │  └─ ui.css            共用小元件：pill、chip、badge、題目選項
 │  ├─ shared/              元件之間唯一的共用管道
+│  │  ├─ brand.js          產品名稱、在地名稱、標語、Logo SVG（品牌只寫在這裡）
 │  │  ├─ timeline.js       總時間軸：DURATION、SCENES、CUE、共用運動曲線
 │  │  ├─ layout.js         共用座標：視窗、考卷相機、題目框、填空框、落點
 │  │  └─ exam-art.js       考卷手寫字形與細胞示意圖的繪製
@@ -117,7 +118,7 @@ export default {
 | `cursor` | app | 游標路徑、點擊縮放、點擊漣漪 | 3.75 – 5.9 |
 | `mobile` | stage | 左側標語、手機、點選、答對提示、解析、成績環 | 13.5 – 18.1 |
 | `outro` | stage | 字標、四步驟、結尾淡出（可循環） | 17.9 – 20 |
-| `logo` | stage | 題字方塊：彈入 → 飛進視窗標頭（交給 `app-window` 的 slot）→ 收尾再彈回 | 0 – 3.2、17.75 – 20 |
+| `logo` | stage | Sheetloop 標誌：彈入時循環箭頭轉緊 → 飛進視窗標頭時轉一圈（交給 `app-window` 的 slot）→ 收尾再彈回 | 0 – 3.2、17.75 – 20 |
 
 ## 5. 共用資料（`src/shared/`）
 
@@ -137,7 +138,11 @@ export default {
 - 題目框 `QB`、結果卡 `CARD`、填空框 `BOXES`、筆色 `INK`、手寫位置 `HW_ORIGIN / HW_CENTER`、面板落點 `PANEL_ROW(i)`。
 - 推導時間：`boxT[i]`（光束掃過第 i 題）、`sweepHit(i)`（橡皮擦掃過第 i 格）。改 `CUE.beam` 或 `CUE.sweep`，題目框、卡片、晶片會自動跟著移動。
 
-### 5.3 `exam-art.js`
+### 5.3 `brand.js`
+
+`BRAND`（`name`、`local`、`tagline`）、`markSvg()` 產生 Logo SVG（每次呼叫的 gradient / mask id 都不同，可在同一頁放多個）、`spinLoop(g, 角度)` 轉動 Logo 裡的循環箭頭。內容與網站 `apps/web/src/shared/brand/` 一致；改名或換 Logo 時兩邊一起改。
+
+### 5.4 `exam-art.js`
 
 手寫字形 `HW`、`glyph()`、細胞示意圖 `drawFigure(parent, clean)`。原卷與結果卡縮圖共用同一份繪圖。
 
@@ -146,6 +151,7 @@ export default {
 | 想做的事 | 改哪裡 |
 | --- | --- |
 | 換配色、字型 | `theme/tokens.css` |
+| 改產品名稱、標語、Logo | `shared/brand.js` |
 | 整體節奏變快或變慢 | `shared/timeline.js` 的 `CUE`，以及各元件內的局部時間 |
 | 換考卷內容 | `exam-paper/view.html`（文字）、`shared/exam-art.js`（圖與筆跡）、`shared/layout.js`（框的位置） |
 | 換手機題目 | `mobile/view.html` |

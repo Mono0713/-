@@ -1,10 +1,12 @@
 #win{left:160px;top:90px;width:1600px;height:900px;border-radius:28px;background:var(--win);box-shadow:0 60px 120px -40px rgba(40,30,10,.28),0 18px 40px -20px rgba(40,30,10,.18),0 0 0 1px rgba(0,0,0,.05);overflow:hidden}
 #hdr{position:absolute;left:0;top:0;width:1600px;height:72px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.6)}
-#slot{position:absolute;left:32px;top:18px;width:36px;height:36px;border-radius:9.6px;background:linear-gradient(160deg,#2A2A31,#131317);color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center}
-#hdrWord{position:absolute;left:82px;top:22px;font-size:20px;font-weight:700;letter-spacing:.03em}
-#nav{position:absolute;left:236px;top:25px;display:flex;gap:36px;font-size:16px;color:var(--muted)}
+#slot{position:absolute;left:32px;top:18px;width:36px;height:36px}
+#slot svg{display:block}
+#hdrWord{position:absolute;left:82px;top:22px;font-size:21px;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
+#hdrWord small{font-size:14px;font-weight:600;color:var(--faint);letter-spacing:.12em;margin-left:9px}
+#nav{position:absolute;left:266px;top:25px;display:flex;gap:36px;font-size:16px;color:var(--muted)}
 #nav .on{color:var(--ink);font-weight:600}
-#navBar{position:absolute;left:236px;top:69px;height:3px;width:64px;border-radius:3px;background:var(--blue)}
+#navBar{position:absolute;left:266px;top:69px;height:3px;width:64px;border-radius:3px;background:var(--blue)}
 #hdrRight{position:absolute;right:28px;top:18px;display:flex;gap:12px;align-items:center}
 .avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#FFB38A,#FF7E7E)}
 
