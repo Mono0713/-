@@ -10,6 +10,10 @@ export const Settings = z.object({
   models: z.record(z.string(), z.string()).default({}),
   /** API keys per provider. Secret: never sent to the browser, see `publicView`. */
   apiKeys: z.record(z.string(), z.string()).default({}),
+  /** The AI teacher that marks answers the program cannot check itself. null provider or model: pick automatically. */
+  aiGrading: z
+    .object({ enabled: z.boolean().default(true), provider: z.string().nullable().default(null), model: z.string().nullable().default(null) })
+    .default({ enabled: true, provider: null, model: null }),
   /** Model ids the provider's API reported last time they were fetched. */
   knownModels: z.record(z.string(), z.array(z.string())).default({}),
 })

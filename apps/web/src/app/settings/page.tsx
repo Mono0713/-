@@ -1,6 +1,6 @@
 import { LOCALES, publicView } from '@exam/settings'
 import { SettingsForm } from '@/features/settings/SettingsForm'
-import { availableProviders, currentOwner, keySource, localeOf, services } from '@/server/context'
+import { availableProviders, currentOwner, keySource, localeOf, services, teacherFor } from '@/server/context'
 import { PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -11,6 +11,7 @@ export default function SettingsPage() {
   // Only the public view reaches the browser: API keys stay on the server.
   const settings = publicView(services().settings.get(owner))
   const providers = availableProviders(owner)
+  const teacher = teacherFor(owner)
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader title="設定" subtitle="語言、辨識方式、模型和 API 金鑰。" />
@@ -19,6 +20,7 @@ export default function SettingsPage() {
         locale={localeOf(owner)}
         defaultProvider={settings.defaultProvider}
         providers={providers}
+        aiGrading={{ ...settings.aiGrading, active: teacher ? { provider: teacher.provider, model: teacher.model } : null }}
         keys={Object.fromEntries(providers.map((p) => [p.id, { source: keySource(owner, p.id), hint: settings.apiKeys[p.id]?.hint ?? null }]))}
       />
     </div>

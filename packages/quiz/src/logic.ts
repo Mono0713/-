@@ -1,4 +1,5 @@
 import type { DraftFigure, DraftQuestion } from '@exam/core'
+import { numberValue, sameMath } from './equivalence.ts'
 import type { Grade, QuizAttempt, QuizItem, QuizResponse, QuizSettings, Marking } from './types.ts'
 
 /** How a question is answered in a quiz. */
@@ -90,26 +91,32 @@ function mapLabels(value: string, from: string[], to: string[]): string {
   return parts.map((p, i) => (i % 2 === 0 ? lookup.get(key(p))! : p)).join('')
 }
 
-/** Marks one answer against the question's answer key. */
+/**
+ * Marks one answer. Choice and true/false questions are checked against the key. Blanks and
+ * short answers are checked too, forgiving format ("1/2" = "0.5"); what that cannot settle,
+ * and every open answer, waits for a marking by the person or an AI teacher, which then decides.
+ */
 export function grade(q: DraftQuestion, response: QuizResponse | null, marking: Marking | null = null): Grade {
-  const key = q.answer.values
+  const key = q.answer.values.filter((v) => v.trim())
   const worth = q.points ?? 1
-  if (!key.length || key.every((v) => !v.trim())) return { status: 'no_key', score: 0, max: 0 }
   const given = response?.values ?? []
   const answered = given.some((v) => v.trim())
   const kind = answerKind(q)
+  const choice = kind.kind === 'single' || kind.kind === 'multiple' || kind.kind === 'true_false'
+  if (!answered) return key.length ? { status: 'unanswered', score: 0, max: worth } : { status: 'no_key', score: 0, max: 0 }
+  // A marking settles anything the key cannot, including questions without a key.
+  if (marking && !choice) return byMarking(marking, worth)
+  if (!key.length) return { status: 'no_key', score: 0, max: 0 }
 
-  if (kind.kind === 'text') {
-    if (!answered) return { status: 'unanswered', score: 0, max: worth }
-    if (!marking) return { status: 'pending', score: 0, max: worth }
-    const credit = Math.min(1, Math.max(0, marking.credit))
-    return { status: credit >= 1 ? 'correct' : credit <= 0 ? 'wrong' : 'partial', score: Math.round(worth * credit * 100) / 100, max: worth }
-  }
-  if (!answered) return { status: 'unanswered', score: 0, max: worth }
-
-  if (kind.kind === 'single' || kind.kind === 'multiple' || kind.kind === 'true_false') {
+  if (choice) {
     const same = sameSet(key.map(normalize), given.map(normalize))
     return { status: same ? 'correct' : 'wrong', score: same ? worth : 0, max: worth }
+  }
+
+  if (kind.kind === 'text') {
+    // A short final answer ("8×10^6", "x = 1/2") can be matched; anything else needs marking.
+    const text = given.join('\n')
+    return key.some((k) => matches(k, text)) ? { status: 'correct', score: worth, max: worth } : { status: 'pending', score: 0, max: worth }
   }
 
   const right = key.filter((expected, i) => matches(expected, given[i] ?? '')).length
@@ -118,7 +125,36 @@ export function grade(q: DraftQuestion, response: QuizResponse | null, marking: 
   return { status, score, max: worth }
 }
 
-/** Whether a written answer matches the key, ignoring case, width, spacing and the order of listed labels. */
+function byMarking(marking: Marking, worth: number): Grade {
+  const credit = Math.min(1, Math.max(0, marking.credit))
+  return { status: credit >= 1 ? 'correct' : credit <= 0 ? 'wrong' : 'partial', score: Math.round(worth * credit * 100) / 100, max: worth }
+}
+
+/**
+ * Whether an answer is worth sending to an AI teacher: answered, not a choice question,
+ * not already marked, and not already fully right by the key.
+ */
+export function needsTeacher(item: QuizItem, response: QuizResponse | null, marking: Marking | null): boolean {
+  if (marking || !response?.values.some((v) => v.trim())) return false
+  const kind = answerKind(item.question).kind
+  if (kind === 'single' || kind === 'multiple' || kind === 'true_false') return false
+  const status = gradeItem(item, response, null).status
+  if (status === 'correct' || status === 'unanswered') return false
+  if (status === 'no_key' || (kind === 'text' && item.question.answer.values.filter((v) => v.trim()).length !== 1)) return true
+  // Only answers the program cannot be sure are wrong: an option label or a number that differs from the key is simply wrong.
+  const key = item.question.answer.values
+  const given = kind === 'text' ? [response.values.join('\n')] : response.values.map((v) => toPaperLabels(item, v))
+  const labels = new Set(item.optionOrder.map(normalize))
+  return key.some((expected, i) => {
+    const g = given[i] ?? ''
+    if (!g.trim() || matches(expected, g)) return false
+    const asLabels = (s: string) => (labelList(normalize(s)) ?? [normalize(s)]).every((l) => labels.has(l))
+    if (labels.size && asLabels(g) && asLabels(expected)) return false
+    return numberValue(g) === null || numberValue(expected) === null
+  })
+}
+
+/** Whether a written answer matches the key, ignoring case, width, spacing, the order of listed labels and the form of a number or formula. */
 export function matches(expected: string, given: string): boolean {
   const g = normalize(given)
   if (!g) return false
@@ -126,7 +162,8 @@ export function matches(expected: string, given: string): boolean {
     const e = normalize(alt)
     if (e === g) return true
     const el = labelList(e), gl = labelList(g)
-    return el !== null && gl !== null && sameSet(el, gl)
+    if (el !== null && gl !== null && sameSet(el, gl)) return true
+    return sameMath(alt, given)
   })
 }
 

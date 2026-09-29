@@ -70,6 +70,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
       const result = await checkAnswer(attempt.id, current, responses[current] ?? { values: [] })
       setItems((all) => all.map((x, j) => (j === current ? result.item : x)))
       setGrades((all) => all.map((x, j) => (j === current ? result.grade : x)))
+      setMarkings((all) => all.map((x, j) => (j === current ? result.marking : x)))
       setChecked((all) => all.map((x, j) => (j === current ? true : x)))
     })
 

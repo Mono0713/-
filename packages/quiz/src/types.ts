@@ -49,9 +49,24 @@ export interface Marking {
   feedback: string | null
 }
 
-/** Marks open answers. Planned for an AI teacher; nothing implements it yet. */
+/** One answer the answer key could not settle. */
+export interface GradingTask {
+  item: QuizItem
+  response: QuizResponse
+}
+
+/** Marks answers the key cannot settle, several at once. The AI teacher (@exam/grading) implements it. */
 export interface AnswerGrader {
-  mark(input: { question: DraftQuestion; answer: string; language: string }): Promise<Marking>
+  /** Markings in the order of `tasks`, with feedback in `language`; null for an answer it cannot judge. */
+  markAll(tasks: GradingTask[], language: string): Promise<(Marking | null)[]>
+}
+
+/** Where the AI teacher is with an attempt's open answers. */
+export interface TeacherState {
+  status: 'running' | 'done' | 'failed'
+  /** The model that marked them, for display. */
+  model: string | null
+  error: string | null
 }
 
 export type GradeStatus = 'correct' | 'partial' | 'wrong' | 'unanswered' | 'pending' | 'no_key'
@@ -79,4 +94,6 @@ export interface QuizAttempt {
   /** When a timed exam ends. */
   deadline: string | null
   finishedAt: string | null
+  /** Set once an AI teacher has been asked to mark this attempt. */
+  teacher?: TeacherState
 }

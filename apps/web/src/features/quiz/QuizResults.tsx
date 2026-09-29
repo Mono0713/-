@@ -6,18 +6,28 @@ import { useState, useTransition } from 'react'
 import { AnimatedNumber } from '@/shared/motion/AnimatedNumber'
 import { ProgressRing } from '@/shared/motion/ProgressRing'
 import { Segmented } from '@/shared/Segmented'
-import { Card } from '@/shared/ui'
-import { markAnswer } from './actions'
+import { AutoRefresh } from '@/features/imports/AutoRefresh'
+import { IconLoader, IconSparkles } from '@/shared/icons'
+import { Button, Card } from '@/shared/ui'
+import { askTeacher, markAnswer } from './actions'
 import { QuizQuestion } from './QuizQuestion'
 import { GRADE_LABELS, Reveal } from './Reveal'
 
 type Filter = 'all' | 'missed' | 'pending'
 
 /** Score and every question with its answer, after the quiz is over. Open answers can be marked here. */
-export function QuizResults({ attempt, summary }: { attempt: QuizAttempt; summary: QuizSummary }) {
+export function QuizResults({ attempt, summary, teacher }: { attempt: QuizAttempt; summary: QuizSummary; teacher: boolean }) {
   const router = useRouter()
   const [filter, setFilter] = useState<Filter>('all')
   const [, start] = useTransition()
+  const [asking, startAsking] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const running = attempt.teacher?.status === 'running'
+  const ask = () =>
+    startAsking(async () => {
+      setError((await askTeacher(attempt.id))?.error ?? null)
+      router.refresh()
+    })
   const { grades } = summary
   const mark = (i: number, credit: number | null) =>
     start(async () => {
@@ -68,7 +78,29 @@ export function QuizResults({ attempt, summary }: { attempt: QuizAttempt; summar
             </li>
           ))}
         </ul>
-        {summary.pending > 0 && <p className="w-full text-sm text-accent">有 {summary.pending} 題問答題要對照參考答案自己評分，分數會跟著更新。</p>}
+        {running ? (
+          <p className="flex w-full items-center gap-2 text-sm text-accent">
+            <AutoRefresh everyMs={2000} />
+            <IconLoader size={15} className="m-spin" /> AI 老師正在批改問答題和填空題，分數會自動更新。
+          </p>
+        ) : (
+          summary.pending > 0 && (
+            <div className="flex w-full flex-wrap items-center gap-3 text-sm">
+              <p className="text-accent">
+                有 {summary.pending} 題等待批改。{attempt.teacher?.status === 'failed' ? 'AI 批改沒有完成，可以再試一次，' : ''}可以對照參考答案自己評分{teacher ? '，或請 AI 老師批改' : ''}。
+              </p>
+              {teacher && (
+                <Button onClick={ask} loading={asking} icon={<IconSparkles size={15} />}>
+                  請 AI 老師批改
+                </Button>
+              )}
+            </div>
+          )
+        )}
+        {!running && attempt.teacher?.status === 'done' && attempt.teacher.model && (
+          <p className="w-full text-xs text-muted">標示「AI 批改」的題目由 {attempt.teacher.model} 批改；同一題同樣的答案只會問 AI 一次。</p>
+        )}
+        {error && <p className="w-full text-sm text-bad">{error}</p>}
       </Card>
 
       <Segmented
@@ -77,7 +109,7 @@ export function QuizResults({ attempt, summary }: { attempt: QuizAttempt; summar
         options={[
           ['all', `全部 ${attempt.items.length}`],
           ['missed', `答錯與未作答 ${attempt.items.filter((_, i) => missed(i)).length}`],
-          ['pending', `待自評 ${summary.pending}`],
+          ['pending', `待批改 ${summary.pending}`],
         ] as const}
       />
 
