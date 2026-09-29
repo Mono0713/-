@@ -1,65 +1,103 @@
 'use client'
 
 import { QuestionType, type Answer, type DraftQuestion } from '@exam/core'
+import { useState, type ReactNode } from 'react'
 import { FigureView } from '@/shared/FigureView'
 import { FigureBlanksEditor } from './FigureBlanksEditor'
+import { IconAlert, IconChevronDown, IconPlus, IconX } from '@/shared/icons'
 import { TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
 import { MathTextInput } from '@/shared/math/MathTextInput'
-import { Button, inputBase, inputClass } from '@/shared/ui'
 
 const TYPES = QuestionType.options
 
+const SOURCES: [Answer['source'], string][] = [
+  ['printed', '印刷'],
+  ['handwritten', '手寫'],
+  ['none', '無'],
+]
+
+/** The quiet filled look of the small fields in the header line. */
+const chip = 'h-9 rounded-lg bg-ink/[0.045] text-sm outline-none transition-shadow hover:bg-ink/[0.07] focus:bg-surface focus:ring-2 focus:ring-accent/40'
+const iconButton = 'm-press grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted hover:bg-ink/[0.06] hover:text-ink'
+
 /**
  * Editable form for one question. Controlled: the caller owns the value.
- * importId is the upload the question came from, used to crop its figures again.
+ * Number, type and points share one line with the caller's `actions`; every text is a box with its
+ * name inside, so the form stays compact. importId is the upload the question came from, used to crop its figures again.
  */
-export function QuestionEditor({ value: q, onChange, importId = null }: { value: DraftQuestion; onChange: (q: DraftQuestion) => void; importId?: string | null }) {
+export function QuestionEditor({
+  value: q,
+  onChange,
+  importId = null,
+  actions,
+}: {
+  value: DraftQuestion
+  onChange: (q: DraftQuestion) => void
+  importId?: string | null
+  actions?: ReactNode
+}) {
   const set = <K extends keyof DraftQuestion>(key: K, v: DraftQuestion[K]) => onChange({ ...q, [key]: v })
   const setAnswer = (patch: Partial<Answer>) => set('answer', { ...q.answer, ...patch })
   const hasChoices = q.options.length > 0 || q.type === 'single_choice' || q.type === 'multiple_choice'
+  // Translation and explanation take room only once they have something in them, or are asked for.
+  const [extra, setExtra] = useState({ translation: false, explanation: false })
+  const showTranslation = extra.translation || Boolean(q.translation)
+  const showExplanation = extra.explanation || Boolean(q.explanation)
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-[5rem_minmax(0,1fr)_6rem] gap-3">
-        <Field label="題號">
-          <input value={q.number} onChange={(e) => set('number', e.target.value)} className={inputClass} />
-        </Field>
-        <Field label="題型">
-          <select value={q.type} onChange={(e) => set('type', e.target.value as DraftQuestion['type'])} className={inputClass}>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
+        <input
+          value={q.number}
+          onChange={(e) => set('number', e.target.value)}
+          className={`${chip} num w-12 px-1.5 text-center text-base font-medium sm:w-14`}
+          aria-label="題號"
+          title="題號"
+        />
+        <label className="relative">
+          <select value={q.type} onChange={(e) => set('type', e.target.value as DraftQuestion['type'])} className={`${chip} cursor-pointer appearance-none pl-3 pr-8`} aria-label="題型" title="題型">
             {TYPES.map((t) => (
               <option key={t} value={t}>
                 {TYPE_LABELS[t]}
               </option>
             ))}
           </select>
-        </Field>
-        <Field label="配分">
+          <IconChevronDown size={15} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted" />
+        </label>
+        <label className={`${chip} flex cursor-text items-center gap-1 pl-1 pr-2.5 focus-within:bg-surface focus-within:ring-2 focus-within:ring-accent/40`} title="配分">
           <input
             type="number"
             min={0}
             step="any"
             value={q.points ?? ''}
             onChange={(e) => set('points', e.target.value === '' ? null : Number(e.target.value))}
-            className={inputClass}
+            placeholder="–"
+            className="num w-8 bg-transparent text-right outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+            aria-label="配分"
           />
-        </Field>
+          <span className="text-muted">分</span>
+        </label>
+        {actions && <div className="ml-auto flex items-center gap-0.5">{actions}</div>}
       </div>
 
       <MathTextInput label="題幹" value={q.stem} onChange={(v) => set('stem', v)} />
 
       {q.figures.map((f, i) => (
-        <div key={i} className="rounded-lg border border-line p-3">
+        <div key={i} className="rounded-xl border border-line p-2">
           <FigureView figure={f} />
           <MathTextInput
             multiline={false}
-            label="圖片說明"
+            prefix={<span className="pl-1.5 text-[11px] font-medium text-muted">說明</span>}
+            placeholder="圖片說明"
             value={f.description}
             onChange={(v) => set('figures', q.figures.map((g, j) => (j === i ? { ...g, description: v } : g)))}
             className="mt-2"
           />
           {f.blanks.length ? (
-            <FigureBlanksEditor figure={f} importId={importId} onChange={(g) => set('figures', q.figures.map((x, j) => (j === i ? g : x)))} />
+            <div className="px-1">
+              <FigureBlanksEditor figure={f} importId={importId} onChange={(g) => set('figures', q.figures.map((x, j) => (j === i ? g : x)))} />
+            </div>
           ) : null}
         </div>
       ))}
@@ -68,23 +106,46 @@ export function QuestionEditor({ value: q, onChange, importId = null }: { value:
 
       <AnswerEditor q={q} setAnswer={setAnswer} />
 
-      <details className="group" open={Boolean(q.translation || q.explanation)}>
-        <summary className="cursor-pointer text-sm font-medium text-muted hover:text-ink">翻譯與詳解</summary>
-        <div className="mt-3 space-y-4">
-          <MathTextInput label="翻譯" value={q.translation ?? ''} onChange={(v) => set('translation', v || null)} />
-          <MathTextInput label="詳解" value={q.explanation ?? ''} onChange={(v) => set('explanation', v || null)} />
+      {showTranslation && (
+        <MathTextInput
+          label="翻譯"
+          value={q.translation ?? ''}
+          onChange={(v) => set('translation', v || null)}
+          actions={<RemoveButton label="移除翻譯" onClick={() => (set('translation', null), setExtra({ ...extra, translation: false }))} />}
+        />
+      )}
+      {showExplanation && (
+        <MathTextInput
+          label="詳解"
+          value={q.explanation ?? ''}
+          onChange={(v) => set('explanation', v || null)}
+          actions={<RemoveButton label="移除詳解" onClick={() => (set('explanation', null), setExtra({ ...extra, explanation: false }))} />}
+        />
+      )}
+      {(!showTranslation || !showExplanation) && (
+        <div className="flex flex-wrap gap-1.5">
+          {!showTranslation && <AddChip onClick={() => setExtra({ ...extra, translation: true })}>翻譯</AddChip>}
+          {!showExplanation && <AddChip onClick={() => setExtra({ ...extra, explanation: true })}>詳解</AddChip>}
         </div>
-      </details>
+      )}
 
       {q.issues.length > 0 && (
-        <div className="rounded-lg bg-warn-soft p-3 text-sm">
-          <p className="mb-1 font-medium text-warn">待檢查（確認後可移除）</p>
-          <ul className="space-y-1">
+        <div className="flex items-start gap-3 rounded-xl bg-warn-soft px-3 py-2.5 text-sm">
+          <span className="flex h-[1.625em] shrink-0 items-center">
+            <IconAlert size={16} className="text-warn" aria-label="待檢查" />
+          </span>
+          <ul className="min-w-0 flex-1 space-y-1 leading-relaxed text-ink/80">
             {q.issues.map((issue, i) => (
-              <li key={i} className="flex items-start justify-between gap-3">
+              <li key={i} className="flex items-start gap-2">
                 <Markdown className="min-w-0 flex-1">{issue}</Markdown>
-                <button type="button" onClick={() => set('issues', q.issues.filter((_, j) => j !== i))} className="shrink-0 text-xs text-muted hover:text-ink">
-                  移除
+                <button
+                  type="button"
+                  onClick={() => set('issues', q.issues.filter((_, j) => j !== i))}
+                  className="m-press -my-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md text-warn/70 hover:bg-surface hover:text-ink"
+                  aria-label="移除這個提示"
+                  title="已確認：移除這個提示"
+                >
+                  <IconX size={14} />
                 </button>
               </li>
             ))}
@@ -95,12 +156,34 @@ export function QuestionEditor({ value: q, onChange, importId = null }: { value:
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+/** A section title with its controls on the same line. */
+function SectionHead({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <label className="block text-sm">
-      <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
+    <div className="mb-1.5 flex h-7 items-center gap-2">
+      <span className="text-[11px] font-medium tracking-wide text-muted">{title}</span>
+      {children && <div className="ml-auto flex items-center gap-1">{children}</div>}
+    </div>
+  )
+}
+
+function AddChip({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="m-press flex h-7 items-center gap-1 rounded-full border border-dashed border-ink/15 px-2.5 text-xs text-muted hover:border-accent/50 hover:bg-accent-soft hover:text-accent"
+    >
+      <IconPlus size={13} strokeWidth={2.4} />
       {children}
-    </label>
+    </button>
+  )
+}
+
+function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className={`${iconButton} h-6 w-6 hover:bg-bad-soft hover:text-bad`} aria-label={label} title={label}>
+      <IconX size={14} />
+    </button>
   )
 }
 
@@ -113,32 +196,34 @@ function OptionsEditor({ q, onChange }: { q: DraftQuestion; onChange: (q: DraftQ
     return 'A'
   }
   return (
-    <div className="text-sm">
-      <span className="mb-1 block text-xs font-medium text-muted">選項</span>
-      <div className="space-y-2">
+    <div>
+      <SectionHead title="選項">
+        <button type="button" onClick={() => setOptions([...q.options, { label: nextLabel(), content: '' }])} className="m-press flex h-7 items-center gap-1 rounded-md px-2 text-xs text-accent hover:bg-accent-soft">
+          <IconPlus size={13} strokeWidth={2.4} />
+          新增
+        </button>
+      </SectionHead>
+      <div className="grid gap-1.5">
         {q.options.map((o, i) => (
-          <div key={i} className="flex items-start gap-2">
-            <input
-              value={o.label}
-              onChange={(e) => setOptions(q.options.map((p, j) => (j === i ? { ...p, label: e.target.value } : p)))}
-              className={`${inputBase} w-14 shrink-0 text-center`}
-              aria-label="選項代號"
-            />
-            <MathTextInput
-              value={o.content}
-              onChange={(v) => setOptions(q.options.map((p, j) => (j === i ? { ...p, content: v } : p)))}
-              multiline={false}
-              className="min-w-0 flex-1"
-            />
-            <Button variant="ghost" className="shrink-0 px-2 text-muted" onClick={() => setOptions(q.options.filter((_, j) => j !== i))} aria-label={`刪除選項 ${o.label}`} title="刪除選項">
-              ✕
-            </Button>
-          </div>
+          <MathTextInput
+            key={i}
+            value={o.content}
+            onChange={(v) => setOptions(q.options.map((p, j) => (j === i ? { ...p, content: v } : p)))}
+            multiline={false}
+            placeholder="選項內容"
+            prefix={
+              <input
+                value={o.label}
+                onChange={(e) => setOptions(q.options.map((p, j) => (j === i ? { ...p, label: e.target.value } : p)))}
+                className="num h-7 w-9 rounded-md bg-ink/[0.045] text-center text-[13px] font-semibold text-muted outline-none focus:bg-accent-soft focus:text-accent"
+                aria-label="選項代號"
+                title="選項代號"
+              />
+            }
+            actions={<RemoveButton label={`刪除選項 ${o.label}`} onClick={() => setOptions(q.options.filter((_, j) => j !== i))} />}
+          />
         ))}
       </div>
-      <Button variant="ghost" className="mt-1" onClick={() => setOptions([...q.options, { label: nextLabel(), content: '' }])}>
-        ＋ 新增選項
-      </Button>
     </div>
   )
 }
@@ -151,44 +236,45 @@ function AnswerEditor({ q, setAnswer }: { q: DraftQuestion; setAnswer: (patch: P
     const values = single ? (has ? [] : [label]) : has ? q.answer.values.filter((v) => v !== label) : [...q.answer.values, label]
     setAnswer({ values: q.options.map((o) => o.label).filter((l) => values.includes(l)) })
   }
+  const pick = (on: boolean) =>
+    `m-press h-9 min-w-10 rounded-lg px-3 text-sm font-medium ${on ? 'bg-accent text-white shadow-[0_6px_16px_-8px_var(--color-accent)]' : 'bg-ink/[0.045] text-ink/80 hover:bg-ink/[0.08]'}`
 
-  let body: React.ReactNode
+  let body: ReactNode
+  let more: ReactNode = null
   if (q.type === 'true_false') {
     body = (
-      <div className="flex gap-2">
+      <div className="flex gap-1.5">
         {[
           ['true', '○ 是'],
           ['false', '╳ 非'],
         ].map(([v, text]) => (
-          <Button key={v} variant={q.answer.values[0] === v ? 'primary' : 'secondary'} onClick={() => setAnswer({ values: q.answer.values[0] === v ? [] : [v!] })}>
+          <button key={v} type="button" className={pick(q.answer.values[0] === v)} aria-pressed={q.answer.values[0] === v} onClick={() => setAnswer({ values: q.answer.values[0] === v ? [] : [v!] })}>
             {text}
-          </Button>
+          </button>
         ))}
       </div>
     )
   } else if ((q.type === 'single_choice' || q.type === 'multiple_choice') && q.options.length) {
     body = (
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {q.options.map((o, i) => (
-          <Button key={`${o.label}-${i}`} variant={q.answer.values.includes(o.label) ? 'primary' : 'secondary'} onClick={() => toggle(o.label)} className="min-w-10">
+          <button key={`${o.label}-${i}`} type="button" className={`${pick(q.answer.values.includes(o.label))} num`} aria-pressed={q.answer.values.includes(o.label)} onClick={() => toggle(o.label)}>
             {o.label}
-          </Button>
+          </button>
         ))}
       </div>
     )
   } else if (blanks.length) {
     body = (
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-1.5 sm:grid-cols-2">
         {blanks.map((b, i) => (
-          <label key={i} className="flex items-center gap-2">
-            <span className="w-10 shrink-0 text-right text-xs text-muted">({b.label})</span>
-            <MathTextInput
-              value={q.answer.values[i] ?? ''}
-              onChange={(v) => setAnswer({ values: blanks.map((_, j) => (j === i ? v : (q.answer.values[j] ?? ''))) })}
-              multiline={false}
-              className="min-w-0 flex-1"
-            />
-          </label>
+          <MathTextInput
+            key={i}
+            value={q.answer.values[i] ?? ''}
+            onChange={(v) => setAnswer({ values: blanks.map((_, j) => (j === i ? v : (q.answer.values[j] ?? ''))) })}
+            multiline={false}
+            prefix={<span className="num min-w-7 pl-1 text-[13px] font-semibold text-muted">({b.label})</span>}
+          />
         ))}
       </div>
     )
@@ -196,36 +282,49 @@ function AnswerEditor({ q, setAnswer }: { q: DraftQuestion; setAnswer: (patch: P
     // One box per answer (a question with several blanks or parts has several).
     const values = q.answer.values.length ? q.answer.values : ['']
     const setAt = (i: number, v: string) => setAnswer({ values: values.map((x, j) => (j === i ? v : x)).filter((x, j, all) => x.trim() || all.length > 1) })
+    const long = q.type === 'essay' || q.type === 'calculation' || q.type === 'short_answer'
     body = (
-      <div className="space-y-2">
+      <div className="grid gap-1.5">
         {values.map((v, i) => (
-          <div key={i} className="flex items-start gap-2">
-            {values.length > 1 && <span className="w-6 shrink-0 pt-2 text-right text-xs text-muted">{i + 1}.</span>}
-            <MathTextInput value={v} onChange={(x) => setAt(i, x)} multiline={q.type === 'essay' || q.type === 'calculation' || q.type === 'short_answer'} className="min-w-0 flex-1" placeholder="沒有答案可以留空" />
-            {values.length > 1 && (
-              <Button variant="ghost" className="shrink-0 px-2 text-muted" onClick={() => setAnswer({ values: values.filter((_, j) => j !== i) })} aria-label={`刪除第 ${i + 1} 個答案`}>
-                ✕
-              </Button>
-            )}
-          </div>
+          <MathTextInput
+            key={i}
+            value={v}
+            onChange={(x) => setAt(i, x)}
+            multiline={long}
+            label={long && values.length > 1 ? `答案 ${i + 1}` : undefined}
+            prefix={!long && values.length > 1 ? <span className="num min-w-6 pl-1 text-[13px] font-semibold text-muted">{i + 1}.</span> : undefined}
+            placeholder="沒有答案可以留空"
+            actions={values.length > 1 ? <RemoveButton label={`刪除第 ${i + 1} 個答案`} onClick={() => setAnswer({ values: values.filter((_, j) => j !== i) })} /> : undefined}
+          />
         ))}
-        <Button variant="ghost" onClick={() => setAnswer({ values: [...values, ''] })}>
-          ＋ 再加一格答案
-        </Button>
       </div>
+    )
+    more = (
+      <button type="button" onClick={() => setAnswer({ values: [...values, ''] })} className="m-press flex h-7 items-center gap-1 rounded-md px-2 text-xs text-accent hover:bg-accent-soft" title="題目有幾個空格或小題，就加幾格答案">
+        <IconPlus size={13} strokeWidth={2.4} />
+        加一格
+      </button>
     )
   }
 
   return (
-    <div className="text-sm">
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-xs font-medium text-muted">答案</span>
-        <select value={q.answer.source} onChange={(e) => setAnswer({ source: e.target.value as Answer['source'] })} className="rounded border border-line bg-surface px-1.5 py-0.5 text-xs" aria-label="答案來源">
-          <option value="printed">印刷</option>
-          <option value="handwritten">手寫</option>
-          <option value="none">無</option>
-        </select>
-      </div>
+    <div>
+      <SectionHead title="答案">
+        {more}
+        <div className="flex rounded-lg bg-ink/[0.045] p-0.5" role="group" aria-label="答案來源" title="答案來源：卷上印的、手寫的，或沒有">
+          {SOURCES.map(([v, text]) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setAnswer({ source: v })}
+              aria-pressed={q.answer.source === v}
+              className={`m-press h-6 rounded-md px-2 text-[11px] font-medium ${q.answer.source === v ? 'bg-surface text-ink shadow-sheet' : 'text-muted hover:text-ink'}`}
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+      </SectionHead>
       {body}
     </div>
   )

@@ -52,7 +52,7 @@ export function QuestionView({ q, compact = false, actions, onConfirm }: { q: Dr
             const correct = isChoice && q.answer.values.includes(o.label)
             return (
               <li key={`${o.label}-${i}`} className={`flex gap-2 rounded-lg px-2.5 py-1.5 text-sm ${correct ? 'bg-good-soft' : 'bg-paper'}`}>
-                <span className={`font-semibold ${correct ? 'text-good' : 'text-muted'}`}>({o.label})</span>
+                <span className={`num shrink-0 font-semibold leading-relaxed ${correct ? 'text-good' : 'text-muted'}`}>({o.label})</span>
                 <Markdown className="min-w-0 flex-1">{o.content}</Markdown>
               </li>
             )
@@ -88,8 +88,11 @@ export function QuestionView({ q, compact = false, actions, onConfirm }: { q: Dr
 
       {!compact && (q.issues.length > 0 || (onConfirm && flagged)) && (
         <div className="flex flex-wrap items-start gap-x-3 gap-y-2 rounded-xl bg-warn-soft px-3 py-2.5 text-sm">
-          <IconAlert size={16} className="mt-[3px] shrink-0 text-warn" aria-label="請確認" />
-          <div className="min-w-0 flex-1 basis-48 space-y-1 text-ink/80">
+          {/* One line high, so the icon centres on the first line of the note. */}
+          <span className="flex h-[1.625em] shrink-0 items-center">
+            <IconAlert size={16} className="text-warn" aria-label="請確認" />
+          </span>
+          <div className="min-w-0 flex-1 basis-48 space-y-1 leading-relaxed text-ink/80">
             {q.issues.length ? q.issues.map((issue, i) => <Markdown key={i}>{issue}</Markdown>) : <p>模型對這題的辨識沒有把握，請對照原卷檢查。</p>}
           </div>
           {onConfirm && (

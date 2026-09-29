@@ -145,12 +145,19 @@ export function QuizQuestion({
             return (
               <li key={label}>
                 <button type="button" disabled={locked} onClick={() => toggle(label)} className={`m-press flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left text-sm ${tone} ${feedback}`}>
-                  <span className={`font-semibold ${picked ? 'text-accent' : 'text-muted'}`}>({item.displayLabels[i]})</span>
+                  <span className={`num shrink-0 font-semibold leading-relaxed ${picked ? 'text-accent' : 'text-muted'}`}>({item.displayLabels[i]})</span>
                   <Markdown className="min-w-0 flex-1">{option?.content ?? ''}</Markdown>
-                  {correct && <DrawnCheck size={20} />}
+                  {/* Marks sit one line high, centred on the option's first line. */}
+                  {correct && (
+                    <span className="flex h-[1.625em] shrink-0 items-center">
+                      <DrawnCheck size={20} />
+                    </span>
+                  )}
                   {wrong && (
-                    <span className="m-scale-in grid h-5 w-5 shrink-0 place-items-center rounded-full bg-bad text-white">
-                      <IconX size={13} strokeWidth={3} />
+                    <span className="flex h-[1.625em] shrink-0 items-center">
+                      <span className="m-scale-in grid h-5 w-5 place-items-center rounded-full bg-bad text-white">
+                        <IconX size={13} strokeWidth={3} />
+                      </span>
                     </span>
                   )}
                 </button>
@@ -162,7 +169,7 @@ export function QuizQuestion({
         <ul className="grid gap-1.5 sm:grid-cols-2">
           {item.optionOrder.map((label, i) => (
             <li key={`${label}-${i}`} className="flex gap-2 rounded-lg bg-paper px-2.5 py-1.5 text-sm">
-              <span className="font-semibold text-muted">({item.displayLabels[i]})</span>
+              <span className="num shrink-0 font-semibold leading-relaxed text-muted">({item.displayLabels[i]})</span>
               <Markdown className="min-w-0 flex-1">{q.options.find((o) => o.label === label)?.content ?? ''}</Markdown>
             </li>
           ))}
