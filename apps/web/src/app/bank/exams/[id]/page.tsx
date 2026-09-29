@@ -49,7 +49,8 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
                   ))}
                 </div>
               )}
-              <section className="rounded-2xl bg-surface shadow-sheet p-4">
+              {/* Questions of a group, like the sub-questions 11(a) and 11(b), sit under its shared text. */}
+              <section className={`rounded-2xl bg-surface shadow-sheet p-4 ${q.groupId && groups.has(q.groupId) ? 'ml-4 sm:ml-7' : ''}`}>
                 <QuestionView q={q} />
                 <div className="mt-3 flex justify-end border-t border-line pt-3">
                   <Link href={`/bank/${q.id}`} className="text-sm text-accent hover:underline">

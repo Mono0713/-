@@ -9,13 +9,35 @@ import { QuestionEditor } from '@/features/questions/QuestionEditor'
 import { QuestionView } from '@/features/questions/QuestionView'
 import { Fab, type FabAction } from '@/shared/chrome/Fab'
 import { FigureView } from '@/shared/FigureView'
-import { IconAlert, IconBack, IconCheck, IconChevronDown, IconEdit, IconFile, IconFilter, IconGrip, IconList, IconOutline, IconPlus, IconSave, IconTop, IconTrash, IconX } from '@/shared/icons'
+import { Menu, menuItem } from '@/shared/chrome/Menu'
+import {
+  IconAlert,
+  IconBack,
+  IconCheck,
+  IconChevronDown,
+  IconCloud,
+  IconCloudCheck,
+  IconEdit,
+  IconFile,
+  IconFilter,
+  IconGrip,
+  IconList,
+  IconLoader,
+  IconOutline,
+  IconPlus,
+  IconSave,
+  IconSplit,
+  IconTop,
+  IconTrash,
+  IconX,
+} from '@/shared/icons'
 import { TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
 import { MathTextInput } from '@/shared/math/MathTextInput'
-import { Button, inputClass } from '@/shared/ui'
+import { Badge, Button, inputClass } from '@/shared/ui'
 import { publishDraft, saveDraft } from './actions'
 import { PageViewer } from './PageViewer'
+import { splitNumber, splitParts } from './parts'
 import { Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 
 type SaveState = 'saved' | 'dirty' | 'saving'
@@ -54,8 +76,8 @@ export function ReviewEditor({
   /** The exam this import was already saved as. */
   savedExam: { id: string; questionCount: number } | null
   notice?: React.ReactNode
-  /** Title, status badge, a short details line and page actions, shown in the toolbar. */
-  heading: { title: string; status: React.ReactNode; meta?: string; actions?: React.ReactNode }
+  /** Title in the toolbar; a short details line and page actions (menu rows) in its menu. */
+  heading: { title: string; meta?: string; menu?: React.ReactNode }
 }) {
   const [draft, setDraft] = useState(initial)
   const [selected, setSelected] = useState<number | null>(null)
@@ -63,6 +85,9 @@ export function ReviewEditor({
   const [layout, setLayoutState] = useState(DEFAULT_LAYOUT)
   const [saveState, setSaveState] = useState<SaveState>('saved')
   const [published, setPublished] = useState(savedExam ? { count: savedExam.questionCount, examId: savedExam.id } : null)
+  // The draft as it was last put in the bank: until it changes, there is nothing to update.
+  const [inBank, setInBank] = useState<DraftExam | null>(savedExam ? initial : null)
+  const inSync = inBank === draft
   const [flaggedOnly, setFlaggedOnly] = useState(false)
   const [publishing, startPublish] = useTransition()
   // Phones show one side at a time.
@@ -120,6 +145,19 @@ export function ReviewEditor({
 
   const updateQuestion = (index: number, q: DraftQuestion) => setDraft((d) => ({ ...d, questions: d.questions.map((x, i) => (i === index ? q : x)) }))
   const confirmQuestion = (index: number) => updateQuestion(index, { ...draft.questions[index]!, confidence: 'high', issues: [] })
+  // "(a) … (b) …" in one question becomes one question per part under a shared group.
+  const splitQuestion = (index: number) => {
+    const result = splitParts(draft.questions[index]!, `split-${Date.now().toString(36)}`)
+    if (!result) return
+    keys.current = [...keys.current.slice(0, index), ...result.parts.map(() => newKey()), ...keys.current.slice(index + 1)]
+    setDraft((d) => ({
+      ...d,
+      groups: [...d.groups, result.group],
+      questions: [...d.questions.slice(0, index), ...result.parts, ...d.questions.slice(index + 1)],
+    }))
+    setEditing(null)
+    setSelected(index)
+  }
   const removeQuestion = (index: number) => {
     if (!confirm(`刪除第 ${draft.questions[index]!.number} 題？`)) return
     keys.current = keys.current.filter((_, i) => i !== index)
@@ -165,8 +203,10 @@ export function ReviewEditor({
 
   const publish = () =>
     startPublish(async () => {
-      if (saveState !== 'saved') await saveDraft(importId, draft)
-      setPublished(await publishDraft(importId, draft))
+      const snapshot = draft
+      if (saveState !== 'saved') await saveDraft(importId, snapshot)
+      setPublished(await publishDraft(importId, snapshot))
+      setInBank(snapshot)
       setSaveState('saved')
     })
 
@@ -257,10 +297,10 @@ export function ReviewEditor({
 
   return (
     <div className="workspace">
-      {/* One slim bar: the way back, what this is, how far review got, and the save action. */}
+      {/* One slim bar: the way back and the exam's menu, the question numbers, then review state and saving. */}
       <div ref={bar} className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur-md">
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-3 py-2 sm:px-5">
-          <div className="flex min-w-0 flex-1 basis-60 items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2 sm:px-5">
+          <div className="flex min-w-0 flex-1 items-center gap-1 lg:max-w-[22rem] lg:flex-none">
             <Link href="/imports" className={iconButton} aria-label="回到匯入列表" title="回到匯入列表">
               <IconBack size={18} />
             </Link>
@@ -274,37 +314,43 @@ export function ReviewEditor({
             >
               <IconOutline size={17} />
             </button>
-            <h1 className="ml-1.5 truncate text-[15px] font-semibold tracking-[-0.01em]" title={heading.title}>
-              {heading.title}
-            </h1>
-            {heading.status}
-            {heading.meta && <span className="hidden truncate text-xs text-muted md:inline">{heading.meta}</span>}
+            <h1 className="sr-only">{heading.title}</h1>
+            <Menu
+              label="考卷選單"
+              className="m-press flex max-w-full min-w-0 items-center gap-1 rounded-lg px-2 py-1 hover:bg-ink/[0.05]"
+              button={
+                <>
+                  <span className="truncate text-[15px] font-semibold tracking-[-0.01em]">{heading.title}</span>
+                  <IconChevronDown size={15} className="shrink-0 text-muted" />
+                </>
+              }
+            >
+              {(close) => (
+                <>
+                  <div className="px-2.5 pb-2 pt-1.5">
+                    <p className="font-medium leading-snug">{heading.title}</p>
+                    {heading.meta && <p className="mt-0.5 text-xs text-muted">{heading.meta}</p>}
+                  </div>
+                  {published !== null && (
+                    <Link href={`/bank/exams/${published.examId}`} role="menuitem" className={menuItem} onClick={close}>
+                      <IconSave size={15} className="text-good" />
+                      <span className="flex-1">在題庫查看</span>
+                      <span className="num text-xs text-muted">{published.count} 題</span>
+                    </Link>
+                  )}
+                  <button type="button" role="menuitem" className={`${menuItem} hidden lg:flex`} onClick={() => (setLayout({ outline: !layout.outline }), close())}>
+                    <IconOutline size={15} className="text-muted" />
+                    {layout.outline ? '收起題目大綱' : '題目大綱與考卷資訊'}
+                  </button>
+                  {heading.menu && <div className="mt-1 border-t border-line/70 pt-1">{heading.menu}</div>}
+                </>
+              )}
+            </Menu>
           </div>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-muted">
-              <span className="num mr-0.5 text-ink">{draft.questions.length}</span> 題
-            </span>
-            {flagged > 0 && (
-              <button
-                type="button"
-                onClick={() => setFlaggedOnly(!flaggedOnly)}
-                aria-pressed={flaggedOnly}
-                title={flaggedOnly ? '顯示全部題目' : '只看待確認的題目'}
-                className={`m-press flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                  flaggedOnly ? 'bg-amber-400 text-night' : 'bg-warn-soft text-warn hover:bg-amber-100'
-                }`}
-              >
-                <IconFilter size={13} strokeWidth={2.4} />
-                <span className="num">{flagged}</span> 待確認
-              </button>
-            )}
-            <span className="flex items-center gap-1.5 text-xs text-muted" title={SAVE_LABELS[saveState]}>
-              <span className={`h-1.5 w-1.5 rounded-full ${saveState === 'saved' ? 'bg-good' : saveState === 'saving' ? 'animate-pulse bg-accent' : 'bg-amber-400'}`} />
-              <span className="hidden sm:inline">{SAVE_LABELS[saveState]}</span>
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-lg bg-ink/[0.06] p-0.5 text-sm lg:hidden">
+
+          {/* Question numbers: sub-questions sit together under their number. Below lg they get a row of their own. */}
+          <div className="order-last flex min-w-0 basis-full items-center gap-2 lg:order-none lg:flex-1 lg:basis-0">
+            <div className="flex shrink-0 rounded-lg bg-ink/[0.06] p-0.5 text-sm lg:hidden">
               {(
                 [
                   ['questions', '題目'],
@@ -315,52 +361,98 @@ export function ReviewEditor({
                   key={value}
                   type="button"
                   onClick={() => setMobileView(value)}
-                  className={`rounded-md px-3 py-1 transition-colors ${mobileView === value ? 'bg-surface font-medium shadow-sm' : 'text-muted'}`}
+                  className={`rounded-md px-2.5 py-1 transition-colors ${mobileView === value ? 'bg-surface font-medium shadow-sm' : 'text-muted'}`}
                 >
                   {label}
                 </button>
               ))}
             </div>
-            {published !== null && (
-              <Link href={`/bank/exams/${published.examId}`} className="hidden text-sm text-good hover:underline sm:inline">
-                已存入 <span className="num">{published.count}</span> 題 →
-              </Link>
+            <nav className="flex min-w-0 flex-1 overflow-x-auto" aria-label="題號">
+              <div className="mx-auto flex w-max items-center gap-1 py-0.5">
+                {numberClusters(draft.questions).map((cluster) => {
+                  const shown = cluster.items.filter((i) => !flaggedOnly || isFlagged(draft.questions[i]!))
+                  if (!shown.length) return null
+                  const tone = (i: number) =>
+                    selected === i ? 'bg-accent text-white' : isFlagged(draft.questions[i]!) ? 'bg-warn-soft text-warn hover:bg-amber-100' : 'text-muted hover:bg-ink/[0.05] hover:text-ink'
+                  if (cluster.part === null)
+                    return (
+                      <button
+                        key={keys.current[shown[0]!]}
+                        type="button"
+                        onClick={() => select(shown[0]!, true)}
+                        title={isFlagged(draft.questions[shown[0]!]!) ? '待確認' : undefined}
+                        className={`num h-7 min-w-7 shrink-0 rounded-md px-1.5 text-xs transition-colors ${
+                          selected === shown[0]
+                            ? 'bg-accent text-white'
+                            : isFlagged(draft.questions[shown[0]!]!)
+                              ? 'bg-warn-soft text-warn hover:bg-amber-100'
+                              : 'bg-surface text-muted shadow-sheet hover:text-ink'
+                        }`}
+                      >
+                        {cluster.main}
+                      </button>
+                    )
+                  return (
+                    <span key={keys.current[shown[0]!]} className="flex h-7 shrink-0 items-center gap-px rounded-md bg-surface pl-1.5 pr-0.5 shadow-sheet" title={`第 ${cluster.main} 題的小題`}>
+                      <span className="num mr-0.5 text-xs text-ink/70">{cluster.main}</span>
+                      {shown.map((i) => (
+                        <button key={keys.current[i]} type="button" onClick={() => select(i, true)} className={`num h-6 min-w-6 rounded px-1 text-[11px] transition-colors ${tone(i)}`}>
+                          {splitNumber(draft.questions[i]!.number).part}
+                        </button>
+                      ))}
+                    </span>
+                  )
+                })}
+              </div>
+            </nav>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            {flagged > 0 && (
+              <button
+                type="button"
+                onClick={() => setFlaggedOnly(!flaggedOnly)}
+                aria-pressed={flaggedOnly}
+                aria-label={`${flagged} 題待確認`}
+                title={flaggedOnly ? `顯示全部題目` : `${flagged} 題待確認：點一下只看這些`}
+                className={`m-press flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${flaggedOnly ? 'bg-amber-400 text-night' : 'bg-warn-soft text-warn hover:bg-amber-100'}`}
+              >
+                <IconAlert size={14} strokeWidth={2.4} />
+                <span className="num">{flagged}</span>
+              </button>
             )}
-            <Button
-              variant="primary"
-              className="max-sm:hidden"
-              onClick={publish}
-              disabled={publishing || !draft.questions.length}
-              loading={publishing}
-              icon={<IconSave size={16} />}
+            <span
+              className={`grid h-8 w-8 place-items-center ${saveState === 'saved' ? 'text-muted/70' : 'text-accent'}`}
+              title={SAVE_LABELS[saveState]}
+              aria-label={SAVE_LABELS[saveState]}
+              role="status"
             >
-              {publishing ? '存入中…' : published !== null ? '更新題庫' : '存入題庫'}
-            </Button>
-            {heading.actions}
+              {saveState === 'saved' ? <IconCloudCheck size={17} /> : saveState === 'saving' ? <IconLoader size={16} className="m-spin" /> : <IconCloud size={17} />}
+            </span>
+            {published !== null && inSync ? (
+              <Link
+                href={`/bank/exams/${published.examId}`}
+                className="m-press flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-good hover:bg-good-soft max-sm:px-2"
+                title={`${published.count} 題已存入題庫，點一下查看`}
+              >
+                <IconCheck size={15} strokeWidth={2.6} />
+                <span className="max-sm:hidden">已存入</span>
+              </Link>
+            ) : (
+              <Button
+                variant="primary"
+                className="h-8 px-3 py-0 max-sm:px-2"
+                onClick={publish}
+                disabled={publishing || !draft.questions.length}
+                loading={publishing}
+                icon={<IconSave size={16} />}
+                aria-label={published !== null ? '更新題庫' : '存入題庫'}
+              >
+                <span className="max-sm:hidden">{publishing ? '存入中…' : published !== null ? '更新題庫' : '存入題庫'}</span>
+              </Button>
+            )}
           </div>
         </div>
-        {/* Question numbers; with the outline open, it lists them instead. */}
-        <nav className={`flex gap-1 overflow-x-auto px-3 pb-2 sm:px-5 ${layout.outline ? 'lg:hidden' : ''}`} aria-label="題號">
-          {draft.questions.map((q, index) =>
-            flaggedOnly && !isFlagged(q) ? null : (
-              <button
-                key={keys.current[index]}
-                type="button"
-                onClick={() => select(index, true)}
-                title={isFlagged(q) ? '待確認' : undefined}
-                className={`num h-7 min-w-8 shrink-0 rounded-md px-1.5 text-xs transition-colors ${
-                  selected === index
-                    ? 'bg-accent text-white'
-                    : isFlagged(q)
-                      ? 'bg-warn-soft text-warn hover:bg-amber-100'
-                      : 'bg-surface text-muted shadow-sheet hover:text-ink'
-                }`}
-              >
-                {q.number}
-              </button>
-            ),
-          )}
-        </nav>
       </div>
 
       <div className="px-3 py-4 sm:px-5">
@@ -435,6 +527,8 @@ export function ReviewEditor({
                   if (flaggedOnly && !isFlagged(q)) return null
                   const showSection = q.section && q.section !== draft.questions[index - 1]?.section
                   const group = q.groupId && q.groupId !== draft.questions[index - 1]?.groupId ? draft.groups.find((g) => g.id === q.groupId) : undefined
+                  // Questions in a group hang under its shared text.
+                  const inGroup = q.groupId !== null && draft.groups.some((g) => g.id === q.groupId)
                   const isEditing = editing === index
                   const key = keys.current[index]!
                   return (
@@ -442,7 +536,7 @@ export function ReviewEditor({
                       {(handle, dragging) => (
                         <>
                           {showSection && <h3 className="mb-2 mt-7 text-[13px] font-semibold tracking-wide text-muted">{q.section}</h3>}
-                          {group && <GroupCard group={group} onChange={(stem) => setGroupStem(group.id, stem)} />}
+                          {group && <GroupCard group={group} parts={draft.questions.filter((x) => x.groupId === group.id)} onChange={(stem) => setGroupStem(group.id, stem)} />}
                           <section
                             ref={(el) => {
                               if (el) cards.current.set(index, el)
@@ -451,6 +545,8 @@ export function ReviewEditor({
                             onClick={() => !isEditing && select(index, false)}
                             onDoubleClick={() => !isEditing && setEditing(index)}
                             className={`relative scroll-mt-40 rounded-2xl bg-surface p-5 transition-shadow ${
+                              inGroup ? 'ml-4 before:absolute before:-left-3 before:-top-4 before:bottom-4 before:w-0.5 before:rounded-full before:bg-ink/10 sm:ml-7 sm:before:-left-4' : ''
+                            } ${
                               dragging ? 'shadow-[0_24px_48px_-16px_rgb(22_24_43/0.35),0_0_0_1px_rgb(22_24_43/0.08)]' : 'shadow-sheet'
                             } ${selected === index ? 'ring-2 ring-accent/70' : ''}`}
                           >
@@ -474,17 +570,12 @@ export function ReviewEditor({
                             ) : (
                               <QuestionView
                                 q={q}
+                                onConfirm={() => confirmQuestion(index)}
                                 actions={
                                   <>
-                                    {isFlagged(q) && (
-                                      <button
-                                        type="button"
-                                        onClick={() => confirmQuestion(index)}
-                                        className="m-press mr-1 flex h-8 items-center gap-1 rounded-lg bg-good-soft px-2.5 text-xs font-medium text-good hover:bg-good/15"
-                                        title="內容沒問題：移除待確認提示"
-                                      >
-                                        <IconCheck size={14} strokeWidth={2.6} />
-                                        確認
+                                    {!q.groupId && splitParts(q, '') && (
+                                      <button type="button" onClick={() => splitQuestion(index)} className={iconButton} aria-label="拆成小題" title="拆成小題：(a)(b) 各自一題，可以分別作答和計分">
+                                        <IconSplit size={15} />
                                       </button>
                                     )}
                                     <button type="button" onClick={() => setEditing(index)} className={iconButton} aria-label="編輯" title="編輯（或點兩下題目）">
@@ -517,6 +608,18 @@ export function ReviewEditor({
       <Fab actions={fabActions} badge={flagged || undefined} />
     </div>
   )
+}
+
+/** Consecutive sub-questions of one number (11(a), 11(b)) form one cluster in the number bar. */
+function numberClusters(questions: DraftQuestion[]): { main: string; part: string | null; items: number[] }[] {
+  const out: { main: string; part: string | null; items: number[] }[] = []
+  questions.forEach((q, i) => {
+    const { main, part } = splitNumber(q.number)
+    const last = out.at(-1)
+    if (part !== null && last?.part !== null && last?.main === main) last.items.push(i)
+    else out.push({ main: part === null ? q.number : main, part, items: [i] })
+  })
+  return out
 }
 
 /** Width the open outline takes (232px column and its gap), and the divider's. */
@@ -627,22 +730,26 @@ function Outline({
   )
 }
 
-/** A passage or figure shared by the questions after it; its text can be edited in place. */
-function GroupCard({ group, onChange }: { group: DraftExam['groups'][number]; onChange: (stem: string) => void }) {
+/**
+ * A passage, figure or instruction shared by the questions after it, which hang under it. When they are
+ * the sub-questions of one number, e.g. 11(a) and 11(b), it heads them as that question. Its text can be edited in place.
+ */
+function GroupCard({ group, parts, onChange }: { group: DraftExam['groups'][number]; parts: DraftQuestion[]; onChange: (stem: string) => void }) {
   const [editing, setEditing] = useState(false)
+  const numbers = parts.map((p) => splitNumber(p.number))
+  const main = numbers.length && numbers.every((n) => n.part !== null && n.main === numbers[0]!.main) ? numbers[0]!.main : null
+  const points = parts.every((p) => p.points !== null) ? parts.reduce((sum, p) => sum + p.points!, 0) : null
   return (
-    <div className="mb-3 rounded-2xl border border-dashed border-ink/15 bg-surface/60 p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-medium text-muted">題組共用內容</span>
-        <button type="button" onClick={() => setEditing(!editing)} className="text-xs text-accent hover:underline">
+    <div className="relative mb-3 rounded-2xl bg-surface/70 p-4 ring-1 ring-ink/[0.07]">
+      <div className="mb-2 flex items-center gap-2">
+        {main !== null ? <span className="num text-xl leading-none">{main}.</span> : <span className="text-xs font-medium text-muted">題組共用內容</span>}
+        <Badge>{main !== null ? `${parts.length} 小題` : `${parts.length} 題`}</Badge>
+        {main !== null && points !== null && <Badge>{Math.round(points * 100) / 100} 分</Badge>}
+        <button type="button" onClick={() => setEditing(!editing)} className="ml-auto text-xs text-accent hover:underline">
           {editing ? '完成' : '編輯'}
         </button>
       </div>
-      {editing ? (
-        <MathTextInput value={group.stem} onChange={onChange} />
-      ) : (
-        <Markdown>{group.stem}</Markdown>
-      )}
+      {editing ? <MathTextInput value={group.stem} onChange={onChange} /> : group.stem.trim() ? <Markdown>{group.stem}</Markdown> : <p className="text-sm text-muted">（沒有共用內容）</p>}
       {group.figures.map((f, i) => (
         <FigureView key={i} figure={f} />
       ))}

@@ -1,4 +1,4 @@
-import type { DraftExam, DraftFigure, DraftQuestion, ExamMeta, ExtractedQuestion, Figure } from '@exam/core'
+import { untangleBoxes, type DraftExam, type DraftFigure, type DraftQuestion, type ExamMeta, type ExtractedQuestion, type Figure } from '@exam/core'
 import type { PageResult } from './extract.ts'
 
 /**
@@ -48,6 +48,7 @@ export function mergePages(fileName: string, results: PageResult[]): DraftExam {
     const last = page.questions.at(-1)
     open = last?.continuesOnNextPage ? exam.questions.at(-1)! : null
   }
+  exam.questions = untangleBoxes(exam.questions)
   return exam
 }
 

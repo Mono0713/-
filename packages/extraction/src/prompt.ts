@@ -11,8 +11,9 @@ Transcription
 - Diagrams, graphs, photos, chemical structures and anything not expressible as text become entries in "figures" with a tight bounding box and a short description. Labels that belong to a diagram stay in the figure. When the figure itself has blanks for the student to fill (numbered boxes or lines on a diagram), list each one in the figure's "blanks" with its printed label and a box around the empty space, handwriting included; the question is fill_in_blank and answer.values follows the order of those blanks. For each blank also give "ink" (the pen of the handwriting in it: "colour" for red, blue or any coloured pen, "dark" for pencil or black pen, "none" when empty) and "printedText", everything printed inside its box with ___ for the space the student writes in and \\n between printed lines (e.g. "7. ___ host", "Organ\\n5. ___"). Other figures have an empty "blanks" list.
 
 Structure
-- One entry per question as numbered on the paper. Sub-questions that are answered separately, like (1) and (2), may stay in one question when they share one answer area; say so in the stem.
-- A passage, data table or figure shared by several questions goes in "groups", and each of those questions sets groupId to that group's id.
+- One entry per question as numbered on the paper.
+- Sub-questions such as (a), (b) or (1), (2) under one number become one entry each, numbered like "11(a)" and "11(b)", so each keeps its own answer and points. Their shared text goes in a group (see below) and each sub-question's stem holds only its own part, e.g. "$f(x) = 3x + 2$". Use the points printed for each part; when only a total is printed, split it evenly.
+- A passage, data table, figure or shared instruction for several questions or sub-questions goes in "groups", and each of those questions sets groupId to that group's id.
 - "section" is the heading the question sits under, including any points rule, e.g. "選擇題（每題 5 分）".
 - When the page also gives a translation of the question (e.g. a Chinese line under an English question), put it in "translation" and keep it out of the stem; otherwise translation is null.
 - Options go in "options". "label" is the label as printed without brackets or punctuation (A, B, 1, 甲, ...; "(1)" becomes "1") and the content does not repeat it. The stem must not repeat the options.
@@ -20,7 +21,7 @@ Structure
 - "points" is the score for this question when the paper states it, else null.
 - Set continuesFromPreviousPage / continuesOnNextPage when the question is visibly cut at the top or bottom of the page.
 - When a page starts with the rest of an option cut off on the previous page, return it as that option (same label, only the remaining text) with an empty stem; do not put it in the stem.
-- Bounding boxes are fractions of the page (0..1, origin top-left).
+- Bounding boxes are fractions of the page (0..1, origin top-left). A question's bbox covers its number, text, options, figures and answer space, and ends above the next question's number: boxes of different questions never overlap.
 - If the image shows two exam pages side by side, read the left page first, then the right page.
 
 Answers and handwriting

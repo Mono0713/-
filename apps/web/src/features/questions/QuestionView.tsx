@@ -1,24 +1,38 @@
 import type { DraftQuestion } from '@exam/core'
 import { FigureView } from '@/shared/FigureView'
+import { IconAlert, IconCheck } from '@/shared/icons'
 import { CONFIDENCE_LABELS, TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
+import { splitNumber } from '@/shared/questionNumber'
 import { Badge } from '@/shared/ui'
 
 const SOURCE_LABELS = { printed: '印刷', handwritten: '手寫', none: '' } as const
 
-/** Read-only rendering of a question, used in review and in the bank. `actions` sit at the end of its header line. */
-export function QuestionView({ q, compact = false, actions }: { q: DraftQuestion; compact?: boolean; actions?: React.ReactNode }) {
+/**
+ * Read-only rendering of a question, used in review and in the bank. `actions` sit at the end of its header line.
+ * With `onConfirm` (review), what needs checking shows as one note with a button that clears it.
+ */
+export function QuestionView({ q, compact = false, actions, onConfirm }: { q: DraftQuestion; compact?: boolean; actions?: React.ReactNode; onConfirm?: () => void }) {
   const blanks = q.figures.flatMap((f) => f.image?.blanks ?? [])
   const answerByBlank = blanks.length > 0 && blanks.length === q.answer.values.length
   const isChoice = q.type === 'single_choice' || q.type === 'multiple_choice'
   let blankOffset = 0
+  const { main, part } = splitNumber(q.number)
+  const flagged = q.confidence !== 'high' || q.issues.length > 0
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="num text-xl leading-none">{q.number}.</span>
+        {part ? (
+          // A sub-question: its part stands out, the main number stays quiet.
+          <span className="num text-xl leading-none">
+            <span className="text-base text-muted">{main}</span>({part})
+          </span>
+        ) : (
+          <span className="num text-xl leading-none">{q.number}.</span>
+        )}
         <Badge>{TYPE_LABELS[q.type]}</Badge>
         {q.points !== null && <Badge>{q.points} 分</Badge>}
-        {q.confidence !== 'high' && <Badge tone={q.confidence === 'low' ? 'bad' : 'warn'}>{CONFIDENCE_LABELS[q.confidence]}</Badge>}
+        {q.confidence !== 'high' && !onConfirm && <Badge tone={q.confidence === 'low' ? 'bad' : 'warn'}>{CONFIDENCE_LABELS[q.confidence]}</Badge>}
         {actions && <div className="ml-auto flex items-center gap-0.5">{actions}</div>}
       </div>
 
@@ -72,15 +86,24 @@ export function QuestionView({ q, compact = false, actions }: { q: DraftQuestion
         </div>
       )}
 
-      {q.issues.length > 0 && !compact && (
-        <ul className="space-y-1 text-sm text-warn">
-          {q.issues.map((issue, i) => (
-            <li key={i} className="flex gap-2">
-              <span aria-hidden>⚠</span>
-              <Markdown className="min-w-0 flex-1">{issue}</Markdown>
-            </li>
-          ))}
-        </ul>
+      {!compact && (q.issues.length > 0 || (onConfirm && flagged)) && (
+        <div className="flex flex-wrap items-start gap-x-3 gap-y-2 rounded-xl bg-warn-soft px-3 py-2.5 text-sm">
+          <IconAlert size={16} className="mt-[3px] shrink-0 text-warn" aria-label="請確認" />
+          <div className="min-w-0 flex-1 basis-48 space-y-1 text-ink/80">
+            {q.issues.length ? q.issues.map((issue, i) => <Markdown key={i}>{issue}</Markdown>) : <p>模型對這題的辨識沒有把握，請對照原卷檢查。</p>}
+          </div>
+          {onConfirm && (
+            <button
+              type="button"
+              onClick={onConfirm}
+              className="m-press ml-auto flex h-8 shrink-0 items-center gap-1 rounded-lg bg-surface px-2.5 text-xs font-medium text-good shadow-sheet hover:bg-good-soft"
+              title="內容沒問題：移除這個提示"
+            >
+              <IconCheck size={14} strokeWidth={2.6} />
+              沒問題
+            </button>
+          )}
+        </div>
       )}
     </div>
   )
