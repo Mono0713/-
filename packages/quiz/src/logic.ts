@@ -1,4 +1,5 @@
 import type { DraftFigure, DraftQuestion } from '@exam/core'
+import { isEmptyInk } from '@exam/ink'
 import { numberValue, sameMath } from './equivalence.ts'
 import type { Grade, QuizAttempt, QuizItem, QuizResponse, QuizSettings, Marking } from './types.ts'
 
@@ -100,13 +101,16 @@ export function grade(q: DraftQuestion, response: QuizResponse | null, marking: 
   const key = q.answer.values.filter((v) => v.trim())
   const worth = q.points ?? 1
   const given = response?.values ?? []
-  const answered = given.some((v) => v.trim())
+  const typed = given.some((v) => v.trim())
+  const answered = typed || !isEmptyInk(response?.handwriting)
   const kind = answerKind(q)
   const choice = kind.kind === 'single' || kind.kind === 'multiple' || kind.kind === 'true_false'
   if (!answered) return key.length ? { status: 'unanswered', score: 0, max: worth } : { status: 'no_key', score: 0, max: 0 }
   // A marking settles anything the key cannot, including questions without a key.
   if (marking && !choice) return byMarking(marking, worth)
   if (!key.length) return { status: 'no_key', score: 0, max: 0 }
+  // Handwriting nobody has read yet waits to be marked.
+  if (!typed) return { status: 'pending', score: 0, max: worth }
 
   if (choice) {
     const same = sameSet(key.map(normalize), given.map(normalize))
@@ -135,6 +139,7 @@ function byMarking(marking: Marking, worth: number): Grade {
  * not already marked, and not already fully right by the key.
  */
 export function needsTeacher(item: QuizItem, response: QuizResponse | null, marking: Marking | null): boolean {
+  // Handwriting is read into values first (see @exam/grading), then judged like typing.
   if (marking || !response?.values.some((v) => v.trim())) return false
   const kind = answerKind(item.question).kind
   if (kind === 'single' || kind === 'multiple' || kind === 'true_false') return false

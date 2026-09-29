@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path'
 import { SqliteBank, type Bank } from '@exam/bank'
 import { DEFAULT_MODELS, MODEL_CATALOG, type ModelTier } from '@exam/extraction'
 import { Importer } from '@exam/importer'
-import { AiTeacher, createTextModel, SqliteGradingCache, type GradingCache } from '@exam/grading'
+import { AiTeacher, createTextModel, SqliteGradingCache, type GradingCache, type TextModel } from '@exam/grading'
 import { SqliteQuizStore, type QuizStore } from '@exam/quiz'
 import { DEFAULT_LOCALE, FileSettingsStore, type SettingsStore } from '@exam/settings'
 
@@ -122,11 +122,13 @@ const API_PROVIDERS = ['claude', 'openai', 'gemini']
  * Unless the user picked one, it uses the first provider with a key and its cheapest model:
  * marking answers needs far less than reading a scanned page.
  */
-export function teacherFor(ownerId: string): { teacher: AiTeacher; provider: string; model: string } | null {
+export function teacherFor(ownerId: string): { teacher: AiTeacher; reader: TextModel; provider: string; model: string } | null {
   const { aiGrading } = services().settings.get(ownerId)
   if (!aiGrading.enabled) return null
   const provider = aiGrading.provider && apiKeyOf(ownerId, aiGrading.provider) ? aiGrading.provider : API_PROVIDERS.find((id) => apiKeyOf(ownerId, id))
   if (!provider) return null
   const model = (aiGrading.provider === provider && aiGrading.model) || MODEL_CATALOG[provider]?.find((m) => m.tier === 'fast')?.id || DEFAULT_MODELS[provider]!
-  return { teacher: new AiTeacher(createTextModel(provider, { apiKey: apiKeyOf(ownerId, provider)!, model })), provider, model }
+  // The same model also reads handwritten answers (all catalogued models take images).
+  const reader = createTextModel(provider, { apiKey: apiKeyOf(ownerId, provider)!, model })
+  return { teacher: new AiTeacher(reader), reader, provider, model }
 }

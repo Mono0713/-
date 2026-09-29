@@ -1,18 +1,24 @@
 'use server'
 
 import { draftOf } from '@exam/bank'
-import { markOpenAnswers } from '@exam/grading'
+import { markOpenAnswers, unreadHandwriting } from '@exam/grading'
 import { buildItems, gradeItem, isOver, needsTeacher, type QuizAttempt, type QuizResponse, type QuizSettings, type QuizSource } from '@exam/quiz'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { currentOwner, localeOf, services, teacherFor } from '@/server/context'
-import { startTeacher } from './teacher'
+import { readInk, startTeacher } from './teacher'
 import { revealedItem } from './visible'
 
 function owned(id: string): QuizAttempt {
   const attempt = services().quizzes.get(id)
   if (!attempt || attempt.ownerId !== currentOwner()) throw new Error('找不到這次測驗')
   return attempt
+}
+
+/** What the browser may send as an answer: text and ink only; whether AI read it is decided here. */
+function fromClient(response: QuizResponse): QuizResponse {
+  const { values, scratch, handwriting } = response
+  return { values: Array.isArray(values) ? values.map(String) : [], ...(scratch && { scratch }), ...(handwriting && { handwriting }) }
 }
 
 export interface NewQuiz {
@@ -64,23 +70,31 @@ export async function createQuiz(input: NewQuiz): Promise<{ error: string } | un
 export async function saveResponse(id: string, index: number, response: QuizResponse): Promise<{ accepted: boolean }> {
   const attempt = owned(id)
   if (isOver(attempt) || attempt.checked[index]) return { accepted: false }
-  attempt.responses[index] = response
+  attempt.responses[index] = fromClient(response)
   services().quizzes.save(attempt)
   return { accepted: true }
 }
 
 /** Practice mode: locks the answer and reveals the key, explanation and translation. */
 export async function checkAnswer(id: string, index: number, response: QuizResponse) {
-  const attempt = owned(id)
+  let attempt = owned(id)
   if (attempt.settings.mode !== 'practice') throw new Error('只有練習模式能逐題看答案')
   if (!attempt.checked[index] && !attempt.finishedAt) {
-    attempt.responses[index] = response
+    attempt.responses[index] = fromClient(response)
     attempt.checked[index] = true
     services().quizzes.save(attempt)
   }
   const item = attempt.items[index]!
-  // An answer the key cannot settle is marked by the AI teacher right away, when there is one.
   const teacher = teacherFor(attempt.ownerId)
+  // A handwritten answer is read into text first, then checked like a typed one.
+  if (teacher && unreadHandwriting(attempt.responses[index]) && !attempt.markings[index]) {
+    try {
+      attempt = await readInk(attempt, teacher, [index])
+    } catch {
+      // It stays unread: the person can mark it against the key.
+    }
+  }
+  // An answer the key cannot settle is marked by the AI teacher right away, when there is one.
   if (teacher && needsTeacher(item, attempt.responses[index] ?? null, attempt.markings[index] ?? null)) {
     try {
       const { markings } = await markOpenAnswers(attempt, { grader: teacher.teacher, cache: services().gradingCache, language: localeOf(attempt.ownerId), only: [index] })
@@ -91,7 +105,8 @@ export async function checkAnswer(id: string, index: number, response: QuizRespo
     }
   }
   const marking = attempt.markings[index] ?? null
-  return { item: revealedItem(item), grade: gradeItem(item, attempt.responses[index] ?? null, marking), marking }
+  const answer = attempt.responses[index] ?? null
+  return { item: revealedItem(item), grade: gradeItem(item, answer, marking), marking, response: answer }
 }
 
 /** The person marks their own open answer against the model answer: credit 1 is right, 0 is wrong, null clears it. */

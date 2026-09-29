@@ -6,8 +6,8 @@ import OpenAI from 'openai'
 export interface TextModel {
   provider: string
   model: string
-  /** Returns the reply's text; the caller parses and validates it. */
-  complete(system: string, prompt: string): Promise<string>
+  /** Returns the reply's text; the caller parses and validates it. `images` are PNGs shown before the prompt. */
+  complete(system: string, prompt: string, images?: Buffer[]): Promise<string>
 }
 
 type Factory = (config: { apiKey: string; model: string }) => TextModel
@@ -18,8 +18,12 @@ const factories = new Map<string, Factory>([
     ({ apiKey, model }) => ({
       provider: 'claude',
       model,
-      async complete(system, prompt) {
-        const message = await new Anthropic({ apiKey }).messages.create({ model, max_tokens: 16000, system, messages: [{ role: 'user', content: prompt }] })
+      async complete(system, prompt, images = []) {
+        const content: Anthropic.ContentBlockParam[] = [
+          ...images.map((png) => ({ type: 'image' as const, source: { type: 'base64' as const, media_type: 'image/png' as const, data: png.toString('base64') } })),
+          { type: 'text', text: prompt },
+        ]
+        const message = await new Anthropic({ apiKey }).messages.create({ model, max_tokens: 16000, system, messages: [{ role: 'user', content }] })
         return message.content.map((b) => (b.type === 'text' ? b.text : '')).join('')
       },
     }),
@@ -29,8 +33,20 @@ const factories = new Map<string, Factory>([
     ({ apiKey, model }) => ({
       provider: 'openai',
       model,
-      async complete(system, prompt) {
-        const response = await new OpenAI({ apiKey }).responses.create({ model, instructions: system, input: prompt })
+      async complete(system, prompt, images = []) {
+        const response = await new OpenAI({ apiKey }).responses.create({
+          model,
+          instructions: system,
+          input: [
+            {
+              role: 'user',
+              content: [
+                ...images.map((png) => ({ type: 'input_image' as const, image_url: `data:image/png;base64,${png.toString('base64')}`, detail: 'high' as const })),
+                { type: 'input_text' as const, text: prompt },
+              ],
+            },
+          ],
+        })
         return response.output_text
       },
     }),
@@ -40,10 +56,10 @@ const factories = new Map<string, Factory>([
     ({ apiKey, model }) => ({
       provider: 'gemini',
       model,
-      async complete(system, prompt) {
+      async complete(system, prompt, images = []) {
         const response = await new GoogleGenAI({ apiKey }).models.generateContent({
           model,
-          contents: prompt,
+          contents: [{ role: 'user', parts: [...images.map((png) => ({ inlineData: { mimeType: 'image/png', data: png.toString('base64') } })), { text: prompt }] }],
           config: { systemInstruction: system, responseMimeType: 'application/json' },
         })
         return response.text ?? ''
