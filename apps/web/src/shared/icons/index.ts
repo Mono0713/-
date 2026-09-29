@@ -4,6 +4,7 @@
  */
 export {
   ArrowDown as IconArrowDown,
+  ArrowLeft as IconBack,
   ArrowUp as IconArrowUp,
   ArrowUpToLine as IconTop,
   BookmarkCheck as IconSave,
@@ -14,12 +15,15 @@ export {
   ClipboardCheck as IconQuiz,
   Ellipsis as IconMore,
   FileText as IconFile,
+  GripVertical as IconGrip,
   Flag as IconFinish,
   Inbox as IconEmpty,
   Library as IconBank,
   List as IconList,
   ListFilter as IconFilter,
   LoaderCircle as IconLoader,
+  Minus as IconMinus,
+  PanelLeft as IconOutline,
   Pencil as IconEdit,
   Plus as IconPlus,
   ScanText as IconScan,
