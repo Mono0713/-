@@ -86,9 +86,8 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         savedExam={bank.examForImport(id)}
         heading={{
           title: imp.title ?? imp.fileName,
-          status: <StatusBadge key="status" status={imp.status} />,
-          meta: `${imp.pageCount} 頁 · ${imp.provider}${imp.model ? ` / ${imp.model}` : ''}`,
-          actions: <DeleteImportButton key="actions" importId={id} compact />,
+          meta: `${imp.pageCount} 頁 · ${imp.provider === 'manual' ? '手動模式' : imp.provider}${imp.model ? ` / ${imp.model}` : ''}`,
+          menu: <DeleteImportButton key="menu" importId={id} menu />,
         }}
         notice={
           failed.length > 0 && (
