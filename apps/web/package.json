@@ -18,6 +18,7 @@
     "@exam/extraction": "workspace:*",
     "@exam/importer": "workspace:*",
     "@exam/quiz": "workspace:*",
+    "@exam/settings": "workspace:*",
     "katex": "^0.18.9",
     "lucide-react": "^1.48.0",
     "mathlive": "^0.110.0",

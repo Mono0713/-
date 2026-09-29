@@ -20,8 +20,8 @@ export interface ImporterOptions {
   maxEdge?: number
   /** Pages in flight per import. Default 2. */
   concurrency?: number
-  /** Extra provider settings, e.g. API keys from a settings page. */
-  providerConfig?: (providerId: string) => ProviderConfig
+  /** Extra provider settings of the uploader, e.g. API keys and default models from a settings page. */
+  providerConfig?: (providerId: string, ownerId: string) => ProviderConfig
   /** Interface language of the uploader (e.g. "en", "zh-Hant"); the model writes review notes in it. */
   reviewLanguage?: (ownerId: string) => string
 }
@@ -174,7 +174,8 @@ export class Importer {
     let done = 0
     this.bank.updateImport(id, { status: 'processing', error: null, progress: { done, total: selected.length } })
 
-    const provider = createProvider(imp.provider, { ...this.opts.providerConfig?.(imp.provider), model: imp.model ?? undefined, workDir: join(this.dir(id), 'manual') })
+    const config = this.opts.providerConfig?.(imp.provider, imp.ownerId)
+    const provider = createProvider(imp.provider, { ...config, model: imp.model ?? config?.model, workDir: join(this.dir(id), 'manual') })
     const fresh = await extractDocument(provider, doc, {
       concurrency: this.opts.concurrency ?? 2,
       pages: selected,
