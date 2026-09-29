@@ -1,4 +1,5 @@
 import type { DraftFigure, DraftQuestion } from '@exam/core'
+import type { InkDoc } from '@exam/ink'
 
 /** exam: answer everything, then submit for a score. practice: see the answer after each question. */
 export type QuizMode = 'exam' | 'practice'
@@ -31,6 +32,12 @@ export interface QuizItem {
  */
 export interface QuizResponse {
   values: string[]
+  /** Working written on the scratch pad; never marked. */
+  scratch?: InkDoc
+  /** A handwritten answer (open and blank questions). An AI reads it into `values` when it is checked. */
+  handwriting?: InkDoc
+  /** `values` were read from the handwriting by AI, so the person can see what was understood. */
+  transcribed?: boolean
 }
 
 /** Who marked an open answer: the person against the model answer, or an AI teacher (planned). */

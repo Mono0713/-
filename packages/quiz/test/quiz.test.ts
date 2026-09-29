@@ -54,6 +54,14 @@ describe('grade', () => {
     expect(grade(essay, { values: ['my answer'] }, { credit: 3, by: 'ai', feedback: null }).score).toBe(10)
   })
 
+  it('waits for handwriting to be read, and grades what was read like typing', () => {
+    const fill = q({ type: 'fill_in_blank', options: [], answer: { values: ['\\frac{1}{2}'], source: 'printed' }, points: 2 })
+    const ink = { strokes: [{ points: [[0.1, 0.1, 0.5]] as [number, number, number][], color: '#000', size: 0.004 }], height: 0.3 }
+    expect(grade(fill, { values: [], handwriting: ink })).toEqual({ status: 'pending', score: 0, max: 2 })
+    expect(grade(fill, { values: [], handwriting: { strokes: [], height: 0.3 } }).status).toBe('unanswered')
+    expect(grade(fill, { values: ['$0.5$'], handwriting: ink, transcribed: true }).status).toBe('correct')
+  })
+
   it('does not count questions without an answer key', () => {
     expect(grade(q({ answer: { values: [], source: 'none' } }), { values: ['A'] })).toEqual({ status: 'no_key', score: 0, max: 0 })
   })

@@ -18,6 +18,7 @@
     "@exam/extraction": "workspace:*",
     "@exam/grading": "workspace:*",
     "@exam/importer": "workspace:*",
+    "@exam/ink": "workspace:*",
     "@exam/quiz": "workspace:*",
     "@exam/settings": "workspace:*",
     "katex": "^0.18.9",

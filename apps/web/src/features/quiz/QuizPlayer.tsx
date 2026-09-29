@@ -1,5 +1,6 @@
 'use client'
 
+import { isEmptyInk } from '@exam/ink'
 import type { Grade, QuizAttempt, QuizItem, QuizResponse } from '@exam/quiz'
 import { gradeItem } from '@exam/quiz/logic'
 import { useRouter } from 'next/navigation'
@@ -31,7 +32,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>())
 
   const total = items.length
-  const answered = (i: number) => Boolean(responses[i]?.values.some((v) => v.trim()))
+  const answered = (i: number) => Boolean(responses[i]?.values.some((v) => v.trim()) || !isEmptyInk(responses[i]?.handwriting))
   const answeredCount = responses.filter((_, i) => answered(i)).length
 
   const finish = () =>
@@ -69,6 +70,8 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
     start(async () => {
       const result = await checkAnswer(attempt.id, current, responses[current] ?? { values: [] })
       setItems((all) => all.map((x, j) => (j === current ? result.item : x)))
+      // Handwriting comes back with what the AI read.
+      setResponses((all) => all.map((x, j) => (j === current ? result.response : x)))
       setGrades((all) => all.map((x, j) => (j === current ? result.grade : x)))
       setMarkings((all) => all.map((x, j) => (j === current ? result.marking : x)))
       setChecked((all) => all.map((x, j) => (j === current ? true : x)))
