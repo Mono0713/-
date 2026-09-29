@@ -1,19 +1,23 @@
 'use client'
 
+import Link from 'next/link'
 import { useRef, useState, useTransition } from 'react'
 import { IconFile, IconSparkles, IconUpload, IconX } from '@/shared/icons'
-import { Button, inputClass } from '@/shared/ui'
+import type { ProviderOption } from '@/server/context'
+import { ProviderFields } from '@/features/settings/ModelPicker'
+import { Button } from '@/shared/ui'
 import { createImport } from './actions'
 
 const ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.gif,.bmp'
 
-export function UploadForm({ providers }: { providers: { id: string; label: string; ready: boolean }[] }) {
+export function UploadForm({ providers, defaultProvider }: { providers: ProviderOption[]; defaultProvider: string }) {
   const [files, setFiles] = useState<File[]>([])
   const [dragging, setDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const input = useRef<HTMLInputElement>(null)
-  const firstReady = providers.find((p) => p.ready && p.id !== 'manual')?.id ?? 'manual'
+  const start = providers.find((p) => p.id === defaultProvider && p.ready) ?? providers.find((p) => p.ready && p.id !== 'manual') ?? providers[0]!
+  const [choice, setChoice] = useState({ provider: start.id, model: start.model })
 
   const addFiles = (list: FileList | null) => {
     if (!list) return
@@ -24,6 +28,8 @@ export function UploadForm({ providers }: { providers: { id: string; label: stri
   const submit = (form: FormData) => {
     form.delete('files')
     for (const f of files) form.append('files', f)
+    form.set('provider', choice.provider)
+    form.set('model', choice.model)
     startTransition(async () => {
       const result = await createImport(form)
       if (result?.error) setError(result.error)
@@ -81,21 +87,14 @@ export function UploadForm({ providers }: { providers: { id: string; label: stri
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">辨識方式</span>
-          <select name="provider" defaultValue={firstReady} className={inputClass}>
-            {providers.map((p) => (
-              <option key={p.id} value={p.id} disabled={!p.ready}>
-                {p.label}
-                {p.ready ? '' : '（未設定 API 金鑰）'}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">模型（選填）</span>
-          <input name="model" placeholder="留空使用預設模型；手動模式可填 App 名稱" className={inputClass} />
-        </label>
+        <ProviderFields providers={providers} provider={choice.provider} model={choice.model} onChange={setChoice} />
+        <p className="text-xs text-muted sm:col-span-2">
+          API 金鑰、預設的辨識方式和模型在
+          <Link href="/settings" className="mx-0.5 text-accent hover:underline">
+            設定
+          </Link>
+          裡調整。
+        </p>
       </div>
 
       {error && <p className="m-shake rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">{error}</p>}

@@ -13,7 +13,7 @@
 
 ```bash
 pnpm install
-cp .env.example .env   # 用 API 時填入金鑰；只用手動模式可以不填
+cp .env.example .env   # 可以不填：API 金鑰也能在網頁的「設定」裡貼上
 pnpm dev
 ```
 
@@ -34,7 +34,10 @@ pnpm dev
 
 資料存在專案根目錄的 `data/`（SQLite 資料庫加上頁面圖片和裁切的圖），不會進 git。要換位置可以設 `EXAM_DATA_DIR`。
 
-模型寫的待檢查備註（⚠）會用介面語言，預設繁體中文；在 `.env` 設 `EXAM_LOCALE=en`（或 `ja`、`zh-Hans` 等）可以改，命令列用 `--lang`。之後有登入功能時改成每位使用者自己的設定。
+**設定**（左側選單最下面）：
+- **介面語言**：模型寫的待檢查備註（⚠）會用這個語言；網頁文字的翻譯會陸續加入。沒選過時用 `.env` 的 `EXAM_LOCALE`，再沒有就是繁體中文。命令列用 `--lang`。
+- **預設辨識方式**和各家的**預設模型**：模型從清單選，清單外的可以選「自己輸入模型名稱」。有金鑰時按「更新清單」會向該家服務查詢目前能用的模型。
+- **API 金鑰**：貼上後會先向該家服務確認有效才儲存，存在 `data/settings.json`（只有執行程式的帳號能讀），網頁上只顯示最後四碼。設定頁的金鑰優先，沒有時才用 `.env` 裡的。
 
 ## 命令列
 
@@ -84,6 +87,7 @@ packages/
   figures/     裁圖、把空格對齊印刷方框、清除空格裡的手寫
   bank/        題庫儲存介面（考卷 → 題目）；目前是本機 SQLite，上線時換成雲端資料庫只需另寫一個實作
   quiz/        線上測驗：出題、打亂順序、批改計分（logic.ts，前後端共用）與測驗紀錄儲存
+  settings/    使用者設定：語言、預設辨識方式與模型、API 金鑰（SettingsStore 介面，目前存成 data/settings.json）
   importer/    匯入流程：上傳 → 轉圖 → 辨識 → 裁圖 → 草稿，與介面無關
 apps/
   cli/         命令列辨識工具
@@ -110,4 +114,4 @@ pnpm typecheck
 pnpm test
 ```
 
-預設模型：Claude `claude-opus-5`、OpenAI `gpt-5`、Gemini `gemini-3.1-pro-preview`。各家常會下架舊模型，可以在 `.env` 設 `CLAUDE_MODEL`、`OPENAI_MODEL`、`GEMINI_MODEL` 換掉預設，或單次用 `-m` 指定。
+預設模型：Claude `claude-opus-5`、OpenAI `gpt-5`、Gemini `gemini-3.1-pro-preview`。各家常會下架舊模型，網頁版在「設定」換預設模型；也可以在 `.env` 設 `CLAUDE_MODEL`、`OPENAI_MODEL`、`GEMINI_MODEL` 換掉預設，或單次用 `-m` 指定。選單裡的模型清單在 `packages/extraction/src/models.ts`。
