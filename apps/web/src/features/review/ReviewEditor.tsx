@@ -544,7 +544,7 @@ export function ReviewEditor({
                             }}
                             onClick={() => !isEditing && select(index, false)}
                             onDoubleClick={() => !isEditing && setEditing(index)}
-                            className={`relative scroll-mt-40 rounded-2xl bg-surface p-5 transition-shadow ${
+                            className={`relative scroll-mt-40 rounded-2xl bg-surface p-4 transition-shadow sm:p-5 ${
                               inGroup ? 'ml-4 before:absolute before:-left-3 before:-top-4 before:bottom-4 before:w-0.5 before:rounded-full before:bg-ink/10 sm:ml-7 sm:before:-left-4' : ''
                             } ${
                               dragging ? 'shadow-[0_24px_48px_-16px_rgb(22_24_43/0.35),0_0_0_1px_rgb(22_24_43/0.08)]' : 'shadow-sheet'
@@ -552,21 +552,23 @@ export function ReviewEditor({
                           >
                             {isFlagged(q) && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-amber-400" />}
                             {isEditing ? (
-                              <>
-                                <div className="mb-4 flex items-center gap-1 border-b border-line/70 pb-3">
-                                  <span className="mr-auto text-sm font-medium">
-                                    編輯第 <span className="num">{q.number}</span> 題
-                                  </span>
-                                  <button type="button" onClick={() => removeQuestion(index)} className={`${iconButton} hover:bg-bad-soft hover:text-bad`} aria-label="刪除" title="刪除">
-                                    <IconTrash size={15} />
-                                  </button>
-                                  {gripButton(q, handle)}
-                                  <Button variant="primary" className="ml-1 px-3 py-1.5" onClick={() => setEditing(null)} icon={<IconCheck size={15} />}>
-                                    完成
-                                  </Button>
-                                </div>
-                                <QuestionEditor value={q} onChange={(v) => updateQuestion(index, v)} importId={importId} />
-                              </>
+                              <QuestionEditor
+                                value={q}
+                                onChange={(v) => updateQuestion(index, v)}
+                                importId={importId}
+                                actions={
+                                  <>
+                                    <button type="button" onClick={() => removeQuestion(index)} className={`${iconButton} hover:bg-bad-soft hover:text-bad`} aria-label="刪除" title="刪除">
+                                      <IconTrash size={15} />
+                                    </button>
+                                    {/* Phones keep the header on one line; cards are reordered outside editing there. */}
+                                    <span className="hidden sm:contents">{gripButton(q, handle)}</span>
+                                    <Button variant="primary" className="ml-1 h-9 px-2.5 py-0 sm:px-3" onClick={() => setEditing(null)} icon={<IconCheck size={15} />} aria-label="完成">
+                                      <span className="hidden sm:inline">完成</span>
+                                    </Button>
+                                  </>
+                                }
+                              />
                             ) : (
                               <QuestionView
                                 q={q}

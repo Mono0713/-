@@ -56,6 +56,13 @@ body {
 .prose-q p {
   margin: 0.25rem 0;
 }
+/* The first and last lines sit flush, so text lines up with labels and icons beside it. */
+.prose-q > :first-child {
+  margin-top: 0;
+}
+.prose-q > :last-child {
+  margin-bottom: 0;
+}
 .prose-q table {
   border-collapse: collapse;
   margin: 0.5rem 0;
@@ -88,5 +95,26 @@ body {
 /* The review workspace needs the whole screen for the exam and its questions;
    its own toolbar links back to the rest of the app. */
 body:has(.workspace) :is(.app-sidebar, .app-header) {
+  display: none;
+}
+
+/* A formula being edited inside a text box: sits in the line like the rendered formula did. */
+math-field.inline-formula {
+  display: inline-block;
+  min-width: 2.5em;
+  max-width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 1.05em;
+  vertical-align: middle;
+  padding: 0 2px;
+  outline: none;
+  --caret-color: var(--color-accent);
+  --selection-background-color: var(--color-accent-soft);
+  --contains-highlight-background-color: transparent;
+}
+/* The tools under the box replace MathLive's menu; tablets bring up its keyboard on their own. */
+math-field.inline-formula::part(menu-toggle),
+math-field.inline-formula::part(virtual-keyboard-toggle) {
   display: none;
 }
