@@ -10,7 +10,7 @@ export const GRADE_LABELS = {
   partial: ['部分正確', 'warn'],
   wrong: ['答錯', 'bad'],
   unanswered: ['未作答', 'neutral'],
-  pending: ['待自評', 'accent'],
+  pending: ['待批改', 'accent'],
   no_key: ['沒有標準答案', 'neutral'],
 } as const
 
@@ -46,6 +46,7 @@ export function Reveal({
     <div className="m-expand space-y-3 rounded-lg border border-line bg-paper p-4 text-sm">
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone={tone}>{label}</Badge>
+        {marking?.by === 'ai' && <Badge tone="accent">AI 批改</Badge>}
         {grade.max > 0 && (
           <span className="text-muted">
             {grade.score} / {grade.max} 分
@@ -72,13 +73,16 @@ export function Reveal({
         </div>
       )}
 
-      {kind.kind === 'text' && key.length > 0 && onMark && (
+      {/* Anything but a choice question can be marked by hand, also over the AI teacher's mark. */}
+      {kind.kind !== 'single' && kind.kind !== 'multiple' && kind.kind !== 'true_false' && grade.status !== 'unanswered' && onMark && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted">對照參考答案，你的答案：</span>
-          <Button variant={self && self.credit >= 1 ? 'primary' : 'secondary'} onClick={() => onMark(self && self.credit >= 1 ? null : 1)}>
+          <span className="text-muted">
+            {marking?.by === 'ai' ? 'AI 老師批改的。不同意的話可以自己改：' : key.length ? '對照參考答案，你的答案：' : '這題沒有標準答案，你的答案：'}
+          </span>
+          <Button className="px-3 py-1.5" variant={self && self.credit >= 1 ? 'primary' : 'secondary'} onClick={() => onMark(self && self.credit >= 1 ? null : 1)}>
             答對
           </Button>
-          <Button variant={self && self.credit <= 0 ? 'danger' : 'secondary'} onClick={() => onMark(self && self.credit <= 0 ? null : 0)}>
+          <Button className="px-3 py-1.5" variant={self && self.credit <= 0 ? 'danger' : 'secondary'} onClick={() => onMark(self && self.credit <= 0 ? null : 0)}>
             答錯
           </Button>
         </div>

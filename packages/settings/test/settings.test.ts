@@ -9,7 +9,7 @@ const tempFile = () => join(mkdtempSync(join(tmpdir(), 'settings-')), 'settings.
 describe('FileSettingsStore', () => {
   it('returns defaults for a new user', () => {
     const s = new FileSettingsStore(tempFile()).get('a')
-    expect(s).toMatchObject({ locale: null, defaultProvider: 'manual', models: {}, apiKeys: {} })
+    expect(s).toMatchObject({ locale: null, defaultProvider: 'manual', models: {}, apiKeys: {}, aiGrading: { enabled: true, provider: null, model: null } })
   })
 
   it('saves per user and keeps other fields on update', () => {

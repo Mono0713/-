@@ -1,10 +1,12 @@
 'use server'
 
-import { buildItems, gradeItem, isOver, type QuizAttempt, type QuizResponse, type QuizSettings, type QuizSource } from '@exam/quiz'
 import { draftOf } from '@exam/bank'
+import { markOpenAnswers } from '@exam/grading'
+import { buildItems, gradeItem, isOver, needsTeacher, type QuizAttempt, type QuizResponse, type QuizSettings, type QuizSource } from '@exam/quiz'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { currentOwner, services } from '@/server/context'
+import { currentOwner, localeOf, services, teacherFor } from '@/server/context'
+import { startTeacher } from './teacher'
 import { revealedItem } from './visible'
 
 function owned(id: string): QuizAttempt {
@@ -77,7 +79,19 @@ export async function checkAnswer(id: string, index: number, response: QuizRespo
     services().quizzes.save(attempt)
   }
   const item = attempt.items[index]!
-  return { item: revealedItem(item), grade: gradeItem(item, attempt.responses[index] ?? null, attempt.markings[index] ?? null) }
+  // An answer the key cannot settle is marked by the AI teacher right away, when there is one.
+  const teacher = teacherFor(attempt.ownerId)
+  if (teacher && needsTeacher(item, attempt.responses[index] ?? null, attempt.markings[index] ?? null)) {
+    try {
+      const { markings } = await markOpenAnswers(attempt, { grader: teacher.teacher, cache: services().gradingCache, language: localeOf(attempt.ownerId), only: [index] })
+      attempt.markings[index] = markings[index] ?? null
+      services().quizzes.save(attempt)
+    } catch {
+      // Marking can wait: the person can mark it or ask again from the results.
+    }
+  }
+  const marking = attempt.markings[index] ?? null
+  return { item: revealedItem(item), grade: gradeItem(item, attempt.responses[index] ?? null, marking), marking }
 }
 
 /** The person marks their own open answer against the model answer: credit 1 is right, 0 is wrong, null clears it. */
@@ -99,8 +113,18 @@ export async function finishQuiz(id: string) {
     const now = new Date()
     const end = attempt.deadline && now > new Date(attempt.deadline) ? attempt.deadline : now.toISOString()
     services().quizzes.save({ ...attempt, finishedAt: end })
+    startTeacher(id)
   }
   revalidatePath('/quiz')
+  revalidatePath(`/quiz/${id}`)
+}
+
+/** Asks the AI teacher again for answers still waiting to be marked, e.g. after it failed or was turned on. */
+export async function askTeacher(id: string): Promise<{ error: string } | undefined> {
+  const attempt = owned(id)
+  if (!attempt.finishedAt) return { error: '交卷後才能批改' }
+  if (!teacherFor(attempt.ownerId)) return { error: '沒有可用的 AI：請在設定裡開啟 AI 批改並加上 API 金鑰。' }
+  startTeacher(id)
   revalidatePath(`/quiz/${id}`)
 }
 

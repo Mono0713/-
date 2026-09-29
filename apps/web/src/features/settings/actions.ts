@@ -71,3 +71,8 @@ export async function refreshModels(provider: string): Promise<Result> {
     return { ok: false, error: `無法取得模型清單：${message(err)}` }
   }
 }
+
+export async function saveAiGrading(patch: { enabled?: boolean; provider?: string | null; model?: string | null }) {
+  const current = services().settings.get(currentOwner()).aiGrading
+  save({ aiGrading: { ...current, ...patch } })
+}

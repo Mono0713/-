@@ -16,6 +16,7 @@
     "@exam/bank": "workspace:*",
     "@exam/core": "workspace:*",
     "@exam/extraction": "workspace:*",
+    "@exam/grading": "workspace:*",
     "@exam/importer": "workspace:*",
     "@exam/quiz": "workspace:*",
     "@exam/settings": "workspace:*",

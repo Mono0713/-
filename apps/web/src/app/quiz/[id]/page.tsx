@@ -3,8 +3,9 @@ import { notFound } from 'next/navigation'
 import { DeleteQuizButton } from '@/features/quiz/DeleteQuizButton'
 import { QuizPlayer } from '@/features/quiz/QuizPlayer'
 import { QuizResults } from '@/features/quiz/QuizResults'
+import { startTeacher } from '@/features/quiz/teacher'
 import { hiddenItem } from '@/features/quiz/visible'
-import { currentOwner, services } from '@/server/context'
+import { currentOwner, services, teacherFor } from '@/server/context'
 import { ButtonLink, PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -17,8 +18,9 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
 
   // A timed exam left open past its deadline is handed in as it stands.
   if (!attempt.finishedAt && isOver(attempt)) {
-    attempt = { ...attempt, finishedAt: attempt.deadline }
-    quizzes.save(attempt)
+    quizzes.save({ ...attempt, finishedAt: attempt.deadline })
+    startTeacher(id)
+    attempt = quizzes.get(id)!
   }
 
   const mode = attempt.settings.mode === 'exam' ? '考試' : '單題練習'
@@ -39,7 +41,7 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
             </>
           }
         />
-        <QuizResults attempt={attempt} summary={summarize(attempt)} />
+        <QuizResults attempt={attempt} summary={summarize(attempt)} teacher={teacherFor(attempt.ownerId) !== null} />
       </div>
     )
   }

@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import type { ProviderOption } from '@/server/context'
 import { IconCheck, IconKey, IconRefresh } from '@/shared/icons'
 import { Badge, Button, Card, inputClass } from '@/shared/ui'
-import { refreshModels, removeApiKey, saveApiKey, saveDefaultProvider, saveLocale, saveModel } from './actions'
+import { refreshModels, removeApiKey, saveAiGrading, saveApiKey, saveDefaultProvider, saveLocale, saveModel } from './actions'
 import { ModelPicker } from './ModelPicker'
 
 export interface KeyInfo {
@@ -26,12 +26,15 @@ export function SettingsForm({
   defaultProvider,
   providers,
   keys,
+  aiGrading,
 }: {
   locales: { id: string; label: string }[]
   locale: string
   defaultProvider: string
   providers: ProviderOption[]
   keys: Record<string, KeyInfo>
+  /** The saved choice, and what it resolves to now (null: AI marking cannot run). */
+  aiGrading: { enabled: boolean; provider: string | null; model: string | null; active: { provider: string; model: string } | null }
 }) {
   const [saved, flash] = useFlash()
   const [, start] = useTransition()
@@ -63,6 +66,13 @@ export function SettingsForm({
             ))}
           </select>
         </Row>
+      </Section>
+
+      <Section
+        title="AI 批改"
+        note="為了省 AI 用量：程式先自己比對答案（格式不同也算對，例如 1/2、0.5、½），比不出來的才交給 AI；交卷時一次批改全部；同一題同樣的答案只問一次。選擇題和是非題不會用到 AI。"
+      >
+        <TeacherSettings providers={apis} initial={aiGrading} onSaved={flash} />
       </Section>
 
       <Section title="模型與 API 金鑰" note="金鑰只存在這台電腦的資料夾裡（data/settings.json），網頁上不會再顯示完整金鑰，也只會送到該家 AI 服務。">
@@ -188,6 +198,82 @@ function ProviderRow({ provider: p, info, onSaved }: { provider: ProviderOption;
   )
 }
 
+function TeacherSettings({
+  providers,
+  initial,
+  onSaved,
+}: {
+  providers: ProviderOption[]
+  initial: { enabled: boolean; provider: string | null; model: string | null; active: { provider: string; model: string } | null }
+  onSaved: () => void
+}) {
+  const [enabled, setEnabled] = useState(initial.enabled)
+  const [provider, setProvider] = useState(initial.provider ?? '')
+  const [model, setModel] = useState(initial.model ?? '')
+  const [, start] = useTransition()
+  const save = (patch: Parameters<typeof saveAiGrading>[0]) => start(async () => (await saveAiGrading(patch), onSaved()))
+  const chosen = providers.find((p) => p.id === provider)
+  return (
+    <>
+      <Row plain label="用 AI 批改" hint="問答、計算、填空題，以及沒有標準答案的題目，交卷後由 AI 老師評分並寫評語；你隨時可以自己改分數。">
+        <span className="flex items-center gap-3">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={enabled}
+            aria-label="用 AI 批改"
+            onClick={() => {
+              setEnabled(!enabled)
+              save({ enabled: !enabled })
+            }}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${enabled ? 'bg-accent' : 'bg-ink/15'}`}
+          >
+            <span className={`absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 [transition-timing-function:var(--m-spring)] ${enabled ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
+          </button>
+          <span className="text-sm text-muted">
+            {!enabled ? '關閉，問答題自己評分' : initial.active ? `目前使用 ${initial.active.model}` : '需要先在下面加上任一家的 API 金鑰'}
+          </span>
+        </span>
+      </Row>
+      {enabled && (
+        <Row plain label="批改用的模型" hint="預設自動選有金鑰的服務裡最省的模型；批改比讀考卷簡單，通常不需要最貴的模型。">
+          <span className="block space-y-2">
+            <select
+              value={provider}
+              onChange={(e) => {
+                setProvider(e.target.value)
+                setModel('')
+                save({ provider: e.target.value || null, model: null })
+              }}
+              className={inputClass}
+              aria-label="批改用的服務"
+            >
+              <option value="">自動</option>
+              {providers.map((p) => (
+                <option key={p.id} value={p.id} disabled={!p.ready}>
+                  {p.label}
+                  {p.ready ? '' : '（還沒有金鑰）'}
+                </option>
+              ))}
+            </select>
+            {chosen && (
+              <ModelPicker
+                key={chosen.id}
+                models={chosen.models}
+                value={model || (chosen.models.find((m) => m.tier === 'fast')?.id ?? '')}
+                onChange={(m) => {
+                  setModel(m)
+                  save({ model: m || null })
+                }}
+              />
+            )}
+          </span>
+        </Row>
+      )}
+    </>
+  )
+}
+
 function Section({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return (
     <section>
@@ -198,9 +284,11 @@ function Section({ title, note, children }: { title: string; note?: string; chil
   )
 }
 
-function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+/** A labelled setting; `plain` for rows whose control is not a single form field (a label would forward clicks). */
+function Row({ label, hint, children, plain = false }: { label: string; hint?: string; children: React.ReactNode; plain?: boolean }) {
+  const Tag = plain ? 'div' : 'label'
   return (
-    <label className="grid gap-2 border-t border-line/70 px-5 py-4 first:border-t-0 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-start">
+    <Tag className="grid gap-2 border-t border-line/70 px-5 py-4 first:border-t-0 sm:grid-cols-[10rem_minmax(0,1fr)] sm:items-start">
       <span>
         <span className="block text-sm font-medium">{label}</span>
       </span>
@@ -208,7 +296,7 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
         {children}
         {hint && <span className="block text-xs text-muted">{hint}</span>}
       </span>
-    </label>
+    </Tag>
   )
 }
 

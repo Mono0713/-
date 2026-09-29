@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path'
 import { SqliteBank, type Bank } from '@exam/bank'
 import { DEFAULT_MODELS, MODEL_CATALOG, type ModelTier } from '@exam/extraction'
 import { Importer } from '@exam/importer'
+import { AiTeacher, createTextModel, SqliteGradingCache, type GradingCache } from '@exam/grading'
 import { SqliteQuizStore, type QuizStore } from '@exam/quiz'
 import { DEFAULT_LOCALE, FileSettingsStore, type SettingsStore } from '@exam/settings'
 
@@ -23,6 +24,7 @@ interface Services {
   importer: Importer
   quizzes: QuizStore
   settings: SettingsStore
+  gradingCache: GradingCache
 }
 
 // Kept on globalThis so hot reloads in development reuse one database connection
@@ -48,6 +50,7 @@ export function services(): Services {
       }),
       quizzes: new SqliteQuizStore(dbFile),
       settings,
+      gradingCache: new SqliteGradingCache(dbFile),
     }
   }
   return globals.__examServices
@@ -110,4 +113,20 @@ export function availableProviders(ownerId: string = currentOwner()): ProviderOp
     api('gemini', 'Gemini API'),
     api('openai', 'OpenAI API'),
   ]
+}
+
+const API_PROVIDERS = ['claude', 'openai', 'gemini']
+
+/**
+ * The AI teacher for this user, or null when AI marking is off or no API key is set.
+ * Unless the user picked one, it uses the first provider with a key and its cheapest model:
+ * marking answers needs far less than reading a scanned page.
+ */
+export function teacherFor(ownerId: string): { teacher: AiTeacher; provider: string; model: string } | null {
+  const { aiGrading } = services().settings.get(ownerId)
+  if (!aiGrading.enabled) return null
+  const provider = aiGrading.provider && apiKeyOf(ownerId, aiGrading.provider) ? aiGrading.provider : API_PROVIDERS.find((id) => apiKeyOf(ownerId, id))
+  if (!provider) return null
+  const model = (aiGrading.provider === provider && aiGrading.model) || MODEL_CATALOG[provider]?.find((m) => m.tier === 'fast')?.id || DEFAULT_MODELS[provider]!
+  return { teacher: new AiTeacher(createTextModel(provider, { apiKey: apiKeyOf(ownerId, provider)!, model })), provider, model }
 }
