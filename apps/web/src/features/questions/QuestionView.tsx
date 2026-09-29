@@ -6,8 +6,8 @@ import { Badge } from '@/shared/ui'
 
 const SOURCE_LABELS = { printed: '印刷', handwritten: '手寫', none: '' } as const
 
-/** Read-only rendering of a question, used in review and in the bank. */
-export function QuestionView({ q, compact = false }: { q: DraftQuestion; compact?: boolean }) {
+/** Read-only rendering of a question, used in review and in the bank. `actions` sit at the end of its header line. */
+export function QuestionView({ q, compact = false, actions }: { q: DraftQuestion; compact?: boolean; actions?: React.ReactNode }) {
   const blanks = q.figures.flatMap((f) => f.image?.blanks ?? [])
   const answerByBlank = blanks.length > 0 && blanks.length === q.answer.values.length
   const isChoice = q.type === 'single_choice' || q.type === 'multiple_choice'
@@ -19,6 +19,7 @@ export function QuestionView({ q, compact = false }: { q: DraftQuestion; compact
         <Badge>{TYPE_LABELS[q.type]}</Badge>
         {q.points !== null && <Badge>{q.points} 分</Badge>}
         {q.confidence !== 'high' && <Badge tone={q.confidence === 'low' ? 'bad' : 'warn'}>{CONFIDENCE_LABELS[q.confidence]}</Badge>}
+        {actions && <div className="ml-auto flex items-center gap-0.5">{actions}</div>}
       </div>
 
       <Markdown>{q.stem}</Markdown>
@@ -76,7 +77,7 @@ export function QuestionView({ q, compact = false }: { q: DraftQuestion; compact
           {q.issues.map((issue, i) => (
             <li key={i} className="flex gap-2">
               <span aria-hidden>⚠</span>
-              <span>{issue}</span>
+              <Markdown className="min-w-0 flex-1">{issue}</Markdown>
             </li>
           ))}
         </ul>

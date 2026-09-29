@@ -7,7 +7,7 @@ import { RecentLink, SideNav } from './SideNav'
 /** Left rail on wide screens: logo, main navigation, recent imports and bank totals. */
 export function Sidebar() {
   return (
-    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-night text-white/70 xl:flex">
+    <aside className="app-sidebar sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-night text-white/70 xl:flex">
       <div className="px-5 pb-7 pt-6">
         <Logo tone="light" />
       </div>

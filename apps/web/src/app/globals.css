@@ -84,3 +84,9 @@ body {
   overflow-x: auto;
   overflow-y: hidden;
 }
+
+/* The review workspace needs the whole screen for the exam and its questions;
+   its own toolbar links back to the rest of the app. */
+body:has(.workspace) :is(.app-sidebar, .app-header) {
+  display: none;
+}

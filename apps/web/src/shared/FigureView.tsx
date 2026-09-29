@@ -1,5 +1,6 @@
 import type { DraftFigure } from '@exam/core'
 import { fileUrl } from './files'
+import { Markdown } from './Markdown'
 
 /**
  * A cropped figure. Its blanks are drawn as numbered boxes at their positions;
@@ -15,14 +16,14 @@ export function FigureView({
   renderBlank?: (label: string, index: number) => React.ReactNode
 }) {
   if (!figure.image) {
-    return <p className="rounded-lg bg-paper px-3 py-2 text-sm text-muted">圖：{figure.description}</p>
+    return <Markdown className="rounded-lg bg-paper px-3 py-2 text-sm text-muted">{`圖：${figure.description}`}</Markdown>
   }
   const { image } = figure
   return (
     <figure className="my-2">
       <div className="relative inline-block max-w-full">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={fileUrl(image.file)} alt={figure.description} width={image.width} height={image.height} className="block h-auto max-w-full rounded-md border border-line" />
+        <img src={fileUrl(image.file)} alt={figure.description.replace(/\$/g, '')} width={image.width} height={image.height} className="block h-auto max-w-full rounded-md border border-line" />
         {image.blanks.map((b, i) => (
           <div
             key={`${b.label}-${i}`}
@@ -41,7 +42,9 @@ export function FigureView({
           </div>
         ))}
       </div>
-      <figcaption className="mt-1 text-xs text-muted">{figure.description}</figcaption>
+      <figcaption className="mt-1 text-xs text-muted">
+        <Markdown>{figure.description}</Markdown>
+      </figcaption>
     </figure>
   )
 }

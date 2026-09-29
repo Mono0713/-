@@ -1,11 +1,11 @@
 'use client'
 
 import { QuestionType, type Answer, type DraftQuestion } from '@exam/core'
-import { useState } from 'react'
 import { FigureView } from '@/shared/FigureView'
 import { FigureBlanksEditor } from './FigureBlanksEditor'
 import { TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
+import { MathTextInput } from '@/shared/math/MathTextInput'
 import { Button, inputBase, inputClass } from '@/shared/ui'
 
 const TYPES = QuestionType.options
@@ -46,16 +46,17 @@ export function QuestionEditor({ value: q, onChange, importId = null }: { value:
         </Field>
       </div>
 
-      <MarkdownField label="題幹" value={q.stem} onChange={(v) => set('stem', v)} rows={4} />
+      <MathTextInput label="題幹" value={q.stem} onChange={(v) => set('stem', v)} />
 
       {q.figures.map((f, i) => (
         <div key={i} className="rounded-lg border border-line p-3">
           <FigureView figure={f} />
-          <input
+          <MathTextInput
+            multiline={false}
+            label="圖片說明"
             value={f.description}
-            onChange={(e) => set('figures', q.figures.map((g, j) => (j === i ? { ...g, description: e.target.value } : g)))}
-            className={`${inputClass} mt-2`}
-            aria-label="圖片說明"
+            onChange={(v) => set('figures', q.figures.map((g, j) => (j === i ? { ...g, description: v } : g)))}
+            className="mt-2"
           />
           {f.blanks.length ? (
             <FigureBlanksEditor figure={f} importId={importId} onChange={(g) => set('figures', q.figures.map((x, j) => (j === i ? g : x)))} />
@@ -70,8 +71,8 @@ export function QuestionEditor({ value: q, onChange, importId = null }: { value:
       <details className="group" open={Boolean(q.translation || q.explanation)}>
         <summary className="cursor-pointer text-sm font-medium text-muted hover:text-ink">翻譯與詳解</summary>
         <div className="mt-3 space-y-4">
-          <MarkdownField label="翻譯" value={q.translation ?? ''} onChange={(v) => set('translation', v || null)} rows={2} />
-          <MarkdownField label="詳解" value={q.explanation ?? ''} onChange={(v) => set('explanation', v || null)} rows={3} />
+          <MathTextInput label="翻譯" value={q.translation ?? ''} onChange={(v) => set('translation', v || null)} />
+          <MathTextInput label="詳解" value={q.explanation ?? ''} onChange={(v) => set('explanation', v || null)} />
         </div>
       </details>
 
@@ -81,7 +82,7 @@ export function QuestionEditor({ value: q, onChange, importId = null }: { value:
           <ul className="space-y-1">
             {q.issues.map((issue, i) => (
               <li key={i} className="flex items-start justify-between gap-3">
-                <span>{issue}</span>
+                <Markdown className="min-w-0 flex-1">{issue}</Markdown>
                 <button type="button" onClick={() => set('issues', q.issues.filter((_, j) => j !== i))} className="shrink-0 text-xs text-muted hover:text-ink">
                   移除
                 </button>
@@ -100,37 +101,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
       {children}
     </label>
-  )
-}
-
-/** Text area with a preview tab, since stems mix Markdown, tables and LaTeX. It grows with its content. */
-function MarkdownField({ label, value, onChange, rows }: { label: string; value: string; onChange: (v: string) => void; rows: number }) {
-  const [tab, setTab] = useState<'edit' | 'preview'>('edit')
-  const tabClass = (t: typeof tab) => `rounded px-2 py-0.5 text-xs ${tab === t ? 'bg-paper font-medium text-ink' : 'text-muted hover:text-ink'}`
-  return (
-    <div className="text-sm">
-      <div className="mb-1 flex items-center justify-between">
-        <span className="text-xs font-medium text-muted">{label}</span>
-        <div className="flex gap-0.5">
-          <button type="button" onClick={() => setTab('edit')} className={tabClass('edit')}>
-            編輯
-          </button>
-          <button type="button" onClick={() => setTab('preview')} className={tabClass('preview')}>
-            預覽
-          </button>
-        </div>
-      </div>
-      {tab === 'edit' ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={Math.max(rows, Math.min(20, value.split('\n').length + 1))}
-          className={`${inputClass} font-mono text-[13px]`}
-        />
-      ) : (
-        <div className="min-h-16 rounded-lg border border-line px-3 py-2">{value.trim() ? <Markdown>{value}</Markdown> : <span className="text-muted">（空白）</span>}</div>
-      )}
-    </div>
   )
 }
 
@@ -154,11 +124,11 @@ function OptionsEditor({ q, onChange }: { q: DraftQuestion; onChange: (q: DraftQ
               className={`${inputBase} w-14 shrink-0 text-center`}
               aria-label="選項代號"
             />
-            <input
+            <MathTextInput
               value={o.content}
-              onChange={(e) => setOptions(q.options.map((p, j) => (j === i ? { ...p, content: e.target.value } : p)))}
-              className={`${inputBase} min-w-0 flex-1`}
-              aria-label={`選項 ${o.label} 內容`}
+              onChange={(v) => setOptions(q.options.map((p, j) => (j === i ? { ...p, content: v } : p)))}
+              multiline={false}
+              className="min-w-0 flex-1"
             />
             <Button variant="ghost" className="shrink-0 px-2 text-muted" onClick={() => setOptions(q.options.filter((_, j) => j !== i))} aria-label={`刪除選項 ${o.label}`} title="刪除選項">
               ✕
@@ -212,27 +182,37 @@ function AnswerEditor({ q, setAnswer }: { q: DraftQuestion; setAnswer: (patch: P
         {blanks.map((b, i) => (
           <label key={i} className="flex items-center gap-2">
             <span className="w-10 shrink-0 text-right text-xs text-muted">({b.label})</span>
-            <input
+            <MathTextInput
               value={q.answer.values[i] ?? ''}
-              onChange={(e) => {
-                const values = blanks.map((_, j) => (j === i ? e.target.value : (q.answer.values[j] ?? '')))
-                setAnswer({ values })
-              }}
-              className={inputClass}
+              onChange={(v) => setAnswer({ values: blanks.map((_, j) => (j === i ? v : (q.answer.values[j] ?? ''))) })}
+              multiline={false}
+              className="min-w-0 flex-1"
             />
           </label>
         ))}
       </div>
     )
   } else {
+    // One box per answer (a question with several blanks or parts has several).
+    const values = q.answer.values.length ? q.answer.values : ['']
+    const setAt = (i: number, v: string) => setAnswer({ values: values.map((x, j) => (j === i ? v : x)).filter((x, j, all) => x.trim() || all.length > 1) })
     body = (
-      <textarea
-        value={q.answer.values.join('\n---\n')}
-        onChange={(e) => setAnswer({ values: e.target.value.split(/\n---\n/).filter((v, i, all) => v.trim() || all.length > 1) })}
-        rows={3}
-        placeholder="多個空格的答案用單獨一行 --- 分開"
-        className={`${inputClass} font-mono text-[13px]`}
-      />
+      <div className="space-y-2">
+        {values.map((v, i) => (
+          <div key={i} className="flex items-start gap-2">
+            {values.length > 1 && <span className="w-6 shrink-0 pt-2 text-right text-xs text-muted">{i + 1}.</span>}
+            <MathTextInput value={v} onChange={(x) => setAt(i, x)} multiline={q.type === 'essay' || q.type === 'calculation' || q.type === 'short_answer'} className="min-w-0 flex-1" placeholder="沒有答案可以留空" />
+            {values.length > 1 && (
+              <Button variant="ghost" className="shrink-0 px-2 text-muted" onClick={() => setAnswer({ values: values.filter((_, j) => j !== i) })} aria-label={`刪除第 ${i + 1} 個答案`}>
+                ✕
+              </Button>
+            )}
+          </div>
+        ))}
+        <Button variant="ghost" onClick={() => setAnswer({ values: [...values, ''] })}>
+          ＋ 再加一格答案
+        </Button>
+      </div>
     )
   }
 
