@@ -1,6 +1,18 @@
 'use client'
 
-import { closestCenter, KeyboardSensor, MouseSensor, pointerWithin, TouchSensor, useSensor, useSensors, type CollisionDetection } from '@dnd-kit/core'
+import {
+  closestCenter,
+  KeyboardSensor,
+  MeasuringStrategy,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type CollisionDetection,
+  type DropAnimation,
+  type MeasuringConfiguration,
+  type Modifier,
+} from '@dnd-kit/core'
 import { sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { HTMLAttributes, ReactNode } from 'react'
@@ -20,18 +32,38 @@ export function useDragSensors(keyboard: boolean) {
   )
 }
 
+/** Lists are reordered up and down only. */
+export const alongList: Modifier = ({ transform }) => ({ ...transform, x: 0 })
+
+/** Items move as the list changes under a drag (the dragged one shrinks to a slot), so they are measured throughout. */
+export const listMeasuring: MeasuringConfiguration = { droppable: { strategy: MeasuringStrategy.Always } }
+
+/** The same easing as the app's other motion: quick start, soft landing. */
+const EASE = 'cubic-bezier(0.2, 0, 0, 1)'
+export const dropAnimation: DropAnimation = { duration: 220, easing: EASE }
+
 /**
- * The item under the pointer is where the dragged one goes, however tall either is
- * (question cards differ a lot in height); the keyboard falls back to the nearest centre.
+ * Where the dragged item goes: past every item whose middle the pointer has passed, as in a
+ * phone's lists. So the slot stays next to the pointer however tall the items are (question cards
+ * differ a lot), and moving the pointer back never makes it jump. The keyboard uses the nearest centre.
  */
 export const underPointer: CollisionDetection = (args) => {
-  const hits = args.pointerCoordinates ? pointerWithin(args) : []
-  return hits.length ? hits : closestCenter(args)
+  const y = args.pointerCoordinates?.y
+  if (y === undefined) return closestCenter(args)
+  // Items in list order, measured where they sit without the drag's shifts.
+  const items = args.droppableContainers
+    .map((container) => ({ container, rect: args.droppableRects.get(container.id) }))
+    .filter((item): item is { container: (typeof args.droppableContainers)[number]; rect: NonNullable<typeof item.rect> } => Boolean(item.rect))
+    .sort((a, b) => a.rect.top - b.rect.top)
+  if (!items.length) return []
+  const passed = items.filter(({ container, rect }) => container.id !== args.active.id && rect.top + rect.height / 2 < y).length
+  const target = items[Math.min(passed, items.length - 1)]!
+  return [{ id: target.container.id, data: { droppableContainer: target.container, value: 0 } }]
 }
 
 /** One item in a sortable list; `children` gets the drag handle to put on an element. */
 export function Sortable({ id, children, className = '' }: { id: string; children: (handle: DragHandle, dragging: boolean) => ReactNode; className?: string }) {
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id })
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id, transition: { duration: 240, easing: EASE } })
   return (
     <div
       ref={setNodeRef}

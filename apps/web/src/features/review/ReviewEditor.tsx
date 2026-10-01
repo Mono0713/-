@@ -1,6 +1,6 @@
 'use client'
 
-import { DndContext, type DragEndEvent } from '@dnd-kit/core'
+import { DndContext, DragOverlay, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { DraftExam, DraftQuestion } from '@exam/core'
 import Link from 'next/link'
@@ -38,7 +38,7 @@ import { Badge, Button, inputClass } from '@/shared/ui'
 import { publishDraft, saveDraft } from './actions'
 import { PageViewer } from './PageViewer'
 import { splitNumber, splitParts } from './parts'
-import { Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
+import { alongList, dropAnimation, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 
 type SaveState = 'saved' | 'dirty' | 'saving'
 
@@ -96,6 +96,9 @@ export function ReviewEditor({
   const keys = useRef<string[]>([])
   if (keys.current.length !== draft.questions.length) keys.current = draft.questions.map((_, i) => keys.current[i] ?? newKey())
   const cardSensors = useDragSensors(true)
+  // The card being dragged: it shrinks to a slot in the list while a compact copy follows the pointer.
+  const [dragKey, setDragKey] = useState<string | null>(null)
+  const dragIndex = dragKey ? keys.current.indexOf(dragKey) : -1
   const outlineSensors = useDragSensors(false)
   const row = useRef<HTMLDivElement>(null)
   const viewer = useRef<HTMLDivElement>(null)
@@ -521,7 +524,19 @@ export function ReviewEditor({
               <div className="m-expand grid gap-3 px-4 pb-4 sm:grid-cols-2">{metaFields(false)}</div>
             </details>
 
-            <DndContext id="review-cards" sensors={cardSensors} collisionDetection={underPointer} onDragEnd={onDragEnd}>
+            <DndContext
+              id="review-cards"
+              sensors={cardSensors}
+              collisionDetection={underPointer}
+              modifiers={[alongList]}
+              measuring={listMeasuring}
+              onDragStart={({ active }) => setDragKey(String(active.id))}
+              onDragCancel={() => setDragKey(null)}
+              onDragEnd={(e) => {
+                setDragKey(null)
+                onDragEnd(e)
+              }}
+            >
               <SortableContext items={visibleKeys} strategy={verticalListSortingStrategy}>
                 {draft.questions.map((q, index) => {
                   if (flaggedOnly && !isFlagged(q)) return null
@@ -547,8 +562,10 @@ export function ReviewEditor({
                             className={`relative scroll-mt-40 rounded-2xl bg-surface p-4 transition-shadow sm:p-5 ${
                               inGroup ? 'ml-4 before:absolute before:-left-3 before:-top-4 before:bottom-4 before:w-0.5 before:rounded-full before:bg-ink/10 sm:ml-7 sm:before:-left-4' : ''
                             } ${
-                              dragging ? 'shadow-[0_24px_48px_-16px_rgb(22_24_43/0.35),0_0_0_1px_rgb(22_24_43/0.08)]' : 'shadow-sheet'
-                            } ${selected === index ? 'ring-2 ring-accent/70' : ''}`}
+                              // While dragged, the card is an empty slot as tall as the copy that follows the pointer,
+                              // so the cards around it only move by that much. It stays mounted: touch drags end on it.
+                              dragging ? 'h-14 overflow-hidden !bg-accent-soft/60 !p-0 outline-2 -outline-offset-2 outline-dashed outline-accent/35 [&>*]:invisible' : 'shadow-sheet'
+                            } ${selected === index && !dragging ? 'ring-2 ring-accent/70' : ''}`}
                           >
                             {isFlagged(q) && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-amber-400" />}
                             {isEditing ? (
@@ -598,6 +615,9 @@ export function ReviewEditor({
                   )
                 })}
               </SortableContext>
+              <DragOverlay dropAnimation={dropAnimation} modifiers={[alongList]}>
+                {dragIndex >= 0 && <DragPreview q={draft.questions[dragIndex]!} />}
+              </DragOverlay>
             </DndContext>
 
             <Button onClick={addQuestion} className="w-full border border-dashed border-ink/15 bg-transparent py-3 shadow-none" icon={<IconPlus size={16} />}>
@@ -631,6 +651,21 @@ const SPLITTER = 20
 const SAVE_LABELS: Record<SaveState, string> = { saved: '草稿已自動儲存', saving: '儲存中…', dirty: '有未儲存的修改' }
 
 /** Short plain-text preview of a question stem for the outline. */
+/** The compact copy of a card that follows the pointer while it is dragged. */
+function DragPreview({ q }: { q: DraftQuestion }) {
+  return (
+    <div
+      data-drag-overlay
+      className="m-scale-in flex h-14 cursor-grabbing items-center gap-3 rounded-2xl bg-surface px-4 shadow-[0_24px_48px_-16px_rgb(22_24_43/0.4),0_0_0_1px_rgb(22_24_43/0.08)]"
+    >
+      <span className="num text-lg leading-none">{q.number}.</span>
+      <Badge>{TYPE_LABELS[q.type]}</Badge>
+      <span className="min-w-0 flex-1 truncate text-sm text-muted">{preview(q.stem)}</span>
+      <IconGrip size={16} className="shrink-0 text-accent" />
+    </div>
+  )
+}
+
 function preview(stem: string) {
   return stem
     .replace(/\$\$?[^$]*\$\$?/g, '…')
@@ -687,7 +722,7 @@ function Outline({
         <p className="mb-2 flex items-center justify-between px-1 text-[11px] font-semibold tracking-[0.12em] text-muted">
           題目 <span className="num tracking-normal">{questions.length}</span>
         </p>
-        <DndContext id="review-outline" sensors={sensors} collisionDetection={underPointer} onDragEnd={onDragEnd}>
+        <DndContext id="review-outline" sensors={sensors} collisionDetection={underPointer} modifiers={[alongList]} measuring={listMeasuring} onDragEnd={onDragEnd}>
           <SortableContext items={visibleKeys} strategy={verticalListSortingStrategy}>
             <ol className="space-y-px">
               {questions.map((q, index) => {
