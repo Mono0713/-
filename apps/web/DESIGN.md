@@ -68,10 +68,22 @@ to an instant change under `prefers-reduced-motion`.
 | Erase on confirm | Things 3 | "沒問題" on a review note | `ConfirmNote`: highlight erased right to left, then the note folds |
 | Pencil-sketch loading | Linear skeletons | page loading | `Sketch` replaces the grey shimmer |
 | Bottom sheet | iOS | phone action menu | `Fab` below `sm`, 520 ms spring |
+| Page turn | Apple Books | next question in a quiz | `.m-turn-out` over `.m-turn-under`, 560 ms; going back `.m-turn-back` |
+| Full-marks stamp | Duolingo, hanko | 100% on quiz results | `.m-stamp`, lands 520 ms after the score, ink ring spreads |
+| Drag tilt | Trello, Linear | dragging a question in review | `DragTilt`: leans with the pointer, at most 4°, eased every frame |
+| Scan | Apple Notes | import being read; boxes when the editor opens | `Scan` (`.m-scan-bar`, loops while loading); `.m-found` boxes one by one, 140 ms apart |
+| Pencil progress | Stripe | import progress | `PencilProgress`: pencil tip on the line's end, blue stroke behind it |
+| Pen checkbox | Things 3, Todoist | quiz setup | `input.m-check`: tick drawn in 320 ms, unticked in 120 ms |
+| Last-minute timer | Duolingo | timed exams, last 60 s | `.m-last-minute`: red pen, beats once a second, colon blinks |
+| Corner curl | iBooks, the logo | exam cards in the bank | `.m-curl` lifts on hover to show `開始練習 →` (always shown on touch) |
+| Punch confetti | Stripe, Linear | 100% on quiz results | `Confetti`: one burst of binder-hole dots in the four ink colors |
+| Pen underline | Linear | every text field (`inputBase`) | `.m-ink`: a ballpoint line drawn left to right on focus, nothing painted at rest |
 
 Timing tokens: `--m-fast` 140 ms (presses), `--m-base` 240 ms, `--m-slow` 460 ms (entrances),
 `--m-spring` for anything that lands. Rules: one moving thing at a time; feedback within
-100 ms of the tap; nothing loops except loading; never animate text color.
+100 ms of the tap; nothing loops except loading and the last-minute clock; never animate text color.
+SVG strokes that draw themselves use `pathLength="1"` with `stroke-dasharray: 1 2` and start at
+`stroke-dashoffset: 1.02`, so the round cap never shows before the stroke starts.
 
 ## Logo: 捲角
 

@@ -82,5 +82,5 @@ export function EmptyState({ title, icon, children }: { title: string; icon?: Re
 }
 
 /** Input look without a width, for inputs sized by their container. */
-export const inputBase = 'rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition-shadow focus:border-accent focus:ring-[3px] focus:ring-accent/15'
+export const inputBase = 'm-ink rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent/45'
 export const inputClass = `${inputBase} w-full`

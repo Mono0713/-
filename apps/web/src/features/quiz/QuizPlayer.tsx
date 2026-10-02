@@ -87,8 +87,11 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
   const secondsLeft = useCountdown(practice ? null : attempt.deadline, finish)
   const [navOpen, setNavOpen] = useState(false)
   const [direction, setDirection] = useState<1 | -1>(1)
+  // the question being turned away, drawn on top of the new one until its page has turned
+  const [turning, setTurning] = useState<number | null>(null)
   const go = (i: number) => {
     setDirection(i >= current ? 1 : -1)
+    setTurning(i > current && !matchMedia('(prefers-reduced-motion: reduce)').matches ? current : null)
     setCurrent(i)
     setNavOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -134,9 +137,9 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
             第 {current + 1} / {total} 題
           </span>
           {secondsLeft !== null && (
-            <span className={`flex items-center gap-1 text-sm font-semibold tabular-nums ${secondsLeft <= 60 ? 'text-bad' : ''}`}>
-              <IconTimer size={15} className={secondsLeft <= 60 ? 'm-pop' : ''} />
-              {clock(secondsLeft)}
+            <span className={`flex items-center gap-1 text-sm font-semibold tabular-nums ${secondsLeft <= 60 ? 'm-last-minute text-pen' : ''}`}>
+              <IconTimer size={15} />
+              <Clock seconds={secondsLeft} />
             </span>
           )}
           <button type="button" onClick={() => setNavOpen(!navOpen)} className="ml-auto rounded-md border border-line bg-surface px-3 py-1 text-sm" aria-expanded={navOpen}>
@@ -157,18 +160,28 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
       </div>
 
       <div className="min-w-0 space-y-4">
-        {/* keyed by question, so each one slides in from the side you're moving toward */}
-        <div key={current} className={direction > 0 ? 'm-slide-next' : 'm-slide-prev'}>
-          <Card className="p-4 sm:p-5">
-            <QuizQuestion
-              item={item}
-              index={current}
-              response={responses[current] ?? null}
-              onChange={isChecked ? undefined : (r) => update(current, r)}
-              reveal={practice && isChecked}
-              celebrate={practice && isChecked}
-            />
-          </Card>
+        {/* Keyed by question. Going forward, the old question turns away like a page over the new
+            one; going back, the earlier page turns back in from the left. */}
+        <div className="relative [perspective:1400px]">
+          <div key={current} className={direction > 0 ? 'm-turn-under' : 'm-turn-back'}>
+            <Card className="p-4 sm:p-5">
+              <QuizQuestion
+                item={item}
+                index={current}
+                response={responses[current] ?? null}
+                onChange={isChecked ? undefined : (r) => update(current, r)}
+                reveal={practice && isChecked}
+                celebrate={practice && isChecked}
+              />
+            </Card>
+          </div>
+          {turning !== null && items[turning] && (
+            <div key={`turn-${turning}`} aria-hidden inert className="m-turn-out absolute inset-x-0 top-0" onAnimationEnd={() => setTurning(null)}>
+              <Card className="p-4 sm:p-5">
+                <QuizQuestion item={items[turning]!} index={turning} response={responses[turning] ?? null} reveal={practice && checked[turning]} />
+              </Card>
+            </div>
+          )}
         </div>
 
         {practice && isChecked && grades[current] && (
@@ -202,9 +215,12 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
 
       <aside className="hidden space-y-3 lg:sticky lg:top-20 lg:block lg:self-start">
         {secondsLeft !== null && (
-          <Card className={`p-3 text-center ${secondsLeft <= 60 ? 'border-bad/40' : ''}`}>
+          <Card className="p-3 text-center">
             <p className="text-xs text-muted">剩餘時間</p>
-            <p className={`text-2xl font-semibold tabular-nums ${secondsLeft <= 60 ? 'text-bad' : ''}`}>{clock(secondsLeft)}</p>
+            {/* the last minute turns red-pen, the colon blinks and the clock beats once a second */}
+            <p className={`num text-3xl ${secondsLeft <= 60 ? 'm-last-minute text-pen' : ''}`}>
+              <Clock seconds={secondsLeft} />
+            </p>
           </Card>
         )}
         <Card className="p-3">
@@ -247,6 +263,12 @@ function useCountdown(deadline: string | null, onEnd: () => void): number | null
   return left === null ? null : Math.max(0, Math.ceil(left / 1000))
 }
 
-function clock(seconds: number): string {
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+function Clock({ seconds }: { seconds: number }) {
+  return (
+    <span className="inline-flex" aria-label={`${Math.floor(seconds / 60)} 分 ${seconds % 60} 秒`}>
+      {Math.floor(seconds / 60)}
+      <span className="m-colon">:</span>
+      {String(seconds % 60).padStart(2, '0')}
+    </span>
+  )
 }
