@@ -8,8 +8,8 @@ import { FigureView } from '@/shared/FigureView'
 import { InkPad } from '@/shared/ink/InkPad'
 import { TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
-import { IconKeyboard, IconPen, IconScratch, IconX } from '@/shared/icons'
-import { DrawnCheck } from '@/shared/motion/DrawnCheck'
+import { IconKeyboard, IconPen, IconScratch } from '@/shared/icons'
+import { PenCircle, PenTick } from '@/shared/motion/PenMarks'
 import { Segmented } from '@/shared/Segmented'
 import { Badge, inputBase, inputClass } from '@/shared/ui'
 
@@ -140,26 +140,21 @@ export function QuizQuestion({
             const correct = reveal && key.includes(label)
             const wrong = reveal && picked && !correct
             const tone = correct ? 'border-good bg-good-soft' : wrong ? 'border-bad bg-bad-soft' : picked ? 'border-accent bg-accent-soft' : 'border-line bg-surface hover:border-accent/50'
-            // feedback plays once when the answer is revealed: the right option pops, a wrong pick shakes
-            const feedback = !celebrate ? '' : correct && picked ? 'm-pop' : wrong ? 'm-shake' : ''
+            // feedback plays once when the answer is revealed: a wrong pick is circled in red pen and
+            // nudged, then the right option gets its tick
+            const feedback = !celebrate ? '' : correct && picked ? 'm-pop' : wrong ? 'm-nudge' : ''
             return (
               <li key={label}>
-                <button type="button" disabled={locked} onClick={() => toggle(label)} className={`m-press flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left text-sm ${tone} ${feedback}`}>
+                <button type="button" disabled={locked} onClick={() => toggle(label)} className={`m-press relative flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left text-sm ${tone} ${feedback}`}>
                   <span className={`num shrink-0 font-semibold leading-relaxed ${picked ? 'text-accent' : 'text-muted'}`}>({item.displayLabels[i]})</span>
                   <Markdown className="min-w-0 flex-1">{option?.content ?? ''}</Markdown>
                   {/* Marks sit one line high, centred on the option's first line. */}
                   {correct && (
                     <span className="flex h-[1.625em] shrink-0 items-center">
-                      <DrawnCheck size={20} />
+                      <PenTick size={20} late={values.some((v) => !key.includes(v))} />
                     </span>
                   )}
-                  {wrong && (
-                    <span className="flex h-[1.625em] shrink-0 items-center">
-                      <span className="m-scale-in grid h-5 w-5 place-items-center rounded-full bg-bad text-on-accent">
-                        <IconX size={13} strokeWidth={3} />
-                      </span>
-                    </span>
-                  )}
+                  {wrong && <PenCircle />}
                 </button>
               </li>
             )

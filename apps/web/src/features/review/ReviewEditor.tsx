@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
 import { QuestionView } from '@/features/questions/QuestionView'
+import { Glide } from '@/shared/motion/Glide'
 import { Fab, type FabAction } from '@/shared/chrome/Fab'
 import { FigureView } from '@/shared/FigureView'
 import { Menu, menuItem } from '@/shared/chrome/Menu'
@@ -724,6 +725,7 @@ function Outline({
         </p>
         <DndContext id="review-outline" sensors={sensors} collisionDetection={underPointer} modifiers={[alongList]} measuring={listMeasuring} onDragEnd={onDragEnd}>
           <SortableContext items={visibleKeys} strategy={verticalListSortingStrategy}>
+            <Glide>
             <ol className="space-y-px">
               {questions.map((q, index) => {
                 if (flaggedOnly && !isFlagged(q)) return null
@@ -739,8 +741,9 @@ function Outline({
                           {...handle}
                           onClick={() => onSelect(index)}
                           title="點一下跳到這題，拖曳可以排序"
-                          className={`flex w-full touch-manipulation items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13px] ${
-                            dragging ? 'bg-surface text-ink shadow-[0_12px_28px_-10px_rgb(22_24_43/0.35),0_0_0_1px_rgb(22_24_43/0.08)]' : on ? 'bg-surface text-ink shadow-sheet' : 'text-muted hover:bg-ink/[0.04] hover:text-ink'
+                          data-glide
+                          className={`relative flex w-full touch-manipulation items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13px] ${
+                            dragging ? 'bg-surface text-ink shadow-[0_12px_28px_-10px_rgb(22_24_43/0.35),0_0_0_1px_rgb(22_24_43/0.08)]' : on ? 'bg-surface text-ink shadow-sheet' : 'text-muted hover:text-ink'
                           }`}
                         >
                           <span className={`num w-6 shrink-0 text-right text-[12px] ${on ? 'text-accent' : ''}`}>{q.number}</span>
@@ -757,6 +760,7 @@ function Outline({
                 )
               })}
             </ol>
+            </Glide>
           </SortableContext>
         </DndContext>
         <button type="button" onClick={onAdd} className="m-press mt-2 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-muted hover:bg-ink/[0.04] hover:text-accent">

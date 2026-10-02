@@ -17,7 +17,9 @@ the tokens only, never literal colors, so light and dark mode come from the toke
 | `accent` | `#2f4bff` | `#7d93ff` | ballpoint blue: the one accent, primary buttons, focus, links |
 | `accent-soft` | `#eef1ff` | `#1c2650` | selected and hovered backgrounds |
 | `on-accent` | `#ffffff` | `#0f1528` | text and icons on `accent`, `bad` |
-| `hl` | `#f4ff5c` | `#d7f04a` | highlighter: answers, "needs review" marks |
+| `hl` | `#f4ff5c` | `#d7f04a` | highlighter as a solid color: "needs review" dots and badges |
+| `hl-mark` | `#f4ff5c` | `#d7f04a` at 30% | highlighter stroke behind text (see-through in dark, so text never changes color) |
+| `accent-deep` | `#1d33c9` | `#4c62d6` | the pressed-down edge of primary buttons |
 | `pen` | `#d63a2f` | `#ff8b7e` | the teacher's red pen: AI comments |
 | `night` | `#141b33` | `#0a0f1f` | the navy sidebar, toasts, floating controls |
 | `night-accent` | `#8fa2ff` | `#8fa2ff` | accent on `night` |
@@ -48,6 +50,28 @@ All fonts are served by the app itself (SIL Open Font License).
   teacher" (AI grading feedback). Never for buttons, labels or running UI text.
 - Graph paper only on the page background. Cards stay plain white (navy in dark mode).
   Too much grid or handwriting makes it look like children's material.
+
+## Motion
+
+Rhythms borrowed from other products, drawn with study-desk tools. All of it lives in
+`src/shared/motion` (CSS classes in `motion.css`, small components next to it) and collapses
+to an instant change under `prefers-reduced-motion`.
+
+| What | Borrowed from | Where | How |
+| --- | --- | --- | --- |
+| Highlighter sweep | Apple Notes | revealed answers | `.hl.m-sweep` / `.hl-md.m-sweep`, 520 ms ease-out |
+| Red-pen circle, pen tick | Duolingo | wrong / right option | `PenCircle`, `PenTick` (draw 560 ms; the tick waits for the circle) |
+| Pressable buttons | Duolingo | primary and secondary `Button` | `.m-push` / `.m-push-quiet`: a solid bottom edge that collapses while held |
+| Rolling digits | Stripe | quiz results | `Odometer`, 900 ms spring, 80 ms per column |
+| Gliding hover | Linear, Vercel | review outline | `Glide` + `data-glide` rows, 260 ms |
+| Sticky-note toast | Raycast, Arc | "已儲存" | `.m-sticky[data-show]`, spring on, ease-in off |
+| Erase on confirm | Things 3 | "沒問題" on a review note | `ConfirmNote`: highlight erased right to left, then the note folds |
+| Pencil-sketch loading | Linear skeletons | page loading | `Sketch` replaces the grey shimmer |
+| Bottom sheet | iOS | phone action menu | `Fab` below `sm`, 520 ms spring |
+
+Timing tokens: `--m-fast` 140 ms (presses), `--m-base` 240 ms, `--m-slow` 460 ms (entrances),
+`--m-spring` for anything that lands. Rules: one moving thing at a time; feedback within
+100 ms of the tap; nothing loops except loading; never animate text color.
 
 ## Logo: 捲角
 
