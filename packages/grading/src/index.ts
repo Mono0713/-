@@ -1,4 +1,4 @@
-export { cacheKey, SqliteGradingCache, type GradingCache } from './cache.ts'
+export { cacheKey, PostgresGradingCache, SqliteGradingCache, type GradingCache } from './cache.ts'
 export { markOpenAnswers, type MarkResult } from './mark.ts'
 export { createTextModel, registerTextModel, type TextModel } from './model.ts'
 export { AiTeacher } from './teacher.ts'

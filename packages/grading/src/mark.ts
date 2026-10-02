@@ -21,29 +21,29 @@ export async function markOpenAnswers(
   const markings = [...attempt.markings]
   const todo: { index: number; task: GradingTask; key: string }[] = []
   let cached = 0
-  attempt.items.forEach((item, index) => {
+  for (const [index, item] of attempt.items.entries()) {
     const response = attempt.responses[index] ?? null
-    if (opts.only && !opts.only.includes(index)) return
-    if (!response || !needsTeacher(item, response, markings[index] ?? null)) return
+    if (opts.only && !opts.only.includes(index)) continue
+    if (!response || !needsTeacher(item, response, markings[index] ?? null)) continue
     const task = { item, response }
     const key = cacheKey(task, opts.language)
-    const hit = opts.cache.get(key)
+    const hit = await opts.cache.get(key)
     if (hit) {
       markings[index] = hit
       cached++
     } else todo.push({ index, task, key })
-  })
+  }
   if (todo.length) {
     const results = await opts.grader.markAll(
       todo.map((t) => t.task),
       opts.language,
     )
-    todo.forEach((t, i) => {
+    for (const [i, t] of todo.entries()) {
       const marking = results[i]
-      if (!marking) return
+      if (!marking) continue
       markings[t.index] = marking
-      opts.cache.set(t.key, marking)
-    })
+      await opts.cache.set(t.key, marking)
+    }
   }
   return { markings, asked: todo.length, cached }
 }

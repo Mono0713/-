@@ -11,7 +11,8 @@
     "extract": "pnpm --filter @exam/cli start",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:migrate": "tsx packages/db/src/cli.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

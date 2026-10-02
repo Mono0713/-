@@ -1,4 +1,6 @@
+import { Suspense } from 'react'
 import { Logo } from '@/shared/brand/Logo'
+import { Account } from './Account'
 import { NavLinks } from './NavLinks'
 
 /** Top bar on phones and tablets; wide screens use the sidebar instead. */
@@ -8,6 +10,9 @@ export function Header() {
       <div className="flex h-14 items-center gap-3 px-4 sm:gap-8 sm:px-6">
         <Logo />
         <NavLinks />
+        <Suspense>
+          <Account tone="header" />
+        </Suspense>
       </div>
     </header>
   )

@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 import type { DraftQuestion } from '@exam/core'
-import { answerKind, buildItems, displayLabel, grade, gradeItem, isOver, matches, SqliteQuizStore, summarize, toQuizLabels, type QuizSettings } from '../src/index.ts'
+import { answerKind, buildItems, displayLabel, grade, gradeItem, isOver, matches, PostgresQuizStore, SqliteQuizStore, summarize, toQuizLabels, type QuizSettings, type QuizStore } from '../src/index.ts'
+import { testDatabase } from '@exam/db'
 
 function q(overrides: Partial<DraftQuestion> = {}): DraftQuestion {
   return {
@@ -143,18 +144,39 @@ describe('summarize and isOver', () => {
   })
 })
 
-describe('SqliteQuizStore', () => {
-  it('keeps attempts per owner', () => {
-    const store = new SqliteQuizStore(':memory:')
-    const attempt = store.create({
+const pg = await testDatabase()
+afterAll(() => pg?.drop())
+
+const stores: [string, () => QuizStore][] = [['SqliteQuizStore', () => new SqliteQuizStore(':memory:')]]
+if (pg) stores.push(['PostgresQuizStore', () => new PostgresQuizStore(pg.sql)])
+
+describe.each(stores)('%s', (_name, open) => {
+  it('keeps attempts per owner', async () => {
+    const store = open()
+    const attempt = await store.create({
       ownerId: 'local', title: '期中考', examIds: ['e1'], settings, items: [], responses: [], markings: [], checked: [],
       startedAt: new Date().toISOString(), deadline: null, finishedAt: null,
     })
-    store.save({ ...attempt, finishedAt: new Date().toISOString() })
-    expect(store.get(attempt.id)?.finishedAt).not.toBeNull()
-    expect(store.list('local')).toHaveLength(1)
-    expect(store.list('someone-else')).toHaveLength(0)
-    store.delete(attempt.id)
-    expect(store.get(attempt.id)).toBeNull()
+    await store.save({ ...attempt, finishedAt: new Date().toISOString() })
+    expect((await store.get(attempt.id))?.finishedAt).not.toBeNull()
+    expect(await store.list('local')).toHaveLength(1)
+    expect(await store.list('someone-else')).toHaveLength(0)
+    await store.delete(attempt.id)
+    expect(await store.get(attempt.id)).toBeNull()
+    expect(await store.get('not-an-id')).toBeNull()
+  })
+
+  it('applies updates made at the same moment one after the other', async () => {
+    const store = open()
+    const attempt = await store.create({
+      ownerId: 'local', title: 't', examIds: [], settings, items: [], responses: [null, null, null], markings: [], checked: [],
+      startedAt: new Date().toISOString(), deadline: null, finishedAt: null,
+    })
+    await Promise.all(
+      [0, 1, 2].map((i) => store.update(attempt.id, (a) => ({ ...a, responses: a.responses.map((r, j) => (j === i ? { values: [String(i)] } : r)) }))),
+    )
+    expect((await store.get(attempt.id))!.responses).toEqual([{ values: ['0'] }, { values: ['1'] }, { values: ['2'] }])
+    expect(await store.update(attempt.id, () => null)).toMatchObject({ id: attempt.id })
+    expect(await store.update('missing', (a) => a)).toBeNull()
   })
 })

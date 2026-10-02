@@ -2,10 +2,10 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSy
 import { dirname } from 'node:path'
 import { defaultSettings, Settings } from './settings.ts'
 
-/** Where settings live. Swap in a database-backed store when there are real accounts. */
+/** Where settings live: a local JSON file, or Postgres (PostgresSettingsStore) when hosted. */
 export interface SettingsStore {
-  get(ownerId: string): Settings
-  update(ownerId: string, patch: Partial<Settings>): Settings
+  get(ownerId: string): Promise<Settings>
+  update(ownerId: string, patch: Partial<Settings>): Promise<Settings>
 }
 
 /**
@@ -15,15 +15,15 @@ export interface SettingsStore {
 export class FileSettingsStore implements SettingsStore {
   constructor(private readonly file: string) {}
 
-  get(ownerId: string): Settings {
+  async get(ownerId: string): Promise<Settings> {
     const saved = this.readAll()[ownerId]
     const parsed = Settings.safeParse(saved ?? {})
     return parsed.success ? parsed.data : defaultSettings()
   }
 
-  update(ownerId: string, patch: Partial<Settings>): Settings {
+  async update(ownerId: string, patch: Partial<Settings>): Promise<Settings> {
     const all = this.readAll()
-    const next = Settings.parse({ ...this.get(ownerId), ...patch })
+    const next = Settings.parse({ ...(await this.get(ownerId)), ...patch })
     all[ownerId] = next
     mkdirSync(dirname(this.file), { recursive: true })
     const tmp = `${this.file}.tmp`

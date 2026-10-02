@@ -1,4 +1,5 @@
 export * from './logic.ts'
 export { sameMath } from './equivalence.ts'
 export { SqliteQuizStore, type QuizStore } from './sqlite.ts'
+export { PostgresQuizStore } from './postgres.ts'
 export type * from './types.ts'

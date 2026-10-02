@@ -28,6 +28,7 @@ export function SettingsForm({
   providers,
   keys,
   aiGrading,
+  keysInDatabase,
 }: {
   locales: { id: string; label: string }[]
   locale: string
@@ -36,6 +37,8 @@ export function SettingsForm({
   keys: Record<string, KeyInfo>
   /** The saved choice, and what it resolves to now (null: AI marking cannot run). */
   aiGrading: { enabled: boolean; provider: string | null; model: string | null; active: { provider: string; model: string } | null }
+  /** Keys are kept encrypted in the hosted database rather than in the local data folder. */
+  keysInDatabase: boolean
 }) {
   const [saved, flash] = useFlash()
   const [, start] = useTransition()
@@ -79,7 +82,10 @@ export function SettingsForm({
         <TeacherSettings providers={apis} initial={aiGrading} onSaved={flash} />
       </Section>
 
-      <Section title="模型與 API 金鑰" note="金鑰只存在這台電腦的資料夾裡（data/settings.json），網頁上不會再顯示完整金鑰，也只會送到該家 AI 服務。">
+      <Section
+        title="模型與 API 金鑰"
+        note={`${keysInDatabase ? '金鑰加密後存在你的帳號裡，只有你能用' : '金鑰只存在這台電腦的資料夾裡（data/settings.json）'}，網頁上不會再顯示完整金鑰，也只會送到該家 AI 服務。`}
+      >
         {apis.map((p) => (
           <ProviderRow key={p.id} provider={p} info={keys[p.id]!} onSaved={flash} />
         ))}

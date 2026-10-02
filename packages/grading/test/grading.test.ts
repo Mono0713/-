@@ -1,7 +1,8 @@
 import type { DraftQuestion } from '@exam/core'
 import { buildItems } from '@exam/quiz'
-import { describe, expect, it } from 'vitest'
-import { AiTeacher, markOpenAnswers, SqliteGradingCache, type TextModel } from '../src/index.ts'
+import { afterAll, describe, expect, it } from 'vitest'
+import { testDatabase } from '@exam/db'
+import { AiTeacher, markOpenAnswers, PostgresGradingCache, SqliteGradingCache, type TextModel } from '../src/index.ts'
 
 function q(overrides: Partial<DraftQuestion>): DraftQuestion {
   return {
@@ -32,10 +33,14 @@ function attempt(questions: DraftQuestion[], answers: string[][]) {
   return { items, responses: answers.map((values) => ({ values })), markings: items.map(() => null) }
 }
 
+// The first test runs on the Postgres cache when TEST_DATABASE_URL is set.
+const pg = await testDatabase()
+afterAll(() => pg?.drop())
+
 describe('markOpenAnswers', () => {
   it('asks only about unsettled answers, in one request, and remembers the marks', async () => {
     const { model, prompts } = fakeModel((p) => JSON.stringify({ results: allItems(p).map((item) => ({ item, credit: 1, feedback: '' })) }))
-    const cache = new SqliteGradingCache(':memory:')
+    const cache = pg ? new PostgresGradingCache(pg.sql) : new SqliteGradingCache(':memory:')
     const grader = new AiTeacher(model)
     const a = attempt(
       [q({}), q({ type: 'fill_in_blank', answer: { values: ['\\frac{1}{2}'], source: 'printed' } }), q({ type: 'fill_in_blank', answer: { values: ['3'], source: 'printed' } }), q({ answer: { values: [], source: 'none' } })],

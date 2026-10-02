@@ -16,6 +16,7 @@
     "@exam/core": "workspace:*",
     "@exam/extraction": "workspace:*",
     "@exam/figures": "workspace:*",
+    "@exam/files": "workspace:*",
     "@exam/ingest": "workspace:*"
   },
   "devDependencies": {

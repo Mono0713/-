@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ExamMetaForm } from '@/features/bank/ExamMetaForm'
 import { QuestionView } from '@/features/questions/QuestionView'
-import { currentOwner, services } from '@/server/context'
+import { services } from '@/server/context'
+import { ownedExam } from '@/server/owned'
 import { Markdown } from '@/shared/Markdown'
 import { FigureView } from '@/shared/FigureView'
 import { ButtonLink, PageHeader } from '@/shared/ui'
@@ -11,10 +12,9 @@ export const dynamic = 'force-dynamic'
 
 export default async function ExamPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { bank } = services()
-  const exam = bank.getExam(id)
-  if (!exam || exam.ownerId !== currentOwner()) notFound()
-  const { items: questions } = bank.listQuestions({ ownerId: exam.ownerId, examId: id, limit: 1000 })
+  const exam = await ownedExam(id)
+  if (!exam) notFound()
+  const { items: questions } = await services().bank.listQuestions({ ownerId: exam.ownerId, examId: id, limit: 1000 })
   const groups = new Map(exam.groups.map((g) => [g.id, g]))
   const points = questions.reduce((sum, q) => sum + (q.points ?? 0), 0)
 

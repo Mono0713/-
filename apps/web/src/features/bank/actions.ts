@@ -3,43 +3,44 @@
 import type { DraftQuestion, ExamMeta } from '@exam/core'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { currentOwner, services } from '@/server/context'
+import { services } from '@/server/context'
+import { ownedExam, ownedQuestion } from '@/server/owned'
 
-function ownedQuestion(id: string) {
-  const q = services().bank.getQuestion(id)
-  if (!q || q.ownerId !== currentOwner()) throw new Error('Question not found')
+async function requireQuestion(id: string) {
+  const q = await ownedQuestion(id)
+  if (!q) throw new Error('Question not found')
   return q
 }
 
-function ownedExam(id: string) {
-  const exam = services().bank.getExam(id)
-  if (!exam || exam.ownerId !== currentOwner()) throw new Error('Exam not found')
+async function requireExam(id: string) {
+  const exam = await ownedExam(id)
+  if (!exam) throw new Error('Exam not found')
   return exam
 }
 
 export async function updateBankQuestion(id: string, question: DraftQuestion) {
-  const q = ownedQuestion(id)
-  services().bank.updateQuestion(id, question)
+  const q = await requireQuestion(id)
+  await services().bank.updateQuestion(id, question)
   revalidatePath(`/bank/exams/${q.examId}`)
 }
 
 export async function deleteBankQuestion(id: string) {
-  const q = ownedQuestion(id)
-  services().bank.deleteQuestion(id)
+  const q = await requireQuestion(id)
+  await services().bank.deleteQuestion(id)
   revalidatePath('/bank')
   redirect(`/bank/exams/${q.examId}`)
 }
 
 export async function updateExamMeta(id: string, meta: Partial<ExamMeta>) {
-  ownedExam(id)
-  services().bank.updateExam(id, meta)
+  await requireExam(id)
+  await services().bank.updateExam(id, meta)
   revalidatePath('/bank')
   revalidatePath(`/bank/exams/${id}`)
 }
 
 export async function deleteExam(id: string) {
-  ownedExam(id)
-  services().bank.deleteExam(id)
+  await requireExam(id)
+  await services().bank.deleteExam(id)
   revalidatePath('/bank')
   redirect('/bank')
 }

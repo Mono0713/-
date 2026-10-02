@@ -1,9 +1,8 @@
-import { existsSync } from 'node:fs'
-import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { basename, extname, join } from 'node:path'
+import { extname } from 'node:path'
 import type { Bank, ImportRecord } from '@exam/bank'
 import type { DraftExam, DraftFigure, IngestedDocument, PageImage } from '@exam/core'
-import { createProvider, extractDocument, ManualProvider, mergePages, type PageResult, type ProviderConfig } from '@exam/extraction'
+import { createProvider, extractDocument, ManualProvider, mergePages, type PageResult, type ProviderConfig, type TextFiles } from '@exam/extraction'
+import type { FileStore } from '@exam/files'
 import { cleanFigure, cropExamFigures } from '@exam/figures'
 import { ingestBuffer } from '@exam/ingest'
 
@@ -14,16 +13,21 @@ export interface UploadFile {
 
 export interface ImporterOptions {
   bank: Bank
-  /** Folder for uploaded files, page images, figures and manual-mode prompts. */
-  dataDir: string
+  /** Where uploaded files, page images, figures and manual-mode prompts are kept. */
+  files: FileStore
+  /**
+   * Start of every file key of an owner's imports, e.g. "u/<owner>/" when several people
+   * share a store, so a file link can be checked against the person asking. Default "".
+   */
+  keyPrefix?: (ownerId: string) => string
   /** Longest edge of page images. Default 2000. */
   maxEdge?: number
   /** Pages in flight per import. Default 2. */
   concurrency?: number
   /** Extra provider settings of the uploader, e.g. API keys and default models from a settings page. */
-  providerConfig?: (providerId: string, ownerId: string) => ProviderConfig
+  providerConfig?: (providerId: string, ownerId: string) => ProviderConfig | Promise<ProviderConfig>
   /** Interface language of the uploader (e.g. "en", "zh-Hant"); the model writes review notes in it. */
-  reviewLanguage?: (ownerId: string) => string
+  reviewLanguage?: (ownerId: string) => string | Promise<string>
 }
 
 export interface ManualState {
@@ -38,7 +42,7 @@ const WAITING = 'waiting for a reply'
 /**
  * Runs an uploaded exam through ingest, extraction and figure cropping, and keeps
  * its state in the bank. Knows nothing about the web: any front end calls these methods.
- * Paths it returns (page images, figures) are relative to dataDir.
+ * Images it returns (page images, figures) are file store keys.
  */
 export class Importer {
   private readonly running = new Map<string, Promise<void>>()
@@ -49,27 +53,30 @@ export class Importer {
     return this.opts.bank
   }
 
+  get files(): FileStore {
+    return this.opts.files
+  }
+
   /** Stores the upload, renders its pages and starts extraction in the background. */
   async create(input: { ownerId: string; files: UploadFile[]; provider: string; model?: string | null }): Promise<ImportRecord> {
     if (!input.files.length) throw new Error('No file uploaded')
     const doc = await this.ingest(input.files)
     const fileName = input.files.length === 1 ? input.files[0]!.name : `${input.files[0]!.name} 等 ${input.files.length} 個檔案`
-    const record = this.bank.createImport({ ownerId: input.ownerId, fileName, pageCount: doc.pages.length, provider: input.provider, model: input.model || null })
-    const dir = this.dir(record.id)
-    await mkdir(join(dir, 'sources'), { recursive: true })
-    await mkdir(join(dir, 'pages'), { recursive: true })
-    for (const [i, f] of input.files.entries()) await writeFile(join(dir, 'sources', `${i + 1}${extname(f.name).toLowerCase()}`), f.data)
-    await writeFile(join(dir, 'sources', 'names.json'), JSON.stringify(input.files.map((f) => f.name)))
-    for (const page of doc.pages) await writeFile(join(dir, 'pages', `page-${page.pageNumber}.png`), page.data)
-    this.start(record.id)
+    const record = await this.bank.createImport({ ownerId: input.ownerId, fileName, pageCount: doc.pages.length, provider: input.provider, model: input.model || null })
+    const base = this.base(record)
+    for (const [i, f] of input.files.entries()) await this.files.write(`${base}/sources/${i + 1}${sourceExt(f.name)}`, f.data)
+    await this.files.write(`${base}/sources/names.json`, JSON.stringify(input.files.map((f) => f.name)))
+    for (const page of doc.pages) await this.files.write(this.pageImage(record, page.pageNumber), page.data)
+    await this.start(record.id)
     return record
   }
 
   /** Runs extraction for the given pages (all when omitted) unless a run is already going. */
-  start(id: string, pages?: number[]): void {
+  async start(id: string, pages?: number[]): Promise<void> {
     if (this.running.has(id)) return
+    const imp = await this.require(id)
     // Mark it right away so a page rendered before rendering finishes already shows progress.
-    this.bank.updateImport(id, { status: 'processing', error: null, progress: { done: 0, total: pages?.length || this.require(id).pageCount } })
+    await this.bank.updateImport(id, { status: 'processing', error: null, progress: { done: 0, total: pages?.length || imp.pageCount } })
     const run = this.run(id, pages)
       .catch((err) => this.bank.updateImport(id, { status: 'failed', error: err instanceof Error ? err.message : String(err) }))
       .finally(() => this.running.delete(id))
@@ -82,13 +89,14 @@ export class Importer {
   }
 
   /** Switches model and re-reads the given pages (all when omitted). */
-  rerun(id: string, opts: { provider?: string; model?: string | null; pages?: number[] } = {}): void {
-    if (opts.provider) this.bank.updateImport(id, { provider: opts.provider, model: opts.model ?? null })
-    this.start(id, opts.pages)
+  async rerun(id: string, opts: { provider?: string; model?: string | null; pages?: number[] } = {}): Promise<void> {
+    if (opts.provider) await this.bank.updateImport(id, { provider: opts.provider, model: opts.model ?? null })
+    await this.start(id, opts.pages)
   }
 
-  pageImage(id: string, pageNumber: number): string {
-    return `imports/${id}/pages/page-${pageNumber}.png`
+  /** File key of a rendered page. */
+  pageImage(imp: Pick<ImportRecord, 'id' | 'ownerId'>, pageNumber: number): string {
+    return `${this.base(imp)}/pages/page-${pageNumber}.png`
   }
 
   /**
@@ -97,110 +105,106 @@ export class Importer {
    * one; the old file stays because saved questions may still use it.
    */
   async recropFigure(id: string, figure: DraftFigure): Promise<DraftFigure> {
-    this.require(id)
-    const page = await readFile(join(this.opts.dataDir, this.pageImage(id, figure.pageNumber)))
+    const imp = await this.require(id)
+    const page = await this.files.read(this.pageImage(imp, figure.pageNumber))
+    if (!page) throw new Error(`Page ${figure.pageNumber} of import ${id} is missing`)
     const clean = await cleanFigure(page, figure)
-    const base = figure.image ? basename(figure.image.file, '.png').replace(/-r\d+$/, '') : 'figure'
+    const previous = figure.image?.file.split('/').pop()?.replace(/\.png$/, '')
+    const base = previous ? previous.replace(/-r\d+$/, '') : 'figure'
     const name = `${base.replace(/[^\w-]+/g, '-')}-r${Date.now()}`
-    await mkdir(join(this.dir(id), 'figures'), { recursive: true })
-    await writeFile(join(this.dir(id), 'figures', `${name}.png`), clean.png)
-    return { ...figure, image: { file: `imports/${id}/figures/${name}.png`, width: clean.width, height: clean.height, blanks: clean.blanks } }
+    const key = `${this.base(imp)}/figures/${name}.png`
+    await this.files.write(key, clean.png)
+    return { ...figure, image: { file: key, width: clean.width, height: clean.height, blanks: clean.blanks } }
   }
 
   /** Prompts to paste into a chat app for pages still waiting in manual mode. */
   async manualState(id: string): Promise<ManualState> {
-    const imp = this.require(id)
-    const manual = this.manualProvider(id)
+    const imp = await this.require(id)
+    const manual = this.manualProvider(imp)
     const results = await this.pageResults(id)
     const pages = await Promise.all(
       Array.from({ length: imp.pageCount }, async (_, i) => {
         const n = i + 1
         const result = results.find((r) => r.pageNumber === n)
-        const promptPath = manual.promptPath(n)
         return {
           pageNumber: n,
-          image: this.pageImage(id, n),
-          prompt: existsSync(promptPath) ? await readFile(promptPath, 'utf8') : null,
+          image: this.pageImage(imp, n),
+          prompt: await manual.readPrompt(n),
           done: Boolean(result?.page),
           error: result?.error && !result.error.startsWith(WAITING) ? result.error : null,
         }
       }),
     )
     const waiting = pages.filter((p) => !p.done && p.prompt).map((p) => p.pageNumber)
-    const batch = waiting.length > 1 && existsSync(manual.batchPromptPath) ? { pages: waiting, prompt: await readFile(manual.batchPromptPath, 'utf8') } : null
-    return { pages, batch }
+    const batchPrompt = waiting.length > 1 ? await manual.readBatchPrompt() : null
+    return { pages, batch: batchPrompt ? { pages: waiting, prompt: batchPrompt } : null }
   }
 
   /** Saves a reply pasted from a chat app (for one page, or "batch" for all waiting pages) and re-runs those pages. */
   async submitManualReply(id: string, target: number | 'batch', text: string): Promise<void> {
-    const manual = this.manualProvider(id)
-    await mkdir(join(this.dir(id), 'manual'), { recursive: true })
-    await writeFile(target === 'batch' ? manual.batchReplyPath : manual.replyPath(target), text)
+    const imp = await this.require(id)
+    await this.manualProvider(imp).writeReply(target, text)
     const results = await this.pageResults(id)
     const pending = results.filter((r) => !r.page).map((r) => r.pageNumber)
-    this.start(id, target === 'batch' ? pending : [target])
+    await this.start(id, target === 'batch' ? pending : [target])
   }
 
-  saveDraft(id: string, draft: DraftExam): void {
-    this.require(id)
-    this.bank.saveDraft(id, draft)
+  async saveDraft(id: string, draft: DraftExam): Promise<void> {
+    await this.require(id)
+    await this.bank.saveDraft(id, draft)
   }
 
   /** Puts the reviewed draft into the bank as an exam; publishing again updates that exam. */
-  publish(id: string, draft: DraftExam) {
-    this.bank.saveDraft(id, draft)
+  async publish(id: string, draft: DraftExam) {
+    await this.bank.saveDraft(id, draft)
     return this.bank.saveExam(id, draft)
   }
 
   /** Deletes the import and its files. Questions already in the bank stay, and so do the figure images they show. */
   async remove(id: string): Promise<void> {
     await this.settled(id)
-    const imp = this.require(id)
-    const inBank = this.bank.examForImport(imp.id) !== null
-    this.bank.deleteImport(id)
-    if (!inBank) {
-      await rm(this.dir(id), { recursive: true, force: true })
-      return
-    }
-    for (const entry of await readdir(this.dir(id))) {
-      if (entry !== 'figures') await rm(join(this.dir(id), entry), { recursive: true, force: true })
-    }
+    const imp = await this.require(id)
+    const inBank = (await this.bank.examForImport(imp.id)) !== null
+    await this.bank.deleteImport(id)
+    const base = this.base(imp)
+    const keys = await this.files.list(`${base}/`)
+    await this.files.remove(inBank ? keys.filter((k) => !k.startsWith(`${base}/figures/`)) : keys)
   }
 
   private async run(id: string, pages?: number[]): Promise<void> {
-    const imp = this.require(id)
-    const doc = await this.load(id)
+    const imp = await this.require(id)
+    const doc = await this.load(imp)
     const selected = pages?.length ? pages : doc.pages.map((p) => p.pageNumber)
     let done = 0
-    this.bank.updateImport(id, { status: 'processing', error: null, progress: { done, total: selected.length } })
+    await this.bank.updateImport(id, { status: 'processing', error: null, progress: { done, total: selected.length } })
 
-    const config = this.opts.providerConfig?.(imp.provider, imp.ownerId)
-    const provider = createProvider(imp.provider, { ...config, model: imp.model ?? config?.model, workDir: join(this.dir(id), 'manual') })
+    const config = await this.opts.providerConfig?.(imp.provider, imp.ownerId)
+    const provider = createProvider(imp.provider, { ...config, model: imp.model ?? config?.model, files: this.manualFiles(imp) })
     const fresh = await extractDocument(provider, doc, {
       concurrency: this.opts.concurrency ?? 2,
       pages: selected,
-      reviewLanguage: this.opts.reviewLanguage?.(imp.ownerId),
-      onPage: () => this.bank.updateImport(id, { progress: { done: ++done, total: selected.length } }),
+      reviewLanguage: await this.opts.reviewLanguage?.(imp.ownerId),
+      onPage: () => void this.bank.updateImport(id, { progress: { done: ++done, total: selected.length } }).catch(() => {}),
     })
-    const results = await this.saveResults(id, fresh)
+    const results = await this.saveResults(imp, fresh)
 
     if (results.some((r) => r.error?.startsWith(WAITING))) {
       if (provider instanceof ManualProvider) await provider.writeBatchPrompt()
-      this.bank.updateImport(id, { status: 'waiting' })
+      await this.bank.updateImport(id, { status: 'waiting' })
       return
     }
     if (!results.some((r) => r.page)) {
-      this.bank.updateImport(id, { status: 'failed', error: results.find((r) => r.error)?.error ?? 'No page could be read' })
+      await this.bank.updateImport(id, { status: 'failed', error: results.find((r) => r.error)?.error ?? 'No page could be read' })
       return
     }
     const exam = mergePages(imp.fileName, results)
-    await mkdir(join(this.dir(id), 'figures'), { recursive: true })
     await cropExamFigures(exam, doc.pages, async (name, png) => {
-      await writeFile(join(this.dir(id), 'figures', `${name}.png`), png)
-      return `imports/${id}/figures/${name}.png`
+      const key = `${this.base(imp)}/figures/${name}.png`
+      await this.files.write(key, png)
+      return key
     })
-    this.bank.saveDraft(id, exam)
-    this.bank.updateImport(id, { status: 'review' })
+    await this.bank.saveDraft(id, exam)
+    await this.bank.updateImport(id, { status: 'review' })
   }
 
   private async ingest(files: UploadFile[]): Promise<IngestedDocument> {
@@ -213,15 +217,17 @@ export class Importer {
   }
 
   /** Re-renders the stored upload; rendering is deterministic, so page images match the first run. */
-  private async load(id: string): Promise<IngestedDocument> {
-    const dir = join(this.dir(id), 'sources')
-    const names = JSON.parse(await readFile(join(dir, 'names.json'), 'utf8')) as string[]
-    const stored = (await readdir(dir)).filter((f) => f !== 'names.json')
+  private async load(imp: ImportRecord): Promise<IngestedDocument> {
+    const dir = `${this.base(imp)}/sources`
+    const names = JSON.parse((await this.files.read(`${dir}/names.json`))?.toString('utf8') ?? 'null') as string[] | null
+    if (!names) throw new Error('The uploaded files are missing')
+    const stored = await this.files.list(`${dir}/`)
     const files = await Promise.all(
       names.map(async (name, i) => {
-        const file = stored.find((f) => f.startsWith(`${i + 1}.`))
-        if (!file) throw new Error(`Uploaded file ${name} is missing`)
-        return { name, data: await readFile(join(dir, file)) }
+        const key = stored.find((k) => k.slice(dir.length + 1).startsWith(`${i + 1}.`))
+        const data = key ? await this.files.read(key) : null
+        if (!data) throw new Error(`Uploaded file ${name} is missing`)
+        return { name, data }
       }),
     )
     return this.ingest(files)
@@ -229,31 +235,47 @@ export class Importer {
 
   /** Latest result of every page that has been sent to a model. */
   async pageResults(id: string): Promise<PageResult[]> {
-    const path = join(this.dir(id), 'results.json')
-    return existsSync(path) ? (JSON.parse(await readFile(path, 'utf8')) as PageResult[]) : []
+    const imp = await this.bank.getImport(id)
+    const saved = imp ? await this.files.read(`${this.base(imp)}/results.json`) : null
+    return saved ? (JSON.parse(saved.toString('utf8')) as PageResult[]) : []
   }
 
   /** Replaces re-run pages in the stored results and keeps the rest. */
-  private async saveResults(id: string, fresh: PageResult[]): Promise<PageResult[]> {
-    const byPage = new Map((await this.pageResults(id)).map((r) => [r.pageNumber, r]))
+  private async saveResults(imp: ImportRecord, fresh: PageResult[]): Promise<PageResult[]> {
+    const byPage = new Map((await this.pageResults(imp.id)).map((r) => [r.pageNumber, r]))
     for (const r of fresh) byPage.set(r.pageNumber, r)
     const results = [...byPage.values()].sort((a, b) => a.pageNumber - b.pageNumber)
-    await writeFile(join(this.dir(id), 'results.json'), JSON.stringify(results, null, 2))
+    await this.files.write(`${this.base(imp)}/results.json`, JSON.stringify(results, null, 2))
     return results
   }
 
-  private manualProvider(id: string): ManualProvider {
-    return new ManualProvider({ workDir: join(this.dir(id), 'manual') })
+  /** Manual-mode prompts and replies, kept with the import's other files. */
+  private manualFiles(imp: ImportRecord): TextFiles {
+    const dir = `${this.base(imp)}/manual`
+    return {
+      read: async (name) => (await this.files.read(`${dir}/${name}`))?.toString('utf8') ?? null,
+      write: (name, text) => this.files.write(`${dir}/${name}`, text),
+    }
   }
 
-  private dir(id: string): string {
-    if (!/^[\w-]+$/.test(id)) throw new Error('Invalid import id')
-    return join(this.opts.dataDir, 'imports', id)
+  private manualProvider(imp: ImportRecord): ManualProvider {
+    return new ManualProvider({ files: this.manualFiles(imp) })
   }
 
-  private require(id: string): ImportRecord {
-    const imp = this.bank.getImport(id)
+  private base(imp: Pick<ImportRecord, 'id' | 'ownerId'>): string {
+    if (!/^[\w-]+$/.test(imp.id)) throw new Error('Invalid import id')
+    return `${this.opts.keyPrefix?.(imp.ownerId) ?? ''}imports/${imp.id}`
+  }
+
+  private async require(id: string): Promise<ImportRecord> {
+    const imp = await this.bank.getImport(id)
     if (!imp) throw new Error(`Import ${id} not found`)
     return imp
   }
+}
+
+/** Extension of an uploaded file for its stored copy; anything odd becomes ".bin". */
+function sourceExt(name: string): string {
+  const ext = extname(name).toLowerCase()
+  return /^\.[a-z0-9]{1,5}$/.test(ext) ? ext : '.bin'
 }

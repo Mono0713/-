@@ -6,7 +6,7 @@ import { Badge, ButtonLink, EmptyState, PageHeader } from '@/shared/ui'
 export const dynamic = 'force-dynamic'
 
 export default async function QuizListPage() {
-  const attempts = services().quizzes.list(currentOwner())
+  const attempts = await services().quizzes.list(await currentOwner())
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader

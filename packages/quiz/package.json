@@ -7,5 +7,5 @@
   "types": "./src/index.ts",
   "exports": { ".": "./src/index.ts", "./logic": "./src/logic.ts" },
   "scripts": { "typecheck": "tsc --noEmit -p ." },
-  "dependencies": { "@exam/core": "workspace:*", "@exam/ink": "workspace:*" }
+  "dependencies": { "@exam/core": "workspace:*", "@exam/db": "workspace:*", "@exam/ink": "workspace:*" }
 }

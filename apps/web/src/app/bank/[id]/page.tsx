@@ -1,16 +1,16 @@
 import { notFound } from 'next/navigation'
 import { BankQuestionEditor } from '@/features/bank/BankQuestionEditor'
-import { currentOwner, services } from '@/server/context'
+import { services } from '@/server/context'
+import { ownedQuestion } from '@/server/owned'
 import { ButtonLink, PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
 
 export default async function BankQuestionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { bank } = services()
-  const q = bank.getQuestion(id)
-  if (!q || q.ownerId !== currentOwner()) notFound()
-  const exam = bank.getExam(q.examId)
+  const q = await ownedQuestion(id)
+  if (!q) notFound()
+  const exam = await services().bank.getExam(q.examId)
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
