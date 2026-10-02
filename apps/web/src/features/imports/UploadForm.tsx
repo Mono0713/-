@@ -16,7 +16,7 @@ export function UploadForm({ providers, defaultProvider }: { providers: Provider
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const input = useRef<HTMLInputElement>(null)
-  const start = providers.find((p) => p.id === defaultProvider && p.ready) ?? providers.find((p) => p.ready && p.id !== 'manual') ?? providers[0]!
+  const start = providers.find((p) => p.id === defaultProvider && p.ready) ?? providers.find((p) => p.ready && p.id !== 'manual') ?? providers.find((p) => p.id === 'manual')!
   const [choice, setChoice] = useState({ provider: start.id, model: start.model })
 
   const addFiles = (list: FileList | null) => {

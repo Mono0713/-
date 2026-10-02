@@ -2,11 +2,14 @@ import type { VisionProvider } from './provider.ts'
 import { ClaudeProvider } from './providers/claude.ts'
 import { GeminiProvider } from './providers/gemini.ts'
 import { ManualProvider, type TextFiles } from './providers/manual.ts'
+import { OpenAICompatibleProvider } from './providers/compatible.ts'
 import { OpenAIProvider } from './providers/openai.ts'
 
 export interface ProviderConfig {
   apiKey?: string
   model?: string
+  /** An OpenAI-compatible service at this address instead of the provider's own API. */
+  baseUrl?: string
   /** Folder for providers that exchange files instead of calling an API (manual). */
   workDir?: string
   /** Or somewhere else to keep those files (the web app's file store). */
@@ -43,6 +46,7 @@ export function providerIds(): string[] {
  * model can be swapped without a code change.
  */
 export function createProvider(id: string, config: ProviderConfig = {}): VisionProvider {
+  if (config.baseUrl && id !== 'manual') return new OpenAICompatibleProvider({ id, baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model })
   const factory = factories.get(id)
   if (!factory) throw new Error(`Unknown provider "${id}". Available: ${providerIds().join(', ')}`)
   const model = config.model ?? (process.env[`${id.toUpperCase()}_MODEL`] || undefined)

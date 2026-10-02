@@ -10,7 +10,7 @@ const tempFile = () => join(mkdtempSync(join(tmpdir(), 'settings-')), 'settings.
 describe('FileSettingsStore', () => {
   it('returns defaults for a new user', async () => {
     const s = await new FileSettingsStore(tempFile()).get('a')
-    expect(s).toMatchObject({ locale: null, defaultProvider: 'manual', models: {}, apiKeys: {}, aiGrading: { enabled: true, provider: null, model: null } })
+    expect(s).toMatchObject({ locale: null, defaultProvider: 'auto', models: {}, apiKeys: {}, aiGrading: { enabled: true, provider: null, model: null } })
   })
 
   it('saves per user and keeps other fields on update', async () => {
@@ -34,7 +34,7 @@ describe('FileSettingsStore', () => {
   it('falls back to defaults when the file is damaged', async () => {
     const file = tempFile()
     writeFileSync(file, '{ not json')
-    expect((await new FileSettingsStore(file).get('a')).defaultProvider).toBe('manual')
+    expect((await new FileSettingsStore(file).get('a')).defaultProvider).toBe('auto')
   })
 })
 

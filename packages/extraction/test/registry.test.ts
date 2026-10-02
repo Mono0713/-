@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createProvider, GEMINI_DEFAULT_MODEL } from '../src/index.ts'
+import { createProvider, GEMINI_DEFAULT_MODEL, OpenAICompatibleProvider } from '../src/index.ts'
 
 describe('createProvider', () => {
   afterEach(() => vi.unstubAllEnvs())
@@ -17,6 +17,12 @@ describe('createProvider', () => {
   it('lets an explicit model win over the environment', () => {
     vi.stubEnv('GEMINI_MODEL', 'gemini-next')
     expect(createProvider('gemini', { apiKey: 'k', model: 'gemini-pinned' }).model).toBe('gemini-pinned')
+  })
+
+  it('makes any provider with a base URL an OpenAI-compatible one', () => {
+    const p = createProvider('c-local', { baseUrl: 'http://localhost:11434/v1', model: 'llava' })
+    expect(p).toBeInstanceOf(OpenAICompatibleProvider)
+    expect([p.id, p.model]).toEqual(['c-local', 'llava'])
   })
 
   it('rejects unknown providers', () => {

@@ -26,7 +26,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
       subtitle={
         <span className="inline-flex flex-wrap items-center gap-2">
           <StatusBadge status={imp.status} />
-          {imp.pageCount} 頁 · {imp.provider}
+          {imp.pageCount} 頁 · {providers.find((p) => p.id === imp.provider)?.label ?? imp.provider}
           {imp.model ? ` / ${imp.model}` : ''}
         </span>
       }
@@ -91,7 +91,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         savedExam={savedExam}
         heading={{
           title: imp.title ?? imp.fileName,
-          meta: `${imp.pageCount} 頁 · ${imp.provider === 'manual' ? '手動模式' : imp.provider}${imp.model ? ` / ${imp.model}` : ''}`,
+          meta: `${imp.pageCount} 頁 · ${readBy(imp, results)}`,
           menu: <DeleteImportButton key="menu" importId={id} menu />,
         }}
         notice={
@@ -107,4 +107,11 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         }
       />
   )
+}
+
+/** Who read the pages: manual mode, or the models that did, as automatic reading may use several. */
+function readBy(imp: { provider: string; model: string | null }, results: { model: string; page: unknown }[]): string {
+  if (imp.provider === 'manual') return '手動模式'
+  const models = [...new Set(results.filter((r) => r.page).map((r) => r.model))]
+  return models.length ? models.join('、') : `${imp.provider}${imp.model ? ` / ${imp.model}` : ''}`
 }
