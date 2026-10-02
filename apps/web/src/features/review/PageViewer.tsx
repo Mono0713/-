@@ -3,7 +3,7 @@
 import { untangleBoxes, type DraftQuestion } from '@exam/core'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fileUrl } from '@/shared/files'
-import { IconChevronLeft, IconChevronRight, IconExternal, IconMinus, IconPlus } from '@/shared/icons'
+import { IconChevronLeft, IconChevronRight, IconExternal, IconLoader, IconMinus, IconPlus } from '@/shared/icons'
 
 const ZOOMS = [1, 1.25, 1.5, 2, 2.5]
 
@@ -29,6 +29,9 @@ export function PageViewer({
   const scroller = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState(0)
   const [current, setCurrent] = useState(pages[0]?.pageNumber ?? 1)
+  // Pages that have finished loading; until then each shows a page-shaped placeholder with a spinner.
+  const [loaded, setLoaded] = useState<Record<number, 'ok' | 'error'>>({})
+  const done = (pageNumber: number, state: 'ok' | 'error') => setLoaded((l) => (l[pageNumber] === state ? l : { ...l, [pageNumber]: state }))
   // Boxes drawn over the start of the next question are trimmed where it begins.
   const boxes = useMemo(() => untangleBoxes(questions), [questions])
   const scrolls = () => {
@@ -82,30 +85,62 @@ export function PageViewer({
   const pill = 'm-press grid h-8 w-8 place-items-center rounded-full hover:bg-white/15 disabled:opacity-35 disabled:hover:bg-transparent'
 
   return (
-    <div ref={scroller} onScroll={onScroll} className={`relative ${className}`}>
+    // A column, so the controls sit at the bottom of the viewer even before the pages fill it.
+    <div ref={scroller} onScroll={onScroll} className={`relative flex flex-col ${className}`}>
       {/* Zoomed pages scroll sideways here on phones; wider screens scroll the whole viewer. */}
-      <div className="overflow-x-auto lg:overflow-visible">
+      <div className="flex-1 overflow-x-auto lg:overflow-visible">
         <div className="space-y-3 pb-1" style={{ width: `${scale * 100}%` }}>
           {pages.map((page) => (
-            <figure key={page.pageNumber} data-page={page.pageNumber} className="group relative overflow-hidden rounded-lg bg-surface shadow-sheet">
+            <figure
+              key={page.pageNumber}
+              data-page={page.pageNumber}
+              className="group relative overflow-hidden rounded-lg bg-surface shadow-sheet"
+              // An A4-shaped page holds the place until the image arrives, so nothing jumps around much.
+              style={loaded[page.pageNumber] ? undefined : { aspectRatio: '1 / 1.414' }}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={fileUrl(page.image)} alt={`第 ${page.pageNumber} 頁`} className="block h-auto w-full" />
-              {boxes.flatMap((q, index) =>
-                q.locations
-                  .filter((l) => l.pageNumber === page.pageNumber)
-                  .map((l, i) => (
-                    <button
-                      key={`${index}-${i}`}
-                      type="button"
-                      data-q={index}
-                      onClick={() => onSelect(index)}
-                      title={`第 ${questions[index]!.number} 題`}
-                      className={`absolute rounded-sm transition-colors ${
-                        index === selected ? 'bg-accent/15 ring-2 ring-accent' : 'ring-1 ring-accent/0 hover:bg-accent/5 hover:ring-accent/40'
-                      }`}
-                      style={{ left: `${l.bbox.x * 100}%`, top: `${l.bbox.y * 100}%`, width: `${l.bbox.width * 100}%`, height: `${l.bbox.height * 100}%` }}
-                    />
-                  )),
+              <img
+                ref={(img) => {
+                  // A cached image may have loaded before React attached onLoad.
+                  if (img?.complete && img.naturalWidth) done(page.pageNumber, 'ok')
+                }}
+                src={fileUrl(page.image)}
+                alt={`第 ${page.pageNumber} 頁`}
+                onLoad={() => done(page.pageNumber, 'ok')}
+                onError={() => done(page.pageNumber, 'error')}
+                className={`block h-auto w-full transition-opacity duration-300 ${loaded[page.pageNumber] === 'ok' ? 'opacity-100' : 'absolute inset-0 opacity-0'}`}
+              />
+              {!loaded[page.pageNumber] && (
+                // The spinner sits in the upper part of the page, where it is in view.
+                <div className="absolute inset-0 flex justify-center pt-[38%]" role="status" aria-label={`第 ${page.pageNumber} 頁載入中`}>
+                  <div className="flex flex-col items-center gap-2 text-muted">
+                    <IconLoader size={26} className="m-spin text-accent" />
+                    <span className="text-xs">載入考卷中…</span>
+                  </div>
+                </div>
+              )}
+              {loaded[page.pageNumber] === 'error' && (
+                <div className="absolute inset-0 grid place-items-center text-sm text-muted" role="alert">
+                  這一頁的圖片載入失敗
+                </div>
+              )}
+              {loaded[page.pageNumber] === 'ok' &&
+                boxes.flatMap((q, index) =>
+                  q.locations
+                    .filter((l) => l.pageNumber === page.pageNumber)
+                    .map((l, i) => (
+                      <button
+                        key={`${index}-${i}`}
+                        type="button"
+                        data-q={index}
+                        onClick={() => onSelect(index)}
+                        title={`第 ${questions[index]!.number} 題`}
+                        className={`absolute rounded-sm transition-colors ${
+                          index === selected ? 'bg-accent/15 ring-2 ring-accent' : 'ring-1 ring-accent/0 hover:bg-accent/5 hover:ring-accent/40'
+                        }`}
+                        style={{ left: `${l.bbox.x * 100}%`, top: `${l.bbox.y * 100}%`, width: `${l.bbox.width * 100}%`, height: `${l.bbox.height * 100}%` }}
+                      />
+                    )),
               )}
               {pages.length > 1 && (
                 <span className="num pointer-events-none absolute left-2 top-2 rounded-md bg-night/70 px-1.5 py-0.5 text-[11px] text-white backdrop-blur">{page.pageNumber}</span>
