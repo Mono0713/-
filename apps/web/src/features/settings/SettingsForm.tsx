@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import type { ProviderOption } from '@/server/context'
-import { IconCheck, IconKey, IconRefresh } from '@/shared/icons'
+import { IconKey, IconRefresh } from '@/shared/icons'
 import { Badge, Button, Card, inputClass } from '@/shared/ui'
 import { refreshModels, removeApiKey, saveAiGrading, saveApiKey, saveDefaultProvider, saveLocale, saveModel } from './actions'
 import { ModelPicker } from './ModelPicker'
@@ -41,12 +41,10 @@ export function SettingsForm({
   /** Keys are kept encrypted in the hosted database rather than in the local data folder. */
   keysInDatabase: boolean
 }) {
-  const [saved, flash] = useFlash()
   const [, start] = useTransition()
-  const run = (action: () => Promise<unknown>) => start(async () => {
-    await action()
-    flash()
-  })
+  const run = (action: () => Promise<unknown>) => start(async () => void (await action()))
+  // every change saves on the spot; no "saved" note (the control itself already shows the new value)
+  const flash = () => {}
   const apis = providers.filter((p) => p.id !== 'manual')
 
   return (
@@ -95,12 +93,6 @@ export function SettingsForm({
         ))}
       </Section>
 
-      {/* a sticky note: stuck on when saved, peeled off a moment later */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center">
-        <p aria-live="polite" data-show={saved || undefined} className="m-sticky relative flex items-center gap-1.5 px-4 pb-2.5 pt-2">
-          <IconCheck size={15} /> 已儲存
-        </p>
-      </div>
     </div>
   )
 }
@@ -317,17 +309,4 @@ function Row({ label, hint, children, plain = false }: { label: string; hint?: s
       </span>
     </Tag>
   )
-}
-
-/** A flag that turns itself off after a moment, for "saved" feedback. */
-function useFlash(): [boolean, () => void] {
-  const [on, setOn] = useState(0)
-  return [
-    on > 0,
-    () => {
-      const id = Date.now()
-      setOn(id)
-      setTimeout(() => setOn((cur) => (cur === id ? 0 : cur)), 1600)
-    },
-  ]
 }

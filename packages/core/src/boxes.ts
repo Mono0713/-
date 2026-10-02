@@ -3,12 +3,14 @@ import type { DraftQuestion } from './types.ts'
 /**
  * Models often draw a question's box a little too far down, over the start of the next question.
  * This trims each box so it ends where the next question in the same column begins.
- * Boxes side by side (two columns, or two pages in one photo) are left alone.
+ * Boxes side by side (two columns, or two pages in one photo) are left alone, and so are boxes the
+ * person placed by hand.
  */
 export function untangleBoxes<Q extends Pick<DraftQuestion, 'locations'>>(questions: Q[]): Q[] {
-  const all = questions.flatMap((q, qi) => q.locations.map((l, li) => ({ qi, li, page: l.pageNumber, box: l.bbox })))
+  const all = questions.flatMap((q, qi) => q.locations.map((l, li) => ({ qi, li, page: l.pageNumber, box: l.bbox, manual: l.manual === true })))
   const bottoms = new Map<string, number>()
   for (const a of all) {
+    if (a.manual) continue
     const top = a.box.y
     let bottom = a.box.y + a.box.height
     for (const b of all) {

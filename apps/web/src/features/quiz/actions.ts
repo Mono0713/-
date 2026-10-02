@@ -155,9 +155,9 @@ export async function askTeacher(id: string): Promise<{ error: string } | undefi
   revalidatePath(`/quiz/${id}`)
 }
 
-export async function deleteQuiz(id: string) {
+/** Removes a quiz for good; the list calls it once the 復原 note has run out. */
+export async function removeQuiz(id: string) {
   await owned(id)
   await services().quizzes.delete(id)
   revalidatePath('/quiz')
-  redirect('/quiz')
 }

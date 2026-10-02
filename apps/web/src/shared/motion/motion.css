@@ -91,11 +91,10 @@
 /*
  * Study-desk motion (see DESIGN.md "Motion"). Borrowed rhythms, drawn with pen and paper:
  * highlighter sweep (Apple Notes), pen marks (Duolingo), pressable buttons (Duolingo),
- * rolling digits (Stripe), sticky-note toast (Raycast), erase on confirm (Things 3).
+ * rolling digits (Stripe), erase on confirm (Things 3).
  */
 @keyframes m-sweep { from { background-size: 0% 100%; } to { background-size: 100% 100%; } }
 @keyframes m-nudge { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
-@keyframes m-stick { from { opacity: 0; transform: translateY(-22px) rotate(-8deg); } }
 
 /* highlighter swept left to right over .hl / .hl-md text when it appears */
 :is(.hl, .hl-md > p).m-sweep,
@@ -120,18 +119,9 @@
 .m-odo-col > span { display: block; transition: transform 900ms var(--m-spring); }
 .m-odo-col > span > span { display: block; height: 1em; }
 
-/* a sticky note that is stuck on, then peeled off (data-show toggles it) */
-.m-sticky {
-  font-family: var(--font-hand); font-size: 17px; color: #3a3200; background: #fff48a;
-  box-shadow: 0 10px 18px -12px rgb(0 0 0 / 0.45);
-  opacity: 0; transform: translateY(-12px) rotate(5deg); pointer-events: none;
-  transition: opacity 260ms ease-in, transform 360ms ease-in;
-}
-.m-sticky::before {
-  content: ''; position: absolute; left: 50%; top: -7px; width: 48px; height: 14px; translate: -50% 0; rotate: 3deg;
-  background: rgb(255 255 255 / 0.55); box-shadow: 0 0 0 1px rgb(0 0 0 / 0.05);
-}
-.m-sticky[data-show] { opacity: 1; pointer-events: auto; transform: rotate(-2deg); transition: opacity 200ms ease-out, transform 620ms var(--m-spring); }
+/* a toast at the bottom (shared/Toast.tsx): rises 8 px and fades in, fades out quicker */
+.m-toast { opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity 160ms ease-in, transform 200ms ease-in; }
+.m-toast[data-show] { opacity: 1; transform: none; pointer-events: auto; transition: opacity 200ms ease-out, transform 320ms var(--m-ease-out); }
 
 /* confirming a note: its highlight is erased right to left, then the note folds away */
 .m-erase {
@@ -157,7 +147,7 @@
 /*
  * Second batch (see DESIGN.md "Motion", 10 to 19): next-question slide, full-marks stamp,
  * drag tilt (Trello), scan (Apple Notes), pencil progress (Stripe), pen checkboxes (Things 3),
- * last-minute timer (Duolingo), card corner curl (iBooks and the logo), punch confetti, pen underline (Linear).
+ * last-minute timer (Duolingo), card corner curl (iBooks and the logo), punch confetti.
  */
 
 /* next question (features/quiz/QuizPlayer.tsx): the old sheet slides off in 120 ms and is gone
@@ -241,19 +231,27 @@
   .m-curl-label { opacity: 1; transform: none; }
 }
 
-/* pen underline on text fields (inputBase): a ballpoint line is drawn left to right on focus and
-   pulled back on blur. The image is twice the field's width with the line in its left half, so at
-   rest only the empty half shows and no cap is left behind. Colors match --color-accent. */
-:root { --m-ink-line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 520 5' preserveAspectRatio='none'%3E%3Cpath d='M7 2.6C60 1.4 140 3.8 253 2' fill='none' stroke='%232f4bff' stroke-width='2.2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E"); }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) { --m-ink-line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 520 5' preserveAspectRatio='none'%3E%3Cpath d='M7 2.6C60 1.4 140 3.8 253 2' fill='none' stroke='%237d93ff' stroke-width='2.2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E"); }
+/* pen width slider (shared/ink/InkPad.tsx): a wedge that thickens to the right, filled in ballpoint
+   blue up to the value (--v); the input on top only draws its round thumb */
+.m-wedge { position: relative; display: inline-flex; align-items: center; height: 20px; }
+.m-wedge::before {
+  content: ''; position: absolute; left: 6px; right: 6px; top: 5px; bottom: 5px; pointer-events: none;
+  clip-path: polygon(0 42%, 100% 0, 100% 100%, 0 58%);
+  background: linear-gradient(to right, var(--color-accent) var(--v), color-mix(in srgb, var(--color-ink) 18%, transparent) var(--v));
 }
-:root[data-theme='dark'] { --m-ink-line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 520 5' preserveAspectRatio='none'%3E%3Cpath d='M7 2.6C60 1.4 140 3.8 253 2' fill='none' stroke='%237d93ff' stroke-width='2.2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E"); }
-input.m-ink, textarea.m-ink {
-  background-image: var(--m-ink-line); background-repeat: no-repeat; background-size: 200% 5px;
-  background-position: 100% calc(100% - 2px); transition: background-position 200ms ease-in, border-color 200ms;
+.m-wedge input { position: relative; appearance: none; background: transparent; height: 20px; margin: 0; cursor: pointer; }
+.m-wedge input::-webkit-slider-runnable-track { height: 20px; background: transparent; }
+.m-wedge input::-moz-range-track { height: 20px; background: transparent; }
+.m-wedge input::-webkit-slider-thumb {
+  appearance: none; width: 14px; height: 14px; margin-top: 3px; border-radius: 50%; background: var(--color-surface);
+  box-shadow: 0 0 0 1.5px var(--color-accent), 0 2px 5px rgb(0 0 0 / 0.25); transition: transform var(--m-fast) var(--m-ease-out);
 }
-input.m-ink:focus, textarea.m-ink:focus { background-position: 0% calc(100% - 2px); transition: background-position 420ms var(--m-ease-out), border-color 200ms; }
+.m-wedge input::-moz-range-thumb {
+  width: 14px; height: 14px; border: 0; border-radius: 50%; background: var(--color-surface);
+  box-shadow: 0 0 0 1.5px var(--color-accent), 0 2px 5px rgb(0 0 0 / 0.25);
+}
+.m-wedge input:active::-webkit-slider-thumb { transform: scale(1.18); }
+.m-wedge input:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; border-radius: 4px; }
 
 /* 設定 > 外觀 > 做題時減少動畫: inside a quiz (.m-calm-zone), everything changes at once */
 :root[data-motion="calm"] .m-calm-zone :is(*, *::before, *::after) {

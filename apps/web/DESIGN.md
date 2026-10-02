@@ -64,7 +64,7 @@ to an instant change under `prefers-reduced-motion`.
 | Pressable buttons | Duolingo | primary and secondary `Button` | `.m-push` / `.m-push-quiet`: a solid bottom edge that collapses while held |
 | Rolling digits | Stripe | quiz results | `Odometer`, 900 ms spring, 80 ms per column |
 | Gliding hover | Linear, Vercel | review outline | `Glide` + `data-glide` rows, 260 ms |
-| Sticky-note toast | Raycast, Arc | "已儲存" | `.m-sticky[data-show]`, spring on, ease-in off |
+| Toast | Linear | after a delete (with 復原) | `Toast` (`.m-toast`): a navy pill at the bottom, rises 8 px and fades. Settings save silently: no "已儲存" note |
 | Erase on confirm | Things 3 | "沒問題" on a review note | `ConfirmNote`: highlight erased right to left, then the note folds |
 | Bottom sheet | iOS | phone action menu | `Fab` below `sm`, 520 ms spring |
 | Next sheet | Apple Books, iOS | next question in a quiz | `.m-leaf-out` slides the old sheet 14 px off in 120 ms, then `.m-leaf-in` slides the new one 18 px in (300 ms) from the side you head to; `data-back` mirrors it. The two never show at once; no 3D. Off with 設定 > 做題時減少動畫 (`data-motion="calm"` stills everything inside `.m-calm-zone`) |
@@ -76,16 +76,29 @@ to an instant change under `prefers-reduced-motion`.
 | Last-minute timer | Duolingo | timed exams, last 60 s | `.m-last-minute`: red pen, beats once a second, colon blinks |
 | Corner curl | iBooks, the logo | exam cards in the bank | `.m-curl` lifts on hover to show `開始練習 →`; the corner itself also opens the practice setup (always shown on touch). The rest of the card opens the exam |
 | Punch confetti | Stripe, Linear | 100% on quiz results | `Confetti`: one burst of binder-hole dots in the four ink colors |
-| Pen underline | Linear | every text field (`inputBase`) | `.m-ink`: a ballpoint line drawn left to right on focus, nothing painted at rest |
 
 Controls with a moving part must not change the layout around them: the sliding pill of
-`Segmented` is clipped, so its spring overshoot never widens the row or flashes a scrollbar.
+`Segmented` is clipped, so its spring overshoot never widens the row or flashes a scrollbar, and it
+slides only after a click: a value read from storage on opening (外觀) lands in place.
+Text fields have no focus animation, only a deeper blue border.
+
+Scrollbars are thin pencil-grey thumbs with no track (`globals.css`). Every scrolling area keeps
+the bar's room even when nothing scrolls (`scrollbar-gutter: stable`), so content never shifts
+sideways when a bar appears. Rows that scroll sideways (the editor's number bar) have no bar at
+all: their ends fade out, the wheel scrolls them, and the selected number is kept in the middle.
 Long lists to pick from use `Listbox` (`src/shared/Listbox.tsx`, opening with `.m-menu`), not the
 native `<select>`, whose popup scrolls by itself when the pointer rests near its edges.
 
 No loading screens between pages: the current page stays until the next one is ready. Deleting
-never asks first; it shows a sticky note with 復原, and Ctrl+Z brings questions back.
-A zoomed exam page can be grabbed and moved with the mouse.
+never asks first; it shows a toast with 復原, and Ctrl+Z brings questions back (quizzes in the
+list are removed for good only when the 5 s toast runs out).
+A zoomed exam page can be grabbed and moved with the mouse; a press that does not move is still a
+click on a question's box. The selected question's box can be moved by its body and resized by
+its edges and corners; a moved box is marked `manual` and never trimmed again, and Ctrl+Z puts it back.
+
+Tables that follow one another in a question sit side by side (`.table-row`), wrapping when the
+column is too narrow. The ink pad's pen is the ink color (white in dark mode) and its width is a
+wedge slider (`.m-wedge`) with a live dot preview.
 
 Timing tokens: `--m-fast` 140 ms (presses), `--m-base` 240 ms, `--m-slow` 460 ms (entrances),
 `--m-spring` for anything that lands. Rules: one moving thing at a time; feedback within

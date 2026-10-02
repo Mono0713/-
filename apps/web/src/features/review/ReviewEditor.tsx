@@ -34,6 +34,7 @@ import {
 } from '@/shared/icons'
 import { TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
+import { Toast } from '@/shared/Toast'
 import { MathTextInput } from '@/shared/math/MathTextInput'
 import { Badge, Button, inputClass } from '@/shared/ui'
 import { publishDraft, saveDraft } from './actions'
@@ -124,6 +125,27 @@ export function ReviewEditor({
     observer.observe(el)
     return () => observer.disconnect()
   }, [])
+  // The number bar has no scrollbar: the wheel scrolls it sideways, and the chosen number stays in view.
+  const numberBar = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const el = numberBar.current
+    if (!el) return
+    const wheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
+      e.preventDefault()
+      el.scrollBy({ left: e.deltaY, behavior: 'instant' })
+    }
+    el.addEventListener('wheel', wheel, { passive: false })
+    return () => el.removeEventListener('wheel', wheel)
+  }, [])
+  useEffect(() => {
+    const el = numberBar.current
+    const chip = el?.querySelector<HTMLElement>('[aria-current="true"]')
+    if (!el || !chip) return
+    const box = el.getBoundingClientRect()
+    const c = chip.getBoundingClientRect()
+    el.scrollTo({ left: el.scrollLeft + c.left - box.left - el.clientWidth / 2 + c.width / 2, behavior: 'smooth' })
+  }, [selected])
   // Autosave shortly after the last edit.
   useEffect(() => {
     if (draft === initial) return
@@ -160,7 +182,9 @@ export function ReviewEditor({
     setSelected(index)
   }
   // Deleting asks nothing; Ctrl+Z (or 復原 on the note) puts questions back, last deleted first.
-  const trash = useRef<{ index: number; question: DraftQuestion; key: string }[]>([])
+  // A box moved on the original page goes on the same stack, so Ctrl+Z also puts it back.
+  type Undo = { kind: 'delete'; index: number; question: DraftQuestion; key: string } | { kind: 'box'; key: string; locations: DraftQuestion['locations'] }
+  const trash = useRef<Undo[]>([])
   const [deletedNote, setDeletedNote] = useState<string | null>(null)
   const noteTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const showDeleted = (number: string | null) => {
@@ -170,16 +194,29 @@ export function ReviewEditor({
   }
   const removeQuestion = (index: number) => {
     const question = draft.questions[index]!
-    trash.current.push({ index, question, key: keys.current[index]! })
+    trash.current.push({ kind: 'delete', index, question, key: keys.current[index]! })
     keys.current = keys.current.filter((_, i) => i !== index)
     setDraft((d) => ({ ...d, questions: d.questions.filter((_, i) => i !== index) }))
     setEditing(null)
     setSelected(null)
     showDeleted(question.number)
   }
+  const moveBox = (index: number, location: number, bbox: DraftQuestion['locations'][number]['bbox']) => {
+    const q = draft.questions[index]!
+    trash.current.push({ kind: 'box', key: keys.current[index]!, locations: q.locations })
+    updateQuestion(index, { ...q, locations: q.locations.map((l, i) => (i === location ? { ...l, bbox, manual: true } : l)) })
+  }
   const undoDelete = () => {
     const last = trash.current.pop()
     if (!last) return
+    if (last.kind === 'box') {
+      const index = keys.current.indexOf(last.key)
+      if (index >= 0) {
+        setDraft((d) => ({ ...d, questions: d.questions.map((q, i) => (i === index ? { ...q, locations: last.locations } : q)) }))
+        setSelected(index)
+      }
+      return
+    }
     const at = Math.min(last.index, keys.current.length)
     keys.current = [...keys.current.slice(0, at), last.key, ...keys.current.slice(at)]
     setDraft((d) => ({ ...d, questions: [...d.questions.slice(0, at), last.question, ...d.questions.slice(at)] }))
@@ -428,8 +465,8 @@ export function ReviewEditor({
                 </button>
               ))}
             </div>
-            <nav className="flex min-w-0 flex-1 overflow-x-auto" aria-label="題號">
-              <div className="mx-auto flex w-max items-center gap-1 py-0.5">
+            <nav ref={numberBar} className="scroll-strip flex min-w-0 flex-1 overflow-x-auto" aria-label="題號">
+              <div className="flex w-max items-center gap-1 py-0.5">
                 {numberClusters(draft.questions).map((cluster) => {
                   const shown = cluster.items.filter((i) => !flaggedOnly || isFlagged(draft.questions[i]!))
                   if (!shown.length) return null
@@ -441,6 +478,7 @@ export function ReviewEditor({
                         key={keys.current[shown[0]!]}
                         type="button"
                         onClick={() => select(shown[0]!, true)}
+                        aria-current={selected === shown[0] || undefined}
                         title={isFlagged(draft.questions[shown[0]!]!) ? '待確認' : undefined}
                         className={`num h-7 min-w-7 shrink-0 rounded-md px-1.5 text-xs transition-colors ${
                           selected === shown[0]
@@ -457,7 +495,7 @@ export function ReviewEditor({
                     <span key={keys.current[shown[0]!]} className="flex h-7 shrink-0 items-center gap-px rounded-md bg-surface pl-1.5 pr-0.5 shadow-sheet" title={`第 ${cluster.main} 題的小題`}>
                       <span className="num mr-0.5 text-xs text-ink/70">{cluster.main}</span>
                       {shown.map((i) => (
-                        <button key={keys.current[i]} type="button" onClick={() => select(i, true)} className={`num h-6 min-w-6 rounded px-1 text-[11px] transition-colors ${tone(i)}`}>
+                        <button key={keys.current[i]} type="button" onClick={() => select(i, true)} aria-current={selected === i || undefined} className={`num h-6 min-w-6 rounded px-1 text-[11px] transition-colors ${tone(i)}`}>
                           {splitNumber(draft.questions[i]!.number).part}
                         </button>
                       ))}
@@ -548,7 +586,8 @@ export function ReviewEditor({
               questions={draft.questions}
               selected={selected}
               onSelect={(i) => select(i, true)}
-              className="lg:h-full lg:overflow-auto lg:pr-1"
+              onBoxChange={moveBox}
+              className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]"
             />
           </div>
 
@@ -680,15 +719,9 @@ export function ReviewEditor({
         </div>
       </div>
 
-      {/* a sticky note after deleting, with a way back */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center">
-        <p aria-live="polite" data-show={deletedNote !== null || undefined} className="m-sticky relative flex items-center gap-3 px-4 pb-2.5 pt-2">
-          已刪除第 {deletedNote} 題
-          <button type="button" onClick={undoDelete} className="rounded px-1.5 font-sans text-sm font-semibold underline underline-offset-2 hover:bg-black/5" title="復原（Ctrl+Z）">
-            復原
-          </button>
-        </p>
-      </div>
+      <Toast show={deletedNote !== null} action="復原" onAction={undoDelete}>
+        已刪除第 {deletedNote} 題
+      </Toast>
 
       <Fab actions={fabActions} badge={flagged || undefined} />
     </div>
@@ -771,7 +804,7 @@ function Outline({
   return (
     <nav
       aria-label="題目大綱"
-      className="m-enter -ml-2 mr-3 hidden w-[248px] shrink-0 space-y-6 self-start px-2 lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:max-h-[calc(100dvh-var(--bar)-1.5rem)] lg:overflow-y-auto lg:pb-4"
+      className="m-enter -ml-2 mr-3 hidden w-[248px] shrink-0 space-y-6 self-start px-2 lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:max-h-[calc(100dvh-var(--bar)-1.5rem)] lg:overflow-y-auto lg:pb-4 [scrollbar-gutter:stable]"
     >
       <section>
         <p className="mb-2 flex items-center justify-between px-1 text-[11px] font-semibold tracking-[0.12em] text-muted">
