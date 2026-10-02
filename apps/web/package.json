@@ -21,6 +21,7 @@
     "@exam/ink": "workspace:*",
     "@exam/quiz": "workspace:*",
     "@exam/settings": "workspace:*",
+    "@fontsource/lxgw-wenkai-tc": "5.3.0",
     "katex": "^0.18.9",
     "lucide-react": "^1.48.0",
     "mathlive": "^0.110.0",

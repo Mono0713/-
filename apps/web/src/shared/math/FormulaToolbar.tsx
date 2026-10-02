@@ -64,7 +64,7 @@ export function FormulaToolbar({ field, onDone, onRemove, onSource }: { field: M
         <button type="button" onMouseDown={keep} onClick={onRemove} className={`${tool} grid place-items-center hover:bg-bad-soft hover:text-bad`} aria-label="刪除公式" title="刪除公式">
           <IconTrash size={14} />
         </button>
-        <button type="button" onMouseDown={keep} onClick={onDone} className="m-press grid h-7 w-7 shrink-0 place-items-center rounded-md bg-accent text-white" aria-label="公式完成" title="公式完成（Enter）">
+        <button type="button" onMouseDown={keep} onClick={onDone} className="m-press grid h-7 w-7 shrink-0 place-items-center rounded-md bg-accent text-on-accent" aria-label="公式完成" title="公式完成（Enter）">
           <IconCheck size={15} strokeWidth={2.6} />
         </button>
       </div>

@@ -1,30 +1,100 @@
 @import 'tailwindcss';
 @import '../shared/motion/motion.css';
 
+/*
+ * Sheetloop design base: 自修桌 (study desk). See apps/web/DESIGN.md.
+ * Graph paper, ballpoint blue, highlighter and a teacher's red pen.
+ * Every color is a token; dark mode redefines the tokens only.
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
 @theme {
-  --font-sans: var(--font-inter), 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  --font-sans: var(--font-body), 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-body), 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  --font-hand: 'LXGW WenKai TC', 'Kaiti TC', 'STKaiti', 'DFKai-SB', serif;
   --font-mono: var(--font-jbmono), ui-monospace, 'SFMono-Regular', Menlo, monospace;
   /* paper and ink */
-  --color-paper: #f3f1ec;
+  --color-paper: #fcfcfa;
+  --color-grid: #e9edf5;
   --color-surface: #ffffff;
-  --color-ink: #16182b;
-  --color-muted: #686b7c;
-  --color-line: #e4e1d9;
-  /* the Sheetloop blue-violet */
-  --color-accent: #4a55f0;
-  --color-accent-soft: #eceeff;
-  --color-brand-from: #3d6bff;
-  --color-brand-to: #6a45f5;
-  /* sidebar */
-  --color-night: #15172b;
-  --color-night-soft: #222542;
-  --color-good: #1f7a4d;
-  --color-good-soft: #e3f3ea;
-  --color-warn: #a15c00;
-  --color-warn-soft: #fdf1dc;
-  --color-bad: #c42b1c;
-  --color-bad-soft: #fde8e6;
-  --shadow-sheet: 0 0 0 1px rgb(22 24 43 / 0.06), 0 1px 2px rgb(22 24 43 / 0.04), 0 12px 32px -24px rgb(22 24 43 / 0.25);
+  --color-ink: #1b2340;
+  --color-muted: #5f6782;
+  --color-line: #dfe4ee;
+  /* ballpoint blue: the one accent */
+  --color-accent: #2f4bff;
+  --color-accent-soft: #eef1ff;
+  --color-accent-deep: #1d33c9;
+  --color-on-accent: #ffffff;
+  /* highlighter (answers, things to check) and the teacher's red pen (AI comments) */
+  --color-hl: #f4ff5c;
+  /* the highlighter stroke behind text; see-through in dark mode so the text keeps its color */
+  --color-hl-mark: #f4ff5c;
+  --color-pen: #d63a2f;
+  /* the navy desk: sidebar, toasts, overlays; the same in both themes */
+  --color-night: #141b33;
+  --color-night-soft: #222b4a;
+  --color-night-accent: #8fa2ff;
+  --color-good: #1d7a4c;
+  --color-good-soft: #e4f4eb;
+  --color-warn: #8a5a00;
+  --color-warn-soft: #fbf3d6;
+  --color-bad: #c8352b;
+  --color-bad-soft: #fde9e6;
+  --shadow-sheet: 0 0 0 1px rgb(27 35 64 / 0.07), 0 1px 2px rgb(27 35 64 / 0.04), 0 10px 28px -22px rgb(27 35 64 / 0.3);
+}
+
+/* Night desk: navy paper, lighter ink. The same values serve the system setting and an explicit choice. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-paper: #0f1528;
+    --color-grid: #172039;
+    --color-surface: #151d34;
+    --color-ink: #e6eaf7;
+    --color-muted: #97a0bd;
+    --color-line: #263155;
+    --color-accent: #7d93ff;
+    --color-accent-soft: #1c2650;
+    --color-accent-deep: #4c62d6;
+    --color-on-accent: #0f1528;
+    --color-hl: #d7f04a;
+    --color-hl-mark: rgb(215 240 74 / 0.3);
+    --color-pen: #ff8b7e;
+    --color-night: #0a0f1f;
+    --color-night-soft: #1a2240;
+    --color-good: #5fd39a;
+    --color-good-soft: #10291e;
+    --color-warn: #f2be55;
+    --color-warn-soft: #2c2410;
+    --color-bad: #ff8b7e;
+    --color-bad-soft: #351b1d;
+    --shadow-sheet: 0 0 0 1px rgb(255 255 255 / 0.06), 0 12px 28px -20px rgb(0 0 0 / 0.6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --color-paper: #0f1528;
+  --color-grid: #172039;
+  --color-surface: #151d34;
+  --color-ink: #e6eaf7;
+  --color-muted: #97a0bd;
+  --color-line: #263155;
+  --color-accent: #7d93ff;
+  --color-accent-soft: #1c2650;
+  --color-accent-deep: #4c62d6;
+  --color-on-accent: #0f1528;
+  --color-hl: #d7f04a;
+  --color-hl-mark: rgb(215 240 74 / 0.3);
+  --color-pen: #ff8b7e;
+  --color-night: #0a0f1f;
+  --color-night-soft: #1a2240;
+  --color-good: #5fd39a;
+  --color-good-soft: #10291e;
+  --color-warn: #f2be55;
+  --color-warn-soft: #2c2410;
+  --color-bad: #ff8b7e;
+  --color-bad-soft: #351b1d;
+  --shadow-sheet: 0 0 0 1px rgb(255 255 255 / 0.06), 0 12px 28px -20px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
 }
 
 html {
@@ -33,23 +103,51 @@ html {
 
 body {
   background-color: var(--color-paper);
-  /* the same faint dot grid as the brand video */
-  background-image: radial-gradient(rgb(22 24 43 / 0.07) 1px, transparent 1.2px);
-  background-size: 22px 22px;
+  /* 5 mm graph paper */
+  background-image: linear-gradient(var(--color-grid) 1px, transparent 1px), linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+  background-size: 18px 18px;
+  background-position: -1px -1px;
   background-attachment: fixed;
   color: var(--color-ink);
 }
 
-/* numbers set in the mono face: question numbers, counts, scores */
+h1,
+h2 {
+  font-family: var(--font-display);
+}
+
+/* numbers set in the display face: question numbers, counts, scores */
 .num {
-  font-family: var(--font-mono);
-  font-feature-settings: 'zero' 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
-/* the gradient used by primary actions and the active nav item */
+/* primary actions: solid ballpoint blue (the old gradient is gone) */
 .bg-brand {
-  background-image: linear-gradient(135deg, var(--color-brand-from), var(--color-brand-to));
+  background-color: var(--color-accent);
+}
+
+/* A highlighter stroke behind text: answers and what the reader should look at.
+   .hl-md does the same for rendered Markdown (its paragraphs run inline). */
+.hl-md > p {
+  display: inline;
+}
+.hl,
+.hl-md > p {
+  padding: 0 0.15em;
+  border-radius: 0.2em;
+  background: linear-gradient(transparent 30%, var(--color-hl-mark) 30%, var(--color-hl-mark) 90%, transparent 90%);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+/* The teacher's red pen: AI comments and marks. Only for short notes, never for running UI text. */
+.pen {
+  font-family: var(--font-hand);
+  color: var(--color-pen);
+  font-size: 1.08em;
+  line-height: 1.6;
 }
 
 /* Rendered question text */

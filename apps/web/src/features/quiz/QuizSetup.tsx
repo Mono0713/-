@@ -83,7 +83,7 @@ export function QuizSetup({ exams, preselected }: { exams: SetupExam[]; preselec
                   }}
                   onChange={(ev) => toggle(ids, ev.target.checked)}
                   aria-label={`選擇 ${e.title}`}
-                  className="mt-1 h-4 w-4 shrink-0 accent-[var(--color-accent)]"
+                  className="m-check mt-0.5"
                 />
                 <button type="button" onClick={() => toggleOpen(e.id)} className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 text-left">
                   <span className="line-clamp-2 min-w-0 font-medium sm:flex-1">{e.title}</span>
@@ -102,7 +102,7 @@ export function QuizSetup({ exams, preselected }: { exams: SetupExam[]; preselec
                       {q.section && q.section !== e.questions[i - 1]?.question.section && <p className="mt-2 mb-1 px-1 text-xs font-medium text-muted">{q.section}</p>}
                       <div className="flex items-start gap-2 rounded-md px-1 py-1.5 text-sm hover:bg-paper">
                         <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2 sm:gap-3">
-                          <input type="checkbox" checked={selected.has(id)} onChange={(ev) => toggle([id], ev.target.checked)} className="mt-0.5 h-4 w-4 shrink-0" />
+                          <input type="checkbox" checked={selected.has(id)} onChange={(ev) => toggle([id], ev.target.checked)} className="m-check mt-px" />
                           <span className="w-6 shrink-0 font-medium tabular-nums text-muted">{q.number}</span>
                           <span className="min-w-0 flex-1">
                             <span className="line-clamp-2">
@@ -160,11 +160,11 @@ export function QuizSetup({ exams, preselected }: { exams: SetupExam[]; preselec
 
           <div className="space-y-2 text-sm">
             <label className="flex items-center gap-2">
-              <input type="checkbox" checked={shuffleQuestions} onChange={(e) => setShuffleQuestions(e.target.checked)} />
+              <input type="checkbox" className="m-check" checked={shuffleQuestions} onChange={(e) => setShuffleQuestions(e.target.checked)} />
               題目順序隨機
             </label>
             <label className="flex items-center gap-2">
-              <input type="checkbox" checked={shuffleOptions} onChange={(e) => setShuffleOptions(e.target.checked)} />
+              <input type="checkbox" className="m-check" checked={shuffleOptions} onChange={(e) => setShuffleOptions(e.target.checked)} />
               選項順序隨機
             </label>
           </div>

@@ -6,8 +6,8 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const VARIANTS: Record<Variant, string> = {
   primary:
-    'm-shine bg-brand text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.22),0_8px_20px_-10px_var(--color-brand-to)] hover:brightness-110 disabled:opacity-50 disabled:shadow-none',
-  secondary: 'bg-surface text-ink shadow-[0_0_0_1px_var(--color-line),0_1px_2px_rgb(22_24_43/0.05)] hover:shadow-[0_0_0_1px_rgb(22_24_43/0.18),0_1px_2px_rgb(22_24_43/0.05)] disabled:text-muted',
+    'm-push m-shine bg-brand text-on-accent hover:brightness-110 disabled:opacity-50 disabled:shadow-none',
+  secondary: 'm-push-quiet bg-surface text-ink hover:bg-accent-soft/50 disabled:text-muted',
   ghost: 'text-muted hover:text-ink hover:bg-ink/[0.05]',
   danger: 'text-bad hover:bg-bad-soft',
 }
@@ -61,7 +61,7 @@ export function PageHeader({ title, subtitle, actions }: { title: ReactNode; sub
   return (
     <div className="m-enter mb-7 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-[-0.02em] sm:text-[28px]">{title}</h1>
+        <h1 className="font-display text-2xl font-extrabold tracking-[-0.02em] sm:text-[28px]">{title}</h1>
         {subtitle && <p className="mt-1.5 text-sm text-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
@@ -82,5 +82,5 @@ export function EmptyState({ title, icon, children }: { title: string; icon?: Re
 }
 
 /** Input look without a width, for inputs sized by their container. */
-export const inputBase = 'rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none transition-shadow focus:border-accent focus:ring-[3px] focus:ring-accent/15'
+export const inputBase = 'm-ink rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent/45'
 export const inputClass = `${inputBase} w-full`

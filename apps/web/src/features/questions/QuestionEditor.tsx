@@ -237,7 +237,7 @@ function AnswerEditor({ q, setAnswer }: { q: DraftQuestion; setAnswer: (patch: P
     setAnswer({ values: q.options.map((o) => o.label).filter((l) => values.includes(l)) })
   }
   const pick = (on: boolean) =>
-    `m-press h-9 min-w-10 rounded-lg px-3 text-sm font-medium ${on ? 'bg-accent text-white shadow-[0_6px_16px_-8px_var(--color-accent)]' : 'bg-ink/[0.045] text-ink/80 hover:bg-ink/[0.08]'}`
+    `m-press h-9 min-w-10 rounded-lg px-3 text-sm font-medium ${on ? 'bg-accent text-on-accent shadow-[0_6px_16px_-8px_var(--color-accent)]' : 'bg-ink/[0.045] text-ink/80 hover:bg-ink/[0.08]'}`
 
   let body: ReactNode
   let more: ReactNode = null

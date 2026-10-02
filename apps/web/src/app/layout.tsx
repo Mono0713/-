@@ -3,10 +3,15 @@ import localFont from 'next/font/local'
 import { BRAND, brandTagline } from '@/shared/brand/brand'
 import { Header } from '@/shared/chrome/Header'
 import { Sidebar } from '@/shared/chrome/Sidebar'
+import { THEME_SCRIPT } from '@/shared/theme/theme'
+import '@fontsource/lxgw-wenkai-tc/400.css'
 import './globals.css'
 
-// Inter and JetBrains Mono (both SIL Open Font License), served from the app itself.
-const inter = localFont({ src: './fonts/inter-latin-wght-normal.woff2', variable: '--font-inter', weight: '100 900', display: 'swap' })
+// Atkinson Hyperlegible Next (body), Bricolage Grotesque (headings, numbers), JetBrains Mono (code) and
+// LXGW WenKai TC (handwritten notes), all SIL Open Font License and served from the app itself.
+// Chinese body text uses the system's own font.
+const body = localFont({ src: './fonts/atkinson-hyperlegible-next-latin-wght-normal.woff2', variable: '--font-body', weight: '200 800', display: 'swap' })
+const bricolage = localFont({ src: './fonts/bricolage-grotesque-latin-wght-normal.woff2', variable: '--font-bricolage', weight: '200 800', display: 'swap' })
 const mono = localFont({ src: './fonts/jetbrains-mono-latin-500-normal.woff2', variable: '--font-jbmono', weight: '500', display: 'swap' })
 
 export const metadata: Metadata = {
@@ -16,7 +21,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-Hant" className={`${inter.variable} ${mono.variable}`}>
+    <html lang="zh-Hant" className={`${body.variable} ${bricolage.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Applies the saved light/dark choice before the first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-screen font-sans antialiased">
         <div className="xl:flex">
           <Sidebar />

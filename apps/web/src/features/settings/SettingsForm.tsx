@@ -6,6 +6,7 @@ import { IconCheck, IconKey, IconRefresh } from '@/shared/icons'
 import { Badge, Button, Card, inputClass } from '@/shared/ui'
 import { refreshModels, removeApiKey, saveAiGrading, saveApiKey, saveDefaultProvider, saveLocale, saveModel } from './actions'
 import { ModelPicker } from './ModelPicker'
+import { ThemePicker } from '@/shared/theme/ThemePicker'
 
 export interface KeyInfo {
   source: 'settings' | 'env' | null
@@ -56,6 +57,9 @@ export function SettingsForm({
             ))}
           </select>
         </Row>
+        <Row label="外觀" hint="淺色或深色。只記在這個瀏覽器裡。">
+          <ThemePicker />
+        </Row>
         <Row label="預設辨識方式" hint="匯入考卷時先選好的方式，每次上傳仍可以改。">
           <select defaultValue={defaultProvider} onChange={(e) => run(() => saveDefaultProvider(e.target.value))} className={inputClass}>
             {providers.map((p) => (
@@ -81,9 +85,12 @@ export function SettingsForm({
         ))}
       </Section>
 
-      <p aria-live="polite" className={`fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-night px-4 py-2 text-sm text-white shadow-lg transition-all duration-300 ${saved ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0'}`}>
-        <IconCheck size={15} /> 已儲存
-      </p>
+      {/* a sticky note: stuck on when saved, peeled off a moment later */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center">
+        <p aria-live="polite" data-show={saved || undefined} className="m-sticky relative flex items-center gap-1.5 px-4 pb-2.5 pt-2">
+          <IconCheck size={15} /> 已儲存
+        </p>
+      </div>
     </div>
   )
 }

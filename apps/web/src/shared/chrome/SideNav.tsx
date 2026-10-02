@@ -29,7 +29,7 @@ export function SideNav() {
           className="absolute inset-x-3 rounded-lg bg-white/[0.08]"
           style={{ top: bar.top, height: bar.height, transition: ready ? 'top 460ms var(--m-spring)' : 'none' }}
         >
-          <span className="bg-brand absolute inset-y-2 left-0 w-[3px] rounded-full" />
+          <span className="bg-night-accent absolute inset-y-2 left-0 w-[3px] rounded-full" />
         </span>
       )}
       {NAV.map((item, i) => {
@@ -45,7 +45,7 @@ export function SideNav() {
             aria-current={on ? 'page' : undefined}
             className={`m-press relative flex items-center gap-3 rounded-lg px-3 py-2.5 ${on ? 'font-medium text-white' : 'hover:text-white'} ${on && !bar ? 'bg-white/[0.08]' : ''}`}
           >
-            <I size={18} strokeWidth={1.9} className={on ? 'text-[#9DA8FF]' : 'opacity-70'} />
+            <I size={18} strokeWidth={1.9} className={on ? 'text-night-accent' : 'opacity-70'} />
             {item.label}
           </Link>
         )
@@ -55,9 +55,9 @@ export function SideNav() {
 }
 
 const DOT: Record<ImportRecord['status'], string> = {
-  processing: 'bg-[#6C7BFF] animate-pulse',
-  waiting: 'bg-amber-400',
-  review: 'bg-amber-400',
+  processing: 'bg-night-accent animate-pulse',
+  waiting: 'bg-hl',
+  review: 'bg-hl',
   saved: 'bg-emerald-400',
   failed: 'bg-red-400',
 }

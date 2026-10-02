@@ -1,6 +1,7 @@
 import type { DraftQuestion } from '@exam/core'
 import { FigureView } from '@/shared/FigureView'
-import { IconAlert, IconCheck } from '@/shared/icons'
+import { IconAlert } from '@/shared/icons'
+import { ConfirmNote } from './ConfirmNote'
 import { CONFIDENCE_LABELS, TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
 import { splitNumber } from '@/shared/questionNumber'
@@ -87,7 +88,7 @@ export function QuestionView({ q, compact = false, actions, onConfirm }: { q: Dr
       )}
 
       {!compact && (q.issues.length > 0 || (onConfirm && flagged)) && (
-        <div className="flex flex-wrap items-start gap-x-3 gap-y-2 rounded-xl bg-warn-soft px-3 py-2.5 text-sm">
+        <ConfirmNote onConfirm={onConfirm}>
           {/* One line high, so the icon centres on the first line of the note. */}
           <span className="flex h-[1.625em] shrink-0 items-center">
             <IconAlert size={16} className="text-warn" aria-label="請確認" />
@@ -95,18 +96,7 @@ export function QuestionView({ q, compact = false, actions, onConfirm }: { q: Dr
           <div className="min-w-0 flex-1 basis-48 space-y-1 leading-relaxed text-ink/80">
             {q.issues.length ? q.issues.map((issue, i) => <Markdown key={i}>{issue}</Markdown>) : <p>模型對這題的辨識沒有把握，請對照原卷檢查。</p>}
           </div>
-          {onConfirm && (
-            <button
-              type="button"
-              onClick={onConfirm}
-              className="m-press ml-auto flex h-8 shrink-0 items-center gap-1 rounded-lg bg-surface px-2.5 text-xs font-medium text-good shadow-sheet hover:bg-good-soft"
-              title="內容沒問題：移除這個提示"
-            >
-              <IconCheck size={14} strokeWidth={2.6} />
-              沒問題
-            </button>
-          )}
-        </div>
+        </ConfirmNote>
       )}
     </div>
   )

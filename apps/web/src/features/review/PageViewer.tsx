@@ -1,7 +1,7 @@
 'use client'
 
 import { untangleBoxes, type DraftQuestion } from '@exam/core'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { fileUrl } from '@/shared/files'
 import { IconChevronLeft, IconChevronRight, IconExternal, IconLoader, IconMinus, IconPlus } from '@/shared/icons'
 
@@ -125,23 +125,21 @@ export function PageViewer({
                 </div>
               )}
               {loaded[page.pageNumber] === 'ok' &&
-                boxes.flatMap((q, index) =>
-                  q.locations
-                    .filter((l) => l.pageNumber === page.pageNumber)
-                    .map((l, i) => (
-                      <button
-                        key={`${index}-${i}`}
-                        type="button"
-                        data-q={index}
-                        onClick={() => onSelect(index)}
-                        title={`第 ${questions[index]!.number} 題`}
-                        className={`absolute rounded-sm transition-colors ${
-                          index === selected ? 'bg-accent/15 ring-2 ring-accent' : 'ring-1 ring-accent/0 hover:bg-accent/5 hover:ring-accent/40'
-                        }`}
-                        style={{ left: `${l.bbox.x * 100}%`, top: `${l.bbox.y * 100}%`, width: `${l.bbox.width * 100}%`, height: `${l.bbox.height * 100}%` }}
-                      />
-                    )),
-              )}
+                boxes
+                  .flatMap((q, index) => q.locations.filter((l) => l.pageNumber === page.pageNumber).map((l, i) => ({ l, i, index })))
+                  .map(({ l, i, index }, order) => (
+                    <button
+                      key={`${index}-${i}`}
+                      type="button"
+                      data-q={index}
+                      onClick={() => onSelect(index)}
+                      title={`第 ${questions[index]!.number} 題`}
+                      style={{ '--i': order, left: `${l.bbox.x * 100}%`, top: `${l.bbox.y * 100}%`, width: `${l.bbox.width * 100}%`, height: `${l.bbox.height * 100}%` } as CSSProperties}
+                      className={`m-found absolute rounded-sm transition-colors ${
+                        index === selected ? 'bg-accent/15 ring-2 ring-accent' : 'ring-1 ring-accent/0 hover:bg-accent/5 hover:ring-accent/40'
+                      }`}
+                    />
+                  ))}
               {pages.length > 1 && (
                 <span className="num pointer-events-none absolute left-2 top-2 rounded-md bg-night/70 px-1.5 py-0.5 text-[11px] text-white backdrop-blur">{page.pageNumber}</span>
               )}

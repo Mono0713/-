@@ -35,7 +35,7 @@ export function FigureView({
             ) : (
               <span className="relative block h-full w-full rounded-sm ring-1 ring-accent/60">
                 {answers?.[i] ? (
-                  <span className="absolute -right-2 -top-2.5 rounded bg-accent px-1.5 text-xs font-semibold text-white shadow-sm">{answers[i]}</span>
+                  <span className="absolute -right-2 -top-2.5 rounded bg-accent px-1.5 text-xs font-semibold text-on-accent shadow-sm">{answers[i]}</span>
                 ) : null}
               </span>
             )}

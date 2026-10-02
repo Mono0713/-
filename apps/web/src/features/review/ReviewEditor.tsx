@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
 import { QuestionView } from '@/features/questions/QuestionView'
+import { Glide } from '@/shared/motion/Glide'
 import { Fab, type FabAction } from '@/shared/chrome/Fab'
 import { FigureView } from '@/shared/FigureView'
 import { Menu, menuItem } from '@/shared/chrome/Menu'
@@ -38,6 +39,7 @@ import { Badge, Button, inputClass } from '@/shared/ui'
 import { publishDraft, saveDraft } from './actions'
 import { PageViewer } from './PageViewer'
 import { splitNumber, splitParts } from './parts'
+import { DragTilt } from '@/shared/motion/DragTilt'
 import { alongList, dropAnimation, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 
 type SaveState = 'saved' | 'dirty' | 'saving'
@@ -376,7 +378,7 @@ export function ReviewEditor({
                   const shown = cluster.items.filter((i) => !flaggedOnly || isFlagged(draft.questions[i]!))
                   if (!shown.length) return null
                   const tone = (i: number) =>
-                    selected === i ? 'bg-accent text-white' : isFlagged(draft.questions[i]!) ? 'bg-warn-soft text-warn hover:bg-amber-100' : 'text-muted hover:bg-ink/[0.05] hover:text-ink'
+                    selected === i ? 'bg-accent text-on-accent' : isFlagged(draft.questions[i]!) ? 'bg-warn-soft text-warn hover:bg-hl/40' : 'text-muted hover:bg-ink/[0.05] hover:text-ink'
                   if (cluster.part === null)
                     return (
                       <button
@@ -386,9 +388,9 @@ export function ReviewEditor({
                         title={isFlagged(draft.questions[shown[0]!]!) ? '待確認' : undefined}
                         className={`num h-7 min-w-7 shrink-0 rounded-md px-1.5 text-xs transition-colors ${
                           selected === shown[0]
-                            ? 'bg-accent text-white'
+                            ? 'bg-accent text-on-accent'
                             : isFlagged(draft.questions[shown[0]!]!)
-                              ? 'bg-warn-soft text-warn hover:bg-amber-100'
+                              ? 'bg-warn-soft text-warn hover:bg-hl/40'
                               : 'bg-surface text-muted shadow-sheet hover:text-ink'
                         }`}
                       >
@@ -418,7 +420,7 @@ export function ReviewEditor({
                 aria-pressed={flaggedOnly}
                 aria-label={`${flagged} 題待確認`}
                 title={flaggedOnly ? `顯示全部題目` : `${flagged} 題待確認：點一下只看這些`}
-                className={`m-press flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${flaggedOnly ? 'bg-amber-400 text-night' : 'bg-warn-soft text-warn hover:bg-amber-100'}`}
+                className={`m-press flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${flaggedOnly ? 'bg-hl text-night' : 'bg-warn-soft text-warn hover:bg-hl/40'}`}
               >
                 <IconAlert size={14} strokeWidth={2.4} />
                 <span className="num">{flagged}</span>
@@ -567,7 +569,7 @@ export function ReviewEditor({
                               dragging ? 'h-14 overflow-hidden !bg-accent-soft/60 !p-0 outline-2 -outline-offset-2 outline-dashed outline-accent/35 [&>*]:invisible' : 'shadow-sheet'
                             } ${selected === index && !dragging ? 'ring-2 ring-accent/70' : ''}`}
                           >
-                            {isFlagged(q) && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-amber-400" />}
+                            {isFlagged(q) && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-hl" />}
                             {isEditing ? (
                               <QuestionEditor
                                 value={q}
@@ -654,15 +656,17 @@ const SAVE_LABELS: Record<SaveState, string> = { saved: '草稿已自動儲存',
 /** The compact copy of a card that follows the pointer while it is dragged. */
 function DragPreview({ q }: { q: DraftQuestion }) {
   return (
-    <div
-      data-drag-overlay
-      className="m-scale-in flex h-14 cursor-grabbing items-center gap-3 rounded-2xl bg-surface px-4 shadow-[0_24px_48px_-16px_rgb(22_24_43/0.4),0_0_0_1px_rgb(22_24_43/0.08)]"
-    >
-      <span className="num text-lg leading-none">{q.number}.</span>
-      <Badge>{TYPE_LABELS[q.type]}</Badge>
-      <span className="min-w-0 flex-1 truncate text-sm text-muted">{preview(q.stem)}</span>
-      <IconGrip size={16} className="shrink-0 text-accent" />
-    </div>
+    <DragTilt>
+      <div
+        data-drag-overlay
+        className="m-scale-in flex h-14 cursor-grabbing items-center gap-3 rounded-2xl bg-surface px-4 shadow-[0_24px_48px_-16px_rgb(22_24_43/0.4),0_0_0_1px_rgb(22_24_43/0.08)]"
+      >
+        <span className="num text-lg leading-none">{q.number}.</span>
+        <Badge>{TYPE_LABELS[q.type]}</Badge>
+        <span className="min-w-0 flex-1 truncate text-sm text-muted">{preview(q.stem)}</span>
+        <IconGrip size={16} className="shrink-0 text-accent" />
+      </div>
+    </DragTilt>
   )
 }
 
@@ -724,6 +728,7 @@ function Outline({
         </p>
         <DndContext id="review-outline" sensors={sensors} collisionDetection={underPointer} modifiers={[alongList]} measuring={listMeasuring} onDragEnd={onDragEnd}>
           <SortableContext items={visibleKeys} strategy={verticalListSortingStrategy}>
+            <Glide>
             <ol className="space-y-px">
               {questions.map((q, index) => {
                 if (flaggedOnly && !isFlagged(q)) return null
@@ -739,14 +744,15 @@ function Outline({
                           {...handle}
                           onClick={() => onSelect(index)}
                           title="點一下跳到這題，拖曳可以排序"
-                          className={`flex w-full touch-manipulation items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13px] ${
-                            dragging ? 'bg-surface text-ink shadow-[0_12px_28px_-10px_rgb(22_24_43/0.35),0_0_0_1px_rgb(22_24_43/0.08)]' : on ? 'bg-surface text-ink shadow-sheet' : 'text-muted hover:bg-ink/[0.04] hover:text-ink'
+                          data-glide
+                          className={`relative flex w-full touch-manipulation items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13px] ${
+                            dragging ? 'bg-surface text-ink shadow-[0_12px_28px_-10px_rgb(22_24_43/0.35),0_0_0_1px_rgb(22_24_43/0.08)]' : on ? 'bg-surface text-ink shadow-sheet' : 'text-muted hover:text-ink'
                           }`}
                         >
                           <span className={`num w-6 shrink-0 text-right text-[12px] ${on ? 'text-accent' : ''}`}>{q.number}</span>
                           <span className="min-w-0 flex-1 truncate">{preview(q.stem) || TYPE_LABELS[q.type]}</span>
                           {isFlagged(q) ? (
-                            <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" title="待確認" />
+                            <span className="h-2 w-2 shrink-0 rounded-full bg-hl" title="待確認" />
                           ) : (
                             <IconCheck size={13} strokeWidth={2.6} className="shrink-0 text-good/70" aria-label="已確認" />
                           )}
@@ -757,6 +763,7 @@ function Outline({
                 )
               })}
             </ol>
+            </Glide>
           </SortableContext>
         </DndContext>
         <button type="button" onClick={onAdd} className="m-press mt-2 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-muted hover:bg-ink/[0.04] hover:text-accent">

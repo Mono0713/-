@@ -20,7 +20,7 @@
 @keyframes m-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
 @keyframes m-slide-next { from { opacity: 0; transform: translateX(28px); } }
 @keyframes m-slide-prev { from { opacity: 0; transform: translateX(-28px); } }
-@keyframes m-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes m-draw { from { stroke-dashoffset: 1.02; } to { stroke-dashoffset: 0; } }
 @keyframes m-float { 50% { transform: translateY(-5px); } }
 @keyframes m-spin { to { transform: rotate(360deg); } }
 @keyframes m-shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
@@ -50,7 +50,7 @@
 .m-shake { animation: m-shake 420ms var(--m-ease-out); }
 .m-float { animation: m-float 3.2s ease-in-out infinite; }
 .m-spin { animation: m-spin 0.8s linear infinite; }
-.m-draw { stroke-dasharray: 1; animation: m-draw var(--m-slow) var(--m-ease-out) 80ms both; }
+.m-draw { stroke-dasharray: 1 2; animation: m-draw var(--m-slow) var(--m-ease-out) 80ms both; }
 
 /* interaction */
 .m-press {
@@ -76,15 +76,189 @@
 /* loading placeholder */
 .m-skeleton {
   border-radius: 0.5rem;
-  background: linear-gradient(90deg, var(--color-line) 25%, color-mix(in srgb, var(--color-line) 40%, white) 50%, var(--color-line) 75%) 0 0 / 200% 100%;
+  background: linear-gradient(90deg, var(--color-line) 25%, color-mix(in srgb, var(--color-line) 40%, var(--color-surface)) 50%, var(--color-line) 75%) 0 0 / 200% 100%;
   animation: m-shimmer 1.4s linear infinite;
 }
 
-/* the logo loop turns once when its link is hovered */
-.m-logo-loop { transform-box: view-box; transform-origin: 43px 43px; transition: transform 700ms var(--m-spring); }
-@media (hover: hover) {
-  .m-logo:hover .m-logo-loop { transform: rotate(-360deg); }
+/*
+ * Study-desk motion (see DESIGN.md "Motion"). Borrowed rhythms, drawn with pen and paper:
+ * highlighter sweep (Apple Notes), pen marks (Duolingo), pressable buttons (Duolingo),
+ * rolling digits (Stripe), sticky-note toast (Raycast), erase on confirm (Things 3),
+ * pencil-sketch loading (Linear's skeletons, redrawn).
+ */
+@keyframes m-sweep { from { background-size: 0% 100%; } to { background-size: 100% 100%; } }
+@keyframes m-nudge { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+@keyframes m-stick { from { opacity: 0; transform: translateY(-22px) rotate(-8deg); } }
+@keyframes m-sketch { 0% { stroke-dashoffset: 1.02; opacity: 1; } 55%, 80% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+
+/* highlighter swept left to right over .hl / .hl-md text when it appears */
+:is(.hl, .hl-md > p).m-sweep,
+.m-sweep.hl-md > p {
+  background-repeat: no-repeat;
+  animation: m-sweep 520ms var(--m-ease-out) 120ms backwards;
 }
+
+/* pen strokes: an SVG path with pathLength="1" draws itself (.m-pen-late waits for the first stroke).
+   The dash gap is twice the path and starts just past 1, so a round cap never peeks out before drawing. */
+.m-pen { stroke-dasharray: 1 2; animation: m-draw 560ms var(--m-ease-out) both; }
+.m-pen-late { animation-delay: 360ms; animation-duration: 380ms; }
+.m-nudge { animation: m-nudge 360ms ease 60ms; }
+
+/* buttons that press down: the bottom edge is a solid "depth" that collapses while held */
+.m-push { box-shadow: 0 3px 0 var(--m-depth, var(--color-accent-deep)); }
+.m-push.m-press:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 var(--m-depth, var(--color-accent-deep)); transition-duration: 70ms; }
+.m-push-quiet { --m-depth: var(--color-line); box-shadow: 0 0 0 1px var(--color-line), 0 2px 0 var(--m-depth); }
+.m-push-quiet.m-press:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 1px var(--color-line), 0 0 0 var(--m-depth); }
+
+/* rolling digits (shared/motion/Odometer.tsx): each column slides to its digit with a spring */
+.m-odo-col { display: inline-block; height: 1em; line-height: 1; overflow: hidden; vertical-align: top; }
+.m-odo-col > span { display: block; transition: transform 900ms var(--m-spring); }
+.m-odo-col > span > span { display: block; height: 1em; }
+
+/* a sticky note that is stuck on, then peeled off (data-show toggles it) */
+.m-sticky {
+  font-family: var(--font-hand); font-size: 17px; color: #3a3200; background: #fff48a;
+  box-shadow: 0 10px 18px -12px rgb(0 0 0 / 0.45);
+  opacity: 0; transform: translateY(-12px) rotate(5deg); pointer-events: none;
+  transition: opacity 260ms ease-in, transform 360ms ease-in;
+}
+.m-sticky::before {
+  content: ''; position: absolute; left: 50%; top: -7px; width: 48px; height: 14px; translate: -50% 0; rotate: 3deg;
+  background: rgb(255 255 255 / 0.55); box-shadow: 0 0 0 1px rgb(0 0 0 / 0.05);
+}
+.m-sticky[data-show] { opacity: 1; transform: rotate(-2deg); transition: opacity 200ms ease-out, transform 620ms var(--m-spring); }
+
+/* confirming a note: its highlight is erased right to left, then the note folds away */
+.m-erase {
+  background-image: linear-gradient(var(--color-warn-soft), var(--color-warn-soft));
+  background-repeat: no-repeat; background-position: 100% 0; background-size: 100% 100%;
+  transition: background-size 420ms var(--m-ease-out), opacity 260ms ease 300ms, transform 260ms ease 300ms;
+}
+.m-erase[data-erasing] { background-size: 0% 100%; opacity: 0; transform: translateY(-4px); }
+
+/* phone action sheet (shared/chrome/Fab.tsx): slides up with a spring, rows follow one by one */
+.m-sheet { transform: translateY(105%); transition: transform 520ms var(--m-spring); }
+.m-fab[data-open] .m-sheet { transform: none; }
+.m-sheet li { opacity: 0; transform: translateY(8px); transition: opacity 200ms, transform 360ms var(--m-spring); }
+.m-fab[data-open] .m-sheet li { opacity: 1; transform: none; transition-delay: calc(var(--i) * 30ms + 80ms); }
+
+/* pencil-sketch loading lines (shared/motion/Sketch.tsx) */
+.m-sketch path {
+  fill: none; stroke: var(--color-muted); stroke-opacity: 0.45; stroke-width: 2.2; stroke-linecap: round;
+  stroke-dasharray: 1 2; stroke-dashoffset: 1.02; animation: m-sketch 1.6s var(--m-ease-out) infinite;
+}
+
+/* the curled corner springs a little tighter when the logo link is hovered */
+.m-logo-loop { transform-box: fill-box; transform-origin: center; transition: transform 600ms var(--m-spring); }
+@media (hover: hover) {
+  .m-logo:hover .m-logo-loop { transform: translate(-1.5px, -1.5px) scale(1.16); }
+}
+
+/*
+ * Second batch (see DESIGN.md "Motion", 10 to 19): page turn (Apple Books), full-marks stamp,
+ * drag tilt (Trello), scan (Apple Notes), pencil progress (Stripe), pen checkboxes (Things 3),
+ * last-minute timer (Duolingo), card corner curl (iBooks and the logo), punch confetti, pen underline (Linear).
+ */
+
+/* page turn (features/quiz/QuizPlayer.tsx): the old question is an opaque page that turns away to
+   the left over the new one; going back, the earlier page turns back in from the left */
+@keyframes m-turn-out { to { transform: rotateY(-92deg); box-shadow: 24px 0 30px -18px rgb(0 0 0 / 0.35); } }
+@keyframes m-turn-in { from { transform: rotateY(-92deg); } }
+@keyframes m-shade-in { from { opacity: 0; } }
+@keyframes m-shade-out { to { opacity: 0; } }
+.m-turn-out { z-index: 2; transform-origin: left center; backface-visibility: hidden; border-radius: 1rem; animation: m-turn-out 560ms cubic-bezier(0.45, 0, 0.2, 1) forwards; }
+.m-turn-out::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(to left, rgb(0 0 0 / 0.12), transparent 60%); animation: m-shade-in 560ms ease-in backwards;
+}
+.m-turn-under { position: relative; }
+.m-turn-under::before {
+  content: ''; position: absolute; inset: 0; z-index: 1; border-radius: 1rem; pointer-events: none;
+  background: rgb(0 0 0 / 0.08); animation: m-shade-out 560ms ease-out forwards;
+}
+.m-turn-back { transform-origin: left center; animation: m-turn-in 520ms var(--m-ease-out) backwards; }
+
+/* last minute of a timed exam: the clock beats once a second and its colon blinks */
+@keyframes m-beat { 0% { transform: scale(1.04); } 30%, 100% { transform: scale(1); } }
+@keyframes m-blink { 50% { opacity: 0.25; } }
+.m-last-minute { animation: m-beat 1s var(--m-ease-out) infinite; }
+.m-last-minute .m-colon { animation: m-blink 1s steps(1) infinite; }
+
+/* full marks: the teacher's red stamp lands and its ink spreads a little */
+@keyframes m-stamp { 0% { opacity: 0; transform: scale(1.9); } 55% { opacity: 1; transform: scale(0.92); } 100% { opacity: 0.92; transform: scale(1); } }
+@keyframes m-ink-spread { from { opacity: 0.5; transform: scale(0.9); } to { opacity: 0; transform: scale(1.35); } }
+.m-stamp {
+  display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; rotate: -14deg;
+  border: 3px solid var(--color-pen); box-shadow: inset 0 0 0 4px var(--color-surface), inset 0 0 0 6px var(--color-pen);
+  color: var(--color-pen); font-family: var(--font-hand); font-size: 26px; line-height: 1;
+  animation: m-stamp 520ms cubic-bezier(0.2, 0.9, 0.3, 1.2) 500ms both;
+}
+.m-stamp::after {
+  content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--color-pen);
+  animation: m-ink-spread 600ms ease-out 760ms both;
+}
+
+/* scan (features/imports/Scan.tsx): a line passes down the page while the model reads it */
+@keyframes m-scan-bar { 0% { opacity: 1; top: -20px; } 70% { opacity: 1; top: 100%; } 71%, 100% { opacity: 0; top: 100%; } }
+.m-scan-bar {
+  position: absolute; inset-inline: 0; top: -20px; height: 18px; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-accent) 35%, transparent));
+  border-bottom: 2px solid var(--color-accent); animation: m-scan-bar 2.2s var(--m-ease-out) infinite;
+}
+/* ...and when the editor opens, the questions found on each page are boxed one by one
+   (features/review/PageViewer.tsx; --i is the box's order on its page) */
+@keyframes m-found {
+  0% { outline-color: transparent; transform: scale(1.06); }
+  20% { outline-color: var(--color-accent); transform: scale(1); }
+  70% { outline-color: var(--color-accent); }
+  100% { outline-color: transparent; }
+}
+.m-found { outline: 2px solid transparent; outline-offset: 1px; animation: m-found 1.4s var(--m-ease-out) calc(var(--i, 0) * 140ms + 250ms) backwards; }
+
+/* pen checkbox (input.m-check): ticked in ballpoint, the tick drawn left to right; unticking is quick */
+.m-check {
+  appearance: none; position: relative; display: inline-grid; place-items: center; width: 18px; height: 18px; flex-shrink: 0;
+  border: 2px solid var(--color-line); border-radius: 5px; background: var(--color-surface); cursor: pointer;
+  transition: border-color 140ms, transform 240ms var(--m-spring);
+}
+.m-check::before {
+  content: ''; width: 14px; height: 14px; background: var(--color-accent);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5 6.5 12 13 4' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  clip-path: inset(0 100% 0 0); transition: clip-path 120ms ease-in;
+}
+.m-check:checked, .m-check:indeterminate { border-color: var(--color-accent); transform: scale(1.08); }
+.m-check:checked::before { clip-path: inset(0 0 0 0); transition: clip-path 320ms var(--m-ease-out); }
+.m-check:indeterminate::before { mask: none; height: 3px; border-radius: 2px; width: 9px; clip-path: inset(0 0 0 0); transition: clip-path 320ms var(--m-ease-out); }
+.m-check:active { transform: scale(0.9); }
+.m-check:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+
+/* exam card corner (features/bank/ExamCard.tsx): rests slightly curled like the logo, lifts on hover
+   to show "start practising" */
+.m-curl {
+  position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; border-top-left-radius: 100%; pointer-events: none;
+  background: radial-gradient(circle at 100% 100%, var(--color-paper) 0 30%, var(--color-accent-soft) 72%, color-mix(in srgb, var(--color-accent) 30%, var(--color-surface)) 100%);
+  box-shadow: -3px -3px 6px -2px rgb(0 0 0 / 0.18); transition: width 460ms var(--m-spring), height 460ms var(--m-spring);
+}
+.m-curl-label { opacity: 0; transform: translateX(10px); transition: opacity 200ms, transform 360ms var(--m-spring); }
+.m-curl-host:is(:hover, :focus-within) .m-curl { width: 48px; height: 48px; }
+.m-curl-host:is(:hover, :focus-within) .m-curl-label { opacity: 1; transform: none; transition-delay: 80ms; }
+@media (hover: none) {
+  .m-curl-label { opacity: 1; transform: none; }
+}
+
+/* pen underline on text fields (inputBase): a ballpoint line is drawn left to right on focus and
+   pulled back on blur. The image is twice the field's width with the line in its left half, so at
+   rest only the empty half shows and no cap is left behind. Colors match --color-accent. */
+:root { --m-ink-line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 520 5' preserveAspectRatio='none'%3E%3Cpath d='M7 2.6C60 1.4 140 3.8 253 2' fill='none' stroke='%232f4bff' stroke-width='2.2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E"); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) { --m-ink-line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 520 5' preserveAspectRatio='none'%3E%3Cpath d='M7 2.6C60 1.4 140 3.8 253 2' fill='none' stroke='%237d93ff' stroke-width='2.2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E"); }
+}
+:root[data-theme='dark'] { --m-ink-line: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 520 5' preserveAspectRatio='none'%3E%3Cpath d='M7 2.6C60 1.4 140 3.8 253 2' fill='none' stroke='%237d93ff' stroke-width='2.2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E"); }
+input.m-ink, textarea.m-ink {
+  background-image: var(--m-ink-line); background-repeat: no-repeat; background-size: 200% 5px;
+  background-position: 100% calc(100% - 2px); transition: background-position 200ms ease-in, border-color 200ms;
+}
+input.m-ink:focus, textarea.m-ink:focus { background-position: 0% calc(100% - 2px); transition: background-position 420ms var(--m-ease-out), border-color 200ms; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

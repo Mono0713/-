@@ -4,8 +4,10 @@ import { DeleteImportButton } from '@/features/imports/DeleteImportButton'
 import { StatusBadge } from '@/features/imports/ImportList'
 import { ManualPanel } from '@/features/imports/ManualPanel'
 import { RerunForm } from '@/features/imports/RerunForm'
+import { Scan } from '@/features/imports/Scan'
 import { ReviewEditor } from '@/features/review/ReviewEditor'
 import { availableProviders, services } from '@/server/context'
+import { PencilProgress } from '@/shared/motion/PencilProgress'
 import { Card, PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -33,18 +35,19 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
 
   if (imp.status === 'processing') {
     const { done, total } = imp.progress
+    // pages are read roughly in order, so show the next one still being read
+    const reading = Math.min(done + 1, imp.pageCount)
     return (
       <div>
         <AutoRefresh />
         {header}
-        <Card className="p-6">
-          <p className="font-medium">模型正在讀取頁面…</p>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-paper">
-            <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${total ? (done / total) * 100 : 0}%` }} />
+        <Card className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center">
+          {reading > 0 && <Scan image={importer.pageImage(id, reading)} pageNumber={reading} />}
+          <div className="min-w-0 flex-1 space-y-3">
+            <p className="font-medium">模型正在讀取頁面…</p>
+            <PencilProgress value={total ? done / total : 0} label={`已完成 ${done} / ${total} 頁`} />
+            <p className="text-sm text-muted">遇到免費額度限制時會自動等待後重試，可以先離開這個頁面。</p>
           </div>
-          <p className="mt-2 text-sm text-muted">
-            已完成 {done} / {total} 頁。遇到免費額度限制時會自動等待後重試，可以先離開這個頁面。
-          </p>
         </Card>
       </div>
     )
