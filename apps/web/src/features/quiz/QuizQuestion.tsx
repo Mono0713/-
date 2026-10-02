@@ -144,7 +144,8 @@ export function QuizQuestion({
             // nudged, then the right option gets its tick
             const feedback = !celebrate ? '' : correct && picked ? 'm-pop' : wrong ? 'm-nudge' : ''
             return (
-              <li key={label}>
+              // the red ring reaches past the option's box, so that option sits above the ones after it
+              <li key={label} className={wrong ? 'relative z-10' : undefined}>
                 <button type="button" disabled={locked} onClick={() => toggle(label)} className={`m-press relative flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left text-sm ${tone} ${feedback}`}>
                   <span className={`num shrink-0 font-semibold leading-relaxed ${picked ? 'text-accent' : 'text-muted'}`}>({item.displayLabels[i]})</span>
                   <Markdown className="min-w-0 flex-1">{option?.content ?? ''}</Markdown>
