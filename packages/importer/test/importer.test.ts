@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import sharp from 'sharp'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SqliteBank } from '@exam/bank'
+import { LocalFileStore } from '@exam/files'
 import { registerProvider } from '@exam/extraction'
 import { Importer } from '../src/index.ts'
 import { page, question } from '../../core/test/fixtures.ts'
@@ -24,10 +25,10 @@ const png = () => sharp({ create: { width: 200, height: 300, channels: 3, backgr
 beforeEach(async () => {
   dataDir = await mkdtemp(join(tmpdir(), 'importer-'))
   bank = new SqliteBank(':memory:')
-  importer = new Importer({ bank, dataDir })
+  importer = new Importer({ bank, files: new LocalFileStore(dataDir) })
 })
 afterEach(async () => {
-  bank.close()
+  await bank.close()
   await rm(dataDir, { recursive: true, force: true })
 })
 
@@ -37,13 +38,13 @@ describe('Importer', () => {
     expect(imp.pageCount).toBe(2)
     await importer.settled(imp.id)
 
-    expect(bank.getImport(imp.id)).toMatchObject({ status: 'review', progress: { done: 2, total: 2 } })
-    const draft = bank.getDraft(imp.id)!
+    expect(await bank.getImport(imp.id)).toMatchObject({ status: 'review', progress: { done: 2, total: 2 } })
+    const draft = (await bank.getDraft(imp.id))!
     expect(draft.questions).toHaveLength(2)
     expect(draft.questions[0]!.locations[0]!.pageNumber).toBe(1)
 
-    importer.publish(imp.id, draft)
-    expect(bank.getImport(imp.id)).toMatchObject({ status: 'saved', questionCount: 2 })
+    await importer.publish(imp.id, draft)
+    expect(await bank.getImport(imp.id)).toMatchObject({ status: 'saved', questionCount: 2 })
   })
 
   it('crops a figure again with its blanks switched to pencil mode', async () => {
@@ -68,17 +69,18 @@ describe('Importer', () => {
     const imp = await importer.create({ ownerId: 'local', files: [{ name: 'p1.png', data: await png() }], provider: 'fake' })
     await importer.settled(imp.id)
     const figure = await importer.recropFigure(imp.id, { description: 'd', pageNumber: 1, bbox: { x: 0, y: 0, width: 1, height: 1 }, blanks: [], image: null })
-    importer.publish(imp.id, bank.getDraft(imp.id)!)
+    await importer.publish(imp.id, (await bank.getDraft(imp.id))!)
     await importer.remove(imp.id)
-    expect(bank.getImport(imp.id)).toBeNull()
+    expect(await bank.getImport(imp.id)).toBeNull()
     expect(existsSync(join(dataDir, figure.image!.file))).toBe(true)
-    expect(existsSync(join(dataDir, importer.pageImage(imp.id, 1)))).toBe(false)
+    expect(existsSync(join(dataDir, importer.pageImage(imp, 1)))).toBe(false)
+    expect(existsSync(join(dataDir, 'imports', imp.id, 'results.json'))).toBe(false)
   })
 
   it('waits for pasted chat replies in manual mode', async () => {
     const imp = await importer.create({ ownerId: 'local', files: [{ name: 'a.png', data: await png() }, { name: 'b.png', data: await png() }], provider: 'manual' })
     await importer.settled(imp.id)
-    expect(bank.getImport(imp.id)?.status).toBe('waiting')
+    expect((await bank.getImport(imp.id))?.status).toBe('waiting')
 
     const state = await importer.manualState(imp.id)
     expect(state.pages.map((p) => [p.pageNumber, p.done, Boolean(p.prompt)])).toEqual([[1, false, true], [2, false, true]])
@@ -88,20 +90,30 @@ describe('Importer', () => {
 
     await importer.submitManualReply(imp.id, 1, '```json\n' + JSON.stringify(page([question()])) + '\n```')
     await importer.settled(imp.id)
-    expect(bank.getImport(imp.id)?.status).toBe('waiting')
+    expect((await bank.getImport(imp.id))?.status).toBe('waiting')
     expect((await importer.manualState(imp.id)).pages.map((p) => p.done)).toEqual([true, false])
 
     await importer.submitManualReply(imp.id, 'batch', JSON.stringify({ pages: [{ pageNumber: 2, result: page([question({ number: '2' })]) }] }))
     await importer.settled(imp.id)
-    expect(bank.getImport(imp.id)?.status).toBe('review')
-    expect(bank.getDraft(imp.id)!.questions.map((q) => q.number)).toEqual(['1', '2'])
+    expect((await bank.getImport(imp.id))?.status).toBe('review')
+    expect((await bank.getDraft(imp.id))!.questions.map((q) => q.number)).toEqual(['1', '2'])
+  })
+
+  it('keeps each owner\'s files under their own prefix', async () => {
+    const shared = new Importer({ bank, files: new LocalFileStore(dataDir), keyPrefix: (owner) => `u/${owner}/` })
+    const imp = await shared.create({ ownerId: 'alice', files: [{ name: 'a.png', data: await png() }], provider: 'fake' })
+    await shared.settled(imp.id)
+    expect(shared.pageImage(imp, 1)).toBe(`u/alice/imports/${imp.id}/pages/page-1.png`)
+    const figure = await shared.recropFigure(imp.id, { description: 'd', pageNumber: 1, bbox: { x: 0, y: 0, width: 1, height: 1 }, blanks: [], image: null })
+    expect(figure.image!.file.startsWith(`u/alice/imports/${imp.id}/figures/`)).toBe(true)
+    expect(existsSync(join(dataDir, 'u', 'alice', 'imports', imp.id, 'results.json'))).toBe(true)
   })
 
   it('marks an import failed when no page can be read', async () => {
     registerProvider('broken', () => ({ id: 'broken', model: 'x', complete: async () => ({ text: 'not json', model: 'x', usage: { inputTokens: null, outputTokens: null } }) }))
     const imp = await importer.create({ ownerId: 'local', files: [{ name: 'a.png', data: await png() }], provider: 'broken' })
     await importer.settled(imp.id)
-    expect(bank.getImport(imp.id)).toMatchObject({ status: 'failed' })
-    expect(bank.getImport(imp.id)?.error).toBeTruthy()
+    expect(await bank.getImport(imp.id)).toMatchObject({ status: 'failed' })
+    expect((await bank.getImport(imp.id))?.error).toBeTruthy()
   })
 })

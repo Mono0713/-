@@ -11,11 +11,14 @@ export const dynamic = 'force-dynamic'
 export default async function BankPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams
   const { bank } = services()
-  const owner = currentOwner()
+  const owner = await currentOwner()
   const search = params.q?.trim() || undefined
   const subject = params.subject || undefined
-  const exams = bank.listExams({ ownerId: owner, search, subject })
-  const matches = search ? bank.listQuestions({ ownerId: owner, search, subject, limit: 20 }) : null
+  const [exams, matches, subjects] = await Promise.all([
+    bank.listExams({ ownerId: owner, search, subject }),
+    search ? bank.listQuestions({ ownerId: owner, search, subject, limit: 20 }) : null,
+    bank.subjects(owner),
+  ])
   const empty = !search && !subject && exams.length === 0
 
   return (
@@ -34,7 +37,7 @@ export default async function BankPage({ searchParams }: { searchParams: Promise
           </>
         }
       />
-      <BankFilters subjects={bank.subjects(owner)} values={{ q: params.q, subject: params.subject }} />
+      <BankFilters subjects={subjects} values={{ q: params.q, subject: params.subject }} />
 
       {exams.length === 0 ? (
         <EmptyState title={empty ? '題庫還是空的' : '沒有符合條件的考卷'}>

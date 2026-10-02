@@ -6,6 +6,7 @@ import { ManualPanel } from '@/features/imports/ManualPanel'
 import { RerunForm } from '@/features/imports/RerunForm'
 import { ReviewEditor } from '@/features/review/ReviewEditor'
 import { availableProviders, services } from '@/server/context'
+import { ownedImport } from '@/server/owned'
 import { Card, PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -13,9 +14,9 @@ export const dynamic = 'force-dynamic'
 export default async function ImportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { bank, importer } = services()
-  const imp = bank.getImport(id)
+  const imp = await ownedImport(id)
   if (!imp) notFound()
-  const providers = availableProviders()
+  const providers = await availableProviders(imp.ownerId)
   const current = { provider: imp.provider, model: imp.model }
   const header = (
     <PageHeader
@@ -59,7 +60,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
     )
   }
 
-  const draft = bank.getDraft(id)
+  const draft = await bank.getDraft(id)
   if (imp.status === 'failed' || !draft) {
     return (
       <div>
@@ -76,14 +77,15 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
 
   const results = await importer.pageResults(id)
   const failed = results.filter((r) => !r.page).map((r) => r.pageNumber)
-  const pages = Array.from({ length: imp.pageCount }, (_, i) => ({ pageNumber: i + 1, image: importer.pageImage(id, i + 1) }))
+  const pages = Array.from({ length: imp.pageCount }, (_, i) => ({ pageNumber: i + 1, image: importer.pageImage(imp, i + 1) }))
+  const savedExam = await bank.examForImport(id)
   return (
     <ReviewEditor
         key={id}
         importId={id}
         initial={draft}
         pages={pages}
-        savedExam={bank.examForImport(id)}
+        savedExam={savedExam}
         heading={{
           title: imp.title ?? imp.fileName,
           meta: `${imp.pageCount} 頁 · ${imp.provider === 'manual' ? '手動模式' : imp.provider}${imp.model ? ` / ${imp.model}` : ''}`,

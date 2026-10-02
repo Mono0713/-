@@ -1,35 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
 import type { DraftExam, DraftQuestion, ExamMeta } from '@exam/core'
+import { draftFields, META_KEYS, searchText, type Bank, type ImportPatch } from './bank.ts'
 import type { BankExam, BankQuestion, ExamQuery, ImportRecord, NewImport, QuestionQuery } from './types.ts'
-
-/** Storage for imports, exams and questions. SQLite now; a Postgres version can implement the same interface for hosting. */
-export interface Bank {
-  createImport(input: NewImport): ImportRecord
-  getImport(id: string): ImportRecord | null
-  listImports(ownerId: string): ImportRecord[]
-  updateImport(id: string, patch: Partial<Pick<ImportRecord, 'status' | 'progress' | 'error' | 'title' | 'subject' | 'provider' | 'model'>>): void
-  /** Removes the import; an exam saved from it stays in the bank. */
-  deleteImport(id: string): void
-  getDraft(importId: string): DraftExam | null
-  saveDraft(importId: string, draft: DraftExam): void
-  /** Puts a reviewed draft in the bank as an exam. Saving the same import again replaces that exam's questions. */
-  saveExam(importId: string, draft: DraftExam): BankExam
-  /** The exam an import was saved as, if any. */
-  examForImport(importId: string): BankExam | null
-  listExams(query: ExamQuery): BankExam[]
-  getExam(id: string): BankExam | null
-  updateExam(id: string, meta: Partial<ExamMeta>): BankExam | null
-  /** Deletes the exam and its questions. */
-  deleteExam(id: string): void
-  listQuestions(query: QuestionQuery): { items: BankQuestion[]; total: number }
-  getQuestion(id: string): BankQuestion | null
-  getQuestions(ids: string[]): BankQuestion[]
-  updateQuestion(id: string, question: DraftQuestion): BankQuestion | null
-  deleteQuestion(id: string): void
-  subjects(ownerId: string): string[]
-  close(): void
-}
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS imports (
@@ -81,7 +54,8 @@ CREATE INDEX IF NOT EXISTS questions_owner ON questions (owner_id, created_at);
 
 type Row = Record<string, string | number | null>
 
-export class SqliteBank implements Bank {
+/** The SQLite implementation, synchronous underneath; `SqliteBank` exposes it through the async `Bank` interface. */
+class SqliteBankSync {
   private readonly db: DatabaseSync
 
   /** `path` is a file, or ":memory:" for tests. */
@@ -111,7 +85,7 @@ export class SqliteBank implements Bank {
     return (this.db.prepare(`${IMPORT_SELECT} WHERE i.owner_id = ? ORDER BY i.created_at DESC`).all(ownerId) as Row[]).map(toImport)
   }
 
-  updateImport(id: string, patch: Parameters<Bank['updateImport']>[1]): void {
+  updateImport(id: string, patch: ImportPatch): void {
     const columns: Record<string, string | number | null> = {}
     if (patch.status !== undefined) columns.status = patch.status
     if (patch.progress !== undefined) {
@@ -240,8 +214,7 @@ export class SqliteBank implements Bank {
   }
 
   updateQuestion(id: string, question: DraftQuestion): BankQuestion | null {
-    const q = { ...question } as DraftQuestion & Partial<BankQuestion>
-    for (const key of ['id', 'ownerId', 'examId', 'position', 'subject', 'examTitle', 'createdAt', 'updatedAt'] as const) delete q[key]
+    const q = draftFields(question)
     this.setColumns('questions', id, { type: q.type, search_text: searchText(q), data: JSON.stringify(q) })
     return this.getQuestion(id)
   }
@@ -321,8 +294,6 @@ const EXAM_SELECT = `SELECT e.*, (SELECT COUNT(*) FROM questions q WHERE q.exam_
 const QUESTION_FROM = 'FROM questions q JOIN exams e ON e.id = q.exam_id'
 const QUESTION_SELECT = `SELECT q.id, q.owner_id, q.exam_id, q.position, q.data, q.created_at, q.updated_at, e.title AS exam_title, e.subject ${QUESTION_FROM}`
 
-const META_KEYS = ['title', 'subject', 'institution', 'term', 'language'] as const
-
 function metaColumns(meta: Partial<ExamMeta>): Record<string, string | null> {
   return Object.fromEntries(META_KEYS.filter((k) => meta[k] !== undefined).map((k) => [k, meta[k] ?? null]))
 }
@@ -379,9 +350,33 @@ function toQuestion(row: Row): BankQuestion {
   }
 }
 
-function searchText(q: DraftQuestion): string {
-  return [q.number, q.stem, q.translation, ...q.options.map((o) => o.content), ...q.answer.values, q.explanation]
-    .filter(Boolean)
-    .join('\n')
-    .toLowerCase()
+
+/** Local storage in one SQLite file (or ":memory:" for tests). */
+export class SqliteBank implements Bank {
+  private readonly db: SqliteBankSync
+
+  constructor(path: string) {
+    this.db = new SqliteBankSync(path)
+  }
+
+  async createImport(input: NewImport) { return this.db.createImport(input) }
+  async getImport(id: string) { return this.db.getImport(id) }
+  async listImports(ownerId: string) { return this.db.listImports(ownerId) }
+  async updateImport(id: string, patch: ImportPatch) { this.db.updateImport(id, patch) }
+  async deleteImport(id: string) { this.db.deleteImport(id) }
+  async getDraft(importId: string) { return this.db.getDraft(importId) }
+  async saveDraft(importId: string, draft: DraftExam) { this.db.saveDraft(importId, draft) }
+  async saveExam(importId: string, draft: DraftExam) { return this.db.saveExam(importId, draft) }
+  async examForImport(importId: string) { return this.db.examForImport(importId) }
+  async listExams(query: ExamQuery) { return this.db.listExams(query) }
+  async getExam(id: string) { return this.db.getExam(id) }
+  async updateExam(id: string, meta: Partial<ExamMeta>) { return this.db.updateExam(id, meta) }
+  async deleteExam(id: string) { this.db.deleteExam(id) }
+  async listQuestions(query: QuestionQuery) { return this.db.listQuestions(query) }
+  async getQuestion(id: string) { return this.db.getQuestion(id) }
+  async getQuestions(ids: string[]) { return this.db.getQuestions(ids) }
+  async updateQuestion(id: string, question: DraftQuestion) { return this.db.updateQuestion(id, question) }
+  async deleteQuestion(id: string) { this.db.deleteQuestion(id) }
+  async subjects(ownerId: string) { return this.db.subjects(ownerId) }
+  async close() { this.db.close() }
 }

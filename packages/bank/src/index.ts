@@ -1,3 +1,5 @@
-export { SqliteBank, type Bank } from './sqlite.ts'
+export { draftFields, searchText, type Bank, type ImportPatch } from './bank.ts'
+export { SqliteBank } from './sqlite.ts'
+export { PostgresBank } from './postgres.ts'
 export type { BankExam, BankQuestion, ExamQuery, ImportRecord, ImportStatus, NewImport, QuestionQuery } from './types.ts'
 export { draftOf } from './draft.ts'

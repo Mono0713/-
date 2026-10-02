@@ -1,21 +1,25 @@
-import { existsSync, mkdirSync } from 'node:fs'
+import { mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { SqliteBank, type Bank } from '@exam/bank'
+import { repoRoot } from './env'
+import { PostgresBank, SqliteBank, type Bank } from '@exam/bank'
+import { connect } from '@exam/db'
 import { DEFAULT_MODELS, MODEL_CATALOG, type ModelTier } from '@exam/extraction'
+import { fileStoreFromEnv, type FileStore } from '@exam/files'
 import { Importer } from '@exam/importer'
-import { AiTeacher, createTextModel, SqliteGradingCache, type GradingCache, type TextModel } from '@exam/grading'
-import { SqliteQuizStore, type QuizStore } from '@exam/quiz'
-import { DEFAULT_LOCALE, FileSettingsStore, type SettingsStore } from '@exam/settings'
+import { AiTeacher, createTextModel, PostgresGradingCache, SqliteGradingCache, type GradingCache, type TextModel } from '@exam/grading'
+import { PostgresQuizStore, SqliteQuizStore, type QuizStore } from '@exam/quiz'
+import { DEFAULT_LOCALE, FileSettingsStore, PostgresSettingsStore, type SettingsStore } from '@exam/settings'
+import { authEnabled } from './auth'
+
+export { currentOwner, currentUser, authEnabled } from './auth'
 
 /**
- * The one place the web app wires its modules together. Swapping the database,
- * file storage or sign-in later means changing this file, not the features.
+ * The one place the web app wires its modules together. Each part is picked from the
+ * environment on its own (see docs/HOSTING.md):
+ *   DATABASE_URL                  Postgres (Supabase) instead of data/bank.sqlite
+ *   R2_*                          Cloudflare R2 instead of the data folder for files
+ *   NEXT_PUBLIC_SUPABASE_*        Google sign-in instead of one local user
  */
-
-// `next dev` runs in apps/web; API keys live in the repo-root .env shared with the CLI.
-const repoRoot = resolve(process.cwd(), '../..')
-const envFile = join(repoRoot, '.env')
-if (existsSync(envFile)) process.loadEnvFile(envFile)
 
 export const dataDir = resolve(process.env.EXAM_DATA_DIR ?? join(repoRoot, 'data'))
 
@@ -25,6 +29,7 @@ interface Services {
   quizzes: QuizStore
   settings: SettingsStore
   gradingCache: GradingCache
+  files: FileStore
 }
 
 // Kept on globalThis so hot reloads in development reuse one database connection
@@ -34,39 +39,52 @@ const globals = globalThis as typeof globalThis & { __examServices?: Services }
 export function services(): Services {
   if (!globals.__examServices) {
     mkdirSync(dataDir, { recursive: true })
-    const dbFile = join(dataDir, 'bank.sqlite')
-    const bank = new SqliteBank(dbFile)
-    const settings = new FileSettingsStore(join(dataDir, 'settings.json'))
+    const stores = process.env.DATABASE_URL ? postgresStores(process.env.DATABASE_URL) : sqliteStores()
+    const files = fileStoreFromEnv(dataDir)
     globals.__examServices = {
-      bank,
+      ...stores,
+      files,
       importer: new Importer({
-        bank,
-        dataDir,
+        bank: stores.bank,
+        files,
+        // With accounts, every file key starts with its owner, so a link can be checked against the person asking.
+        keyPrefix: authEnabled() ? (ownerId) => `u/${ownerId}/` : undefined,
         reviewLanguage: localeOf,
-        providerConfig: (providerId, ownerId) => {
-          const s = settings.get(ownerId)
+        providerConfig: async (providerId, ownerId) => {
+          const s = await stores.settings.get(ownerId)
           return { apiKey: s.apiKeys[providerId] || undefined, model: s.models[providerId] || undefined }
         },
       }),
-      quizzes: new SqliteQuizStore(dbFile),
-      settings,
-      gradingCache: new SqliteGradingCache(dbFile),
     }
   }
   return globals.__examServices
 }
 
-/** Everyone is the same local user until sign-in is added. */
-export function currentOwner(): string {
-  return 'local'
+type Stores = Pick<Services, 'bank' | 'quizzes' | 'settings' | 'gradingCache'>
+
+function sqliteStores(): Stores {
+  const dbFile = join(dataDir, 'bank.sqlite')
+  return {
+    bank: new SqliteBank(dbFile),
+    quizzes: new SqliteQuizStore(dbFile),
+    settings: new FileSettingsStore(join(dataDir, 'settings.json')),
+    gradingCache: new SqliteGradingCache(dbFile),
+  }
+}
+
+function postgresStores(url: string): Stores {
+  const secret = process.env.SETTINGS_SECRET
+  if (!secret) throw new Error('SETTINGS_SECRET is required with DATABASE_URL: it encrypts the API keys people save.')
+  const sql = connect(url)
+  return { bank: new PostgresBank(sql), quizzes: new PostgresQuizStore(sql), settings: new PostgresSettingsStore(sql, secret), gradingCache: new PostgresGradingCache(sql) }
 }
 
 /**
  * Interface language of a user, as a language tag: their choice on the settings page,
  * else EXAM_LOCALE, else zh-Hant. The model writes its review notes (⚠ issues) in this language.
  */
-export function localeOf(ownerId: string): string {
-  return services().settings.get(ownerId).locale ?? (process.env.EXAM_LOCALE || DEFAULT_LOCALE)
+export async function localeOf(ownerId: string): Promise<string> {
+  return (await services().settings.get(ownerId)).locale ?? (process.env.EXAM_LOCALE || DEFAULT_LOCALE)
 }
 
 /** Environment variables each provider's SDK reads its API key from. */
@@ -77,14 +95,23 @@ export const ENV_KEYS: Record<string, string[]> = {
 }
 
 /** Where a provider's API key comes from for this user: the settings page, the .env file, or nowhere. */
-export function keySource(ownerId: string, providerId: string): 'settings' | 'env' | null {
-  if (services().settings.get(ownerId).apiKeys[providerId]) return 'settings'
-  return ENV_KEYS[providerId]?.some((name) => process.env[name]) ? 'env' : null
+export async function keySource(ownerId: string, providerId: string): Promise<'settings' | 'env' | null> {
+  if ((await services().settings.get(ownerId)).apiKeys[providerId]) return 'settings'
+  return envKey(providerId) ? 'env' : null
 }
 
 /** The key to call a provider with: the user's own first, then the .env file. */
-export function apiKeyOf(ownerId: string, providerId: string): string | undefined {
-  return services().settings.get(ownerId).apiKeys[providerId] || ENV_KEYS[providerId]?.map((name) => process.env[name]).find(Boolean)
+export async function apiKeyOf(ownerId: string, providerId: string): Promise<string | undefined> {
+  return (await services().settings.get(ownerId)).apiKeys[providerId] || envKey(providerId)
+}
+
+/**
+ * A key from the server's .env. Only for the single local user: with accounts, everyone
+ * brings their own key, so the server's key is never spent on someone else's requests.
+ */
+function envKey(providerId: string): string | undefined {
+  if (authEnabled()) return undefined
+  return ENV_KEYS[providerId]?.map((name) => process.env[name]).find(Boolean)
 }
 
 export interface ProviderOption {
@@ -100,12 +127,12 @@ export interface ProviderOption {
 const CHAT_APPS = ['Claude', 'ChatGPT', 'Gemini'].map((id) => ({ id, label: id, tier: null }))
 
 /** Recognition methods for this user: whether each has an API key, and its models. */
-export function availableProviders(ownerId: string = currentOwner()): ProviderOption[] {
-  const s = services().settings.get(ownerId)
+export async function availableProviders(ownerId: string): Promise<ProviderOption[]> {
+  const s = await services().settings.get(ownerId)
   const api = (id: string, label: string): ProviderOption => {
     const catalog = MODEL_CATALOG[id] ?? []
     const known = (s.knownModels[id] ?? []).filter((m) => !catalog.some((c) => c.id === m)).map((m) => ({ id: m, label: m, tier: null }))
-    return { id, label, ready: keySource(ownerId, id) !== null, models: [...catalog, ...known], model: s.models[id] || process.env[`${id.toUpperCase()}_MODEL`] || DEFAULT_MODELS[id] || '' }
+    return { id, label, ready: Boolean(s.apiKeys[id] || envKey(id)), models: [...catalog, ...known], model: s.models[id] || process.env[`${id.toUpperCase()}_MODEL`] || DEFAULT_MODELS[id] || '' }
   }
   return [
     { id: 'manual', label: '手動（貼上聊天 App 的回覆）', ready: true, models: CHAT_APPS, model: s.models.manual ?? '' },
@@ -122,13 +149,17 @@ const API_PROVIDERS = ['claude', 'openai', 'gemini']
  * Unless the user picked one, it uses the first provider with a key and its cheapest model:
  * marking answers needs far less than reading a scanned page.
  */
-export function teacherFor(ownerId: string): { teacher: AiTeacher; reader: TextModel; provider: string; model: string } | null {
-  const { aiGrading } = services().settings.get(ownerId)
+export type Teacher = { teacher: AiTeacher; reader: TextModel; provider: string; model: string }
+
+export async function teacherFor(ownerId: string): Promise<Teacher | null> {
+  const s = await services().settings.get(ownerId)
+  const { aiGrading } = s
   if (!aiGrading.enabled) return null
-  const provider = aiGrading.provider && apiKeyOf(ownerId, aiGrading.provider) ? aiGrading.provider : API_PROVIDERS.find((id) => apiKeyOf(ownerId, id))
+  const keyOf = (id: string) => s.apiKeys[id] || envKey(id)
+  const provider = aiGrading.provider && keyOf(aiGrading.provider) ? aiGrading.provider : API_PROVIDERS.find((id) => keyOf(id))
   if (!provider) return null
   const model = (aiGrading.provider === provider && aiGrading.model) || MODEL_CATALOG[provider]?.find((m) => m.tier === 'fast')?.id || DEFAULT_MODELS[provider]!
   // The same model also reads handwritten answers (all catalogued models take images).
-  const reader = createTextModel(provider, { apiKey: apiKeyOf(ownerId, provider)!, model })
+  const reader = createTextModel(provider, { apiKey: keyOf(provider)!, model })
   return { teacher: new AiTeacher(reader), reader, provider, model }
 }

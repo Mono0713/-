@@ -39,10 +39,12 @@ pnpm dev
 
 資料存在專案根目錄的 `data/`（SQLite 資料庫加上頁面圖片和裁切的圖），不會進 git。要換位置可以設 `EXAM_DATA_DIR`。
 
+**上線版**：設定 Supabase（雲端資料庫與 Google 登入）和 Cloudflare R2（檔案）後就是多人版，每個人用 Google 帳號登入、只看得到自己的資料。步驟見 [docs/HOSTING.md](docs/HOSTING.md)；不設定時照舊是單人本機版。
+
 **設定**（左側選單最下面）：
 - **介面語言**：模型寫的待檢查備註（⚠）會用這個語言；網頁文字的翻譯會陸續加入。沒選過時用 `.env` 的 `EXAM_LOCALE`，再沒有就是繁體中文。命令列用 `--lang`。
 - **預設辨識方式**和各家的**預設模型**：模型從清單選，清單外的可以選「自己輸入模型名稱」。有金鑰時按「更新清單」會向該家服務查詢目前能用的模型。
-- **API 金鑰**：貼上後會先向該家服務確認有效才儲存，存在 `data/settings.json`（只有執行程式的帳號能讀），網頁上只顯示最後四碼。設定頁的金鑰優先，沒有時才用 `.env` 裡的。
+- **API 金鑰**：貼上後會先向該家服務確認有效才儲存，存在 `data/settings.json`（只有執行程式的帳號能讀），上線版則加密後存進資料庫；網頁上只顯示最後四碼。設定頁的金鑰優先，沒有時才用 `.env` 裡的（上線版不用 `.env` 的金鑰，每人用自己的）。
 
 ## 命令列
 
@@ -90,16 +92,19 @@ packages/
   ingest/      PDF 轉圖並抽出文字層；照片轉正、縮放、提高對比
   extraction/  共用提示詞與驗證、跨頁合併；providers/ 下是各家模型轉接器
   figures/     裁圖、把空格對齊印刷方框、清除空格裡的手寫
-  bank/        題庫儲存介面（考卷 → 題目）；目前是本機 SQLite，上線時換成雲端資料庫只需另寫一個實作
-  quiz/        線上測驗：出題、打亂順序、批改計分（logic.ts，前後端共用；equivalence.ts 判斷數字和算式是否相等）與測驗紀錄儲存
+  db/          Postgres 連線、套用 supabase/migrations、測試用的暫時 schema
+  files/       檔案儲存介面（FileStore）：本機資料夾或 Cloudflare R2
+  bank/        題庫儲存介面（考卷 → 題目）：SqliteBank（本機）與 PostgresBank（Supabase），兩者跑同一套測試
+  quiz/        線上測驗：出題、打亂順序、批改計分（logic.ts，前後端共用；equivalence.ts 判斷數字和算式是否相等）與測驗紀錄儲存（SQLite／Postgres）
   grading/     AI 老師：一次批改多題、批改結果快取（同樣的答案不再花 AI 用量）、把手寫答案讀成文字，各家模型的文字介面
   ink/         手寫資料格式（筆畫、壓力）、繪製成 SVG、橡皮擦判斷，與介面無關
-  settings/    使用者設定：語言、預設辨識方式與模型、API 金鑰（SettingsStore 介面，目前存成 data/settings.json）
-  importer/    匯入流程：上傳 → 轉圖 → 辨識 → 裁圖 → 草稿，與介面無關
+  settings/    使用者設定：語言、預設辨識方式與模型、API 金鑰（SettingsStore：本機存 data/settings.json，上線版存 Postgres 且金鑰加密）
+  importer/    匯入流程：上傳 → 轉圖 → 辨識 → 裁圖 → 草稿，與介面無關；檔案經過 FileStore，多人時每個人的檔案放在 u/<使用者>/ 底下
 apps/
   cli/         命令列辨識工具
   web/         網頁版（Next.js）
-    src/server/     唯一把各模組組裝起來的地方（資料庫、檔案位置、目前使用者）
+    src/server/     唯一把各模組組裝起來的地方：context.ts 依環境變數選資料庫和檔案儲存，auth.ts 是 Google 登入（Supabase），owned.ts 確保每個網址上的 id 都屬於目前使用者
+    src/proxy.ts    登入時更新 session，沒登入就帶到 /login
     src/features/   imports（上傳與手動模式）、review（校對）、questions（題目顯示與編輯）、bank（題庫）、quiz（測驗）
     src/shared/     共用元件：公式渲染、附圖、按鈕等
       math/         公式：把沒包 $ 的 LaTeX 補成公式、公式編輯器（MathLive）、可點公式編輯的文字框。MathLive 的字型在 `pnpm dev`/`pnpm build` 時由 scripts/copy-assets.mjs 複製到 public/mathlive/
@@ -120,5 +125,7 @@ apps/
 pnpm typecheck
 pnpm test
 ```
+
+Postgres 版的儲存跟 SQLite 版跑同一套測試，需要一個可以建立 schema 的資料庫：`TEST_DATABASE_URL=postgres://… pnpm test`（沒設定時會跳過；CI 會自動開一個 Postgres）。
 
 預設模型：Claude `claude-opus-5`、OpenAI `gpt-5`、Gemini `gemini-3.1-pro-preview`。各家常會下架舊模型，網頁版在「設定」換預設模型；也可以在 `.env` 設 `CLAUDE_MODEL`、`OPENAI_MODEL`、`GEMINI_MODEL` 換掉預設，或單次用 `-m` 指定。選單裡的模型清單在 `packages/extraction/src/models.ts`。

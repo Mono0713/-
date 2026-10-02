@@ -30,6 +30,7 @@ export {
   Library as IconBank,
   List as IconList,
   ListFilter as IconFilter,
+  LogOut as IconSignOut,
   LoaderCircle as IconLoader,
   Minus as IconMinus,
   NotebookPen as IconScratch,

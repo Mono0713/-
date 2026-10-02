@@ -200,6 +200,11 @@ body:has(.workspace) :is(.app-sidebar, .app-header) {
   display: none;
 }
 
+/* The sign-in page stands alone: nothing to navigate to before signing in. */
+body:has(.auth-screen) :is(.app-sidebar, .app-header) {
+  display: none;
+}
+
 /* A formula being edited inside a text box: sits in the line like the rendered formula did. */
 math-field.inline-formula {
   display: inline-block;

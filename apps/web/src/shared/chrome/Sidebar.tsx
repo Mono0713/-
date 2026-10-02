@@ -1,7 +1,8 @@
 import { connection } from 'next/server'
 import { Suspense } from 'react'
-import { currentOwner, services } from '@/server/context'
+import { authEnabled, currentUser, services } from '@/server/context'
 import { Logo } from '@/shared/brand/Logo'
+import { Account } from './Account'
 import { RecentLink, SideNav } from './SideNav'
 
 /** Left rail on wide screens: logo, main navigation, recent imports and bank totals. */
@@ -14,6 +15,7 @@ export function Sidebar() {
       <SideNav />
       <Suspense>
         <Recent />
+        <Account tone="sidebar" />
       </Suspense>
     </aside>
   )
@@ -22,9 +24,11 @@ export function Sidebar() {
 async function Recent() {
   await connection()
   const { bank } = services()
-  const owner = currentOwner()
-  const imports = bank.listImports(owner).slice(0, 6)
-  const exams = bank.listExams({ ownerId: owner })
+  // Signed out (the sign-in page): nothing to list.
+  const owner = authEnabled() ? (await currentUser())?.id : 'local'
+  if (!owner) return null
+  const [all, exams] = await Promise.all([bank.listImports(owner), bank.listExams({ ownerId: owner })])
+  const imports = all.slice(0, 6)
   const questions = exams.reduce((n, e) => n + e.questionCount, 0)
   return (
     <>

@@ -5,7 +5,8 @@ import { QuizPlayer } from '@/features/quiz/QuizPlayer'
 import { QuizResults } from '@/features/quiz/QuizResults'
 import { startTeacher } from '@/features/quiz/teacher'
 import { hiddenItem } from '@/features/quiz/visible'
-import { currentOwner, services, teacherFor } from '@/server/context'
+import { services, teacherFor } from '@/server/context'
+import { ownedAttempt } from '@/server/owned'
 import { ButtonLink, PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -13,14 +14,14 @@ export const dynamic = 'force-dynamic'
 export default async function QuizPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { quizzes } = services()
-  let attempt = quizzes.get(id)
-  if (!attempt || attempt.ownerId !== currentOwner()) notFound()
+  let attempt = await ownedAttempt(id)
+  if (!attempt) notFound()
 
   // A timed exam left open past its deadline is handed in as it stands.
   if (!attempt.finishedAt && isOver(attempt)) {
-    quizzes.save({ ...attempt, finishedAt: attempt.deadline })
-    startTeacher(id)
-    attempt = quizzes.get(id)!
+    await quizzes.update(id, (now) => (now.finishedAt ? null : { ...now, finishedAt: now.deadline }))
+    await startTeacher(id)
+    attempt = (await quizzes.get(id))!
   }
 
   const mode = attempt.settings.mode === 'exam' ? '考試' : '單題練習'
@@ -41,7 +42,7 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
             </>
           }
         />
-        <QuizResults attempt={attempt} summary={summarize(attempt)} teacher={teacherFor(attempt.ownerId) !== null} />
+        <QuizResults attempt={attempt} summary={summarize(attempt)} teacher={(await teacherFor(attempt.ownerId)) !== null} />
       </div>
     )
   }

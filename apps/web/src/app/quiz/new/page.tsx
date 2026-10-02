@@ -8,22 +8,22 @@ export const dynamic = 'force-dynamic'
 export default async function NewQuizPage({ searchParams }: { searchParams: Promise<{ exam?: string | string[] }> }) {
   const { exam } = await searchParams
   const { bank } = services()
-  const owner = currentOwner()
-  const exams: SetupExam[] = bank
-    .listExams({ ownerId: owner })
-    .filter((e) => e.questionCount > 0)
-    .map((e) => ({
+  const owner = await currentOwner()
+  const listed = (await bank.listExams({ ownerId: owner })).filter((e) => e.questionCount > 0)
+  const exams: SetupExam[] = await Promise.all(
+    listed.map(async (e) => ({
       id: e.id,
       title: e.title ?? '未命名考卷',
       subject: e.subject,
-      questions: bank.listQuestions({ ownerId: owner, examId: e.id, limit: 1000 }).items.map((q) => ({
+      questions: (await bank.listQuestions({ ownerId: owner, examId: e.id, limit: 1000 })).items.map((q) => ({
         id: q.id,
         // Previews must not give answers away.
         question: { ...draftOf(q), answer: { values: [], source: 'none' as const }, explanation: null, translation: null, issues: [], confidence: 'high' as const },
         preview: q.stem.replace(/[#*_`>$|\\]/g, '').replace(/\s+/g, ' ').slice(0, 200),
         hasKey: q.answer.values.some((v) => v.trim()),
       })),
-    }))
+    })),
+  )
   const preselected = [exam ?? []].flat()
 
   return (

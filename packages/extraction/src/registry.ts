@@ -1,7 +1,7 @@
 import type { VisionProvider } from './provider.ts'
 import { ClaudeProvider } from './providers/claude.ts'
 import { GeminiProvider } from './providers/gemini.ts'
-import { ManualProvider } from './providers/manual.ts'
+import { ManualProvider, type TextFiles } from './providers/manual.ts'
 import { OpenAIProvider } from './providers/openai.ts'
 
 export interface ProviderConfig {
@@ -9,6 +9,8 @@ export interface ProviderConfig {
   model?: string
   /** Folder for providers that exchange files instead of calling an API (manual). */
   workDir?: string
+  /** Or somewhere else to keep those files (the web app's file store). */
+  files?: TextFiles
 }
 
 type Factory = (config: ProviderConfig) => VisionProvider
@@ -20,8 +22,8 @@ const factories = new Map<string, Factory>([
   [
     'manual',
     (c) => {
-      if (!c.workDir) throw new Error('The manual provider needs a workDir')
-      return new ManualProvider({ workDir: c.workDir, model: c.model })
+      if (!c.workDir && !c.files) throw new Error('The manual provider needs a workDir')
+      return new ManualProvider({ workDir: c.workDir, files: c.files, model: c.model })
     },
   ],
 ])
