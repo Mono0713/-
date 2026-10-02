@@ -3,6 +3,7 @@
 import type { QuizAttempt, QuizSummary } from '@exam/quiz'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
+import { Confetti } from '@/shared/motion/Confetti'
 import { Odometer } from '@/shared/motion/Odometer'
 import { ProgressRing } from '@/shared/motion/ProgressRing'
 import { Segmented } from '@/shared/Segmented'
@@ -46,7 +47,16 @@ export function QuizResults({ attempt, summary, teacher }: { attempt: QuizAttemp
 
   return (
     <div className="space-y-6">
-      <Card className="m-enter flex flex-wrap items-center gap-x-10 gap-y-4 p-5">
+      <Card className="m-enter relative flex flex-wrap items-center gap-x-10 gap-y-4 overflow-visible p-5">
+        {/* full marks: confetti from the score, and the teacher's red stamp in the corner */}
+        {percent === 100 && (
+          <>
+            <Confetti className="inset-x-0 -top-40 bottom-0 z-10" />
+            <span aria-label="滿分" className="m-stamp absolute -top-6 right-2 max-sm:scale-75 sm:right-8 sm:top-1/2 sm:-translate-y-1/2">
+              滿分
+            </span>
+          </>
+        )}
         {percent !== null && (
           <div className="relative grid place-items-center">
             <ProgressRing value={percent / 100} size={84} stroke={9} tone={percent >= 60 ? 'var(--color-good)' : 'var(--color-warn)'} />

@@ -39,6 +39,7 @@ import { Badge, Button, inputClass } from '@/shared/ui'
 import { publishDraft, saveDraft } from './actions'
 import { PageViewer } from './PageViewer'
 import { splitNumber, splitParts } from './parts'
+import { DragTilt } from '@/shared/motion/DragTilt'
 import { alongList, dropAnimation, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 
 type SaveState = 'saved' | 'dirty' | 'saving'
@@ -655,15 +656,17 @@ const SAVE_LABELS: Record<SaveState, string> = { saved: '草稿已自動儲存',
 /** The compact copy of a card that follows the pointer while it is dragged. */
 function DragPreview({ q }: { q: DraftQuestion }) {
   return (
-    <div
-      data-drag-overlay
-      className="m-scale-in flex h-14 cursor-grabbing items-center gap-3 rounded-2xl bg-surface px-4 shadow-[0_24px_48px_-16px_rgb(22_24_43/0.4),0_0_0_1px_rgb(22_24_43/0.08)]"
-    >
-      <span className="num text-lg leading-none">{q.number}.</span>
-      <Badge>{TYPE_LABELS[q.type]}</Badge>
-      <span className="min-w-0 flex-1 truncate text-sm text-muted">{preview(q.stem)}</span>
-      <IconGrip size={16} className="shrink-0 text-accent" />
-    </div>
+    <DragTilt>
+      <div
+        data-drag-overlay
+        className="m-scale-in flex h-14 cursor-grabbing items-center gap-3 rounded-2xl bg-surface px-4 shadow-[0_24px_48px_-16px_rgb(22_24_43/0.4),0_0_0_1px_rgb(22_24_43/0.08)]"
+      >
+        <span className="num text-lg leading-none">{q.number}.</span>
+        <Badge>{TYPE_LABELS[q.type]}</Badge>
+        <span className="min-w-0 flex-1 truncate text-sm text-muted">{preview(q.stem)}</span>
+        <IconGrip size={16} className="shrink-0 text-accent" />
+      </div>
+    </DragTilt>
   )
 }
 
