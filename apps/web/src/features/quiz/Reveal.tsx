@@ -58,9 +58,9 @@ export function Reveal({
         <div>
           <span className="font-medium text-good">正確答案：</span>
           {answer !== null ? (
-            <span>{answer}</span>
+            <span className="hl">{answer}</span>
           ) : key.length === 1 ? (
-            <Markdown>{key[0]!}</Markdown>
+            <Markdown className="hl-md">{key[0]!}</Markdown>
           ) : (
             <ol className="list-decimal pl-5">
               {key.map((v, i) => (
@@ -91,7 +91,8 @@ export function Reveal({
       {marking?.feedback && (
         <div>
           <span className="font-medium">{marking.by === 'ai' ? 'AI 老師評語：' : '評語：'}</span>
-          <Markdown>{marking.feedback}</Markdown>
+          {/* the teacher's comment is written in red pen */}
+          <Markdown className="pen">{marking.feedback}</Markdown>
         </div>
       )}
 

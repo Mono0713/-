@@ -6,6 +6,7 @@ import { IconCheck, IconKey, IconRefresh } from '@/shared/icons'
 import { Badge, Button, Card, inputClass } from '@/shared/ui'
 import { refreshModels, removeApiKey, saveAiGrading, saveApiKey, saveDefaultProvider, saveLocale, saveModel } from './actions'
 import { ModelPicker } from './ModelPicker'
+import { ThemePicker } from '@/shared/theme/ThemePicker'
 
 export interface KeyInfo {
   source: 'settings' | 'env' | null
@@ -55,6 +56,9 @@ export function SettingsForm({
               </option>
             ))}
           </select>
+        </Row>
+        <Row label="外觀" hint="淺色或深色。只記在這個瀏覽器裡。">
+          <ThemePicker />
         </Row>
         <Row label="預設辨識方式" hint="匯入考卷時先選好的方式，每次上傳仍可以改。">
           <select defaultValue={defaultProvider} onChange={(e) => run(() => saveDefaultProvider(e.target.value))} className={inputClass}>

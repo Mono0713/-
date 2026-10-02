@@ -376,7 +376,7 @@ export function ReviewEditor({
                   const shown = cluster.items.filter((i) => !flaggedOnly || isFlagged(draft.questions[i]!))
                   if (!shown.length) return null
                   const tone = (i: number) =>
-                    selected === i ? 'bg-accent text-white' : isFlagged(draft.questions[i]!) ? 'bg-warn-soft text-warn hover:bg-amber-100' : 'text-muted hover:bg-ink/[0.05] hover:text-ink'
+                    selected === i ? 'bg-accent text-on-accent' : isFlagged(draft.questions[i]!) ? 'bg-warn-soft text-warn hover:bg-hl/40' : 'text-muted hover:bg-ink/[0.05] hover:text-ink'
                   if (cluster.part === null)
                     return (
                       <button
@@ -386,9 +386,9 @@ export function ReviewEditor({
                         title={isFlagged(draft.questions[shown[0]!]!) ? '待確認' : undefined}
                         className={`num h-7 min-w-7 shrink-0 rounded-md px-1.5 text-xs transition-colors ${
                           selected === shown[0]
-                            ? 'bg-accent text-white'
+                            ? 'bg-accent text-on-accent'
                             : isFlagged(draft.questions[shown[0]!]!)
-                              ? 'bg-warn-soft text-warn hover:bg-amber-100'
+                              ? 'bg-warn-soft text-warn hover:bg-hl/40'
                               : 'bg-surface text-muted shadow-sheet hover:text-ink'
                         }`}
                       >
@@ -418,7 +418,7 @@ export function ReviewEditor({
                 aria-pressed={flaggedOnly}
                 aria-label={`${flagged} 題待確認`}
                 title={flaggedOnly ? `顯示全部題目` : `${flagged} 題待確認：點一下只看這些`}
-                className={`m-press flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${flaggedOnly ? 'bg-amber-400 text-night' : 'bg-warn-soft text-warn hover:bg-amber-100'}`}
+                className={`m-press flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${flaggedOnly ? 'bg-hl text-night' : 'bg-warn-soft text-warn hover:bg-hl/40'}`}
               >
                 <IconAlert size={14} strokeWidth={2.4} />
                 <span className="num">{flagged}</span>
@@ -567,7 +567,7 @@ export function ReviewEditor({
                               dragging ? 'h-14 overflow-hidden !bg-accent-soft/60 !p-0 outline-2 -outline-offset-2 outline-dashed outline-accent/35 [&>*]:invisible' : 'shadow-sheet'
                             } ${selected === index && !dragging ? 'ring-2 ring-accent/70' : ''}`}
                           >
-                            {isFlagged(q) && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-amber-400" />}
+                            {isFlagged(q) && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-hl" />}
                             {isEditing ? (
                               <QuestionEditor
                                 value={q}
@@ -746,7 +746,7 @@ function Outline({
                           <span className={`num w-6 shrink-0 text-right text-[12px] ${on ? 'text-accent' : ''}`}>{q.number}</span>
                           <span className="min-w-0 flex-1 truncate">{preview(q.stem) || TYPE_LABELS[q.type]}</span>
                           {isFlagged(q) ? (
-                            <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" title="待確認" />
+                            <span className="h-2 w-2 shrink-0 rounded-full bg-hl" title="待確認" />
                           ) : (
                             <IconCheck size={13} strokeWidth={2.6} className="shrink-0 text-good/70" aria-label="已確認" />
                           )}

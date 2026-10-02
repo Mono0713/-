@@ -1,0 +1,63 @@
+# Sheetloop design base: 自修桌 (study desk)
+
+The look comes from a student's desk: graph paper, a ballpoint pen, a highlighter and the
+teacher's red pen. Everything below is set as tokens in `src/app/globals.css`; components use
+the tokens only, never literal colors, so light and dark mode come from the tokens alone.
+
+## Color
+
+| Token | Light | Dark | Use |
+| --- | --- | --- | --- |
+| `paper` | `#fcfcfa` | `#0f1528` | page background (with the `grid` lines) |
+| `grid` | `#e9edf5` | `#172039` | 18 px graph-paper lines behind every page |
+| `surface` | `#ffffff` | `#151d34` | cards, inputs, sheets |
+| `ink` | `#1b2340` | `#e6eaf7` | text |
+| `muted` | `#5f6782` | `#97a0bd` | secondary text |
+| `line` | `#dfe4ee` | `#263155` | borders and dividers |
+| `accent` | `#2f4bff` | `#7d93ff` | ballpoint blue: the one accent, primary buttons, focus, links |
+| `accent-soft` | `#eef1ff` | `#1c2650` | selected and hovered backgrounds |
+| `on-accent` | `#ffffff` | `#0f1528` | text and icons on `accent`, `bad` |
+| `hl` | `#f4ff5c` | `#d7f04a` | highlighter: answers, "needs review" marks |
+| `pen` | `#d63a2f` | `#ff8b7e` | the teacher's red pen: AI comments |
+| `night` | `#141b33` | `#0a0f1f` | the navy sidebar, toasts, floating controls |
+| `night-accent` | `#8fa2ff` | `#8fa2ff` | accent on `night` |
+| `good` / `warn` / `bad` (+ `-soft`) | | | right, check this, wrong |
+
+Rules:
+
+- One accent. Blue is for what you can press or what is selected; nothing else is blue.
+- Never put `text-white` on `accent`: dark mode's accent is light. Use `text-on-accent`.
+- No gradients on controls. The old blue-violet gradient is gone.
+
+## Type
+
+| Role | Face | Where |
+| --- | --- | --- |
+| Display | Bricolage Grotesque (`font-display`) | page titles, the wordmark, numbers (`.num`) |
+| Body | Atkinson Hyperlegible Next, then the system Chinese face (`font-sans`) | everything else |
+| Hand | LXGW WenKai TC (`font-hand`, `.pen`) | short AI/teacher comments only |
+| Code | JetBrains Mono (`font-mono`) | code in questions |
+
+All fonts are served by the app itself (SIL Open Font License).
+
+## Study-desk details
+
+- `.hl` (and `.hl-md` for rendered Markdown) draws a highlighter stroke behind the text.
+  Use it for the correct answer and for things the reader should look at, a few words at a time.
+- `.pen` sets a short comment in the red-pen handwriting. Only for comments written "by the
+  teacher" (AI grading feedback). Never for buttons, labels or running UI text.
+- Graph paper only on the page background. Cards stay plain white (navy in dark mode).
+  Too much grid or handwriting makes it look like children's material.
+
+## Logo: 捲角
+
+A sheet whose bottom-right corner curls into a loop (Sheet + loop). Single color, drawn with
+`currentColor` in `src/shared/brand/LogoMark.tsx`: `accent` on paper, `night-accent` on the
+sidebar. The wordmark is lowercase `sheetloop` in Bricolage Grotesque ExtraBold. The favicon
+(`src/app/icon.svg`) switches to the lighter blue in dark mode.
+
+## Light and dark
+
+`data-theme="light" | "dark"` on `<html>` forces a theme; without it the device setting
+decides. The choice is made on the settings page (外觀) and remembered in the browser
+(`src/shared/theme`). An inline script applies it before the first paint.

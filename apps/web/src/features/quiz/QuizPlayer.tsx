@@ -106,7 +106,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
         const g = grades[i]
         const tone =
           i === current
-            ? 'border-accent bg-accent text-white'
+            ? 'border-accent bg-accent text-on-accent'
             : practice && checked[i]
               ? g?.status === 'correct'
                 ? 'border-good/40 bg-good-soft text-good'

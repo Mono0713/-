@@ -76,14 +76,14 @@
 /* loading placeholder */
 .m-skeleton {
   border-radius: 0.5rem;
-  background: linear-gradient(90deg, var(--color-line) 25%, color-mix(in srgb, var(--color-line) 40%, white) 50%, var(--color-line) 75%) 0 0 / 200% 100%;
+  background: linear-gradient(90deg, var(--color-line) 25%, color-mix(in srgb, var(--color-line) 40%, var(--color-surface)) 50%, var(--color-line) 75%) 0 0 / 200% 100%;
   animation: m-shimmer 1.4s linear infinite;
 }
 
-/* the logo loop turns once when its link is hovered */
-.m-logo-loop { transform-box: view-box; transform-origin: 43px 43px; transition: transform 700ms var(--m-spring); }
+/* the curled corner springs a little tighter when the logo link is hovered */
+.m-logo-loop { transform-box: fill-box; transform-origin: center; transition: transform 600ms var(--m-spring); }
 @media (hover: hover) {
-  .m-logo:hover .m-logo-loop { transform: rotate(-360deg); }
+  .m-logo:hover .m-logo-loop { transform: translate(-1.5px, -1.5px) scale(1.16); }
 }
 
 @media (prefers-reduced-motion: reduce) {

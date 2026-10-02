@@ -50,7 +50,7 @@ export function Fab({ actions, badge, label = '更多動作' }: { actions: FabAc
                 }}
                 aria-label={a.label}
                 className={`m-press relative grid h-11 w-11 place-items-center rounded-full shadow-[0_8px_20px_-10px_rgb(22_24_43/0.5)] disabled:opacity-40 ${
-                  a.primary ? 'bg-brand text-white' : 'bg-surface text-ink ring-1 ring-ink/[0.07] hover:text-accent'
+                  a.primary ? 'bg-brand text-on-accent' : 'bg-surface text-ink ring-1 ring-ink/[0.07] hover:text-accent'
                 }`}
               >
                 {a.icon}
@@ -64,7 +64,7 @@ export function Fab({ actions, badge, label = '更多動作' }: { actions: FabAc
           onClick={() => setOpen(!open)}
           aria-expanded={open}
           aria-label={label}
-          className={`m-fab-main m-press pointer-events-auto relative isolate grid h-14 w-14 place-items-center rounded-full bg-brand text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_14px_30px_-12px_var(--color-brand-to)] ${badge ? 'm-ring' : ''}`}
+          className={`m-fab-main m-press pointer-events-auto relative isolate grid h-14 w-14 place-items-center rounded-full bg-brand text-on-accent shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_14px_30px_-12px_var(--color-accent)] ${badge ? 'm-ring' : ''}`}
         >
           <IconPlus size={26} strokeWidth={2.2} />
           {!!badge && !open && <Count value={badge} />}
@@ -76,7 +76,7 @@ export function Fab({ actions, badge, label = '更多動作' }: { actions: FabAc
 
 function Count({ value }: { value: number }) {
   return (
-    <span className="num absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-amber-400 px-1 text-[11px] leading-none text-night ring-2 ring-paper">
+    <span className="num absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-hl px-1 text-[11px] leading-none text-night ring-2 ring-paper">
       {value > 99 ? '99+' : value}
     </span>
   )

@@ -77,7 +77,7 @@ export function QuizQuestion({
                 disabled={locked || byHand}
                 onChange={(e) => kind.kind === 'blanks' && setAt(slot, e.target.value, kind.count)}
                 aria-label={`空格 ${_label}`}
-                className={`h-full w-full rounded-sm border-2 bg-white/90 px-1 text-center text-sm font-semibold text-accent outline-none focus:border-accent ${
+                className={`h-full w-full rounded-sm border-2 bg-surface/90 px-1 text-center text-sm font-semibold text-accent outline-none focus:border-accent ${
                   reveal ? (right ? 'border-good' : 'border-bad/60') : 'border-accent/40'
                 }`}
               />
@@ -155,7 +155,7 @@ export function QuizQuestion({
                   )}
                   {wrong && (
                     <span className="flex h-[1.625em] shrink-0 items-center">
-                      <span className="m-scale-in grid h-5 w-5 place-items-center rounded-full bg-bad text-white">
+                      <span className="m-scale-in grid h-5 w-5 place-items-center rounded-full bg-bad text-on-accent">
                         <IconX size={13} strokeWidth={3} />
                       </span>
                     </span>

@@ -71,6 +71,9 @@ importers:
       '@exam/settings':
         specifier: workspace:*
         version: link:../../packages/settings
+      '@fontsource/lxgw-wenkai-tc':
+        specifier: 5.3.0
+        version: 5.3.0
       katex:
         specifier: ^0.18.9
         version: 0.18.9
@@ -445,6 +448,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fontsource/lxgw-wenkai-tc@5.3.0':
+    resolution: {integrity: sha512-uH/YIfs+B6onN1JfvqzXG6of1i9so9/LCXQkblPWWqBSAoU6PzUELjBMEaLeOi5thnoFR68DqCfdlfA72oxHZw==}
 
   '@google/genai@2.24.0':
     resolution: {integrity: sha512-bIu5eoxF1AaPWs9ivmUJGp1RpDHyapoODvWvnkzRDx2CTIW6UJXFhDdjj0BlRve3ZHMMuEkQBVrA/ALqpW4apA==}
@@ -2306,6 +2312,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.2':
     optional: true
+
+  '@fontsource/lxgw-wenkai-tc@5.3.0': {}
 
   '@google/genai@2.24.0':
     dependencies:
