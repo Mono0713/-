@@ -3,6 +3,7 @@ import localFont from 'next/font/local'
 import { BRAND, brandTagline } from '@/shared/brand/brand'
 import { Header } from '@/shared/chrome/Header'
 import { Sidebar } from '@/shared/chrome/Sidebar'
+import { MOTION_SCRIPT } from '@/shared/motion/preference'
 import { THEME_SCRIPT } from '@/shared/theme/theme'
 import '@fontsource/lxgw-wenkai-tc/400.css'
 import './globals.css'
@@ -23,8 +24,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh-Hant" className={`${body.variable} ${bricolage.variable} ${mono.variable}`} suppressHydrationWarning>
       <head>
-        {/* Applies the saved light/dark choice before the first paint. */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        {/* Applies the saved light/dark and motion choices before the first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT + MOTION_SCRIPT }} />
       </head>
       <body className="min-h-screen font-sans antialiased">
         <div className="xl:flex">

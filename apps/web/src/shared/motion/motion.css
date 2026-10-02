@@ -26,11 +26,9 @@
 @keyframes m-shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
 @keyframes m-expand { from { opacity: 0; transform: translateY(-6px) scaleY(0.96); } }
 
-/* dragging a question (features/review): the card folds into a slot as the copy lifts off it.
-   Only entering the drag animates; on drop the card opens at once under the landing copy. */
+/* dragging a question (features/review): the full-size copy lifts off its slot by its shadow */
 @keyframes m-lift { from { box-shadow: var(--shadow-sheet); } }
 .m-lifted { box-shadow: var(--shadow-sheet), 0 18px 40px -14px rgb(0 0 0 / 0.4); animation: m-lift 180ms var(--m-ease-out) backwards; }
-.m-fold { interpolate-size: allow-keywords; transition: height 220ms var(--m-ease-out), background-color 180ms; }
 
 /* the app's own drop-down list (shared/Listbox.tsx): unfolds from the button in 160 ms */
 @keyframes m-menu { from { opacity: 0; transform: translateY(-4px) scaleY(0.97); } }
@@ -60,8 +58,6 @@
 .m-shake { animation: m-shake 420ms var(--m-ease-out); }
 .m-float { animation: m-float 3.2s ease-in-out infinite; }
 .m-spin { animation: m-spin 0.8s linear infinite; }
-/* only shows up when waiting gets long (combine with another animation such as m-spin) */
-.m-late.m-spin { animation: m-fade-in 200ms ease-out 500ms backwards, m-spin 0.8s linear infinite; }
 .m-draw { stroke-dasharray: 1 2; animation: m-draw var(--m-slow) var(--m-ease-out) 80ms both; }
 
 /* interaction */
@@ -95,13 +91,11 @@
 /*
  * Study-desk motion (see DESIGN.md "Motion"). Borrowed rhythms, drawn with pen and paper:
  * highlighter sweep (Apple Notes), pen marks (Duolingo), pressable buttons (Duolingo),
- * rolling digits (Stripe), sticky-note toast (Raycast), erase on confirm (Things 3),
- * pencil-sketch loading (Linear's skeletons, redrawn).
+ * rolling digits (Stripe), sticky-note toast (Raycast), erase on confirm (Things 3).
  */
 @keyframes m-sweep { from { background-size: 0% 100%; } to { background-size: 100% 100%; } }
 @keyframes m-nudge { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
 @keyframes m-stick { from { opacity: 0; transform: translateY(-22px) rotate(-8deg); } }
-@keyframes m-sketch { 0% { stroke-dashoffset: 1.02; opacity: 1; } 55%, 80% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
 
 /* highlighter swept left to right over .hl / .hl-md text when it appears */
 :is(.hl, .hl-md > p).m-sweep,
@@ -137,7 +131,7 @@
   content: ''; position: absolute; left: 50%; top: -7px; width: 48px; height: 14px; translate: -50% 0; rotate: 3deg;
   background: rgb(255 255 255 / 0.55); box-shadow: 0 0 0 1px rgb(0 0 0 / 0.05);
 }
-.m-sticky[data-show] { opacity: 1; transform: rotate(-2deg); transition: opacity 200ms ease-out, transform 620ms var(--m-spring); }
+.m-sticky[data-show] { opacity: 1; pointer-events: auto; transform: rotate(-2deg); transition: opacity 200ms ease-out, transform 620ms var(--m-spring); }
 
 /* confirming a note: its highlight is erased right to left, then the note folds away */
 .m-erase {
@@ -153,16 +147,11 @@
 .m-sheet li { opacity: 0; transform: translateY(8px); transition: opacity 200ms, transform 360ms var(--m-spring); }
 .m-fab[data-open] .m-sheet li { opacity: 1; transform: none; transition-delay: calc(var(--i) * 30ms + 80ms); }
 
-/* pencil-sketch loading lines (shared/motion/Sketch.tsx) */
-.m-sketch path {
-  fill: none; stroke: var(--color-muted); stroke-opacity: 0.45; stroke-width: 2.2; stroke-linecap: round;
-  stroke-dasharray: 1 2; stroke-dashoffset: 1.02; animation: m-sketch 1.6s var(--m-ease-out) infinite;
-}
-
-/* the curled corner springs a little tighter when the logo link is hovered */
+/* the loop rolls a little away from the sheet when the logo link is hovered; it moves out, never
+   into the notch, so the gap between them stays open */
 .m-logo-loop { transform-box: fill-box; transform-origin: center; transition: transform 600ms var(--m-spring); }
 @media (hover: hover) {
-  .m-logo:hover .m-logo-loop { transform: translate(-1.5px, -1.5px) scale(1.16); }
+  .m-logo:hover .m-logo-loop { transform: translate(1.2px, 1.2px) scale(1.08); }
 }
 
 /*
@@ -174,11 +163,11 @@
 /* next question (features/quiz/QuizPlayer.tsx): the old sheet slides off in 120 ms and is gone
    before the new one slides in (from 120 ms) from the side you are heading to, so the two never
    show through each other; data-back mirrors it. No 3D: text stays sharp and nothing covers the title. */
-@keyframes m-leaf-out { to { opacity: 0; transform: translateX(calc(var(--m-leaf-dir, 1) * -24px)); } }
-@keyframes m-leaf-in { from { opacity: 0; transform: translateX(calc(var(--m-leaf-dir, 1) * 32px)); } }
+@keyframes m-leaf-out { to { opacity: 0; transform: translateX(calc(var(--m-leaf-dir, 1) * -14px)); } }
+@keyframes m-leaf-in { from { opacity: 0; transform: translateX(calc(var(--m-leaf-dir, 1) * 18px)); } }
 .m-leaf-out { z-index: 1; pointer-events: none; animation: m-leaf-out 120ms cubic-bezier(0.4, 0, 1, 1) forwards; }
 .m-leaf-out * { animation: none !important; }
-.m-leaf-in { animation: m-leaf-in 360ms var(--m-ease-out) 120ms backwards; }
+.m-leaf-in { animation: m-leaf-in 300ms var(--m-ease-out) 120ms backwards; }
 .m-leaf-in[data-back], .m-leaf-out[data-back] { --m-leaf-dir: -1; }
 
 /* last minute of a timed exam: the clock beats once a second and its colon blinks */
@@ -238,12 +227,15 @@
 /* exam card corner (features/bank/ExamCard.tsx): rests slightly curled like the logo, lifts on hover
    to show "start practising" */
 .m-curl {
-  position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; border-top-left-radius: 100%; pointer-events: none;
-  background: radial-gradient(circle at 100% 100%, var(--color-paper) 0 30%, var(--color-accent-soft) 72%, color-mix(in srgb, var(--color-accent) 30%, var(--color-surface)) 100%);
-  box-shadow: -3px -3px 6px -2px rgb(0 0 0 / 0.18); transition: width 460ms var(--m-spring), height 460ms var(--m-spring);
+  position: absolute; right: 0; bottom: 0; z-index: 10; width: 22px; height: 22px; border-top-left-radius: 100%;
+  /* the back of the sheet: paper with a faint blue, edged by a hairline like the card's own */
+  background: radial-gradient(circle at 100% 100%, var(--color-paper) 0 35%, var(--color-accent-soft) 100%);
+  box-shadow: -1px -1px 0 var(--color-line), -3px -3px 8px -6px rgb(27 35 64 / 0.3);
+  transition: width 460ms var(--m-spring), height 460ms var(--m-spring);
 }
 .m-curl-label { opacity: 0; transform: translateX(10px); transition: opacity 200ms, transform 360ms var(--m-spring); }
 .m-curl-host:is(:hover, :focus-within) .m-curl { width: 48px; height: 48px; }
+.m-curl:hover { width: 54px !important; height: 54px !important; }
 .m-curl-host:is(:hover, :focus-within) .m-curl-label { opacity: 1; transform: none; transition-delay: 80ms; }
 @media (hover: none) {
   .m-curl-label { opacity: 1; transform: none; }
@@ -262,6 +254,14 @@ input.m-ink, textarea.m-ink {
   background-position: 100% calc(100% - 2px); transition: background-position 200ms ease-in, border-color 200ms;
 }
 input.m-ink:focus, textarea.m-ink:focus { background-position: 0% calc(100% - 2px); transition: background-position 420ms var(--m-ease-out), border-color 200ms; }
+
+/* 設定 > 外觀 > 做題時減少動畫: inside a quiz (.m-calm-zone), everything changes at once */
+:root[data-motion="calm"] .m-calm-zone :is(*, *::before, *::after) {
+  animation-duration: 1ms !important;
+  animation-delay: 0ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

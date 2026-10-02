@@ -6,7 +6,7 @@ import type { DraftExam, DraftQuestion } from '@exam/core'
 import Link from 'next/link'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
-import { QuestionHeading, QuestionView } from '@/features/questions/QuestionView'
+import { QuestionView } from '@/features/questions/QuestionView'
 import { Glide } from '@/shared/motion/Glide'
 import { Fab, type FabAction } from '@/shared/chrome/Fab'
 import { FigureView } from '@/shared/FigureView'
@@ -39,7 +39,6 @@ import { Badge, Button, inputClass } from '@/shared/ui'
 import { publishDraft, saveDraft } from './actions'
 import { PageViewer } from './PageViewer'
 import { splitNumber, splitParts } from './parts'
-import { DragTilt } from '@/shared/motion/DragTilt'
 import { ActiveOverlay, alongList, EdgeScroll, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 
 type SaveState = 'saved' | 'dirty' | 'saving'
@@ -98,7 +97,6 @@ export function ReviewEditor({
   const keys = useRef<string[]>([])
   if (keys.current.length !== draft.questions.length) keys.current = draft.questions.map((_, i) => keys.current[i] ?? newKey())
   const cardSensors = useDragSensors(true, true)
-  // The card being dragged: it shrinks to a slot in the list while a compact copy follows the pointer.
   const outlineSensors = useDragSensors(false)
   const row = useRef<HTMLDivElement>(null)
   const viewer = useRef<HTMLDivElement>(null)
@@ -161,13 +159,50 @@ export function ReviewEditor({
     setEditing(null)
     setSelected(index)
   }
+  // Deleting asks nothing; Ctrl+Z (or 復原 on the note) puts questions back, last deleted first.
+  const trash = useRef<{ index: number; question: DraftQuestion; key: string }[]>([])
+  const [deletedNote, setDeletedNote] = useState<string | null>(null)
+  const noteTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const showDeleted = (number: string | null) => {
+    clearTimeout(noteTimer.current)
+    setDeletedNote(number)
+    if (number !== null) noteTimer.current = setTimeout(() => setDeletedNote(null), 5000)
+  }
   const removeQuestion = (index: number) => {
-    if (!confirm(`刪除第 ${draft.questions[index]!.number} 題？`)) return
+    const question = draft.questions[index]!
+    trash.current.push({ index, question, key: keys.current[index]! })
     keys.current = keys.current.filter((_, i) => i !== index)
     setDraft((d) => ({ ...d, questions: d.questions.filter((_, i) => i !== index) }))
     setEditing(null)
     setSelected(null)
+    showDeleted(question.number)
   }
+  const undoDelete = () => {
+    const last = trash.current.pop()
+    if (!last) return
+    const at = Math.min(last.index, keys.current.length)
+    keys.current = [...keys.current.slice(0, at), last.key, ...keys.current.slice(at)]
+    setDraft((d) => ({ ...d, questions: [...d.questions.slice(0, at), last.question, ...d.questions.slice(at)] }))
+    setSelected(at)
+    showDeleted(null)
+  }
+  const undoRef = useRef(undoDelete)
+  undoRef.current = undoDelete
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'z' || !trash.current.length) return
+      // typing fields keep their own undo
+      const t = e.target as HTMLElement | null
+      if (t?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"], math-field')) return
+      e.preventDefault()
+      undoRef.current()
+    }
+    addEventListener('keydown', onKey)
+    return () => {
+      removeEventListener('keydown', onKey)
+      clearTimeout(noteTimer.current)
+    }
+  }, [])
   const moveQuestion = (from: number, to: number) => {
     // Selection and editing follow the question that moved.
     const follow = (i: number | null) =>
@@ -582,9 +617,9 @@ export function ReviewEditor({
                             className={`relative scroll-mt-40 rounded-2xl bg-surface p-4 transition-shadow sm:p-5 ${
                               inGroup ? 'ml-4 before:absolute before:-left-3 before:-top-4 before:bottom-4 before:w-0.5 before:rounded-full before:bg-ink/10 sm:ml-7 sm:before:-left-4' : ''
                             } ${
-                              // While dragged, the card folds (m-fold) into an empty slot as tall as the copy that follows
-                              // the pointer, so the cards around it only move by that much. It stays mounted: touch drags end on it.
-                              dragging ? 'm-fold h-16 overflow-hidden !bg-accent-soft/60 outline-2 -outline-offset-2 outline-dashed outline-accent/35 sm:h-[4.5rem] [&>*]:invisible' : 'shadow-sheet'
+                              // While dragged, the card stays as an empty slot of its own size while its full-size copy
+                              // follows the pointer. It stays mounted: touch drags end on it.
+                              dragging ? '!bg-accent-soft/60 outline-2 -outline-offset-2 outline-dashed outline-accent/35 [&>*]:invisible' : 'shadow-sheet'
                             } ${selected === index && !dragging ? 'ring-2 ring-accent/70' : ''}`}
                           >
                             {isFlagged(q) && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-hl" />}
@@ -594,15 +629,16 @@ export function ReviewEditor({
                                 onChange={(v) => updateQuestion(index, v)}
                                 importId={importId}
                                 actions={
+                                  // the same places as the card's own buttons: done where edit was, then delete and the grip
                                   <>
+                                    <button type="button" onClick={() => setEditing(null)} className={`${iconButton} !text-accent hover:bg-accent-soft`} aria-label="完成" title="完成">
+                                      <IconCheck size={17} strokeWidth={2.6} />
+                                    </button>
                                     <button type="button" onClick={() => removeQuestion(index)} className={`${iconButton} hover:bg-bad-soft hover:text-bad`} aria-label="刪除" title="刪除">
                                       <IconTrash size={15} />
                                     </button>
                                     {/* Phones keep the header on one line; cards are reordered outside editing there. */}
                                     <span className="hidden sm:contents">{gripButton(q, handle)}</span>
-                                    <Button variant="primary" className="ml-1 h-9 px-2.5 py-0 sm:px-3" onClick={() => setEditing(null)} icon={<IconCheck size={15} />} aria-label="完成">
-                                      <span className="hidden sm:inline">完成</span>
-                                    </Button>
                                   </>
                                 }
                               />
@@ -644,6 +680,16 @@ export function ReviewEditor({
         </div>
       </div>
 
+      {/* a sticky note after deleting, with a way back */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center">
+        <p aria-live="polite" data-show={deletedNote !== null || undefined} className="m-sticky relative flex items-center gap-3 px-4 pb-2.5 pt-2">
+          已刪除第 {deletedNote} 題
+          <button type="button" onClick={undoDelete} className="rounded px-1.5 font-sans text-sm font-semibold underline underline-offset-2 hover:bg-black/5" title="復原（Ctrl+Z）">
+            復原
+          </button>
+        </p>
+      </div>
+
       <Fab actions={fabActions} badge={flagged || undefined} />
     </div>
   )
@@ -669,22 +715,17 @@ const SAVE_LABELS: Record<SaveState, string> = { saved: '草稿已自動儲存',
 
 /** Short plain-text preview of a question stem for the outline. */
 /**
- * The copy of a card that follows the pointer while it is dragged: the card's own first line
- * (QuestionHeading, same padding, same buttons) with the stem shortened beside it, so the number,
- * type and grip stay exactly where they were when it was picked up. `offset` skips a section
+ * The copy of a card that follows the pointer while it is dragged: the whole card as it looks,
+ * same size and same buttons, lifted by its shadow only (`.m-lifted`). `offset` skips a section
  * heading or group text above the card; the drag measures from those.
  */
 function DragPreview({ q, inGroup, offset, flagged, actions }: { q: DraftQuestion; inGroup: boolean; offset: number; flagged: boolean; actions: React.ReactNode }) {
   return (
     <div style={{ paddingTop: offset }} className={inGroup ? 'ml-4 sm:ml-7' : ''}>
-      <DragTilt>
-        <div data-drag-overlay inert className="m-lifted relative cursor-grabbing rounded-2xl bg-surface p-4 sm:p-5">
-          {flagged && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-hl" />}
-          <QuestionHeading q={q} actions={actions}>
-            <span className="hidden min-w-0 flex-1 truncate text-sm text-muted sm:block">{preview(q.stem)}</span>
-          </QuestionHeading>
-        </div>
-      </DragTilt>
+      <div data-drag-overlay inert className="m-lifted relative cursor-grabbing rounded-2xl bg-surface p-4 sm:p-5">
+        {flagged && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-hl" />}
+        <QuestionView q={q} onConfirm={() => {}} actions={actions} />
+      </div>
     </div>
   )
 }
@@ -730,7 +771,7 @@ function Outline({
   return (
     <nav
       aria-label="題目大綱"
-      className="m-enter mr-5 hidden w-[232px] shrink-0 space-y-6 self-start lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:max-h-[calc(100dvh-var(--bar)-1.5rem)] lg:overflow-y-auto lg:pb-4"
+      className="m-enter -ml-2 mr-3 hidden w-[248px] shrink-0 space-y-6 self-start px-2 lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:max-h-[calc(100dvh-var(--bar)-1.5rem)] lg:overflow-y-auto lg:pb-4"
     >
       <section>
         <p className="mb-2 flex items-center justify-between px-1 text-[11px] font-semibold tracking-[0.12em] text-muted">

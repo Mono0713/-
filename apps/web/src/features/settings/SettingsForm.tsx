@@ -6,6 +6,7 @@ import { IconCheck, IconKey, IconRefresh } from '@/shared/icons'
 import { Badge, Button, Card, inputClass } from '@/shared/ui'
 import { refreshModels, removeApiKey, saveAiGrading, saveApiKey, saveDefaultProvider, saveLocale, saveModel } from './actions'
 import { ModelPicker } from './ModelPicker'
+import { CalmSwitch } from '@/shared/motion/CalmSwitch'
 import { ThemePicker } from '@/shared/theme/ThemePicker'
 
 export interface KeyInfo {
@@ -62,6 +63,9 @@ export function SettingsForm({
         </Row>
         <Row label="外觀" hint="淺色或深色。只記在這個瀏覽器裡。">
           <ThemePicker />
+        </Row>
+        <Row plain label="做題時減少動畫" hint="換題、對答案時不播動畫，畫面直接切換，專心作答。只記在這個瀏覽器裡。">
+          <CalmSwitch />
         </Row>
         <Row label="預設辨識方式" hint="匯入考卷時先選好的方式，每次上傳仍可以改。">
           <select defaultValue={defaultProvider} onChange={(e) => run(() => saveDefaultProvider(e.target.value))} className={inputClass}>

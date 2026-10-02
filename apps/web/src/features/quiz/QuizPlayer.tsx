@@ -6,6 +6,7 @@ import { gradeItem } from '@exam/quiz/logic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { IconChevronLeft, IconChevronRight, IconFinish, IconSparkles, IconTimer } from '@/shared/icons'
+import { quizIsCalm } from '@/shared/motion/preference'
 import { Button, Card } from '@/shared/ui'
 import { checkAnswer, finishQuiz, markAnswer, saveResponse } from './actions'
 import { QuizQuestion } from './QuizQuestion'
@@ -93,7 +94,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
   const [moved, setMoved] = useState(false)
   const go = (i: number) => {
     setDirection(i >= current ? 1 : -1)
-    setTurning(i !== current && !matchMedia('(prefers-reduced-motion: reduce)').matches ? current : null)
+    setTurning(i !== current && !quizIsCalm() ? current : null)
     setMoved(i !== current)
     setCurrent(i)
     setNavOpen(false)
@@ -132,7 +133,8 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
   )
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-6">
+    // m-calm-zone: 設定裡的「做題時減少動畫」 stills everything in here
+    <div className="m-calm-zone grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-6">
       {/* Phones: progress, time and the question list in a bar that stays on screen. */}
       <div className="sticky top-14 z-20 -mx-4 border-b border-line bg-paper/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
         <div className="flex items-center gap-3">

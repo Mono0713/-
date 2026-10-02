@@ -66,16 +66,15 @@ to an instant change under `prefers-reduced-motion`.
 | Gliding hover | Linear, Vercel | review outline | `Glide` + `data-glide` rows, 260 ms |
 | Sticky-note toast | Raycast, Arc | "已儲存" | `.m-sticky[data-show]`, spring on, ease-in off |
 | Erase on confirm | Things 3 | "沒問題" on a review note | `ConfirmNote`: highlight erased right to left, then the note folds |
-| Pencil-sketch loading | Linear skeletons | page loading | `Sketch` replaces the grey shimmer. Not for the editor: opening an exam shows its blank workspace, with a spinner only after 500 ms (`.m-late`) |
 | Bottom sheet | iOS | phone action menu | `Fab` below `sm`, 520 ms spring |
-| Next sheet | Apple Books, iOS | next question in a quiz | `.m-leaf-out` slides the old sheet off in 120 ms, then `.m-leaf-in` slides the new one in (360 ms) from the side you head to; `data-back` mirrors it. The two never show at once; no 3D |
+| Next sheet | Apple Books, iOS | next question in a quiz | `.m-leaf-out` slides the old sheet 14 px off in 120 ms, then `.m-leaf-in` slides the new one 18 px in (300 ms) from the side you head to; `data-back` mirrors it. The two never show at once; no 3D. Off with 設定 > 做題時減少動畫 (`data-motion="calm"` stills everything inside `.m-calm-zone`) |
 | Full-marks stamp | Duolingo, hanko | 100% on quiz results | `.m-stamp`, lands 520 ms after the score, ink ring spreads |
-| Drag | Trello, Linear | dragging a question in review | Picked up on the first pixel of movement. The copy is the card's own first line (`QuestionHeading`), unscaled, so number, type and grip stay put; it lifts by shadow (`.m-lifted`) and leans with `DragTilt` (at most 4°). The card folds into a slot (`.m-fold`, 220 ms). `EdgeScroll` glides the page near the top and bottom edges, once per frame |
+| Drag | Trello, Linear | dragging a question in review | Picked up on the first pixel of movement. The copy is the whole card, same size and buttons, lifted by its shadow only (`.m-lifted`); its place stays as a dashed slot of the same size. `EdgeScroll` glides the page near the top and bottom edges, once per frame |
 | Scan | Apple Notes | import being read; boxes when the editor opens | `Scan` (`.m-scan-bar`, loops while loading); `.m-found` boxes one by one, 140 ms apart |
 | Pencil progress | Stripe | import progress | `PencilProgress`: pencil tip on the line's end, blue stroke behind it |
 | Pen checkbox | Things 3, Todoist | quiz setup | `input.m-check`: tick drawn in 320 ms, unticked in 120 ms |
 | Last-minute timer | Duolingo | timed exams, last 60 s | `.m-last-minute`: red pen, beats once a second, colon blinks |
-| Corner curl | iBooks, the logo | exam cards in the bank | `.m-curl` lifts on hover to show `開始練習 →` (always shown on touch) |
+| Corner curl | iBooks, the logo | exam cards in the bank | `.m-curl` lifts on hover to show `開始練習 →`; the corner itself also opens the practice setup (always shown on touch). The rest of the card opens the exam |
 | Punch confetti | Stripe, Linear | 100% on quiz results | `Confetti`: one burst of binder-hole dots in the four ink colors |
 | Pen underline | Linear | every text field (`inputBase`) | `.m-ink`: a ballpoint line drawn left to right on focus, nothing painted at rest |
 
@@ -83,6 +82,10 @@ Controls with a moving part must not change the layout around them: the sliding 
 `Segmented` is clipped, so its spring overshoot never widens the row or flashes a scrollbar.
 Long lists to pick from use `Listbox` (`src/shared/Listbox.tsx`, opening with `.m-menu`), not the
 native `<select>`, whose popup scrolls by itself when the pointer rests near its edges.
+
+No loading screens between pages: the current page stays until the next one is ready. Deleting
+never asks first; it shows a sticky note with 復原, and Ctrl+Z brings questions back.
+A zoomed exam page can be grabbed and moved with the mouse.
 
 Timing tokens: `--m-fast` 140 ms (presses), `--m-base` 240 ms, `--m-slow` 460 ms (entrances),
 `--m-spring` for anything that lands. Rules: one moving thing at a time; feedback within

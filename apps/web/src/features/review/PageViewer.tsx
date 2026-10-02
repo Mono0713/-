@@ -1,7 +1,7 @@
 'use client'
 
 import { untangleBoxes, type DraftQuestion } from '@exam/core'
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { fileUrl } from '@/shared/files'
 import { IconChevronLeft, IconChevronRight, IconExternal, IconLoader, IconMinus, IconPlus } from '@/shared/icons'
 
@@ -79,6 +79,45 @@ export function PageViewer({
     else el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  // Zoomed in, the pages can be grabbed and moved with the mouse or pen (touch already pans).
+  // A press that moves more than a few pixels is a pan, and the click that ends it selects nothing.
+  const strip = useRef<HTMLDivElement>(null)
+  const [panning, setPanning] = useState(false)
+  const pan = useRef<{ x: number; y: number; moved: boolean } | null>(null)
+  const startPan = (e: ReactPointerEvent) => {
+    if (zoom === 0 || e.pointerType === 'touch' || e.button !== 0) return
+    pan.current = { x: e.clientX, y: e.clientY, moved: false }
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+  const movePan = (e: ReactPointerEvent) => {
+    const p = pan.current
+    if (!p) return
+    const dx = e.clientX - p.x
+    const dy = e.clientY - p.y
+    if (!p.moved && Math.hypot(dx, dy) < 4) return
+    if (!p.moved) setPanning(true)
+    p.moved = true
+    p.x = e.clientX
+    p.y = e.clientY
+    strip.current?.scrollBy({ left: -dx, behavior: 'instant' })
+    const el = scroller.current
+    if (el && scrolls()) el.scrollBy({ left: -dx, top: -dy, behavior: 'instant' })
+    else window.scrollBy({ top: -dy, behavior: 'instant' })
+  }
+  const endPan = () => {
+    if (pan.current?.moved) {
+      // swallow the click that follows a pan
+      const stop = (ev: MouseEvent) => {
+        ev.stopPropagation()
+        ev.preventDefault()
+      }
+      addEventListener('click', stop, { capture: true, once: true })
+      setTimeout(() => removeEventListener('click', stop, { capture: true }), 0)
+    }
+    pan.current = null
+    setPanning(false)
+  }
+
   if (!pages.length) return null
   const scale = ZOOMS[zoom]!
   const index = Math.max(0, pages.findIndex((p) => p.pageNumber === current))
@@ -88,8 +127,16 @@ export function PageViewer({
     // A column, so the controls sit at the bottom of the viewer even before the pages fill it.
     <div ref={scroller} onScroll={onScroll} className={`relative flex flex-col ${className}`}>
       {/* Zoomed pages scroll sideways here on phones; wider screens scroll the whole viewer. */}
-      <div className="flex-1 overflow-x-auto lg:overflow-visible">
-        <div className="space-y-3 pb-1" style={{ width: `${scale * 100}%` }}>
+      <div ref={strip} className="flex-1 overflow-x-auto lg:overflow-visible">
+        <div
+          className={`space-y-3 pb-1 ${zoom > 0 ? (panning ? 'cursor-grabbing select-none' : 'cursor-grab') : ''}`}
+          style={{ width: `${scale * 100}%` }}
+          onPointerDown={startPan}
+          onPointerMove={movePan}
+          onPointerUp={endPan}
+          onPointerCancel={endPan}
+          onDragStart={(e) => zoom > 0 && e.preventDefault()}
+        >
           {pages.map((page) => (
             <figure
               key={page.pageNumber}

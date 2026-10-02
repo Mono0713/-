@@ -162,9 +162,12 @@ export function EdgeScroll({ top = 0 }: { top?: number }) {
  */
 export function ActiveOverlay({ render }: { render: (id: string) => ReactNode }) {
   const { active } = useDndContext()
+  const id = active ? String(active.id) : null
+  // drawn once per pick-up, not on every pointer move (only its position changes)
+  const copy = useMemo(() => (id ? render(id) : null), [id, render])
   return (
     <DragOverlay dropAnimation={dropAnimation} modifiers={[alongList]}>
-      {active ? render(String(active.id)) : null}
+      {copy}
     </DragOverlay>
   )
 }
