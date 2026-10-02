@@ -80,6 +80,73 @@
   animation: m-shimmer 1.4s linear infinite;
 }
 
+/*
+ * Study-desk motion (see DESIGN.md "Motion"). Borrowed rhythms, drawn with pen and paper:
+ * highlighter sweep (Apple Notes), pen marks (Duolingo), pressable buttons (Duolingo),
+ * rolling digits (Stripe), sticky-note toast (Raycast), erase on confirm (Things 3),
+ * pencil-sketch loading (Linear's skeletons, redrawn).
+ */
+@keyframes m-sweep { from { background-size: 0% 100%; } to { background-size: 100% 100%; } }
+@keyframes m-nudge { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+@keyframes m-stick { from { opacity: 0; transform: translateY(-22px) rotate(-8deg); } }
+@keyframes m-sketch { 0% { stroke-dashoffset: 1; opacity: 1; } 55%, 80% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+
+/* highlighter swept left to right over .hl / .hl-md text when it appears */
+:is(.hl, .hl-md > p).m-sweep,
+.m-sweep.hl-md > p {
+  background-repeat: no-repeat;
+  animation: m-sweep 520ms var(--m-ease-out) 120ms backwards;
+}
+
+/* pen strokes: an SVG path with pathLength="1" draws itself (.m-pen-late waits for the first stroke) */
+.m-pen { stroke-dasharray: 1; animation: m-draw 560ms var(--m-ease-out) both; }
+.m-pen-late { animation-delay: 360ms; animation-duration: 380ms; }
+.m-nudge { animation: m-nudge 360ms ease 60ms; }
+
+/* buttons that press down: the bottom edge is a solid "depth" that collapses while held */
+.m-push { box-shadow: 0 3px 0 var(--m-depth, var(--color-accent-deep)); }
+.m-push.m-press:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 var(--m-depth, var(--color-accent-deep)); transition-duration: 70ms; }
+.m-push-quiet { --m-depth: var(--color-line); box-shadow: 0 0 0 1px var(--color-line), 0 2px 0 var(--m-depth); }
+.m-push-quiet.m-press:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 0 0 1px var(--color-line), 0 0 0 var(--m-depth); }
+
+/* rolling digits (shared/motion/Odometer.tsx): each column slides to its digit with a spring */
+.m-odo-col { display: inline-block; height: 1em; line-height: 1; overflow: hidden; vertical-align: top; }
+.m-odo-col > span { display: block; transition: transform 900ms var(--m-spring); }
+.m-odo-col > span > span { display: block; height: 1em; }
+
+/* a sticky note that is stuck on, then peeled off (data-show toggles it) */
+.m-sticky {
+  font-family: var(--font-hand); font-size: 17px; color: #3a3200; background: #fff48a;
+  box-shadow: 0 10px 18px -12px rgb(0 0 0 / 0.45);
+  opacity: 0; transform: translateY(-12px) rotate(5deg); pointer-events: none;
+  transition: opacity 260ms ease-in, transform 360ms ease-in;
+}
+.m-sticky::before {
+  content: ''; position: absolute; left: 50%; top: -7px; width: 48px; height: 14px; translate: -50% 0; rotate: 3deg;
+  background: rgb(255 255 255 / 0.55); box-shadow: 0 0 0 1px rgb(0 0 0 / 0.05);
+}
+.m-sticky[data-show] { opacity: 1; transform: rotate(-2deg); transition: opacity 200ms ease-out, transform 620ms var(--m-spring); }
+
+/* confirming a note: its highlight is erased right to left, then the note folds away */
+.m-erase {
+  background-image: linear-gradient(var(--color-warn-soft), var(--color-warn-soft));
+  background-repeat: no-repeat; background-position: 100% 0; background-size: 100% 100%;
+  transition: background-size 420ms var(--m-ease-out), opacity 260ms ease 300ms, transform 260ms ease 300ms;
+}
+.m-erase[data-erasing] { background-size: 0% 100%; opacity: 0; transform: translateY(-4px); }
+
+/* phone action sheet (shared/chrome/Fab.tsx): slides up with a spring, rows follow one by one */
+.m-sheet { transform: translateY(105%); transition: transform 520ms var(--m-spring); }
+.m-fab[data-open] .m-sheet { transform: none; }
+.m-sheet li { opacity: 0; transform: translateY(8px); transition: opacity 200ms, transform 360ms var(--m-spring); }
+.m-fab[data-open] .m-sheet li { opacity: 1; transform: none; transition-delay: calc(var(--i) * 30ms + 80ms); }
+
+/* pencil-sketch loading lines (shared/motion/Sketch.tsx) */
+.m-sketch path {
+  fill: none; stroke: var(--color-muted); stroke-opacity: 0.45; stroke-width: 2.2; stroke-linecap: round;
+  stroke-dasharray: 1; stroke-dashoffset: 1; animation: m-sketch 1.6s var(--m-ease-out) infinite;
+}
+
 /* the curled corner springs a little tighter when the logo link is hovered */
 .m-logo-loop { transform-box: fill-box; transform-origin: center; transition: transform 600ms var(--m-spring); }
 @media (hover: hover) {

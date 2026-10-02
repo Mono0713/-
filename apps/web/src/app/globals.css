@@ -23,9 +23,12 @@
   /* ballpoint blue: the one accent */
   --color-accent: #2f4bff;
   --color-accent-soft: #eef1ff;
+  --color-accent-deep: #1d33c9;
   --color-on-accent: #ffffff;
   /* highlighter (answers, things to check) and the teacher's red pen (AI comments) */
   --color-hl: #f4ff5c;
+  /* the highlighter stroke behind text; see-through in dark mode so the text keeps its color */
+  --color-hl-mark: #f4ff5c;
   --color-pen: #d63a2f;
   /* the navy desk: sidebar, toasts, overlays; the same in both themes */
   --color-night: #141b33;
@@ -51,8 +54,10 @@
     --color-line: #263155;
     --color-accent: #7d93ff;
     --color-accent-soft: #1c2650;
+    --color-accent-deep: #4c62d6;
     --color-on-accent: #0f1528;
     --color-hl: #d7f04a;
+    --color-hl-mark: rgb(215 240 74 / 0.3);
     --color-pen: #ff8b7e;
     --color-night: #0a0f1f;
     --color-night-soft: #1a2240;
@@ -75,8 +80,10 @@
   --color-line: #263155;
   --color-accent: #7d93ff;
   --color-accent-soft: #1c2650;
+  --color-accent-deep: #4c62d6;
   --color-on-accent: #0f1528;
   --color-hl: #d7f04a;
+  --color-hl-mark: rgb(215 240 74 / 0.3);
   --color-pen: #ff8b7e;
   --color-night: #0a0f1f;
   --color-night-soft: #1a2240;
@@ -131,21 +138,10 @@ h2 {
 .hl-md > p {
   padding: 0 0.15em;
   border-radius: 0.2em;
-  background: linear-gradient(transparent 30%, var(--color-hl) 30%, var(--color-hl) 90%, transparent 90%);
+  background: linear-gradient(transparent 30%, var(--color-hl-mark) 30%, var(--color-hl-mark) 90%, transparent 90%);
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
-:root[data-theme='dark'] :is(.hl, .hl-md > p) {
-  color: #0f1528;
-  background: linear-gradient(transparent 12%, var(--color-hl) 12%, var(--color-hl) 94%, transparent 94%);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) :is(.hl, .hl-md > p) {
-    color: #0f1528;
-    background: linear-gradient(transparent 12%, var(--color-hl) 12%, var(--color-hl) 94%, transparent 94%);
-  }
-}
-
 /* The teacher's red pen: AI comments and marks. Only for short notes, never for running UI text. */
 .pen {
   font-family: var(--font-hand);

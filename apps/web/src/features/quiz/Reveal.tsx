@@ -58,9 +58,9 @@ export function Reveal({
         <div>
           <span className="font-medium text-good">正確答案：</span>
           {answer !== null ? (
-            <span className="hl">{answer}</span>
+            <span className="hl m-sweep">{answer}</span>
           ) : key.length === 1 ? (
-            <Markdown className="hl-md">{key[0]!}</Markdown>
+            <Markdown className="hl-md m-sweep">{key[0]!}</Markdown>
           ) : (
             <ol className="list-decimal pl-5">
               {key.map((v, i) => (

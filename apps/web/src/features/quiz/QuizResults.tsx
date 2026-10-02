@@ -3,7 +3,7 @@
 import type { QuizAttempt, QuizSummary } from '@exam/quiz'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
-import { AnimatedNumber } from '@/shared/motion/AnimatedNumber'
+import { Odometer } from '@/shared/motion/Odometer'
 import { ProgressRing } from '@/shared/motion/ProgressRing'
 import { Segmented } from '@/shared/Segmented'
 import { AutoRefresh } from '@/features/imports/AutoRefresh'
@@ -50,15 +50,15 @@ export function QuizResults({ attempt, summary, teacher }: { attempt: QuizAttemp
         {percent !== null && (
           <div className="relative grid place-items-center">
             <ProgressRing value={percent / 100} size={84} stroke={9} tone={percent >= 60 ? 'var(--color-good)' : 'var(--color-warn)'} />
-            <span className="absolute text-lg font-semibold">
-              <AnimatedNumber value={percent} />%
+            <span className="num absolute text-lg">
+              <Odometer value={`${percent}%`} />
             </span>
           </div>
         )}
         <div>
           <p className="text-xs text-muted">得分</p>
-          <p className="text-3xl font-semibold tabular-nums">
-            <AnimatedNumber value={summary.score} format={(n) => (Number.isInteger(summary.score) ? String(Math.round(n)) : n.toFixed(1))} />
+          <p className="num text-3xl">
+            <Odometer value={Number.isInteger(summary.score) ? String(summary.score) : summary.score.toFixed(1)} />
             <span className="text-lg text-muted"> / {summary.max}</span>
           </p>
         </div>
