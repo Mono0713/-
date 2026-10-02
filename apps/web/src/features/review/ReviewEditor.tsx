@@ -1,12 +1,12 @@
 'use client'
 
-import { DndContext, DragOverlay, type DragEndEvent } from '@dnd-kit/core'
+import { DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { DraftExam, DraftQuestion } from '@exam/core'
 import Link from 'next/link'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
-import { QuestionView } from '@/features/questions/QuestionView'
+import { QuestionHeading, QuestionView } from '@/features/questions/QuestionView'
 import { Glide } from '@/shared/motion/Glide'
 import { Fab, type FabAction } from '@/shared/chrome/Fab'
 import { FigureView } from '@/shared/FigureView'
@@ -40,7 +40,7 @@ import { publishDraft, saveDraft } from './actions'
 import { PageViewer } from './PageViewer'
 import { splitNumber, splitParts } from './parts'
 import { DragTilt } from '@/shared/motion/DragTilt'
-import { alongList, dropAnimation, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
+import { ActiveOverlay, alongList, EdgeScroll, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 
 type SaveState = 'saved' | 'dirty' | 'saving'
 
@@ -97,10 +97,8 @@ export function ReviewEditor({
   const cards = useRef(new Map<number, HTMLElement>())
   const keys = useRef<string[]>([])
   if (keys.current.length !== draft.questions.length) keys.current = draft.questions.map((_, i) => keys.current[i] ?? newKey())
-  const cardSensors = useDragSensors(true)
+  const cardSensors = useDragSensors(true, true)
   // The card being dragged: it shrinks to a slot in the list while a compact copy follows the pointer.
-  const [dragKey, setDragKey] = useState<string | null>(null)
-  const dragIndex = dragKey ? keys.current.indexOf(dragKey) : -1
   const outlineSensors = useDragSensors(false)
   const row = useRef<HTMLDivElement>(null)
   const viewer = useRef<HTMLDivElement>(null)
@@ -288,6 +286,29 @@ export function ReviewEditor({
   }
 
   const iconButton = 'm-press grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-ink/[0.05] hover:text-ink'
+  // A card's buttons when it is not being edited; the dragged copy draws the same row (inert) so it lines up.
+  const viewActions = (q: DraftQuestion, index: number, handle: DragHandle | null) => (
+    <>
+      {!q.groupId && splitParts(q, '') && (
+        <button type="button" onClick={() => splitQuestion(index)} className={iconButton} aria-label="拆成小題" title="拆成小題：(a)(b) 各自一題，可以分別作答和計分">
+          <IconSplit size={15} />
+        </button>
+      )}
+      <button type="button" onClick={() => setEditing(index)} className={iconButton} aria-label="編輯" title="編輯（或點兩下題目）">
+        <IconEdit size={15} />
+      </button>
+      <button type="button" onClick={() => removeQuestion(index)} className={`${iconButton} hover:bg-bad-soft hover:text-bad`} aria-label="刪除" title="刪除">
+        <IconTrash size={15} />
+      </button>
+      {handle ? (
+        gripButton(q, handle)
+      ) : (
+        <span className={iconButton.replace('text-muted', 'text-accent')}>
+          <IconGrip size={16} />
+        </span>
+      )}
+    </>
+  )
   const gripButton = (q: DraftQuestion, handle: DragHandle) => (
     <button
       type="button"
@@ -532,13 +553,10 @@ export function ReviewEditor({
               collisionDetection={underPointer}
               modifiers={[alongList]}
               measuring={listMeasuring}
-              onDragStart={({ active }) => setDragKey(String(active.id))}
-              onDragCancel={() => setDragKey(null)}
-              onDragEnd={(e) => {
-                setDragKey(null)
-                onDragEnd(e)
-              }}
+              autoScroll={false}
+              onDragEnd={onDragEnd}
             >
+              <EdgeScroll top={barHeight} />
               <SortableContext items={visibleKeys} strategy={verticalListSortingStrategy}>
                 {draft.questions.map((q, index) => {
                   if (flaggedOnly && !isFlagged(q)) return null
@@ -564,9 +582,9 @@ export function ReviewEditor({
                             className={`relative scroll-mt-40 rounded-2xl bg-surface p-4 transition-shadow sm:p-5 ${
                               inGroup ? 'ml-4 before:absolute before:-left-3 before:-top-4 before:bottom-4 before:w-0.5 before:rounded-full before:bg-ink/10 sm:ml-7 sm:before:-left-4' : ''
                             } ${
-                              // While dragged, the card is an empty slot as tall as the copy that follows the pointer,
-                              // so the cards around it only move by that much. It stays mounted: touch drags end on it.
-                              dragging ? 'h-14 overflow-hidden !bg-accent-soft/60 !p-0 outline-2 -outline-offset-2 outline-dashed outline-accent/35 [&>*]:invisible' : 'shadow-sheet'
+                              // While dragged, the card folds (m-fold) into an empty slot as tall as the copy that follows
+                              // the pointer, so the cards around it only move by that much. It stays mounted: touch drags end on it.
+                              dragging ? 'm-fold h-16 overflow-hidden !bg-accent-soft/60 outline-2 -outline-offset-2 outline-dashed outline-accent/35 sm:h-[4.5rem] [&>*]:invisible' : 'shadow-sheet'
                             } ${selected === index && !dragging ? 'ring-2 ring-accent/70' : ''}`}
                           >
                             {isFlagged(q) && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-hl" />}
@@ -592,22 +610,7 @@ export function ReviewEditor({
                               <QuestionView
                                 q={q}
                                 onConfirm={() => confirmQuestion(index)}
-                                actions={
-                                  <>
-                                    {!q.groupId && splitParts(q, '') && (
-                                      <button type="button" onClick={() => splitQuestion(index)} className={iconButton} aria-label="拆成小題" title="拆成小題：(a)(b) 各自一題，可以分別作答和計分">
-                                        <IconSplit size={15} />
-                                      </button>
-                                    )}
-                                    <button type="button" onClick={() => setEditing(index)} className={iconButton} aria-label="編輯" title="編輯（或點兩下題目）">
-                                      <IconEdit size={15} />
-                                    </button>
-                                    <button type="button" onClick={() => removeQuestion(index)} className={`${iconButton} hover:bg-bad-soft hover:text-bad`} aria-label="刪除" title="刪除">
-                                      <IconTrash size={15} />
-                                    </button>
-                                    {gripButton(q, handle)}
-                                  </>
-                                }
+                                actions={viewActions(q, index, handle)}
                               />
                             )}
                           </section>
@@ -617,9 +620,21 @@ export function ReviewEditor({
                   )
                 })}
               </SortableContext>
-              <DragOverlay dropAnimation={dropAnimation} modifiers={[alongList]}>
-                {dragIndex >= 0 && <DragPreview q={draft.questions[dragIndex]!} />}
-              </DragOverlay>
+              <ActiveOverlay
+                render={(key) => {
+                  const index = keys.current.indexOf(key)
+                  const q = draft.questions[index]
+                  return q ? (
+                    <DragPreview
+                      q={q}
+                      inGroup={q.groupId !== null && draft.groups.some((g) => g.id === q.groupId)}
+                      offset={cards.current.get(index)?.offsetTop ?? 0}
+                      flagged={isFlagged(q)}
+                      actions={viewActions(q, index, null)}
+                    />
+                  ) : null
+                }}
+              />
             </DndContext>
 
             <Button onClick={addQuestion} className="w-full border border-dashed border-ink/15 bg-transparent py-3 shadow-none" icon={<IconPlus size={16} />}>
@@ -653,20 +668,24 @@ const SPLITTER = 20
 const SAVE_LABELS: Record<SaveState, string> = { saved: '草稿已自動儲存', saving: '儲存中…', dirty: '有未儲存的修改' }
 
 /** Short plain-text preview of a question stem for the outline. */
-/** The compact copy of a card that follows the pointer while it is dragged. */
-function DragPreview({ q }: { q: DraftQuestion }) {
+/**
+ * The copy of a card that follows the pointer while it is dragged: the card's own first line
+ * (QuestionHeading, same padding, same buttons) with the stem shortened beside it, so the number,
+ * type and grip stay exactly where they were when it was picked up. `offset` skips a section
+ * heading or group text above the card; the drag measures from those.
+ */
+function DragPreview({ q, inGroup, offset, flagged, actions }: { q: DraftQuestion; inGroup: boolean; offset: number; flagged: boolean; actions: React.ReactNode }) {
   return (
-    <DragTilt>
-      <div
-        data-drag-overlay
-        className="m-scale-in flex h-14 cursor-grabbing items-center gap-3 rounded-2xl bg-surface px-4 shadow-[0_24px_48px_-16px_rgb(22_24_43/0.4),0_0_0_1px_rgb(22_24_43/0.08)]"
-      >
-        <span className="num text-lg leading-none">{q.number}.</span>
-        <Badge>{TYPE_LABELS[q.type]}</Badge>
-        <span className="min-w-0 flex-1 truncate text-sm text-muted">{preview(q.stem)}</span>
-        <IconGrip size={16} className="shrink-0 text-accent" />
-      </div>
-    </DragTilt>
+    <div style={{ paddingTop: offset }} className={inGroup ? 'ml-4 sm:ml-7' : ''}>
+      <DragTilt>
+        <div data-drag-overlay inert className="m-lifted relative cursor-grabbing rounded-2xl bg-surface p-4 sm:p-5">
+          {flagged && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-hl" />}
+          <QuestionHeading q={q} actions={actions}>
+            <span className="hidden min-w-0 flex-1 truncate text-sm text-muted sm:block">{preview(q.stem)}</span>
+          </QuestionHeading>
+        </div>
+      </DragTilt>
+    </div>
   )
 }
 

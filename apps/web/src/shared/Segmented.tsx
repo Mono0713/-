@@ -13,9 +13,12 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
   }, [index, options])
 
   return (
-    <div className="relative inline-flex max-w-full gap-0.5 overflow-x-auto rounded-lg bg-surface p-0.5 text-sm shadow-[0_0_0_1px_var(--color-line)]">
+    <div className="inline-flex max-w-full overflow-x-auto rounded-lg bg-surface p-0.5 text-sm shadow-[0_0_0_1px_var(--color-line)]">
+      {/* the pill's spring overshoots its target; clipping it here keeps that bounce from widening the
+          scroll area and flashing a scrollbar under the last tab */}
+      <div className="relative inline-flex gap-0.5 overflow-clip rounded-md">
       {pill && (
-        <span aria-hidden className="absolute top-0.5 bottom-0.5 rounded-md bg-ink" style={{ left: pill.left, width: pill.width, transition: 'left 380ms var(--m-spring), width 380ms var(--m-spring)' }} />
+        <span aria-hidden className="absolute inset-y-0 rounded-md bg-ink" style={{ left: pill.left, width: pill.width, transition: 'left 380ms var(--m-spring), width 380ms var(--m-spring)' }} />
       )}
       {options.map(([v, label], i) => (
         <button
@@ -32,6 +35,7 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
           {label}
         </button>
       ))}
+      </div>
     </div>
   )
 }

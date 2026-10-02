@@ -26,6 +26,16 @@
 @keyframes m-shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
 @keyframes m-expand { from { opacity: 0; transform: translateY(-6px) scaleY(0.96); } }
 
+/* dragging a question (features/review): the card folds into a slot as the copy lifts off it.
+   Only entering the drag animates; on drop the card opens at once under the landing copy. */
+@keyframes m-lift { from { box-shadow: var(--shadow-sheet); } }
+.m-lifted { box-shadow: var(--shadow-sheet), 0 18px 40px -14px rgb(0 0 0 / 0.4); animation: m-lift 180ms var(--m-ease-out) backwards; }
+.m-fold { interpolate-size: allow-keywords; transition: height 220ms var(--m-ease-out), background-color 180ms; }
+
+/* the app's own drop-down list (shared/Listbox.tsx): unfolds from the button in 160 ms */
+@keyframes m-menu { from { opacity: 0; transform: translateY(-4px) scaleY(0.97); } }
+.m-menu { animation: m-menu 160ms var(--m-ease-out) backwards; }
+
 /* entrances */
 .m-page { animation: m-fade-up var(--m-slow) var(--m-ease-out) backwards; }
 .m-enter { animation: m-fade-up var(--m-slow) var(--m-ease-out) backwards; }
@@ -50,6 +60,8 @@
 .m-shake { animation: m-shake 420ms var(--m-ease-out); }
 .m-float { animation: m-float 3.2s ease-in-out infinite; }
 .m-spin { animation: m-spin 0.8s linear infinite; }
+/* only shows up when waiting gets long (combine with another animation such as m-spin) */
+.m-late.m-spin { animation: m-fade-in 200ms ease-out 500ms backwards, m-spin 0.8s linear infinite; }
 .m-draw { stroke-dasharray: 1 2; animation: m-draw var(--m-slow) var(--m-ease-out) 80ms both; }
 
 /* interaction */
@@ -98,10 +110,9 @@
   animation: m-sweep 520ms var(--m-ease-out) 120ms backwards;
 }
 
-/* pen strokes: an SVG path with pathLength="1" draws itself (.m-pen-late waits for the first stroke).
+/* pen strokes: an SVG path with pathLength="1" draws itself.
    The dash gap is twice the path and starts just past 1, so a round cap never peeks out before drawing. */
 .m-pen { stroke-dasharray: 1 2; animation: m-draw 560ms var(--m-ease-out) both; }
-.m-pen-late { animation-delay: 360ms; animation-duration: 380ms; }
 .m-nudge { animation: m-nudge 360ms ease 60ms; }
 
 /* buttons that press down: the bottom edge is a solid "depth" that collapses while held */
@@ -155,28 +166,20 @@
 }
 
 /*
- * Second batch (see DESIGN.md "Motion", 10 to 19): page turn (Apple Books), full-marks stamp,
+ * Second batch (see DESIGN.md "Motion", 10 to 19): next-question slide, full-marks stamp,
  * drag tilt (Trello), scan (Apple Notes), pencil progress (Stripe), pen checkboxes (Things 3),
  * last-minute timer (Duolingo), card corner curl (iBooks and the logo), punch confetti, pen underline (Linear).
  */
 
-/* page turn (features/quiz/QuizPlayer.tsx): the old question is an opaque page that turns away to
-   the left over the new one; going back, the earlier page turns back in from the left */
-@keyframes m-turn-out { to { transform: rotateY(-92deg); box-shadow: 24px 0 30px -18px rgb(0 0 0 / 0.35); } }
-@keyframes m-turn-in { from { transform: rotateY(-92deg); } }
-@keyframes m-shade-in { from { opacity: 0; } }
-@keyframes m-shade-out { to { opacity: 0; } }
-.m-turn-out { z-index: 2; transform-origin: left center; backface-visibility: hidden; border-radius: 1rem; animation: m-turn-out 560ms cubic-bezier(0.45, 0, 0.2, 1) forwards; }
-.m-turn-out::after {
-  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  background: linear-gradient(to left, rgb(0 0 0 / 0.12), transparent 60%); animation: m-shade-in 560ms ease-in backwards;
-}
-.m-turn-under { position: relative; }
-.m-turn-under::before {
-  content: ''; position: absolute; inset: 0; z-index: 1; border-radius: 1rem; pointer-events: none;
-  background: rgb(0 0 0 / 0.08); animation: m-shade-out 560ms ease-out forwards;
-}
-.m-turn-back { transform-origin: left center; animation: m-turn-in 520ms var(--m-ease-out) backwards; }
+/* next question (features/quiz/QuizPlayer.tsx): the old sheet slides off in 120 ms and is gone
+   before the new one slides in (from 120 ms) from the side you are heading to, so the two never
+   show through each other; data-back mirrors it. No 3D: text stays sharp and nothing covers the title. */
+@keyframes m-leaf-out { to { opacity: 0; transform: translateX(calc(var(--m-leaf-dir, 1) * -24px)); } }
+@keyframes m-leaf-in { from { opacity: 0; transform: translateX(calc(var(--m-leaf-dir, 1) * 32px)); } }
+.m-leaf-out { z-index: 1; pointer-events: none; animation: m-leaf-out 120ms cubic-bezier(0.4, 0, 1, 1) forwards; }
+.m-leaf-out * { animation: none !important; }
+.m-leaf-in { animation: m-leaf-in 360ms var(--m-ease-out) 120ms backwards; }
+.m-leaf-in[data-back], .m-leaf-out[data-back] { --m-leaf-dir: -1; }
 
 /* last minute of a timed exam: the clock beats once a second and its colon blinks */
 @keyframes m-beat { 0% { transform: scale(1.04); } 30%, 100% { transform: scale(1); } }

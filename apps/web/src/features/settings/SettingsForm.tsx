@@ -35,7 +35,7 @@ export function SettingsForm({
   defaultProvider: string
   providers: ProviderOption[]
   keys: Record<string, KeyInfo>
-  /** The saved choice, and what it resolves to now (null: AI marking cannot run). */
+  /** The saved choice, and what it resolves to even while switched off (null: no key yet). */
   aiGrading: { enabled: boolean; provider: string | null; model: string | null; active: { provider: string; model: string } | null }
   /** Keys are kept encrypted in the hosted database rather than in the local data folder. */
   keysInDatabase: boolean
@@ -226,6 +226,8 @@ function TeacherSettings({
   const [, start] = useTransition()
   const save = (patch: Parameters<typeof saveAiGrading>[0]) => start(async () => (await saveAiGrading(patch), onSaved()))
   const chosen = providers.find((p) => p.id === provider)
+  // what marking will use; known before the switch flips, so turning it on never flashes the no-key warning
+  const active = chosen?.ready ? (model || chosen.models.find((m) => m.tier === 'fast')?.id || chosen.model) : provider ? null : initial.active?.model
   return (
     <>
       <Row plain label="用 AI 批改" hint="問答、計算、填空題，以及沒有標準答案的題目，交卷後由 AI 老師評分並寫評語；你隨時可以自己改分數。">
@@ -244,7 +246,7 @@ function TeacherSettings({
             <span className={`absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 [transition-timing-function:var(--m-spring)] ${enabled ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
           </button>
           <span className="text-sm text-muted">
-            {!enabled ? '關閉，問答題自己評分' : initial.active ? `目前使用 ${initial.active.model}` : '需要先在下面加上任一家的 API 金鑰'}
+            {!enabled ? '關閉，問答題自己評分' : active ? `目前使用 ${active}` : '需要先在下面加上任一家的 API 金鑰'}
           </span>
         </span>
       </Row>

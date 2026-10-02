@@ -3,8 +3,9 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 
 /**
- * A picked-up sheet (Trello, Linear): while mounted, it lifts a little and leans toward the way
- * the pointer moves, easing back as the pointer slows. At most 4°, smoothed every frame.
+ * A picked-up sheet (Trello, Linear): while mounted, it leans toward the way the pointer moves,
+ * easing back as the pointer slows. At most 4°, smoothed every frame. It does not grow, so what it
+ * holds stays exactly over the place it was picked up from (the lift is the shadow, `.m-lifted`).
  */
 export function DragTilt({ children, className = '' }: { children: ReactNode; className?: string }) {
   const el = useRef<HTMLDivElement>(null)
@@ -21,7 +22,7 @@ export function DragTilt({ children, className = '' }: { children: ReactNode; cl
       const target = Math.max(-4, Math.min(4, velocity))
       velocity = 0
       tilt += (target - tilt) * 0.18
-      if (el.current) el.current.style.transform = `rotate(${tilt.toFixed(2)}deg) scale(1.02)`
+      if (el.current) el.current.style.transform = `rotate(${tilt.toFixed(2)}deg)`
       raf = requestAnimationFrame(frame)
     }
     window.addEventListener('pointermove', move)
@@ -32,7 +33,7 @@ export function DragTilt({ children, className = '' }: { children: ReactNode; cl
     }
   }, [])
   return (
-    <div ref={el} className={className} style={{ transform: 'scale(1.02)' }}>
+    <div ref={el} className={className}>
       {children}
     </div>
   )
