@@ -16,20 +16,19 @@ import {
   IconBack,
   IconCheck,
   IconChevronDown,
+  IconCopy,
   IconCloud,
   IconCloudCheck,
   IconEdit,
-  IconFile,
-  IconFilter,
   IconGrip,
-  IconList,
   IconLoader,
+  IconMerge,
   IconOutline,
   IconPlus,
   IconSave,
   IconSplit,
-  IconTop,
   IconTrash,
+  IconUndo,
   IconX,
 } from '@/shared/icons'
 import { TYPE_LABELS } from '@/shared/labels'
@@ -39,7 +38,7 @@ import { MathTextInput } from '@/shared/math/MathTextInput'
 import { Badge, Button, inputClass } from '@/shared/ui'
 import { publishDraft, saveDraft } from './actions'
 import { PageViewer } from './PageViewer'
-import { splitNumber, splitParts } from './parts'
+import { mergeParts, splitNumber, splitParts } from './parts'
 import { ActiveOverlay, alongList, EdgeScroll, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 
 type SaveState = 'saved' | 'dirty' | 'saving'
@@ -181,6 +180,29 @@ export function ReviewEditor({
     setEditing(null)
     setSelected(index)
   }
+  // The sub-questions of one number go back to being one question (undoes splitQuestion).
+  const mergeGroup = (groupId: string) => {
+    const indices = draft.questions.flatMap((q, i) => (q.groupId === groupId ? [i] : []))
+    const group = draft.groups.find((g) => g.id === groupId)
+    const merged = group && mergeParts(group, indices.map((i) => draft.questions[i]!))
+    if (!merged || !indices.length) return
+    const at = indices[0]!
+    const key = keys.current[at]!
+    keys.current = [...keys.current.slice(0, at), key, ...keys.current.slice(at + 1).filter((_, j) => !indices.includes(at + 1 + j))]
+    setDraft((d) => ({
+      ...d,
+      groups: d.groups.filter((g) => g.id !== groupId),
+      questions: [...d.questions.slice(0, at), merged, ...d.questions.slice(at + 1).filter((q) => q.groupId !== groupId)],
+    }))
+    setEditing(null)
+    setSelected(at)
+  }
+  // A number whose sub-questions are split heads them with its group card: picking the number shows that card.
+  const selectGroup = (groupId: string, first: number) => {
+    setSelected(first)
+    setMobileView('questions')
+    requestAnimationFrame(() => document.querySelector(`[data-group="${CSS.escape(groupId)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
   // Deleting asks nothing; Ctrl+Z (or 復原 on the note) puts questions back, last deleted first.
   // A box moved on the original page goes on the same stack, so Ctrl+Z also puts it back.
   type Undo = { kind: 'delete'; index: number; question: DraftQuestion; key: string } | { kind: 'box'; key: string; locations: DraftQuestion['locations'] }
@@ -253,11 +275,14 @@ export function ReviewEditor({
     if (!over || active.id === over.id) return
     moveQuestion(keys.current.indexOf(String(active.id)), keys.current.indexOf(String(over.id)))
   }
-  const addQuestion = () => {
-    const last = draft.questions.at(-1)
+  // A blank question at the end, or right after `after` with the next number.
+  const addQuestion = (after?: number) => {
+    const at = after ?? draft.questions.length - 1
+    const ref = draft.questions[at]
+    const next = ref && /^\d+$/.test(splitNumber(ref.number).main) ? String(Number(splitNumber(ref.number).main) + 1) : String(draft.questions.length + 1)
     const q: DraftQuestion = {
-      number: String(draft.questions.length + 1),
-      section: last?.section ?? null,
+      number: after === undefined ? String(draft.questions.length + 1) : next,
+      section: ref?.section ?? null,
       groupId: null,
       type: 'single_choice',
       stem: '',
@@ -265,15 +290,25 @@ export function ReviewEditor({
       options: [],
       answer: { values: [], source: 'none' },
       explanation: null,
-      points: last?.points ?? null,
+      points: ref?.points ?? null,
       figures: [],
       confidence: 'high',
       issues: [],
       locations: [],
     }
-    keys.current = [...keys.current, newKey()]
-    setDraft((d) => ({ ...d, questions: [...d.questions, q] }))
-    setEditing(draft.questions.length)
+    insertAt(at + 1, q)
+  }
+  // A copy right after the question, for one that differs only a little.
+  const duplicateQuestion = (index: number) => {
+    const q = draft.questions[index]!
+    insertAt(index + 1, { ...structuredClone(q), groupId: q.groupId })
+  }
+  const insertAt = (at: number, q: DraftQuestion) => {
+    keys.current = [...keys.current.slice(0, at), newKey(), ...keys.current.slice(at)]
+    setDraft((d) => ({ ...d, questions: [...d.questions.slice(0, at), q, ...d.questions.slice(at)] }))
+    setSelected(at)
+    setEditing(at)
+    requestAnimationFrame(() => cards.current.get(at)?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   }
 
   const publish = () =>
@@ -299,23 +334,23 @@ export function ReviewEditor({
       if (isFlagged(draft.questions[i]!)) return select(i, true)
     }
   }
+  // The floating button holds what the page does not already show: undo (phones and tablets have
+  // no Ctrl+Z), jumping to the next question to check, and actions on the selected question.
+  const chosen = selected !== null ? draft.questions[selected] : undefined
+  const chosenNumber = chosen ? chosen.number : ''
+  const chosenGroup = chosen?.groupId ? draft.groups.find((g) => g.id === chosen.groupId) : undefined
+  const canMerge = !!chosenGroup && !!mergeParts(chosenGroup, draft.questions.filter((q) => q.groupId === chosenGroup.id))
   const fabActions: FabAction[] = [
-    ...(flagged > 0
+    ...(flagged > 0 ? [{ id: 'next', label: '下一題待確認', icon: <IconAlert size={19} />, badge: flagged, onClick: nextFlagged }] : []),
+    ...(chosen && selected !== null
       ? [
-          { id: 'next', label: '下一題待確認', icon: <IconAlert size={19} />, badge: flagged, onClick: nextFlagged },
-          { id: 'filter', label: flaggedOnly ? '顯示全部題目' : '只看待確認', icon: <IconFilter size={19} />, onClick: () => setFlaggedOnly(!flaggedOnly) },
+          ...(splitParts(chosen, '') ? [{ id: 'split', label: `把第 ${chosenNumber} 題拆成小題`, icon: <IconSplit size={19} />, onClick: () => splitQuestion(selected) }] : []),
+          ...(canMerge ? [{ id: 'merge', label: `把第 ${splitNumber(chosenNumber).main} 題的小題合併`, icon: <IconMerge size={19} />, onClick: () => mergeGroup(chosenGroup!.id) }] : []),
+          { id: 'copy', label: `複製第 ${chosenNumber} 題`, icon: <IconCopy size={19} />, onClick: () => duplicateQuestion(selected) },
+          { id: 'insert', label: `在第 ${chosenNumber} 題後面新增`, icon: <IconPlus size={20} />, onClick: () => addQuestion(selected) },
         ]
-      : []),
-    { id: 'add', label: '新增題目', icon: <IconPlus size={20} />, onClick: addQuestion },
-    {
-      id: 'view',
-      label: mobileView === 'page' ? '看題目' : '看原卷',
-      icon: mobileView === 'page' ? <IconList size={19} /> : <IconFile size={19} />,
-      onClick: () => setMobileView(mobileView === 'page' ? 'questions' : 'page'),
-      className: 'lg:hidden',
-    },
-    { id: 'top', label: '回到頂端', icon: <IconTop size={19} />, onClick: () => scrollTo({ top: 0, behavior: 'smooth' }) },
-    { id: 'publish', label: published !== null ? '更新題庫' : '存入題庫', icon: <IconSave size={19} />, onClick: publish, primary: true, disabled: publishing || !draft.questions.length },
+      : [{ id: 'add', label: '新增題目', icon: <IconPlus size={20} />, onClick: () => addQuestion() }]),
+    { id: 'undo', label: '復原上一步', icon: <IconUndo size={19} />, onClick: undoDelete, disabled: !trash.current.length },
   ]
 
   const metaFields = (compact: boolean) =>
@@ -466,7 +501,8 @@ export function ReviewEditor({
               ))}
             </div>
             <nav ref={numberBar} className="scroll-strip flex min-w-0 flex-1 overflow-x-auto" aria-label="題號">
-              <div className="flex w-max items-center gap-1 py-0.5">
+              {/* centred while the numbers fit; once they overflow, the strip scrolls from the start */}
+              <div className="mx-auto flex w-max items-center gap-1 py-0.5">
                 {numberClusters(draft.questions).map((cluster) => {
                   const shown = cluster.items.filter((i) => !flaggedOnly || isFlagged(draft.questions[i]!))
                   if (!shown.length) return null
@@ -492,8 +528,20 @@ export function ReviewEditor({
                       </button>
                     )
                   return (
-                    <span key={keys.current[shown[0]!]} className="flex h-7 shrink-0 items-center gap-px rounded-md bg-surface pl-1.5 pr-0.5 shadow-sheet" title={`第 ${cluster.main} 題的小題`}>
-                      <span className="num mr-0.5 text-xs text-ink/70">{cluster.main}</span>
+                    <span key={keys.current[shown[0]!]} className="flex h-7 shrink-0 items-center gap-px rounded-md bg-surface pr-0.5 shadow-sheet" title={`第 ${cluster.main} 題的小題`}>
+                      {/* the number itself opens the question's shared card; a hairline sets the parts apart */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const groupId = draft.questions[shown[0]!]!.groupId
+                          if (groupId) selectGroup(groupId, shown[0]!)
+                          else select(shown[0]!, true)
+                        }}
+                        className="num h-full rounded-l-md pl-2 pr-1.5 text-xs text-ink/70 transition-colors hover:bg-ink/[0.05] hover:text-ink"
+                      >
+                        {cluster.main}
+                      </button>
+                      <span aria-hidden className="mr-1 h-3.5 w-px bg-line" />
                       {shown.map((i) => (
                         <button key={keys.current[i]} type="button" onClick={() => select(i, true)} aria-current={selected === i || undefined} className={`num h-6 min-w-6 rounded px-1 text-[11px] transition-colors ${tone(i)}`}>
                           {splitNumber(draft.questions[i]!.number).part}
@@ -571,7 +619,7 @@ export function ReviewEditor({
               flaggedOnly={flaggedOnly}
               isFlagged={isFlagged}
               onSelect={(i) => select(i, true)}
-              onAdd={addQuestion}
+              onAdd={() => addQuestion()}
               onClose={() => setLayout({ outline: false })}
               meta={metaFields(true)}
             />
@@ -645,7 +693,15 @@ export function ReviewEditor({
                       {(handle, dragging) => (
                         <>
                           {showSection && <h3 className="mb-2 mt-7 text-[13px] font-semibold tracking-wide text-muted">{q.section}</h3>}
-                          {group && <GroupCard group={group} parts={draft.questions.filter((x) => x.groupId === group.id)} onChange={(stem) => setGroupStem(group.id, stem)} />}
+                          {group && (
+                            <GroupCard
+                              group={group}
+                              parts={draft.questions.filter((x) => x.groupId === group.id)}
+                              onChange={(stem) => setGroupStem(group.id, stem)}
+                              onSelect={() => select(index, false)}
+                              onMerge={() => mergeGroup(group.id)}
+                            />
+                          )}
                           <section
                             ref={(el) => {
                               if (el) cards.current.set(index, el)
@@ -712,7 +768,7 @@ export function ReviewEditor({
               />
             </DndContext>
 
-            <Button onClick={addQuestion} className="w-full border border-dashed border-ink/15 bg-transparent py-3 shadow-none" icon={<IconPlus size={16} />}>
+            <Button onClick={() => addQuestion()} className="w-full border border-dashed border-ink/15 bg-transparent py-3 shadow-none" icon={<IconPlus size={16} />}>
               新增題目
             </Button>
           </div>
@@ -871,20 +927,47 @@ function Outline({
  * A passage, figure or instruction shared by the questions after it, which hang under it. When they are
  * the sub-questions of one number, e.g. 11(a) and 11(b), it heads them as that question. Its text can be edited in place.
  */
-function GroupCard({ group, parts, onChange }: { group: DraftExam['groups'][number]; parts: DraftQuestion[]; onChange: (stem: string) => void }) {
+function GroupCard({
+  group,
+  parts,
+  onChange,
+  onSelect,
+  onMerge,
+}: {
+  group: DraftExam['groups'][number]
+  parts: DraftQuestion[]
+  onChange: (stem: string) => void
+  /** Clicking the card picks its first question, so its box shows on the page. */
+  onSelect: () => void
+  /** Sub-questions of one number can be joined back into one question. */
+  onMerge: () => void
+}) {
   const [editing, setEditing] = useState(false)
   const numbers = parts.map((p) => splitNumber(p.number))
   const main = numbers.length && numbers.every((n) => n.part !== null && n.main === numbers[0]!.main) ? numbers[0]!.main : null
   const points = parts.every((p) => p.points !== null) ? parts.reduce((sum, p) => sum + p.points!, 0) : null
   return (
-    <div className="relative mb-3 rounded-2xl bg-surface/70 p-4 ring-1 ring-ink/[0.07]">
+    <div data-group={group.id} onClick={() => !editing && onSelect()} className="relative mb-3 scroll-mt-40 rounded-2xl bg-surface/70 p-4 ring-1 ring-ink/[0.07]">
       <div className="mb-2 flex items-center gap-2">
         {main !== null ? <span className="num text-xl leading-none">{main}.</span> : <span className="text-xs font-medium text-muted">題組共用內容</span>}
         <Badge>{main !== null ? `${parts.length} 小題` : `${parts.length} 題`}</Badge>
         {main !== null && points !== null && <Badge>{Math.round(points * 100) / 100} 分</Badge>}
-        <button type="button" onClick={() => setEditing(!editing)} className="ml-auto text-xs text-accent hover:underline">
-          {editing ? '完成' : '編輯'}
-        </button>
+        <span className="ml-auto flex items-center gap-3">
+          {main !== null && !editing && (
+            <button
+              type="button"
+              onClick={(e) => (e.stopPropagation(), onMerge())}
+              className="flex items-center gap-1 text-xs text-accent hover:underline"
+              title="把小題合回一題"
+            >
+              <IconMerge size={13} />
+              合併
+            </button>
+          )}
+          <button type="button" onClick={(e) => (e.stopPropagation(), setEditing(!editing))} className="text-xs text-accent hover:underline">
+            {editing ? '完成' : '編輯'}
+          </button>
+        </span>
       </div>
       {editing ? <MathTextInput value={group.stem} onChange={onChange} /> : group.stem.trim() ? <Markdown>{group.stem}</Markdown> : <p className="text-sm text-muted">（沒有共用內容）</p>}
       {group.figures.map((f, i) => (

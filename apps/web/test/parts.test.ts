@@ -1,6 +1,6 @@
 import type { DraftQuestion } from '@exam/core'
 import { describe, expect, it } from 'vitest'
-import { splitNumber, splitParts } from '../src/features/review/parts.ts'
+import { mergeParts, splitNumber, splitParts } from '../src/features/review/parts.ts'
 
 const q = (overrides: Partial<DraftQuestion>): DraftQuestion => ({
   number: '11', section: null, groupId: null, type: 'calculation', stem: '', translation: null, options: [],
@@ -38,5 +38,25 @@ describe('splitParts', () => {
     expect(splitNumber('11(a)')).toEqual({ main: '11', part: 'a' })
     expect(splitNumber('3（2）')).toEqual({ main: '3', part: '2' })
     expect(splitNumber('7')).toEqual({ main: '7', part: null })
+  })
+})
+
+describe('mergeParts', () => {
+  it('joins split parts back into one question that splits the same way again', () => {
+    const original = q({ stem: 'Find the derivative of the function by the limit process. (a) $f(x) = 3x + 2$ (b) $f(x) = \\frac{1}{x+1}$', answer: { values: ['(a) 3; (b) $-1$'], source: 'handwritten' } })
+    const { group, parts } = splitParts(original, 'g1')!
+    const merged = mergeParts(group, parts)!
+    expect(merged).toMatchObject({ number: '11', groupId: null, points: 10, issues: [] })
+    expect(merged.stem).toBe('Find the derivative of the function by the limit process.\n\n(a) $f(x) = 3x + 2$\n\n(b) $f(x) = \\frac{1}{x+1}$')
+    expect(merged.answer.values).toEqual(['(a) 3; (b) $-1$'])
+    expect(splitParts(merged, 'g2')!.parts.map((p) => [p.number, p.answer.values])).toEqual(parts.map((p) => [p.number, p.answer.values]))
+  })
+
+  it('drops the split warning, keeps the lowest confidence and refuses parts of different numbers', () => {
+    const { group, parts } = splitParts(q({ stem: '(1) x (2) y', answer: { values: ['both'], source: 'printed' } }), 'g3')!
+    const merged = mergeParts(group, [parts[0]!, { ...parts[1]!, confidence: 'low' }])!
+    expect(merged).toMatchObject({ confidence: 'low', issues: [], answer: { values: ['(1) both'] } })
+    expect(mergeParts(group, [parts[0]!, { ...parts[1]!, number: '12(b)' }])).toBeNull()
+    expect(mergeParts(group, [{ ...parts[0]!, number: '11' }])).toBeNull()
   })
 })
