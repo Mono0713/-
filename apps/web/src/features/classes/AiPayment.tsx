@@ -49,6 +49,7 @@ export function AiPayment({ classId, payer, cap, spent, unpriced, canEdit }: { c
           <label className="flex items-center gap-2">
             <span className="text-muted">每月上限 US$</span>
             <input
+              autoComplete="off"
               type="number"
               min={0}
               step={0.5}

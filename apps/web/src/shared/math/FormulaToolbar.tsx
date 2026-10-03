@@ -70,6 +70,7 @@ export function FormulaToolbar({ field, onDone, onRemove, onSource }: { field: M
       </div>
       {source !== null && (
         <input
+          autoComplete="off"
           value={source}
           onChange={(e) => {
             setSource(e.target.value)

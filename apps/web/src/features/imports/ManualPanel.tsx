@@ -108,6 +108,7 @@ function ReplyCard({
       </div>
       {(error || message) && <p className="mt-3 rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">{message ?? `上次貼上的回覆格式不符：${error}`}</p>}
       <textarea
+        autoComplete="off"
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={5}

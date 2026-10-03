@@ -91,6 +91,7 @@ export function TutorChat({ attemptId, index, turns: initial, onTurns }: { attem
         }}
       >
         <textarea
+          autoComplete="off"
           value={draft}
           rows={1}
           maxLength={1000}

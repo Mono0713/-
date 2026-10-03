@@ -92,6 +92,7 @@ function MarkBox({ attemptId, index, marking }: { attemptId: string; index: numb
         ))}
       </div>
       <textarea
+        autoComplete="off"
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         // A comment on an AI mark keeps its score and makes the mark the teacher's.

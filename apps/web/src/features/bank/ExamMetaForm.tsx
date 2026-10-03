@@ -30,6 +30,7 @@ export function ExamMetaForm({ exam }: { exam: BankExam }) {
           <label key={key} className="block text-sm">
             <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
             <input
+              autoComplete="off"
               value={meta[key] ?? ''}
               onChange={(e) => {
                 setMeta((m) => ({ ...m, [key]: e.target.value.trim() ? e.target.value : null }))

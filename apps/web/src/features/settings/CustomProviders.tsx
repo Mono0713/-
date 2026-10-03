@@ -103,8 +103,8 @@ function AddForm({ hosted, onDone, onCancel }: { hosted: boolean; onDone: (note?
         ))}
       </div>
       <div className="grid gap-2 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]">
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="名稱" className={inputClass} aria-label="服務名稱" />
-        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…/v1" className={`${inputClass} font-mono`} aria-label="API 網址" spellCheck={false} />
+        <input autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} placeholder="名稱" className={inputClass} aria-label="服務名稱" />
+        <input autoComplete="off" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…/v1" className={`${inputClass} font-mono`} aria-label="API 網址" spellCheck={false} />
       </div>
       <input type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder="API 金鑰（本機模型可以留空）" autoComplete="off" spellCheck={false} className={`${inputClass} font-mono`} aria-label="API 金鑰" />
       {error && <p className="m-shake text-sm text-bad">{error}</p>}
@@ -237,7 +237,7 @@ function AddModel({ known, onAdd }: { known: string[]; onAdd: (id: string) => vo
           setTyped('')
         }}
       >
-        <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="或輸入模型名稱" className={`${inputBase} w-48 font-mono`} aria-label="模型名稱" spellCheck={false} />
+        <input autoComplete="off" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="或輸入模型名稱" className={`${inputBase} w-48 font-mono`} aria-label="模型名稱" spellCheck={false} />
         <Button type="submit" variant="ghost" disabled={!typed.trim()} icon={<IconPlus size={15} />}>
           加入
         </Button>
@@ -259,8 +259,8 @@ function PriceInput({ value, onChange }: { value: CustomModel['price']; onChange
   const field = 'w-16 rounded-md border border-line bg-surface px-2 py-1 text-xs outline-none focus:border-accent/45'
   return (
     <span className="flex items-center gap-1 text-xs text-muted">
-      $<input value={input} onChange={(e) => setInput(e.target.value)} onBlur={commit} inputMode="decimal" placeholder="輸入" className={field} aria-label="輸入價格" />/
-      <input value={output} onChange={(e) => setOutput(e.target.value)} onBlur={commit} inputMode="decimal" placeholder="輸出" className={field} aria-label="輸出價格" />
+      $<input autoComplete="off" value={input} onChange={(e) => setInput(e.target.value)} onBlur={commit} inputMode="decimal" placeholder="輸入" className={field} aria-label="輸入價格" />/
+      <input autoComplete="off" value={output} onChange={(e) => setOutput(e.target.value)} onBlur={commit} inputMode="decimal" placeholder="輸出" className={field} aria-label="輸出價格" />
     </span>
   )
 }

@@ -51,7 +51,7 @@ export function ModelPicker({
         ]}
       />
       {custom && (
-        <input value={value} onChange={(e) => onChange(e.target.value.trim())} placeholder="例如 claude-opus-5-5" className={`${base} ${compact ? 'w-48' : ''}`} aria-label={`${label}名稱`} autoFocus />
+        <input autoComplete="off" value={value} onChange={(e) => onChange(e.target.value.trim())} placeholder="例如 claude-opus-5-5" className={`${base} ${compact ? 'w-48' : ''}`} aria-label={`${label}名稱`} autoFocus />
       )}
     </div>
   )

@@ -72,6 +72,7 @@ export function QuizQuestion({
             const right = reveal && matches(key[slot] ?? '', toPaperLabels(item, values[slot] ?? ''))
             return (
               <input
+                autoComplete="off"
                 // A handwritten answer is shown as written, with what the AI read below it.
                 value={byHand ? '' : (values[slot] ?? '')}
                 disabled={locked || byHand}
@@ -246,7 +247,7 @@ export function QuizQuestion({
             return (
               <label key={slot} className="flex items-center gap-2 text-sm">
                 <span className="w-8 shrink-0 text-right text-xs text-muted">({slot + 1})</span>
-                <input value={values[slot] ?? ''} disabled={locked} onChange={(e) => setAt(slot, e.target.value, kind.count)} className={inputClass} />
+                <input autoComplete="off" value={values[slot] ?? ''} disabled={locked} onChange={(e) => setAt(slot, e.target.value, kind.count)} className={inputClass} />
               </label>
             )
           })}
@@ -255,6 +256,7 @@ export function QuizQuestion({
 
       {!byHand && kind.kind === 'text' && (
         <textarea
+          autoComplete="off"
           value={values[0] ?? ''}
           disabled={locked}
           onChange={(e) => set([e.target.value])}

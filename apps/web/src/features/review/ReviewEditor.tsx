@@ -403,7 +403,7 @@ export function ReviewEditor({
     ).map(([key, label]) => (
       <label key={key} className="block text-sm">
         <span className={`block font-medium text-muted ${compact ? 'mb-0.5 text-[11px]' : 'mb-1 text-xs'}`}>{label}</span>
-        <input value={meta[key] ?? ''} onChange={(e) => setMeta(key, e.target.value)} className={`${inputClass} ${compact ? 'py-1.5 text-[13px]' : ''}`} />
+        <input autoComplete="off" value={meta[key] ?? ''} onChange={(e) => setMeta(key, e.target.value)} className={`${inputClass} ${compact ? 'py-1.5 text-[13px]' : ''}`} />
       </label>
     ))
 

@@ -172,12 +172,12 @@ export function QuizSetup({ exams, preselected }: { exams: SetupExam[]; preselec
           <div className="grid grid-cols-2 gap-3 text-sm">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-muted">隨機抽題</span>
-              <input type="number" min={1} value={limit} onChange={(e) => setLimit(e.target.value)} placeholder="全部" className={`${inputBase} w-full`} />
+              <input autoComplete="off" type="number" min={1} value={limit} onChange={(e) => setLimit(e.target.value)} placeholder="全部" className={`${inputBase} w-full`} />
             </label>
             {mode === 'exam' && (
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-muted">限時（分鐘）</span>
-                <input type="number" min={1} value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} placeholder="不限時" className={`${inputBase} w-full`} />
+                <input autoComplete="off" type="number" min={1} value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} placeholder="不限時" className={`${inputBase} w-full`} />
               </label>
             )}
           </div>
