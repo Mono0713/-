@@ -15,6 +15,8 @@ export interface Bank {
   updateImport(id: string, patch: ImportPatch): Promise<void>
   /** Imports of every owner first saved to the bank before a moment whose uploaded files are still there and not kept. */
   originalsToExpire(savedBefore: Date): Promise<ImportRecord[]>
+  /** Marks every import still "processing" as failed with the error; for a server starting up, when no reading can be running. Returns how many. */
+  failInterrupted(error: string): Promise<number>
   /** Removes the import; an exam saved from it stays in the bank. */
   deleteImport(id: string): Promise<void>
   getDraft(importId: string): Promise<DraftExam | null>

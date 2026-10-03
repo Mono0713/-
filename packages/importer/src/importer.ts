@@ -68,6 +68,9 @@ export const BLANK = 'blank'
 /** Days the uploaded files stay after an import is first saved to the bank, unless the owner keeps them. */
 export const ORIGINAL_DAYS = 30
 
+/** The error of a reading cut off when the server stopped (a restart or a deploy). */
+export const INTERRUPTED = 'Reading was interrupted because the server restarted'
+
 /**
  * Runs an uploaded exam through ingest, extraction and figure cropping, and keeps
  * its state in the bank. Knows nothing about the web: any front end calls these methods.
@@ -75,6 +78,8 @@ export const ORIGINAL_DAYS = 30
  */
 export class Importer {
   private readonly running = new Map<string, Promise<void>>()
+  /** Runs start only after interrupted imports were marked, so a new run is never mistaken for one. */
+  private recovered: Promise<unknown> = Promise.resolve()
 
   constructor(private readonly opts: ImporterOptions) {}
 
@@ -120,14 +125,28 @@ export class Importer {
 
   /** Runs extraction for the given pages (all when omitted) unless a run is already going. */
   async start(id: string, pages?: number[]): Promise<void> {
+    await this.recovered
     if (this.running.has(id)) return
     const imp = await this.require(id)
     // Mark it right away so a page rendered before rendering finishes already shows progress.
     await this.bank.updateImport(id, { status: 'processing', error: null, progress: { done: 0, total: pages?.length || imp.pageCount } })
     const run = this.run(id, pages)
-      .catch((err) => this.bank.updateImport(id, { status: 'failed', error: err instanceof Error ? err.message : String(err) }))
+      .catch((err) => {
+        console.error(`Reading import ${id} failed:`, err)
+        return this.bank.updateImport(id, { status: 'failed', error: err instanceof Error ? err.message : String(err) })
+      })
       .finally(() => this.running.delete(id))
     this.running.set(id, run)
+  }
+
+  /**
+   * Readings run inside this server, so after a restart any import still "processing" will never
+   * finish: it is marked failed, to be read again. Call once when the server starts, before any run.
+   */
+  recoverInterrupted(): Promise<number> {
+    const done = this.bank.failInterrupted(INTERRUPTED)
+    this.recovered = done.catch(() => {})
+    return done
   }
 
   /** Resolves when the current run of an import, if any, is over. */

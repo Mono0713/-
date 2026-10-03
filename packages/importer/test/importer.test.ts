@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SqliteBank } from '@exam/bank'
 import { LocalFileStore } from '@exam/files'
 import { registerProvider } from '@exam/extraction'
-import { AUTO, BLANK, Importer, type ReadingPlan } from '../src/index.ts'
+import { AUTO, BLANK, Importer, INTERRUPTED, type ReadingPlan } from '../src/index.ts'
 import { page, question } from '../../core/test/fixtures.ts'
 
 let dataDir: string
@@ -194,5 +194,16 @@ describe('exams written from scratch', () => {
     expect(await importer.originals(imp.id)).toEqual([])
     await importer.remove(imp.id)
     expect(await bank.getImport(imp.id)).toBeNull()
+  })
+})
+
+describe('a server restart', () => {
+  it('marks readings that were cut off as failed, and leaves the rest alone', async () => {
+    const cut = await bank.createImport({ ownerId: 'local', fileName: 'a.pdf', pageCount: 1, provider: 'fake', model: null })
+    await bank.updateImport(cut.id, { status: 'processing', progress: { done: 1, total: 1 } })
+    const blank = await importer.createBlank('local')
+    expect(await importer.recoverInterrupted()).toBe(1)
+    expect(await bank.getImport(cut.id)).toMatchObject({ status: 'failed', error: INTERRUPTED })
+    expect((await bank.getImport(blank.id))?.status).toBe('review')
   })
 })

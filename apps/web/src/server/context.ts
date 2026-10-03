@@ -73,7 +73,9 @@ export function services(): Services {
           void stores.usage.record({ ownerId: imp.ownerId, task: 'recognition', provider: r.provider, model: r.model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens }).catch(() => {}),
       }),
     }
-    sweepOriginals(globals.__examServices.importer)
+    const { importer } = globals.__examServices
+    void importer.recoverInterrupted().catch((err) => console.error('Marking interrupted imports failed:', err))
+    sweepOriginals(importer)
   }
   return globals.__examServices
 }

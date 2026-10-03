@@ -119,6 +119,17 @@ describe.each(banks)('%s', (_name, open) => {
     expect(await bank.getImport(saved.id)).toMatchObject({ originalDeletedAt: at })
     expect(await ids(new Date(Date.now() + 60_000))).toEqual([])
   })
+
+  it('fails the imports a restart cut off, and only those', async () => {
+    const bank = await open()
+    const running = await bank.createImport({ ownerId: 'local', fileName: 'x.pdf', pageCount: 1, provider: 'claude', model: null })
+    await bank.updateImport(running.id, { status: 'processing' })
+    const done = await bank.createImport({ ownerId: 'local', fileName: 'y.pdf', pageCount: 1, provider: 'claude', model: null })
+    await bank.updateImport(done.id, { status: 'review' })
+    expect(await bank.failInterrupted('restarted')).toBeGreaterThanOrEqual(1)
+    expect(await bank.getImport(running.id)).toMatchObject({ status: 'failed', error: 'restarted' })
+    expect((await bank.getImport(done.id))?.status).toBe('review')
+  })
 })
 
 describe('SqliteBank', () => {

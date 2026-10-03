@@ -12,6 +12,10 @@ export interface Explained {
  */
 export function explainError(raw: string): Explained {
   const text = raw.toLowerCase()
+  if (text.includes('interrupted because the server restarted'))
+    return { title: '辨識到一半被中斷了', detail: '伺服器剛好重新啟動，這次的辨識沒有跑完。按重新辨識就會再讀一次。', fix: 'retry' }
+  if (text.startsWith('file store could not'))
+    return { title: '檔案沒有存進去', detail: '存放檔案的空間這次沒有回應，題目已經讀好了。過一下再按重新辨識。', fix: 'retry' }
   const status = Number(/"code"\s*:\s*(\d{3})/.exec(raw)?.[1] ?? /\b(4\d\d|5\d\d)\b/.exec(raw)?.[1] ?? 0)
 
   if (status === 429 || /resource_exhausted|quota|rate.?limit|too many requests/.test(text)) {
