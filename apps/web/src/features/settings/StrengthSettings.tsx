@@ -7,12 +7,10 @@ import { Listbox } from '@/shared/Listbox'
 import { Segmented } from '@/shared/Segmented'
 import { inputBase } from '@/shared/ui'
 import { saveStrength, saveTaskModel, saveTaskStrength } from './actions'
+import { STRENGTH_HINTS, STRENGTH_LABELS } from './strengths'
 
-const STRENGTHS = [
-  ['save', '省錢'],
-  ['balanced', '平衡'],
-  ['best', '最準'],
-] as const satisfies readonly (readonly [Strength, string])[]
+const STRENGTHS = STRENGTH_LABELS
+const HINTS = STRENGTH_HINTS
 
 /** The tasks the app runs today, how one unit of each reads, and how many units the estimate covers. */
 const TASKS: { id: Task; label: string; unit: string; units: number }[] = [
@@ -105,11 +103,6 @@ export function StrengthSettings({ providers, initial, usage, onSaved }: { provi
   )
 }
 
-const HINTS: Record<Strength, string> = {
-  save: '每種工作都用最便宜的模型。',
-  balanced: '平常用中階模型，沒把握的頁再交給最強的模型。',
-  best: '每種工作都用最準的模型，最貴。',
-}
 
 function TaskLine({ task, r, providers, usage, custom }: { task: (typeof TASKS)[number]; r: Route | null; providers: ProviderInfo[]; usage: UsageRow[]; custom: boolean }) {
   if (!r) return <li className="px-3 py-2 text-muted">{task.label}：沒有能用的模型</li>

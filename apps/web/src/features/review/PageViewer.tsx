@@ -15,7 +15,7 @@ const GRIPS: { grip: Grip; className: string }[] = [
   { grip: 's', className: '-bottom-1 inset-x-2 h-2 cursor-ns-resize' },
   { grip: 'w', className: '-left-1 inset-y-2 w-2 cursor-ew-resize' },
   { grip: 'e', className: '-right-1 inset-y-2 w-2 cursor-ew-resize' },
-  // corners: a 14px target around a small see-through dot, so the dot never hides the text under it
+  // corners: an invisible 14px target
   { grip: 'nw', className: '-left-[7px] -top-[7px] cursor-nwse-resize' },
   { grip: 'ne', className: '-right-[7px] -top-[7px] cursor-nesw-resize' },
   { grip: 'sw', className: '-bottom-[7px] -left-[7px] cursor-nesw-resize' },
@@ -269,44 +269,41 @@ export function PageViewer({
                   .map(({ l, location, index }, order) => {
                     const box = live && live.index === index && live.location === location ? live.bbox : l.bbox
                     const place = { '--i': order, left: `${box.x * 100}%`, top: `${box.y * 100}%`, width: `${box.width * 100}%`, height: `${box.height * 100}%` } as CSSProperties
-                    if (index === selected && onBoxChange)
-                      return (
-                        <div
-                          key={`${index}-${location}`}
-                          data-q={index}
-                          title={`第 ${questions[index]!.number} 題：拖曳移動，拉邊角調整大小`}
-                          style={place}
-                          onPointerDown={(e) => startEdit(e, index, location, l.bbox, 'move')}
-                          {...editHandlers}
-                          className={`absolute z-[1] touch-none rounded-sm bg-accent/15 ring-2 ring-accent ${live?.index === index ? 'cursor-grabbing' : 'cursor-move'}`}
-                        >
-                          {GRIPS.map(({ grip, className }) => (
+                    const editing = index === selected && !!onBoxChange
+                    // Every box is the same element whether or not it is selected, so selecting one never
+                    // remounts another and replays its reveal (m-found plays once, when the page shows).
+                    return (
+                      <div
+                        key={`${index}-${location}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`第 ${questions[index]!.number} 題`}
+                        aria-pressed={index === selected}
+                        data-q={index}
+                        style={place}
+                        onClick={() => index !== selected && onSelect(index)}
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Enter' && e.key !== ' ') return
+                          e.preventDefault()
+                          onSelect(index)
+                        }}
+                        {...(editing && { onPointerDown: (e: ReactPointerEvent) => startEdit(e, index, location, l.bbox, 'move'), ...editHandlers })}
+                        className={`m-found absolute rounded-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${
+                          index === selected ? 'z-[1] bg-accent/15 ring-2 ring-accent' : 'cursor-pointer ring-1 ring-accent/0 hover:bg-accent/5 hover:ring-accent/40'
+                        } ${editing ? `touch-none ${live?.index === index ? 'cursor-grabbing' : 'cursor-move'}` : ''}`}
+                      >
+                        {/* invisible grab areas on the edges and corners; nothing drawn over the text */}
+                        {editing &&
+                          GRIPS.map(({ grip, className }) => (
                             <span
                               key={grip}
                               aria-hidden
                               onPointerDown={(e) => startEdit(e, index, location, l.bbox, grip)}
                               {...editHandlers}
-                              className={`absolute ${className} ${
-                                grip.length === 2
-                                  ? 'grid h-3.5 w-3.5 place-items-center after:h-[7px] after:w-[7px] after:rounded-full after:bg-accent/55 after:ring-1 after:ring-surface/80 after:transition-transform hover:after:scale-125'
-                                  : ''
-                              }`}
+                              className={`absolute ${className} ${grip.length === 2 ? 'h-3.5 w-3.5' : ''}`}
                             />
                           ))}
-                        </div>
-                      )
-                    return (
-                      <button
-                        key={`${index}-${location}`}
-                        type="button"
-                        data-q={index}
-                        onClick={() => onSelect(index)}
-                        title={`第 ${questions[index]!.number} 題`}
-                        style={place}
-                        className={`m-found absolute rounded-sm transition-colors ${
-                          index === selected ? 'bg-accent/15 ring-2 ring-accent' : 'ring-1 ring-accent/0 hover:bg-accent/5 hover:ring-accent/40'
-                        }`}
-                      />
+                      </div>
                     )
                   })}
               {pages.length > 1 && (
