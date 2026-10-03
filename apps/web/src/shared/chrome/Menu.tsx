@@ -11,12 +11,15 @@ export function Menu({
   button,
   className = '',
   align = 'left',
+  side = 'down',
   children,
 }: {
   label: string
   button: ReactNode
   className?: string
   align?: 'left' | 'right'
+  /** Opens above the button, for one at the bottom of the screen. */
+  side?: 'down' | 'up'
   children: ReactNode | ((close: () => void) => ReactNode)
 }) {
   const [open, setOpen] = useState(false)
@@ -41,8 +44,8 @@ export function Menu({
       {open && (
         <div
           role="menu"
-          className={`m-scale-in absolute top-full z-50 mt-1.5 w-72 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl bg-surface p-1.5 text-sm shadow-[0_18px_40px_-16px_rgb(22_24_43/0.4),0_0_0_1px_rgb(22_24_43/0.06)] ${
-            align === 'right' ? 'right-0 origin-top-right' : 'left-0 origin-top-left'
+          className={`m-scale-in absolute z-50 ${side === 'up' ? 'bottom-full mb-1.5' : 'top-full mt-1.5'} w-72 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl bg-surface p-1.5 text-sm shadow-[0_18px_40px_-16px_rgb(22_24_43/0.4),0_0_0_1px_rgb(22_24_43/0.06)] ${
+            align === 'right' ? 'right-0' : 'left-0'} ${side === 'up' ? (align === 'right' ? 'origin-bottom-right' : 'origin-bottom-left') : align === 'right' ? 'origin-top-right' : 'origin-top-left'
           }`}
         >
           {typeof children === 'function' ? children(close) : children}

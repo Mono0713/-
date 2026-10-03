@@ -25,6 +25,17 @@ describe.each(stores)('%s', (_name, open) => {
     ])
     expect(await store.summary(owner, new Date(Date.now() + 60_000))).toEqual([])
   })
+
+  it('adds up only the calls of one scope when asked', async () => {
+    const store = open()
+    const owner = `o-${Math.random()}`
+    await store.record({ ownerId: owner, task: 'grading', provider: 'openai', model: 'gpt-5-nano', inputTokens: 100, outputTokens: 10, scope: 'class:a' })
+    await store.record({ ownerId: owner, task: 'grading', provider: 'openai', model: 'gpt-5-nano', inputTokens: 200, outputTokens: 20 })
+    const since = new Date(Date.now() - 60_000)
+    expect((await store.summary(owner, since, 'class:a')).map((r) => r.inputTokens)).toEqual([100])
+    expect((await store.summary(owner, since, 'class:b'))).toEqual([])
+    expect((await store.summary(owner, since)).map((r) => r.inputTokens)).toEqual([300])
+  })
 })
 
 describe('spend and averages', () => {

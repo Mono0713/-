@@ -13,6 +13,8 @@ export interface QuizSettings {
   timeLimitMinutes: number | null
   /** The answer key and explanations are never shown, e.g. a shared exam whose owner keeps them private. */
   keyHidden?: boolean
+  /** The answer key stays hidden until this moment, e.g. a class assignment that shows answers once it closes. */
+  keyUntil?: string
 }
 
 /** A question as it appears in one quiz: a snapshot, so later edits in the bank do not change past results. */
@@ -42,8 +44,8 @@ export interface QuizResponse {
   transcribed?: boolean
 }
 
-/** Who marked an open answer: the person against the model answer, or an AI teacher (planned). */
-export type MarkedBy = 'self' | 'ai'
+/** Who marked an open answer: the person against the model answer, the AI teacher, or the class teacher. */
+export type MarkedBy = 'self' | 'ai' | 'teacher'
 
 /**
  * A mark on an answer the program cannot check by itself (short answer, essay,
@@ -56,6 +58,8 @@ export interface Marking {
   by: MarkedBy
   /** Comments on the answer, e.g. what is missing. */
   feedback: string | null
+  /** The mark this one replaced, when a teacher changed an AI mark: what the class page counts as overridden. */
+  replaced?: { by: MarkedBy; credit: number }
 }
 
 /** One answer the answer key could not settle. */
@@ -105,6 +109,8 @@ export interface QuizAttempt {
   finishedAt: string | null
   /** The link token when the questions came from an exam someone shared. */
   share?: string
+  /** The class assignment this attempt belongs to; a teacher's own try is a preview. */
+  assignment?: { classId: string; assignmentId: string; preview?: boolean }
   /** Set once an AI teacher has been asked to mark this attempt. */
   teacher?: TeacherState
 }

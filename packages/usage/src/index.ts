@@ -9,8 +9,8 @@ export * from './estimates.ts'
 /** A log of AI calls per person: what the settings page shows as spend, and what estimates learn from. */
 export interface UsageStore {
   record(entry: UsageEntry): Promise<void>
-  /** Totals per task and model since a moment. */
-  summary(ownerId: string, since: Date): Promise<UsageRow[]>
+  /** Totals per task and model since a moment; only calls with this scope when given. */
+  summary(ownerId: string, since: Date, scope?: string): Promise<UsageRow[]>
 }
 
 export class SqliteUsageStore implements UsageStore {
@@ -23,21 +23,25 @@ export class SqliteUsageStore implements UsageStore {
       id INTEGER PRIMARY KEY AUTOINCREMENT, owner_id TEXT NOT NULL, task TEXT NOT NULL, provider TEXT NOT NULL, model TEXT NOT NULL,
       input_tokens INTEGER, output_tokens INTEGER, units INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL)`)
     this.db.exec('CREATE INDEX IF NOT EXISTS ai_usage_owner_created ON ai_usage (owner_id, created_at)')
+    // added after the table
+    if (!(this.db.prepare('PRAGMA table_info(ai_usage)').all() as { name: string }[]).some((c) => c.name === 'scope')) {
+      this.db.exec('ALTER TABLE ai_usage ADD COLUMN scope TEXT')
+    }
   }
 
   async record(e: UsageEntry): Promise<void> {
     this.db
-      .prepare('INSERT INTO ai_usage (owner_id, task, provider, model, input_tokens, output_tokens, units, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(e.ownerId, e.task, e.provider, e.model, e.inputTokens, e.outputTokens, e.units ?? 1, new Date().toISOString())
+      .prepare('INSERT INTO ai_usage (owner_id, task, provider, model, input_tokens, output_tokens, units, scope, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(e.ownerId, e.task, e.provider, e.model, e.inputTokens, e.outputTokens, e.units ?? 1, e.scope ?? null, new Date().toISOString())
   }
 
-  async summary(ownerId: string, since: Date): Promise<UsageRow[]> {
+  async summary(ownerId: string, since: Date, scope?: string): Promise<UsageRow[]> {
     const rows = this.db
       .prepare(
         `SELECT task, provider, model, COUNT(*) AS calls, SUM(units) AS units, COALESCE(SUM(input_tokens), 0) AS input_tokens, COALESCE(SUM(output_tokens), 0) AS output_tokens
-         FROM ai_usage WHERE owner_id = ? AND created_at >= ? GROUP BY task, provider, model ORDER BY task, provider, model`,
+         FROM ai_usage WHERE owner_id = ? AND created_at >= ? AND (? IS NULL OR scope = ?) GROUP BY task, provider, model ORDER BY task, provider, model`,
       )
-      .all(ownerId, since.toISOString())
+      .all(ownerId, since.toISOString(), scope ?? null, scope ?? null)
     return rows.map(toRow)
   }
 }
@@ -46,14 +50,14 @@ export class PostgresUsageStore implements UsageStore {
   constructor(private readonly sql: Sql) {}
 
   async record(e: UsageEntry): Promise<void> {
-    await this.sql`insert into ai_usage (owner_id, task, provider, model, input_tokens, output_tokens, units)
-      values (${e.ownerId}, ${e.task}, ${e.provider}, ${e.model}, ${e.inputTokens}, ${e.outputTokens}, ${e.units ?? 1})`
+    await this.sql`insert into ai_usage (owner_id, task, provider, model, input_tokens, output_tokens, units, scope)
+      values (${e.ownerId}, ${e.task}, ${e.provider}, ${e.model}, ${e.inputTokens}, ${e.outputTokens}, ${e.units ?? 1}, ${e.scope ?? null})`
   }
 
-  async summary(ownerId: string, since: Date): Promise<UsageRow[]> {
+  async summary(ownerId: string, since: Date, scope?: string): Promise<UsageRow[]> {
     const rows = await this.sql`select task, provider, model, count(*)::int as calls, sum(units)::int as units,
         coalesce(sum(input_tokens), 0)::bigint as input_tokens, coalesce(sum(output_tokens), 0)::bigint as output_tokens
-      from ai_usage where owner_id = ${ownerId} and created_at >= ${since}
+      from ai_usage where owner_id = ${ownerId} and created_at >= ${since} ${scope === undefined ? this.sql`` : this.sql`and scope = ${scope}`}
       group by task, provider, model order by task, provider, model`
     return rows.map(toRow)
   }

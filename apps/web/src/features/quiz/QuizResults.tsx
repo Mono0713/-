@@ -30,6 +30,9 @@ export function QuizResults({ attempt, summary, teacher }: { attempt: QuizAttemp
       router.refresh()
     })
   const { grades } = summary
+  // On a class assignment the teacher or AI marks; the student does not mark their own.
+  const own = !attempt.assignment || Boolean(attempt.assignment.preview)
+  const withheldNote = own ? undefined : '老師還沒有公開答案。'
   const mark = (i: number, credit: number | null) =>
     start(async () => {
       await markAnswer(attempt.id, i, credit)
@@ -97,7 +100,8 @@ export function QuizResults({ attempt, summary, teacher }: { attempt: QuizAttemp
           summary.pending > 0 && (
             <div className="flex w-full flex-wrap items-center gap-3 text-sm">
               <p className="text-accent">
-                有 {summary.pending} 題等待批改。{attempt.teacher?.status === 'failed' ? 'AI 批改沒有完成，可以再試一次，' : ''}可以對照參考答案自己評分{teacher ? '，或請 AI 老師批改' : ''}。
+                有 {summary.pending} 題等待批改。{attempt.teacher?.status === 'failed' ? 'AI 批改沒有完成，可以再試一次，' : ''}
+                {own ? `可以對照參考答案自己評分${teacher ? '，或請 AI 老師批改' : ''}。` : `老師會批改${teacher ? '，也可以先請 AI 老師批改' : ''}。`}
               </p>
               {teacher && (
                 <Button onClick={ask} loading={asking} icon={<IconSparkles size={15} />}>
@@ -126,7 +130,7 @@ export function QuizResults({ attempt, summary, teacher }: { attempt: QuizAttemp
       {shown.map((i) => (
         <Card key={i} className="m-enter space-y-4 p-5">
           <QuizQuestion item={attempt.items[i]!} index={i} response={attempt.responses[i] ?? null} reveal />
-          <Reveal item={attempt.items[i]!} grade={grades[i]!} marking={attempt.markings[i] ?? null} onMark={(credit) => mark(i, credit)} />
+          <Reveal item={attempt.items[i]!} grade={grades[i]!} marking={attempt.markings[i] ?? null} onMark={own ? (credit) => mark(i, credit) : undefined} withheldNote={withheldNote} />
         </Card>
       ))}
       {!shown.length && <p className="text-sm text-muted">沒有符合的題目。</p>}

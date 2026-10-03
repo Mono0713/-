@@ -11,6 +11,8 @@ export interface UsageEntry {
   inputTokens: number | null
   outputTokens: number | null
   units?: number
+  /** What the call was for when someone else's work was paid for, e.g. "class:<id>" for a class's marking. */
+  scope?: string
 }
 
 /** Calls of one task on one model, added up. */

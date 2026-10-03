@@ -20,12 +20,15 @@ export function Reveal({
   grade,
   marking,
   onMark,
+  withheldNote = '分享這份考卷的人沒有公開答案。',
 }: {
   item: QuizItem
   grade: Grade
   marking: Marking | null
   /** Marks an open answer yourself: 1 right, 0 wrong, null to clear. */
   onMark?: (credit: number | null) => void
+  /** Said in place of the answer key when it is not shown. */
+  withheldNote?: string
 }) {
   const q = item.question
   const kind = answerKind(q)
@@ -48,6 +51,7 @@ export function Reveal({
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone={tone}>{label}</Badge>
         {marking?.by === 'ai' && <Badge tone="accent">AI 批改</Badge>}
+        {marking?.by === 'teacher' && <Badge tone="accent">老師批改</Badge>}
         {grade.max > 0 && (
           <span className="text-muted">
             {grade.score} / {grade.max} 分
@@ -56,7 +60,7 @@ export function Reveal({
       </div>
 
       {/* A shared exam whose owner keeps the key private sends empty answers. */}
-      {withheld && <p className="text-muted">分享這份考卷的人沒有公開答案。</p>}
+      {withheld && <p className="text-muted">{withheldNote}</p>}
 
       {key.length > 0 && !withheld && (
         <div>
@@ -94,7 +98,7 @@ export function Reveal({
 
       {marking?.feedback && (
         <div>
-          <span className="font-medium">{marking.by === 'ai' ? 'AI 老師評語：' : '評語：'}</span>
+          <span className="font-medium">{marking.by === 'ai' ? 'AI 老師評語：' : marking.by === 'teacher' ? '老師評語：' : '評語：'}</span>
           {/* the teacher's comment is written in red pen */}
           <Markdown className="pen">{marking.feedback}</Markdown>
         </div>

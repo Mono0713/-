@@ -47,10 +47,12 @@ export function NavLinks() {
               refs.current[i] = el
             }}
             aria-current={on ? 'page' : undefined}
-            className={`m-press relative flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 sm:px-3 ${on ? 'font-medium text-ink' : 'text-muted hover:text-ink'} ${on && !pill ? 'bg-surface shadow-[0_0_0_1px_var(--color-line)]' : ''}`}
+            aria-label={item.label}
+            className={`m-press relative flex items-center gap-1.5 rounded-lg px-2 py-1.5 min-[400px]:px-2.5 sm:px-3 ${on ? 'font-medium text-ink' : 'text-muted hover:text-ink'} ${on && !pill ? 'bg-surface shadow-[0_0_0_1px_var(--color-line)]' : ''}`}
           >
             <I size={16} strokeWidth={2} className={on ? 'text-accent' : ''} />
-            <span className={on ? '' : 'hidden min-[420px]:inline'}>{item.label}</span>
+            {/* with five sections a phone shows icons only, the current one on its pill */}
+            <span className={`whitespace-nowrap ${on ? 'hidden min-[440px]:inline' : 'hidden sm:inline'}`}>{item.label}</span>
           </Link>
         )
       })}

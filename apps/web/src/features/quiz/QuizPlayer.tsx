@@ -85,6 +85,9 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
       setGrades((all) => all.map((x, j) => (j === i ? result.grade : x)))
     })
 
+  // On a class assignment the teacher or AI marks; the student does not mark their own.
+  const own = !attempt.assignment || Boolean(attempt.assignment.preview)
+
   const secondsLeft = useCountdown(practice ? null : attempt.deadline, finish)
   const [navOpen, setNavOpen] = useState(false)
   const [direction, setDirection] = useState<1 | -1>(1)
@@ -199,7 +202,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
         </div>
 
         {practice && isChecked && grades[current] && (
-          <Reveal item={item} grade={grades[current]!} marking={markings[current] ?? null} onMark={(credit) => mark(current, credit)} />
+          <Reveal item={item} grade={grades[current]!} marking={markings[current] ?? null} onMark={own ? (credit) => mark(current, credit) : undefined} withheldNote={own ? undefined : '老師還沒有公開答案。'} />
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-2">

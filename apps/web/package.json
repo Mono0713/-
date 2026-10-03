@@ -14,6 +14,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@exam/bank": "workspace:*",
+    "@exam/classes": "workspace:*",
     "@exam/core": "workspace:*",
     "@exam/db": "workspace:*",
     "@exam/extraction": "workspace:*",
@@ -33,6 +34,7 @@
     "lucide-react": "^1.48.0",
     "mathlive": "^0.110.0",
     "next": "^16.3.6",
+    "qrcode": "^1.5.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-markdown": "^10.1.0",
@@ -42,6 +44,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "tailwindcss": "^4.3.3"

@@ -93,6 +93,7 @@ packages/
   models/      模型層（純資料、不呼叫 API，見 packages/models/SPEC.md）：模型目錄與價格、各工作在各 AI 強度用哪一級、從有金鑰的服務挑模型與備援、費用估算
   usage/       AI 用量紀錄（每次呼叫一筆，SQLite／Postgres）與花費加總；estimates.ts 可在瀏覽器用
   sharing/     分享連結（每份考卷一條，可關閉）與別人加到題庫的副本紀錄（SQLite／Postgres）
+  classes/     班級：成員與身分、加入碼、作業（派出時凍結題目）、作答紀錄，以及給老師看的成績統計（SQLite／Postgres）
   extraction/  共用提示詞與驗證、跨頁合併；providers/ 下是各家模型轉接器，compatible.ts 接任何 OpenAI 相容服務
   figures/     裁圖、把空格對齊印刷方框、清除空格裡的手寫
   db/          Postgres 連線、套用 supabase/migrations、測試用的暫時 schema
@@ -108,7 +109,7 @@ apps/
   web/         網頁版（Next.js）
     src/server/     唯一把各模組組裝起來的地方：context.ts 依環境變數選資料庫和檔案儲存，auth.ts 是 Google 登入（Supabase），owned.ts 確保每個網址上的 id 都屬於目前使用者
     src/proxy.ts    登入時更新 session，沒登入就帶到 /login
-    src/features/   imports（上傳與手動模式）、review（校對）、questions（題目顯示與編輯）、bank（題庫）、quiz（測驗）
+    src/features/   imports（上傳與手動模式）、review（校對）、questions（題目顯示與編輯）、bank（題庫）、quiz（測驗）、sharing（分享）、classes（班級）
     src/shared/     共用元件：公式渲染、附圖、按鈕等
       math/         公式：把沒包 $ 的 LaTeX 補成公式、公式編輯器（MathLive）、可點公式編輯的文字框。MathLive 的字型在 `pnpm dev`/`pnpm build` 時由 scripts/copy-assets.mjs 複製到 public/mathlive/
       brand/        名稱、標語、Logo（產品名稱只寫在 brand.ts）
@@ -119,6 +120,7 @@ apps/
 - **換模型**：`packages/extraction/src/providers/` 每家一個檔案，只負責翻譯 API 格式。提示詞和輸出格式三家共用，回覆一律經過同一個 schema 驗證，格式不對會自動重試一次。新增模型用 `registerProvider()`；OpenRouter、DeepSeek、Groq、Ollama 這類 OpenAI 相容服務不用寫程式，在設定頁「其他 AI 服務」貼上網址即可。
 - **AI 強度**：設定頁的「省錢／平衡／最準」決定辨識、讀手寫、批改各用哪一級模型（表在 `packages/models/src/routing.ts`）。匯入選「自動」時，先用最便宜那家；讀不了的頁換下一家；平衡模式下有低信心題目的頁再用最強的模型讀一次。每次呼叫都記進用量，設定頁顯示本月花費，估價也會改用實際用量。上線版只能接公開的 https 服務（擋掉本機與內部網路位址）。
 - **分享考卷**：題庫裡的考卷按「分享」建立連結，可選答案「交卷後公開」或「不公開」，隨時關閉。拿到連結並登入的人可以練習、考試，或「加到我的題庫」做一份自己的副本（圖也複製一份；答案不公開時副本不含答案）。
+- **班級**：老師在「班級」開班，學生用加入碼、加入連結或 QR code 加入；老師可以把學生設為助教。派作業時從題庫挑一份考卷，題目和附圖會複製一份凍結起來，之後改題庫不影響作業；可設開始與截止時間、限時、可作答次數、題目和選項是否打亂、答案在交卷後／截止後公布或不公布（改了立刻套用到已交的卷）。老師看得到誰交了、每人分數、每題得分率，可以改 AI 給的分數並寫評語（會統計 AI 分數被老師改過幾題）。AI 批改預設用老師的金鑰，可改成學生自己付、或老師付到每月上限後換學生付；班級的 AI 花費另外記帳。開發測試用：只在 `pnpm dev` 且沒有開登入時，左下角（手機在右上角）會出現身分切換，可以切成「學生 A／B／C」測試學生加入和作答；正式版（build 出來的網站）不會有這個功能。
 - **內容格式**：題幹和選項是 Markdown，數學用 LaTeX（`$...$`），化學式用 mhchem（`$\ce{H2O}$`），表格用 Markdown 表格，圖形會裁成獨立圖片。
 - **圖片填空**：模型回報圖上每個空格的編號和大概位置，程式再把它對齊到印刷的方框或底線，清除框內和周圍的紅筆、藍筆字跡，保留印刷的編號文字。答案依空格順序存放，空格位置以裁切後的圖為基準，線上測驗可以直接在圖上對應位置放輸入框。鉛筆和黑筆跟印刷字同色，無法逐筆分辨，所以模型也會回報每格的筆色和格內印刷字（例如 `7. ___ host`）：深色筆的格子會整格清空，再把印刷字打回原位（沒有印刷字時只印編號）。模型判斷錯時，可在網頁審閱畫面的「圖上空格的筆跡清理」逐格切換後重新清理。
 - **介面動畫**：全站動畫只從 `src/shared/motion/` 取用，功能模組只加 class（`m-press`、`m-lift`、`m-stagger`、`m-enter`、`m-pop`…）或用其中的元件，不自己寫 keyframes。時長與曲線是 `motion.css` 開頭的 token；系統設定「減少動態效果」時全部關閉。icon 一律從 `@/shared/icons` 匯入，換 icon 套件只改那一個檔案。顏色、字型、紙張陰影（`shadow-sheet`）是 `globals.css` 的 token；數字用 `.num`（等寬字），主要按鈕用 `.bg-brand`（Logo 的漸層）。

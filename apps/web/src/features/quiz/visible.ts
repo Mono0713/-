@@ -12,7 +12,12 @@ export function hiddenItem(item: QuizItem): QuizItem {
   }
 }
 
-/** The item once its answer may be shown: whole, unless the key stays hidden for good. */
-export function revealedItem(item: QuizItem, settings: Pick<QuizSettings, 'keyHidden'>): QuizItem {
-  return settings.keyHidden ? hiddenItem(item) : item
+/** Whether the answer key may be shown now: not when it is kept private, or before the time it opens. */
+export function keyShown(settings: Pick<QuizSettings, 'keyHidden' | 'keyUntil'>, now = new Date()): boolean {
+  return !settings.keyHidden && !(settings.keyUntil && now < new Date(settings.keyUntil))
+}
+
+/** The item once its answer may be shown: whole, unless the key stays hidden for good or for now. */
+export function revealedItem(item: QuizItem, settings: Pick<QuizSettings, 'keyHidden' | 'keyUntil'>): QuizItem {
+  return keyShown(settings) ? item : hiddenItem(item)
 }
