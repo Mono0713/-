@@ -20,7 +20,7 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
           scroll area and flashing a scrollbar under the last tab */}
       <div className="relative inline-flex gap-0.5 overflow-clip rounded-md">
       {pill && (
-        <span aria-hidden className="absolute inset-y-0 rounded-md bg-ink" style={{ left: pill.left, width: pill.width, transition: clicked ? 'left 380ms var(--m-spring), width 380ms var(--m-spring)' : 'none' }} />
+        <span aria-hidden data-keep-motion className="absolute inset-y-0 rounded-md bg-ink" style={{ left: pill.left, width: pill.width, transition: clicked ? 'left 380ms var(--m-spring), width 380ms var(--m-spring)' : 'none' }} />
       )}
       {options.map(([v, label], i) => (
         <button

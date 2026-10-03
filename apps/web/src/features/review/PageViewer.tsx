@@ -15,10 +15,11 @@ const GRIPS: { grip: Grip; className: string }[] = [
   { grip: 's', className: '-bottom-1 inset-x-2 h-2 cursor-ns-resize' },
   { grip: 'w', className: '-left-1 inset-y-2 w-2 cursor-ew-resize' },
   { grip: 'e', className: '-right-1 inset-y-2 w-2 cursor-ew-resize' },
-  { grip: 'nw', className: '-left-[5px] -top-[5px] cursor-nwse-resize' },
-  { grip: 'ne', className: '-right-[5px] -top-[5px] cursor-nesw-resize' },
-  { grip: 'sw', className: '-bottom-[5px] -left-[5px] cursor-nesw-resize' },
-  { grip: 'se', className: '-bottom-[5px] -right-[5px] cursor-nwse-resize' },
+  // corners: a 14px target around a small see-through dot, so the dot never hides the text under it
+  { grip: 'nw', className: '-left-[7px] -top-[7px] cursor-nwse-resize' },
+  { grip: 'ne', className: '-right-[7px] -top-[7px] cursor-nesw-resize' },
+  { grip: 'sw', className: '-bottom-[7px] -left-[7px] cursor-nesw-resize' },
+  { grip: 'se', className: '-bottom-[7px] -right-[7px] cursor-nwse-resize' },
 ]
 const MIN = 0.012
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
@@ -103,6 +104,31 @@ export function PageViewer({
     addEventListener('scroll', onScroll, { passive: true })
     return () => removeEventListener('scroll', onScroll)
   })
+
+  // The page controls fade to see-through when the pointer has been away from them for a moment,
+  // and come back as it nears them (or on any tap, for touch screens).
+  const controls = useRef<HTMLDivElement>(null)
+  const [idle, setIdle] = useState(false)
+  const idleTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const wake = () => {
+    setIdle(false)
+    clearTimeout(idleTimer.current)
+    idleTimer.current = setTimeout(() => {
+      if (!controls.current?.matches(':hover, :focus-within')) setIdle(true)
+    }, 2200)
+  }
+  useEffect(() => {
+    wake()
+    return () => clearTimeout(idleTimer.current)
+  }, [])
+  const nearControls = (e: ReactPointerEvent) => {
+    if (e.pointerType === 'touch') return wake()
+    const r = controls.current?.firstElementChild?.getBoundingClientRect()
+    if (!r) return
+    const dx = Math.max(r.left - e.clientX, 0, e.clientX - r.right)
+    const dy = Math.max(r.top - e.clientY, 0, e.clientY - r.bottom)
+    if (Math.hypot(dx, dy) < 90) wake()
+  }
 
   const goTo = (pageNumber: number) => {
     const el = scroller.current?.querySelector<HTMLElement>(`[data-page="${pageNumber}"]`)
@@ -191,7 +217,7 @@ export function PageViewer({
 
   return (
     // A column, so the controls sit at the bottom of the viewer even before the pages fill it.
-    <div ref={scroller} onScroll={onScroll} className={`relative flex flex-col ${className}`}>
+    <div ref={scroller} onScroll={onScroll} onPointerMove={nearControls} onPointerDown={nearControls} className={`relative flex flex-col ${className}`}>
       {/* Zoomed pages scroll sideways here on phones; wider screens scroll the whole viewer. */}
       <div ref={strip} className="flex-1 overflow-x-auto lg:overflow-visible">
         <div
@@ -260,7 +286,11 @@ export function PageViewer({
                               aria-hidden
                               onPointerDown={(e) => startEdit(e, index, location, l.bbox, grip)}
                               {...editHandlers}
-                              className={`absolute ${className} ${grip.length === 2 ? 'h-2.5 w-2.5 rounded-full bg-surface ring-2 ring-accent' : ''}`}
+                              className={`absolute ${className} ${
+                                grip.length === 2
+                                  ? 'grid h-3.5 w-3.5 place-items-center after:h-[7px] after:w-[7px] after:rounded-full after:bg-accent/55 after:ring-1 after:ring-surface/80 after:transition-transform hover:after:scale-125'
+                                  : ''
+                              }`}
                             />
                           ))}
                         </div>
@@ -288,36 +318,47 @@ export function PageViewer({
       </div>
 
       {/* Controls float over the bottom of the pages. */}
-      <div className="pointer-events-none sticky bottom-3 left-0 z-10 flex justify-start pt-2 sm:justify-center">
-        <div className="pointer-events-auto flex items-center gap-0.5 rounded-full bg-night/85 px-1 py-1 text-xs text-white shadow-[0_10px_30px_-12px_rgb(22_24_43/0.6)] backdrop-blur-md">
-          {pages.length > 1 && (
-            <>
-              <button type="button" className={pill} onClick={() => goTo(pages[index - 1]!.pageNumber)} disabled={index === 0} aria-label="上一頁" title="上一頁">
-                <IconChevronLeft size={15} />
-              </button>
-              <span className="num min-w-10 text-center tabular-nums" aria-live="polite">
-                {current}
-                <span className="text-white/50">/{pages.length}</span>
-              </span>
-              <button type="button" className={pill} onClick={() => goTo(pages[index + 1]!.pageNumber)} disabled={index === pages.length - 1} aria-label="下一頁" title="下一頁">
-                <IconChevronRight size={15} />
-              </button>
-              <span className="mx-0.5 h-4 w-px bg-white/20" />
-            </>
-          )}
-          <button type="button" className={pill} onClick={() => setZoom(Math.max(0, zoom - 1))} disabled={zoom === 0} aria-label="縮小" title="縮小">
-            <IconMinus size={14} />
-          </button>
-          <button type="button" onClick={() => setZoom(0)} className="num min-w-11 rounded-full py-1.5 text-center tabular-nums hover:bg-white/15" title="符合寬度">
-            {Math.round(scale * 100)}%
-          </button>
-          <button type="button" className={pill} onClick={() => setZoom(Math.min(ZOOMS.length - 1, zoom + 1))} disabled={zoom === ZOOMS.length - 1} aria-label="放大" title="放大">
-            <IconPlus size={14} />
-          </button>
-          <span className="mx-0.5 h-4 w-px bg-white/20" />
-          <a href={fileUrl(pages[index]!.image)} target="_blank" rel="noreferrer" className={pill} aria-label="在新分頁開啟這一頁" title="在新分頁開啟這一頁">
-            <IconExternal size={14} />
-          </a>
+      <div
+        ref={controls}
+        onPointerEnter={wake}
+        onPointerLeave={wake}
+        onFocus={wake}
+        className="pointer-events-none sticky bottom-3 left-0 z-10 flex justify-start pt-2 sm:justify-center"
+      >
+        <div
+          data-idle={idle || undefined}
+          className="pointer-events-auto flex translate-y-0 items-center transition-[opacity,translate] duration-300 data-[idle]:translate-y-1 data-[idle]:opacity-30 data-[idle]:duration-700"
+        >
+          <div className="flex items-center gap-0.5 rounded-full bg-night/85 px-1 py-1 text-xs text-white shadow-[0_10px_30px_-12px_rgb(22_24_43/0.6)] backdrop-blur-md">
+            {pages.length > 1 && (
+              <>
+                <button type="button" className={pill} onClick={() => goTo(pages[index - 1]!.pageNumber)} disabled={index === 0} aria-label="上一頁" title="上一頁">
+                  <IconChevronLeft size={15} />
+                </button>
+                <span className="num min-w-10 text-center tabular-nums" aria-live="polite">
+                  {current}
+                  <span className="text-white/50">/{pages.length}</span>
+                </span>
+                <button type="button" className={pill} onClick={() => goTo(pages[index + 1]!.pageNumber)} disabled={index === pages.length - 1} aria-label="下一頁" title="下一頁">
+                  <IconChevronRight size={15} />
+                </button>
+                <span className="mx-0.5 h-4 w-px bg-white/20" />
+              </>
+            )}
+            <button type="button" className={pill} onClick={() => setZoom(Math.max(0, zoom - 1))} disabled={zoom === 0} aria-label="縮小" title="縮小">
+              <IconMinus size={14} />
+            </button>
+            <button type="button" onClick={() => setZoom(0)} className="num min-w-11 rounded-full py-1.5 text-center tabular-nums hover:bg-white/15" title="符合寬度">
+              {Math.round(scale * 100)}%
+            </button>
+            <button type="button" className={pill} onClick={() => setZoom(Math.min(ZOOMS.length - 1, zoom + 1))} disabled={zoom === ZOOMS.length - 1} aria-label="放大" title="放大">
+              <IconPlus size={14} />
+            </button>
+            <span className="mx-0.5 h-4 w-px bg-white/20" />
+            <a href={fileUrl(pages[index]!.image)} target="_blank" rel="noreferrer" className={pill} aria-label="在新分頁開啟這一頁" title="在新分頁開啟這一頁">
+              <IconExternal size={14} />
+            </a>
+          </div>
         </div>
       </div>
     </div>
