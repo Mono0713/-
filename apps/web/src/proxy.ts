@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import './server/env'
 
 /** Pages anyone may open without signing in. */
-const PUBLIC = ['/login', '/auth/']
+const PUBLIC = ['/login', '/auth/', '/privacy']
 
 /**
  * With sign-in on: keeps the Supabase session cookie fresh on every request (server

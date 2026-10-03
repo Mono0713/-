@@ -32,5 +32,7 @@ services:
         sync: false
       - key: R2_SECRET_ACCESS_KEY
         sync: false
+      - key: SUPPORT_EMAIL
+        sync: false
       - key: STORAGE_QUOTA_MB
         value: "1024"

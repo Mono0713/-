@@ -28,7 +28,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </button>
         </form>
         {error && <p className="mt-4 rounded-lg bg-bad-soft px-3 py-2 text-left text-sm text-bad">登入失敗：{error}</p>}
-        <p className="mt-6 text-xs leading-relaxed text-muted">登入後，你的題庫、測驗和 API 金鑰只屬於你的帳號。</p>
+        <p className="mt-6 text-xs leading-relaxed text-muted">
+          登入後，你的題庫、測驗和 API 金鑰只屬於你的帳號。
+          <a href="/privacy" className="ml-1 text-accent hover:underline">
+            隱私權政策
+          </a>
+        </p>
       </div>
     </div>
   )

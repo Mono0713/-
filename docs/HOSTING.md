@@ -64,6 +64,10 @@
 4. 方案用 Starter（每月約 7 美元）。免費方案閒置 15 分鐘會休眠、記憶體只有 512 MB，處理 PDF 容易不夠，而且不支援部署前自動建資料表。
 5. 部署好後，回 Supabase → Authentication → URL Configuration，把 `https://<Render 網址>/auth/callback` 加進 Redirect URLs，Site URL 也改成這個網址。
 
+### 發布 Google 登入
+
+Google Cloud 的登入畫面在「測試」狀態時，只有「測試使用者」名單裡的人能登入（最多 100 人）。網站上線後：Google Auth Platform → 品牌，首頁填網站網址、隱私權政策填 `https://<網址>/privacy`（網站內建，不用登入就能看；`SUPPORT_EMAIL` 會顯示成刪除帳號的聯絡信箱），再到「目標對象」按發布應用程式。只要求名稱和信箱，不需要 Google 審核。
+
 ### 上線後檢查
 
 - 用 Google 登入，再用另一個 Google 帳號登入，確認彼此看不到對方的考卷。
