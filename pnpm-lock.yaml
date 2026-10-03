@@ -80,6 +80,9 @@ importers:
       '@exam/settings':
         specifier: workspace:*
         version: link:../../packages/settings
+      '@exam/sharing':
+        specifier: workspace:*
+        version: link:../../packages/sharing
       '@exam/usage':
         specifier: workspace:*
         version: link:../../packages/usage
@@ -294,6 +297,16 @@ importers:
       zod:
         specifier: ^4.1.0
         version: 4.6.5
+
+  packages/sharing:
+    dependencies:
+      '@exam/db':
+        specifier: workspace:*
+        version: link:../db
+    devDependencies:
+      '@exam/bank':
+        specifier: workspace:*
+        version: link:../bank
 
   packages/usage:
     dependencies:

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ExamMetaForm } from '@/features/bank/ExamMetaForm'
 import { QuestionView } from '@/features/questions/QuestionView'
+import { ShareMenu } from '@/features/sharing/ShareMenu'
 import { services } from '@/server/context'
 import { ownedExam } from '@/server/owned'
 import { Markdown } from '@/shared/Markdown'
@@ -14,7 +15,7 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
   const { id } = await params
   const exam = await ownedExam(id)
   if (!exam) notFound()
-  const { items: questions } = await services().bank.listQuestions({ ownerId: exam.ownerId, examId: id, limit: 1000 })
+  const [{ items: questions }, share] = await Promise.all([services().bank.listQuestions({ ownerId: exam.ownerId, examId: id, limit: 1000 }), services().shares.forExam(id)])
   const groups = new Map(exam.groups.map((g) => [g.id, g]))
   const points = questions.reduce((sum, q) => sum + (q.points ?? 0), 0)
 
@@ -26,6 +27,7 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
         actions={
           <>
             {exam.importId && <ButtonLink href={`/imports/${exam.importId}`}>看原始考卷</ButtonLink>}
+            <ShareMenu examId={exam.id} initial={share && { token: share.token, answers: share.answers }} />
             <ButtonLink href={`/quiz/new?exam=${exam.id}`} variant="primary">
               用這份考卷測驗
             </ButtonLink>

@@ -10,6 +10,7 @@ import { AiTeacher, createTextModel, PostgresGradingCache, SqliteGradingCache, t
 import { BUILTIN_LABELS, BUILTIN_MODELS, route, type ModelChoice, type ProviderInfo, type Route, type Strength, type Task } from '@exam/models'
 import { PostgresQuizStore, SqliteQuizStore, type QuizStore } from '@exam/quiz'
 import { DEFAULT_LOCALE, FileSettingsStore, PostgresSettingsStore, type Settings, type SettingsStore } from '@exam/settings'
+import { PostgresShareStore, SqliteShareStore, type ShareStore } from '@exam/sharing'
 import { PostgresUsageStore, SqliteUsageStore, type UsageStore } from '@exam/usage'
 import { authEnabled } from './auth'
 import { checkServiceUrl } from './serviceUrl'
@@ -33,6 +34,7 @@ interface Services {
   settings: SettingsStore
   gradingCache: GradingCache
   usage: UsageStore
+  shares: ShareStore
   files: FileStore
 }
 
@@ -52,7 +54,7 @@ export function services(): Services {
         bank: stores.bank,
         files,
         // With accounts, every file key starts with its owner, so a link can be checked against the person asking.
-        keyPrefix: authEnabled() ? (ownerId) => `u/${ownerId}/` : undefined,
+        keyPrefix: authEnabled() ? keyPrefixOf : undefined,
         reviewLanguage: localeOf,
         providerConfig: async (providerId, ownerId) => {
           const s = await stores.settings.get(ownerId)
@@ -82,7 +84,12 @@ function sweepOriginals(importer: Importer) {
   setInterval(sweep, SWEEP_EVERY).unref()
 }
 
-type Stores = Pick<Services, 'bank' | 'quizzes' | 'settings' | 'gradingCache' | 'usage'>
+/** Start of every file key of an owner when there are accounts, so a file link can be checked against the person asking. */
+export function keyPrefixOf(ownerId: string): string {
+  return authEnabled() ? `u/${ownerId}/` : ''
+}
+
+type Stores = Pick<Services, 'bank' | 'quizzes' | 'settings' | 'gradingCache' | 'usage' | 'shares'>
 
 function sqliteStores(): Stores {
   const dbFile = join(dataDir, 'bank.sqlite')
@@ -92,6 +99,7 @@ function sqliteStores(): Stores {
     settings: new FileSettingsStore(join(dataDir, 'settings.json')),
     gradingCache: new SqliteGradingCache(dbFile),
     usage: new SqliteUsageStore(dbFile),
+    shares: new SqliteShareStore(dbFile),
   }
 }
 
@@ -99,7 +107,7 @@ function postgresStores(url: string): Stores {
   const secret = process.env.SETTINGS_SECRET
   if (!secret) throw new Error('SETTINGS_SECRET is required with DATABASE_URL: it encrypts the API keys people save.')
   const sql = connect(url)
-  return { bank: new PostgresBank(sql), quizzes: new PostgresQuizStore(sql), settings: new PostgresSettingsStore(sql, secret), gradingCache: new PostgresGradingCache(sql), usage: new PostgresUsageStore(sql) }
+  return { bank: new PostgresBank(sql), quizzes: new PostgresQuizStore(sql), settings: new PostgresSettingsStore(sql, secret), gradingCache: new PostgresGradingCache(sql), usage: new PostgresUsageStore(sql), shares: new PostgresShareStore(sql) }
 }
 
 /**

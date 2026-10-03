@@ -24,6 +24,7 @@
     "@exam/models": "workspace:*",
     "@exam/quiz": "workspace:*",
     "@exam/settings": "workspace:*",
+    "@exam/sharing": "workspace:*",
     "@exam/usage": "workspace:*",
     "@fontsource/lxgw-wenkai-tc": "5.3.0",
     "@supabase/ssr": "^0.12.7",

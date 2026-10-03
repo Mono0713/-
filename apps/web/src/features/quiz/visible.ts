@@ -1,4 +1,4 @@
-import type { QuizItem } from '@exam/quiz'
+import type { QuizItem, QuizSettings } from '@exam/quiz'
 
 /**
  * What the quiz page may show before an answer is revealed: the question
@@ -12,6 +12,7 @@ export function hiddenItem(item: QuizItem): QuizItem {
   }
 }
 
-export function revealedItem(item: QuizItem): QuizItem {
-  return item
+/** The item once its answer may be shown: whole, unless the key stays hidden for good. */
+export function revealedItem(item: QuizItem, settings: Pick<QuizSettings, 'keyHidden'>): QuizItem {
+  return settings.keyHidden ? hiddenItem(item) : item
 }

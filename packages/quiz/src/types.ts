@@ -11,6 +11,8 @@ export interface QuizSettings {
   shuffleOptions: boolean
   /** Exam mode only; null means no limit. */
   timeLimitMinutes: number | null
+  /** The answer key and explanations are never shown, e.g. a shared exam whose owner keeps them private. */
+  keyHidden?: boolean
 }
 
 /** A question as it appears in one quiz: a snapshot, so later edits in the bank do not change past results. */
@@ -101,6 +103,8 @@ export interface QuizAttempt {
   /** When a timed exam ends. */
   deadline: string | null
   finishedAt: string | null
+  /** The link token when the questions came from an exam someone shared. */
+  share?: string
   /** Set once an AI teacher has been asked to mark this attempt. */
   teacher?: TeacherState
 }

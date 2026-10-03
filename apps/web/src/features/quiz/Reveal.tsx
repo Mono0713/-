@@ -33,6 +33,7 @@ export function Reveal({
   const [label, tone] = GRADE_LABELS[grade.status]
   // Blanks answered with option labels show them as labelled in this quiz.
   const key = kind.kind === 'blanks' ? q.answer.values.map((v) => toQuizLabels(item, v)) : q.answer.values
+  const withheld = q.answer.values.length > 0 && q.answer.values.every((v) => v === '')
   const answer =
     kind.kind === 'single' || kind.kind === 'multiple'
       ? key.map((l) => displayLabel(item, l)).join('、')
@@ -54,7 +55,10 @@ export function Reveal({
         )}
       </div>
 
-      {key.length > 0 && (
+      {/* A shared exam whose owner keeps the key private sends empty answers. */}
+      {withheld && <p className="text-muted">分享這份考卷的人沒有公開答案。</p>}
+
+      {key.length > 0 && !withheld && (
         <div>
           <span className="font-medium text-good">正確答案：</span>
           {answer !== null ? (
@@ -77,7 +81,7 @@ export function Reveal({
       {kind.kind !== 'single' && kind.kind !== 'multiple' && kind.kind !== 'true_false' && grade.status !== 'unanswered' && onMark && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-muted">
-            {marking?.by === 'ai' ? 'AI 老師批改的。不同意的話可以自己改：' : key.length ? '對照參考答案，你的答案：' : '這題沒有標準答案，你的答案：'}
+            {marking?.by === 'ai' ? 'AI 老師批改的。不同意的話可以自己改：' : withheld ? '答案沒有公開，你的答案：' : key.length ? '對照參考答案，你的答案：' : '這題沒有標準答案，你的答案：'}
           </span>
           <Button className="px-3 py-1.5" variant={self && self.credit >= 1 ? 'primary' : 'secondary'} onClick={() => onMark(self && self.credit >= 1 ? null : 1)}>
             答對

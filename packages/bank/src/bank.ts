@@ -1,5 +1,5 @@
 import type { DraftExam, DraftQuestion, ExamMeta } from '@exam/core'
-import type { BankExam, BankQuestion, ExamQuery, ImportRecord, NewImport, QuestionQuery } from './types.ts'
+import type { BankExam, BankQuestion, ExamQuery, ImportRecord, NewExam, NewImport, QuestionQuery } from './types.ts'
 
 export type ImportPatch = Partial<Pick<ImportRecord, 'status' | 'progress' | 'error' | 'title' | 'subject' | 'provider' | 'model' | 'keepOriginal' | 'originalDeletedAt'>>
 
@@ -21,6 +21,8 @@ export interface Bank {
   saveDraft(importId: string, draft: DraftExam): Promise<void>
   /** Puts a reviewed draft in the bank as an exam. Saving the same import again replaces that exam's questions. */
   saveExam(importId: string, draft: DraftExam): Promise<BankExam>
+  /** A new exam made from questions rather than an import, e.g. a copy of an exam someone shared. */
+  createExam(ownerId: string, exam: NewExam): Promise<BankExam>
   /** The exam an import was saved as, if any. */
   examForImport(importId: string): Promise<BankExam | null>
   listExams(query: ExamQuery): Promise<BankExam[]>

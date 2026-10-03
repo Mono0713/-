@@ -1,12 +1,12 @@
 'use server'
 
-import { draftOf } from '@exam/bank'
 import { markOpenAnswers, unreadHandwriting } from '@exam/grading'
-import { buildItems, gradeItem, isOver, needsTeacher, type QuizAttempt, type QuizResponse, type QuizSettings, type QuizSource } from '@exam/quiz'
+import { gradeItem, isOver, needsTeacher, type QuizAttempt, type QuizResponse, type QuizSettings } from '@exam/quiz'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { currentOwner, localeOf, services, teacherFor } from '@/server/context'
 import { ownedAttempt } from '@/server/owned'
+import { startQuiz } from './start'
 import { readInk, startTeacher } from './teacher'
 import { revealedItem } from './visible'
 
@@ -31,39 +31,10 @@ export interface NewQuiz {
 
 /** Starts a quiz and opens it; returns only when it cannot start. */
 export async function createQuiz(input: NewQuiz): Promise<{ error: string } | undefined> {
-  const { bank, quizzes } = services()
   const owner = await currentOwner()
-  let questions = (await bank.getQuestions(input.questionIds)).filter((q) => q.ownerId === owner)
+  const questions = (await services().bank.getQuestions(input.questionIds)).filter((q) => q.ownerId === owner)
   if (!questions.length) return { error: '請至少選一題' }
-  if (input.limit && input.limit < questions.length) {
-    questions = [...questions].sort(() => Math.random() - 0.5).slice(0, input.limit)
-    questions.sort((a, b) => input.questionIds.indexOf(a.id) - input.questionIds.indexOf(b.id))
-  }
-  const examIds = [...new Set(questions.map((q) => q.examId))]
-  const exams = new Map(await Promise.all(examIds.map(async (id) => [id, await bank.getExam(id)] as const)))
-  const sources: QuizSource[] = questions.map((q) => {
-    const group = q.groupId ? exams.get(q.examId)?.groups.find((g) => g.id === q.groupId) : undefined
-    return { questionId: q.id, question: draftOf(q), group: group ? { stem: group.stem, figures: group.figures } : null }
-  })
-  const titles = [...exams.values()].map((e) => e?.title ?? '未命名考卷')
-  const settings: QuizSettings = {
-    ...input.settings,
-    timeLimitMinutes: input.settings.mode === 'exam' && input.settings.timeLimitMinutes ? input.settings.timeLimitMinutes : null,
-  }
-  const now = new Date()
-  const attempt = await quizzes.create({
-    ownerId: owner,
-    title: titles.length === 1 ? titles[0]! : `${titles[0]} 等 ${titles.length} 份考卷`,
-    examIds: [...exams.keys()],
-    settings,
-    items: buildItems(sources, settings),
-    responses: sources.map(() => null),
-    markings: sources.map(() => null),
-    checked: sources.map(() => false),
-    startedAt: now.toISOString(),
-    deadline: settings.timeLimitMinutes ? new Date(now.getTime() + settings.timeLimitMinutes * 60_000).toISOString() : null,
-    finishedAt: null,
-  })
+  const attempt = await startQuiz({ ownerId: owner, questions, order: input.questionIds, settings: input.settings, limit: input.limit })
   revalidatePath('/quiz')
   redirect(`/quiz/${attempt.id}`)
 }
@@ -116,7 +87,7 @@ export async function checkAnswer(id: string, index: number, response: QuizRespo
   }
   const marking = attempt.markings[index] ?? null
   const answer = attempt.responses[index] ?? null
-  return { item: revealedItem(item), grade: gradeItem(item, answer, marking), marking, response: answer }
+  return { item: revealedItem(item, attempt.settings), grade: gradeItem(item, answer, marking), marking, response: answer }
 }
 
 /** The person marks their own open answer against the model answer: credit 1 is right, 0 is wrong, null clears it. */
