@@ -2,6 +2,7 @@ import { mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { repoRoot } from './env'
 import { PostgresBank, SqliteBank, type Bank } from '@exam/bank'
+import { PostgresClassStore, SqliteClassStore, type ClassStore } from '@exam/classes'
 import { connect } from '@exam/db'
 import { DEFAULT_MODELS, type ModelTier } from '@exam/extraction'
 import { fileStoreFromEnv, type FileStore } from '@exam/files'
@@ -35,6 +36,7 @@ interface Services {
   gradingCache: GradingCache
   usage: UsageStore
   shares: ShareStore
+  classes: ClassStore
   files: FileStore
 }
 
@@ -89,7 +91,7 @@ export function keyPrefixOf(ownerId: string): string {
   return authEnabled() ? `u/${ownerId}/` : ''
 }
 
-type Stores = Pick<Services, 'bank' | 'quizzes' | 'settings' | 'gradingCache' | 'usage' | 'shares'>
+type Stores = Pick<Services, 'bank' | 'quizzes' | 'settings' | 'gradingCache' | 'usage' | 'shares' | 'classes'>
 
 function sqliteStores(): Stores {
   const dbFile = join(dataDir, 'bank.sqlite')
@@ -100,6 +102,7 @@ function sqliteStores(): Stores {
     gradingCache: new SqliteGradingCache(dbFile),
     usage: new SqliteUsageStore(dbFile),
     shares: new SqliteShareStore(dbFile),
+    classes: new SqliteClassStore(dbFile),
   }
 }
 
@@ -107,7 +110,7 @@ function postgresStores(url: string): Stores {
   const secret = process.env.SETTINGS_SECRET
   if (!secret) throw new Error('SETTINGS_SECRET is required with DATABASE_URL: it encrypts the API keys people save.')
   const sql = connect(url)
-  return { bank: new PostgresBank(sql), quizzes: new PostgresQuizStore(sql), settings: new PostgresSettingsStore(sql, secret), gradingCache: new PostgresGradingCache(sql), usage: new PostgresUsageStore(sql), shares: new PostgresShareStore(sql) }
+  return { bank: new PostgresBank(sql), quizzes: new PostgresQuizStore(sql), settings: new PostgresSettingsStore(sql, secret), gradingCache: new PostgresGradingCache(sql), usage: new PostgresUsageStore(sql), shares: new PostgresShareStore(sql), classes: new PostgresClassStore(sql) }
 }
 
 /**
@@ -241,20 +244,22 @@ export async function teacherChoice(ownerId: string): Promise<ModelChoice | null
  * The AI teacher for this user, or null when AI marking is off or no service has a key.
  * Marking and reading handwriting each follow their own route, fallbacks included,
  * and every call is logged for the usage summary.
+ * For a class the teacher pays for, `scope` tags the calls (for its monthly cap) and
+ * `always` uses the teacher's keys even when their own AI marking is switched off.
  */
-export async function teacherFor(ownerId: string): Promise<Teacher | null> {
+export async function teacherFor(ownerId: string, opts: { scope?: string; always?: boolean } = {}): Promise<Teacher | null> {
   const s = await services().settings.get(ownerId)
-  if (!s.aiGrading.enabled) return null
+  if (!s.aiGrading.enabled && !opts.always) return null
   const grading = await routeFor(ownerId, 'grading')
   if (!grading) return null
   const handwriting = (await routeFor(ownerId, 'handwriting')) ?? grading
-  const marker = await chain(s, ownerId, 'grading', [grading.primary, ...grading.fallbacks])
-  const reader = await chain(s, ownerId, 'handwriting', [handwriting.primary, ...handwriting.fallbacks])
+  const marker = await chain(s, ownerId, 'grading', [grading.primary, ...grading.fallbacks], opts.scope)
+  const reader = await chain(s, ownerId, 'handwriting', [handwriting.primary, ...handwriting.fallbacks], opts.scope)
   return { teacher: new AiTeacher(marker), reader, provider: grading.primary.provider, model: grading.primary.model }
 }
 
 /** A text model that moves on to the next choice when one fails, logging what each call used. */
-async function chain(s: Settings, ownerId: string, task: Task, choices: ModelChoice[]): Promise<TextModel> {
+async function chain(s: Settings, ownerId: string, task: Task, choices: ModelChoice[], scope?: string): Promise<TextModel> {
   // A service whose address no longer passes the check is left out; the others still work.
   const settled = await Promise.allSettled(
     choices.map(async ({ provider, model }) =>
@@ -262,7 +267,7 @@ async function chain(s: Settings, ownerId: string, task: Task, choices: ModelCho
         apiKey: s.apiKeys[provider] || envKey(provider) || '',
         model,
         baseUrl: await serviceUrlOf(s, provider),
-        onUsage: (u) => void services().usage.record({ ownerId, task, provider, model, ...u }).catch(() => {}),
+        onUsage: (u) => void services().usage.record({ ownerId, task, provider, model, ...u, ...(scope && { scope }) }).catch(() => {}),
       }),
     ),
   )

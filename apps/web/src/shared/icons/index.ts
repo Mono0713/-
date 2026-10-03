@@ -53,6 +53,7 @@ export {
   TriangleAlert as IconAlert,
   Undo2 as IconUndo,
   Upload as IconUpload,
+  Users as IconClass,
   X as IconX,
 } from 'lucide-react'
 export type { LucideIcon as Icon } from 'lucide-react'

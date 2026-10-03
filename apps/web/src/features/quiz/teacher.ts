@@ -1,6 +1,7 @@
 import { markOpenAnswers, readHandwrittenAnswers, unreadHandwriting } from '@exam/grading'
 import { needsTeacher, type QuizAttempt } from '@exam/quiz'
-import { localeOf, services, teacherFor, type Teacher } from '@/server/context'
+import { graderFor } from '@/server/classes'
+import { localeOf, services, type Teacher } from '@/server/context'
 
 /**
  * Reads handwritten answers into text and saves them, so they can be checked like typing.
@@ -23,7 +24,7 @@ export async function readInk(attempt: QuizAttempt, teacher: Teacher, only?: num
 export async function startTeacher(id: string) {
   const { quizzes, gradingCache } = services()
   const attempt = await quizzes.get(id)
-  const teacher = attempt && (await teacherFor(attempt.ownerId))
+  const teacher = attempt && (await graderFor(attempt))
   if (!attempt || !teacher) return
   const unread = attempt.responses.some((r, i) => unreadHandwriting(r) && !attempt.markings[i])
   if (!unread && !attempt.items.some((item, i) => needsTeacher(item, attempt.responses[i] ?? null, attempt.markings[i] ?? null))) return

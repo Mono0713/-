@@ -47,9 +47,12 @@ export const currentUser = cache(async (): Promise<SignedInUser | null> => {
   return { id: claims.sub, email: text(claims.email), name: text(meta.full_name) ?? text(meta.name), avatar: text(meta.avatar_url) ?? text(meta.picture) }
 })
 
-/** Whose data this request works on. Sends a signed-out person to the sign-in page. */
+/**
+ * Whose data this request works on. Sends a signed-out person to the sign-in page.
+ * Without accounts it is "local", or EXAM_LOCAL_USER, so a second local server can play a student.
+ */
 export async function currentOwner(): Promise<string> {
-  if (!authEnabled()) return 'local'
+  if (!authEnabled()) return process.env.EXAM_LOCAL_USER || 'local'
   const user = await currentUser()
   if (!user) redirect('/login')
   return user.id
