@@ -11,10 +11,11 @@ type Box = DraftQuestion['locations'][number]['bbox']
 /** What a press on the selected box changes: the whole box, or the edges named (n s e w). */
 type Grip = 'move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
 const GRIPS: { grip: Grip; className: string }[] = [
-  { grip: 'n', className: '-top-1 inset-x-2 h-2 cursor-ns-resize' },
-  { grip: 's', className: '-bottom-1 inset-x-2 h-2 cursor-ns-resize' },
-  { grip: 'w', className: '-left-1 inset-y-2 w-2 cursor-ew-resize' },
-  { grip: 'e', className: '-right-1 inset-y-2 w-2 cursor-ew-resize' },
+  // edges: a 12px band centred on the outline, so a press meant to resize never moves the box
+  { grip: 'n', className: '-top-1.5 inset-x-2 h-3 cursor-ns-resize' },
+  { grip: 's', className: '-bottom-1.5 inset-x-2 h-3 cursor-ns-resize' },
+  { grip: 'w', className: '-left-1.5 inset-y-2 w-3 cursor-ew-resize' },
+  { grip: 'e', className: '-right-1.5 inset-y-2 w-3 cursor-ew-resize' },
   // corners: an invisible 14px target
   { grip: 'nw', className: '-left-[7px] -top-[7px] cursor-nwse-resize' },
   { grip: 'ne', className: '-right-[7px] -top-[7px] cursor-nesw-resize' },
@@ -65,6 +66,20 @@ export function PageViewer({
   // Pages that have finished loading; until then each shows a page-shaped placeholder with a spinner.
   const [loaded, setLoaded] = useState<Record<number, 'ok' | 'error'>>({})
   const done = (pageNumber: number, state: 'ok' | 'error') => setLoaded((l) => (l[pageNumber] === state ? l : { ...l, [pageNumber]: state }))
+  // Boxes are outlined one by one once, when their page first shows. After that the class is dropped,
+  // so nothing that re-renders or remounts a box (editing it, reordering questions) replays the reveal.
+  const [revealed, setRevealed] = useState<Record<number, true>>({})
+  useEffect(() => {
+    const timers = Object.entries(loaded)
+      .filter(([n, state]) => state === 'ok' && !revealed[Number(n)])
+      .map(([n]) => {
+        const count = questions.reduce((c, q) => c + q.locations.filter((l) => l.pageNumber === Number(n)).length, 0)
+        return setTimeout(() => setRevealed((r) => ({ ...r, [n]: true })), 250 + count * 140 + 1400)
+      })
+    return () => timers.forEach(clearTimeout)
+    // counted when the page loads; later edits do not restart the wait
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded])
   // Boxes drawn over the start of the next question are trimmed where it begins.
   const boxes = useMemo(() => untangleBoxes(questions), [questions])
   const scrolls = () => {
@@ -198,6 +213,9 @@ export function PageViewer({
     // where on the box it was grabbed, as fractions of the page
     grabX: number
     grabY: number
+    // where it was grabbed, as fractions of the page
+    fx: number
+    fy: number
     x: number
     y: number
     w: number
@@ -212,7 +230,13 @@ export function PageViewer({
     document.elementsFromPoint(x, y).map((el) => el.closest<HTMLElement>('figure[data-page]')).find((f) => f !== null) ?? null
   const placed = (x: number, y: number) => {
     const d = edit.current!
-    if (d.grip !== 'move') return { bbox: dragged(d.start, d.grip, (x - d.x) / d.w, (y - d.y) / d.h), pageNumber: d.pageNumber }
+    if (d.grip !== 'move') {
+      // measured against where the page is now, so a page that scrolls meanwhile does not pull the edge along
+      const r = scroller.current?.querySelector<HTMLElement>(`figure[data-page="${d.pageNumber}"]`)?.getBoundingClientRect()
+      const dx = r ? (x - r.left) / r.width - d.fx : (x - d.x) / d.w
+      const dy = r ? (y - r.top) / r.height - d.fy : (y - d.y) / d.h
+      return { bbox: dragged(d.start, d.grip, dx, dy), pageNumber: d.pageNumber }
+    }
     const figure = figureAt(x, y) ?? scroller.current?.querySelector<HTMLElement>(`figure[data-page="${d.over}"]`)
     if (!figure) return { bbox: d.start, pageNumber: d.pageNumber }
     d.over = Number(figure.dataset.page)
@@ -276,6 +300,8 @@ export function PageViewer({
       over: Number(figure.dataset.page),
       grabX: (e.clientX - page.left) / page.width - bbox.x,
       grabY: (e.clientY - page.top) / page.height - bbox.y,
+      fx: (e.clientX - page.left) / page.width,
+      fy: (e.clientY - page.top) / page.height,
       x: e.clientX,
       y: e.clientY,
       w: page.width,
@@ -396,7 +422,7 @@ export function PageViewer({
                           onSelect(index)
                         }}
                         {...(editing && { onPointerDown: (e: ReactPointerEvent) => startEdit(e, index, location, l.bbox, 'move') })}
-                        className={`m-found absolute rounded-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${
+                        className={`${revealed[page.pageNumber] ? '' : 'm-found'} absolute rounded-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${
                           index === selected ? 'z-[1] bg-accent/15 ring-2 ring-accent' : 'cursor-pointer ring-1 ring-accent/0 hover:bg-accent/5 hover:ring-accent/40'
                         } ${editing ? `touch-none ${live?.index === index ? 'cursor-grabbing' : 'cursor-move'}` : ''}`}
                       >
