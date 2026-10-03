@@ -29,6 +29,8 @@ export {
   GripVertical as IconGrip,
   Flag as IconFinish,
   Inbox as IconEmpty,
+  ListIndentIncrease as IconIndent,
+  ListIndentDecrease as IconOutdent,
   Keyboard as IconKeyboard,
   KeyRound as IconKey,
   Library as IconBank,

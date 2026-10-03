@@ -188,6 +188,7 @@ export function MathTextInput({
         {prefix && <div className="flex shrink-0 items-center self-stretch pl-1.5">{prefix}</div>}
         {source ? (
           <textarea
+            autoComplete="off"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             rows={multiline ? Math.max(2, Math.min(20, value.split('\n').length + 1)) : 1}

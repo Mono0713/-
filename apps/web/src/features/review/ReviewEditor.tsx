@@ -23,7 +23,9 @@ import {
   IconEdit,
   IconGrip,
   IconLoader,
+  IconIndent,
   IconMerge,
+  IconOutdent,
   IconOutline,
   IconPlus,
   IconSave,
@@ -41,7 +43,7 @@ import { Badge, Button, inputClass } from '@/shared/ui'
 import { publishDraft, saveDraft } from './actions'
 import { PageViewer } from './PageViewer'
 import { STRENGTH_LABELS } from '@/features/settings/strengths'
-import { mergeParts, splitNumber, splitParts } from './parts'
+import { attachToPrevious, detachPart, groupLooseParts, mergeParts, nextPart, splitNumber, splitParts } from './parts'
 import { StrengthPanel } from './StrengthPanel'
 import { ActiveOverlay, alongList, EdgeScroll, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 
@@ -87,14 +89,16 @@ export function ReviewEditor({
   /** The AI strength from settings; given, the floating button can change it. */
   strength?: Strength
 }) {
-  const [draft, setDraft] = useState(initial)
+  // Sub-questions read as separate questions (1(1), 1(2)) start out grouped, so they merge like split ones.
+  const [start] = useState(() => groupLooseParts(initial, (n) => `parts-${Date.now().toString(36)}-${n}`))
+  const [draft, setDraft] = useState(start)
   const [selected, setSelected] = useState<number | null>(null)
   const [editing, setEditing] = useState<number | null>(null)
   const [layout, setLayoutState] = useState(DEFAULT_LAYOUT)
   const [saveState, setSaveState] = useState<SaveState>('saved')
   const [published, setPublished] = useState(savedExam ? { count: savedExam.questionCount, examId: savedExam.id } : null)
   // The draft as it was last put in the bank: until it changes, there is nothing to update.
-  const [inBank, setInBank] = useState<DraftExam | null>(savedExam ? initial : null)
+  const [inBank, setInBank] = useState<DraftExam | null>(savedExam ? start : null)
   const inSync = inBank === draft
   const [flaggedOnly, setFlaggedOnly] = useState(false)
   const [publishing, startPublish] = useTransition()
@@ -204,6 +208,21 @@ export function ReviewEditor({
     setEditing(null)
     setSelected(at)
   }
+  // By hand: a question becomes a sub-question of the one before it, or leaves its group again.
+  const attachPart = (index: number) => {
+    const next = attachToPrevious(draft, index, `parts-${Date.now().toString(36)}`)
+    if (!next) return
+    setDraft(next)
+    setSelected(index)
+  }
+  const detachQuestion = (index: number) => {
+    const result = detachPart(draft, index)
+    if (!result) return
+    keys.current = arrayMove(keys.current, index, result.at)
+    setDraft(result.draft)
+    setEditing(null)
+    setSelected(result.at)
+  }
   // A number whose sub-questions are split heads them with its group card: picking the number shows that card.
   const selectGroup = (groupId: string, first: number) => {
     setSelected(first)
@@ -230,10 +249,10 @@ export function ReviewEditor({
     setSelected(null)
     showDeleted(question.number)
   }
-  const moveBox = (index: number, location: number, bbox: DraftQuestion['locations'][number]['bbox']) => {
+  const moveBox = (index: number, location: number, bbox: DraftQuestion['locations'][number]['bbox'], pageNumber?: number) => {
     const q = draft.questions[index]!
     trash.current.push({ kind: 'box', key: keys.current[index]!, locations: q.locations })
-    updateQuestion(index, { ...q, locations: q.locations.map((l, i) => (i === location ? { ...l, bbox, manual: true } : l)) })
+    updateQuestion(index, { ...q, locations: q.locations.map((l, i) => (i === location ? { ...l, bbox, manual: true, ...(pageNumber !== undefined && { pageNumber }) } : l)) })
   }
   const undoDelete = () => {
     const last = trash.current.pop()
@@ -287,10 +306,13 @@ export function ReviewEditor({
     const at = after ?? draft.questions.length - 1
     const ref = draft.questions[at]
     const next = ref && /^\d+$/.test(splitNumber(ref.number).main) ? String(Number(splitNumber(ref.number).main) + 1) : String(draft.questions.length + 1)
+    // added after a sub-question, it is the next sub-question of the same number
+    const group = after !== undefined && ref?.groupId && draft.groups.some((g) => g.id === ref.groupId) ? ref.groupId : null
+    const { main, part } = splitNumber(ref?.number ?? '')
     const q: DraftQuestion = {
-      number: after === undefined ? String(draft.questions.length + 1) : next,
+      number: after === undefined ? String(draft.questions.length + 1) : group ? `${main}(${nextPart(part)})` : next,
       section: ref?.section ?? null,
-      groupId: null,
+      groupId: group,
       type: 'single_choice',
       stem: '',
       translation: null,
@@ -355,6 +377,10 @@ export function ReviewEditor({
     ...(chosen && selected !== null
       ? [
           ...(splitParts(chosen, '') ? [{ id: 'split', label: `把第 ${chosenNumber} 題拆成小題`, icon: <IconSplit size={19} />, onClick: () => splitQuestion(selected) }] : []),
+          ...(selected > 0 && attachToPrevious(draft, selected, '')
+            ? [{ id: 'attach', label: `把第 ${chosenNumber} 題設為第 ${splitNumber(draft.questions[selected - 1]!.number).main} 題的小題`, icon: <IconIndent size={19} />, onClick: () => attachPart(selected) }]
+            : []),
+          ...(chosenGroup ? [{ id: 'detach', label: `把第 ${chosenNumber} 題移出小題`, icon: <IconOutdent size={19} />, onClick: () => detachQuestion(selected) }] : []),
           ...(canMerge ? [{ id: 'merge', label: `把第 ${splitNumber(chosenNumber).main} 題的小題合併`, icon: <IconMerge size={19} />, onClick: () => mergeGroup(chosenGroup!.id) }] : []),
           { id: 'copy', label: `複製第 ${chosenNumber} 題`, icon: <IconCopy size={19} />, onClick: () => duplicateQuestion(selected) },
           { id: 'insert', label: `在第 ${chosenNumber} 題後面新增`, icon: <IconPlus size={20} />, onClick: () => addQuestion(selected) },
@@ -377,7 +403,7 @@ export function ReviewEditor({
     ).map(([key, label]) => (
       <label key={key} className="block text-sm">
         <span className={`block font-medium text-muted ${compact ? 'mb-0.5 text-[11px]' : 'mb-1 text-xs'}`}>{label}</span>
-        <input value={meta[key] ?? ''} onChange={(e) => setMeta(key, e.target.value)} className={`${inputClass} ${compact ? 'py-1.5 text-[13px]' : ''}`} />
+        <input autoComplete="off" value={meta[key] ?? ''} onChange={(e) => setMeta(key, e.target.value)} className={`${inputClass} ${compact ? 'py-1.5 text-[13px]' : ''}`} />
       </label>
     ))
 
@@ -496,7 +522,7 @@ export function ReviewEditor({
 
           {/* Question numbers: sub-questions sit together under their number. Below lg they get a row of their own. */}
           <div className="order-last flex min-w-0 basis-full items-center gap-2 lg:order-none lg:flex-1 lg:basis-0">
-            <div className="flex shrink-0 rounded-lg bg-ink/[0.06] p-0.5 text-sm lg:hidden">
+            <div className={`flex shrink-0 rounded-lg bg-ink/[0.06] p-0.5 text-sm lg:hidden ${pages.length ? '' : 'hidden'}`}>
               {(
                 [
                   ['questions', '題目'],
@@ -638,42 +664,48 @@ export function ReviewEditor({
             />
           )}
 
-          <div
-            ref={viewer}
-            className={`lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:h-[calc(100dvh-var(--bar)-1.5rem)] lg:w-[calc((100%_-_var(--side))_*_var(--split))] lg:shrink-0 lg:self-start ${mobileView === 'page' ? '' : 'hidden'}`}
-          >
-            <PageViewer
-              pages={pages}
-              questions={draft.questions}
-              selected={selected}
-              onSelect={(i) => select(i, true)}
-              onBoxChange={moveBox}
-              className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]"
-            />
-          </div>
+          {/* An exam written from scratch has no original pages: the questions take the room. */}
+          {pages.length > 0 && (
+            <>
+              <div
+                ref={viewer}
+                className={`lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:h-[calc(100dvh-var(--bar)-1.5rem)] lg:w-[calc((100%_-_var(--side))_*_var(--split))] lg:shrink-0 lg:self-start ${mobileView === 'page' ? '' : 'hidden'}`}
+              >
+                <PageViewer
+                  pages={pages}
+                  questions={draft.questions}
+                  selected={selected}
+                  onSelect={(i) => select(i, true)}
+                  onBoxChange={moveBox}
+                  className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]"
+                />
+              </div>
 
-          <div
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="調整原卷寬度"
-            aria-valuenow={Math.round(layout.split * 100)}
-            aria-valuemin={30}
-            aria-valuemax={72}
-            tabIndex={0}
-            title="拖曳調整原卷寬度，點兩下還原"
-            onPointerDown={startResize}
-            onDoubleClick={() => setLayout({ split: DEFAULT_LAYOUT.split })}
-            onKeyDown={(e) => {
-              if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') setLayout({ split: clampSplit(layout.split + (e.key === 'ArrowLeft' ? -0.02 : 0.02)) })
-            }}
-            className="group sticky top-[calc(var(--bar)+1rem)] hidden h-[calc(100dvh-var(--bar)-1.5rem)] w-5 shrink-0 cursor-col-resize touch-none items-center justify-center self-start outline-none lg:flex"
-          >
-            <span className="h-14 w-1 rounded-full bg-ink/10 transition-colors group-hover:bg-accent/60 group-focus-visible:bg-accent group-active:bg-accent" />
-          </div>
+              <div
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="調整原卷寬度"
+                aria-valuenow={Math.round(layout.split * 100)}
+                aria-valuemin={30}
+                aria-valuemax={72}
+                tabIndex={0}
+                title="拖曳調整原卷寬度，點兩下還原"
+                onPointerDown={startResize}
+                onDoubleClick={() => setLayout({ split: DEFAULT_LAYOUT.split })}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') setLayout({ split: clampSplit(layout.split + (e.key === 'ArrowLeft' ? -0.02 : 0.02)) })
+                }}
+                className="group sticky top-[calc(var(--bar)+1rem)] hidden h-[calc(100dvh-var(--bar)-1.5rem)] w-5 shrink-0 cursor-col-resize touch-none items-center justify-center self-start outline-none lg:flex"
+              >
+                <span className="h-14 w-1 rounded-full bg-ink/10 transition-colors group-hover:bg-accent/60 group-focus-visible:bg-accent group-active:bg-accent" />
+              </div>
+            </>
+          )}
 
-          <div className={`min-w-0 flex-1 space-y-4 pb-24 lg:block ${mobileView === 'questions' ? '' : 'hidden'}`}>
+          <div className={`min-w-0 flex-1 space-y-4 pb-24 lg:block ${pages.length ? '' : 'mx-auto max-w-3xl'} ${mobileView === 'questions' ? '' : 'hidden'}`}>
             {notice}
-            <details className={`group rounded-2xl bg-surface shadow-sheet ${layout.outline ? 'lg:hidden' : ''}`}>
+            {/* a new exam written from scratch starts with its details open: the title comes first */}
+            <details open={(!pages.length && !initial.meta.title) || undefined} className={`group rounded-2xl bg-surface shadow-sheet ${layout.outline ? 'lg:hidden' : ''}`}>
               <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
                 <span className="font-medium">考卷資訊</span>
                 <span className="min-w-0 flex-1 truncate text-muted">{[meta.subject, meta.institution, meta.term].filter(Boolean).join(' · ')}</span>
@@ -781,8 +813,11 @@ export function ReviewEditor({
               />
             </DndContext>
 
+            {!draft.questions.length && (
+              <p className="px-1 pt-2 text-sm text-muted">還沒有題目。新增一題後選題型、寫題目和答案，寫好的題目可以拖曳排序。</p>
+            )}
             <Button onClick={() => addQuestion()} className="w-full border border-dashed border-ink/15 bg-transparent py-3 shadow-none" icon={<IconPlus size={16} />}>
-              新增題目
+              {draft.questions.length ? '新增題目' : '新增第一題'}
             </Button>
           </div>
         </div>

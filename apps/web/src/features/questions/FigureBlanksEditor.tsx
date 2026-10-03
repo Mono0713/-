@@ -68,6 +68,7 @@ export function FigureBlanksEditor({
             </select>
             {b.ink === 'dark' ? (
               <input
+                autoComplete="off"
                 value={(b.printedText ?? '').replace(/\n/g, '\\n')}
                 onChange={(e) => setBlank(i, { printedText: e.target.value.replace(/\\n/g, '\n') || null })}
                 placeholder={`格內印刷字，留空則只印「${defaultPrintedText(b.label)}」`}

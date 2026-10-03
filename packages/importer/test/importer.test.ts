@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SqliteBank } from '@exam/bank'
 import { LocalFileStore } from '@exam/files'
 import { registerProvider } from '@exam/extraction'
-import { AUTO, Importer, type ReadingPlan } from '../src/index.ts'
+import { AUTO, BLANK, Importer, INTERRUPTED, type ReadingPlan } from '../src/index.ts'
 import { page, question } from '../../core/test/fixtures.ts'
 
 let dataDir: string
@@ -181,5 +181,57 @@ describe('Importer', () => {
     await importer.settled(imp.id)
     expect(await bank.getImport(imp.id)).toMatchObject({ status: 'failed' })
     expect((await bank.getImport(imp.id))?.error).toBeTruthy()
+  })
+})
+
+describe('reading more pages', () => {
+  it('keeps the edits and moved boxes of pages already read', async () => {
+    // the free quota runs out after the first page; it is back when the second page is read again
+    let calls = 0
+    registerProvider('quota', () => ({
+      id: 'quota',
+      model: 'quota-1',
+      complete: async () => {
+        if (calls++ === 1) throw Object.assign(new Error('quota'), { status: 401 })
+        return { text: JSON.stringify(page([question({ number: String(calls) })])), model: 'quota-1', usage: { inputTokens: 1, outputTokens: 1 } }
+      },
+    }))
+    const importer = new Importer({ bank, files: new LocalFileStore(dataDir), concurrency: 1 })
+    const imp = await importer.create({ ownerId: 'local', files: [{ name: 'p1.png', data: await png() }, { name: 'p2.png', data: await png() }], provider: 'quota' })
+    await importer.settled(imp.id)
+    const draft = (await bank.getDraft(imp.id))!
+    expect(draft.questions.map((q) => q.number)).toEqual(['1'])
+    const moved = { pageNumber: 1, bbox: { x: 0.2, y: 0.3, width: 0.5, height: 0.2 }, manual: true }
+    await importer.saveDraft(imp.id, { ...draft, questions: [{ ...draft.questions[0]!, stem: 'edited', locations: [moved] }] })
+
+    await importer.rerun(imp.id, { pages: [2] })
+    await importer.settled(imp.id)
+    const after = (await bank.getDraft(imp.id))!
+    expect(after.questions.map((q) => [q.number, q.stem])).toEqual([['1', 'edited'], ['3', question().stem]])
+    expect(after.questions[0]!.locations).toEqual([moved])
+  })
+})
+
+describe('exams written from scratch', () => {
+  it('opens an empty draft for review, saves it to the bank and deletes cleanly', async () => {
+    const imp = await importer.createBlank('local')
+    expect(imp).toMatchObject({ status: 'review', pageCount: 0, provider: BLANK })
+    expect((await bank.getDraft(imp.id))?.questions).toEqual([])
+    const exam = await importer.publish(imp.id, { ...(await bank.getDraft(imp.id))!, meta: { title: '自己出的題', subject: null, institution: null, term: null, language: null }, questions: [{ ...question(), locations: [] } as never] })
+    expect(exam.title).toBe('自己出的題')
+    expect(await importer.originals(imp.id)).toEqual([])
+    await importer.remove(imp.id)
+    expect(await bank.getImport(imp.id)).toBeNull()
+  })
+})
+
+describe('a server restart', () => {
+  it('marks readings that were cut off as failed, and leaves the rest alone', async () => {
+    const cut = await bank.createImport({ ownerId: 'local', fileName: 'a.pdf', pageCount: 1, provider: 'fake', model: null })
+    await bank.updateImport(cut.id, { status: 'processing', progress: { done: 1, total: 1 } })
+    const blank = await importer.createBlank('local')
+    expect(await importer.recoverInterrupted()).toBe(1)
+    expect(await bank.getImport(cut.id)).toMatchObject({ status: 'failed', error: INTERRUPTED })
+    expect((await bank.getImport(blank.id))?.status).toBe('review')
   })
 })

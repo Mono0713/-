@@ -94,8 +94,10 @@ export function printedTextSvg(text: string, width: number, height: number, inse
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><g font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="${size.toFixed(1)}" fill="#1a1a1a">${texts.join('')}</g></svg>`
 }
 
+const FIGURE_CONCURRENCY = 4
+
 /**
- * Crops every figure of a draft exam and records the saved image on the figure.
+ * Crops each figure of a draft exam that has no image yet and records the saved image on the figure.
  * `save` stores one PNG under a stable name (e.g. "q6-1") and returns the path to record.
  */
 export async function cropExamFigures(
@@ -106,18 +108,24 @@ export async function cropExamFigures(
   const named: [string, DraftFigure][] = [
     ...exam.groups.flatMap((g) => g.figures.map((f, k): [string, DraftFigure] => [`group-${g.id.replace(/\W+/g, '-')}-${k + 1}`, f])),
     ...exam.questions.flatMap((q, n) => q.figures.map((f, k): [string, DraftFigure] => [`q${n + 1}-${k + 1}`, f])),
-  ]
+  ].filter(([, f]) => !f.image)
   const failures: { name: string; error: string }[] = []
-  for (const [name, figure] of named) {
-    const page = pages.find((p) => p.pageNumber === figure.pageNumber)
-    if (!page) continue
-    try {
-      const clean = await cleanFigure(page.data, figure)
-      figure.image = { file: await save(name, clean.png), width: clean.width, height: clean.height, blanks: clean.blanks }
-    } catch (err) {
-      failures.push({ name, error: err instanceof Error ? err.message : String(err) })
+  // A few at a time: saving each one is a round trip or three to the file store, which adds up when it is remote.
+  let next = 0
+  const worker = async () => {
+    while (next < named.length) {
+      const [name, figure] = named[next++]!
+      const page = pages.find((p) => p.pageNumber === figure.pageNumber)
+      if (!page) continue
+      try {
+        const clean = await cleanFigure(page.data, figure)
+        figure.image = { file: await save(name, clean.png), width: clean.width, height: clean.height, blanks: clean.blanks }
+      } catch (err) {
+        failures.push({ name, error: err instanceof Error ? err.message : String(err) })
+      }
     }
   }
+  await Promise.all(Array.from({ length: Math.min(FIGURE_CONCURRENCY, named.length) }, worker))
   return failures
 }
 

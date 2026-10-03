@@ -50,6 +50,8 @@ All fonts are served by the app itself (SIL Open Font License).
   teacher" (AI grading feedback). Never for buttons, labels or running UI text.
 - Graph paper only on the page background. Cards stay plain white (navy in dark mode).
   Too much grid or handwriting makes it look like children's material.
+- Every text field the app draws sets `autoComplete="off"` (sign-in and API keys aside), so the
+  browser does not offer to fill or save it: Chrome took the question number for a licence plate.
 
 ## Motion
 

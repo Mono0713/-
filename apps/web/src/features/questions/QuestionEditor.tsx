@@ -49,6 +49,7 @@ export function QuestionEditor({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
         <input
+          autoComplete="off"
           value={q.number}
           onChange={(e) => set('number', e.target.value)}
           className={`${chip} num w-12 px-1.5 text-center text-base font-medium sm:w-14`}
@@ -67,6 +68,7 @@ export function QuestionEditor({
         </label>
         <label className={`${chip} flex cursor-text items-center gap-1 pl-1 pr-2.5 focus-within:bg-surface focus-within:ring-2 focus-within:ring-accent/40`} title="配分">
           <input
+            autoComplete="off"
             type="number"
             min={0}
             step="any"
@@ -213,6 +215,7 @@ function OptionsEditor({ q, onChange }: { q: DraftQuestion; onChange: (q: DraftQ
             placeholder="選項內容"
             prefix={
               <input
+                autoComplete="off"
                 value={o.label}
                 onChange={(e) => setOptions(q.options.map((p, j) => (j === i ? { ...p, label: e.target.value } : p)))}
                 className="num h-7 w-9 rounded-md bg-ink/[0.045] text-center text-[13px] font-semibold text-muted outline-none focus:bg-accent-soft focus:text-accent"

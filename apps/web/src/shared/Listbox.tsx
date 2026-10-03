@@ -171,6 +171,7 @@ export function Listbox({ value, groups, onChange, className = '', label }: { va
               <label className="flex shrink-0 items-center gap-2 border-b border-line/70 px-3">
                 <IconSearch size={15} className="shrink-0 text-muted" />
                 <input
+                  autoComplete="off"
                   ref={search}
                   autoFocus
                   value={query}

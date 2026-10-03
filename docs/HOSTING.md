@@ -18,7 +18,7 @@
 2. **資料庫**：Project Settings → Database → Connection string，選 URI，把 `[YOUR-PASSWORD]` 換成建立專案時設的密碼，填進 `DATABASE_URL`。
    - 長時間跑的伺服器用「Session pooler」或直接連線的網址；Vercel 這類無伺服器平台用「Transaction pooler」（port 6543）。程式已關閉 prepared statements，兩種都能用。
 3. **建立資料表**：`pnpm db:migrate`。會套用 `supabase/migrations/` 裡還沒套用過的檔案，重跑也安全。也可以用 Supabase CLI 的 `supabase db push`。
-4. **`SETTINGS_SECRET`**：隨便一串 32 個字以上的亂碼（例如 `openssl rand -base64 32`）。用戶存的 API 金鑰會用它加密後才寫進資料庫。**之後不能改**，改了已存的金鑰就讀不出來，要請大家重新貼。
+4. **`SETTINGS_SECRET`**：隨便一串 32 個字以上的亂碼（例如 `node -p "require('crypto').randomBytes(32).toString('hex')"`）。本機和 Render 共用同一個資料庫時，兩邊要填同一串。用戶存的 API 金鑰會用它加密後才寫進資料庫。**之後不能改**，改了已存的金鑰就讀不出來，要請大家重新貼。
 
 資料表都開了 Row Level Security 且沒有任何規則，所以瀏覽器拿到的公開 anon key 無法直接讀寫資料；只有網站伺服器（用 `DATABASE_URL` 連線）能存取，並由伺服器檢查每筆資料的擁有者。
 
@@ -63,6 +63,10 @@
 3. Render 會列出要填的變數，照 `.env` 的值貼上。`SITE_URL` 先填 Render 給的網址（`https://sheetloop-xxxx.onrender.com`），之後換自己的網域再改。
 4. 方案用 Starter（每月約 7 美元）。免費方案閒置 15 分鐘會休眠、記憶體只有 512 MB，處理 PDF 容易不夠，而且不支援部署前自動建資料表。
 5. 部署好後，回 Supabase → Authentication → URL Configuration，把 `https://<Render 網址>/auth/callback` 加進 Redirect URLs，Site URL 也改成這個網址。
+
+### 發布 Google 登入
+
+Google Cloud 的登入畫面在「測試」狀態時，只有「測試使用者」名單裡的人能登入（最多 100 人）。網站上線後：Google Auth Platform → 品牌，首頁填網站網址、隱私權政策填 `https://<網址>/privacy`（網站內建，不用登入就能看；`SUPPORT_EMAIL` 會顯示成刪除帳號的聯絡信箱），再到「目標對象」按發布應用程式。只要求名稱和信箱，不需要 Google 審核。
 
 ### 上線後檢查
 

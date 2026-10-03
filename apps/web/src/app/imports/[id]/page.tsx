@@ -1,7 +1,8 @@
-import { ORIGINAL_DAYS } from '@exam/importer'
+import { BLANK, ORIGINAL_DAYS } from '@exam/importer'
 import { notFound } from 'next/navigation'
 import { AutoRefresh } from '@/features/imports/AutoRefresh'
 import { DeleteImportButton } from '@/features/imports/DeleteImportButton'
+import { ImportError } from '@/features/imports/ImportError'
 import { StatusBadge } from '@/features/imports/ImportList'
 import { ManualPanel } from '@/features/imports/ManualPanel'
 import { OriginalFiles } from '@/features/imports/OriginalFiles'
@@ -47,7 +48,8 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         <Card className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center">
           {reading > 0 && <Scan image={importer.pageImage(imp, reading)} pageNumber={reading} />}
           <div className="min-w-0 flex-1 space-y-3">
-            <p className="font-medium">模型正在讀取頁面…</p>
+            {/* after the last page the draft is put together and its figures cut out and stored */}
+            <p className="font-medium">{total && done >= total ? '頁面都讀完了，正在整理題目、存圖片…' : '模型正在讀取頁面…'}</p>
             <PencilProgress value={total ? done / total : 0} label={`已完成 ${done} / ${total} 頁`} />
             <p className="text-sm text-muted">遇到免費額度限制時會自動等待後重試，可以先離開這個頁面。</p>
           </div>
@@ -71,9 +73,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
       <div>
         {header}
         <Card className="space-y-4 p-6">
-          <p className="font-medium text-bad">辨識失敗</p>
-          {imp.error && <pre className="whitespace-pre-wrap rounded-lg bg-paper p-3 text-xs text-muted">{imp.error}</pre>}
-          <p className="text-sm text-muted">可以換一個模型或改用手動模式再試一次。</p>
+          {imp.error ? <ImportError error={imp.error} /> : <p className="font-medium text-bad">辨識失敗</p>}
           <RerunForm importId={id} providers={providers} current={current} />
         </Card>
       </div>
@@ -82,6 +82,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
 
   const results = await importer.pageResults(id)
   const failed = results.filter((r) => !r.page).map((r) => r.pageNumber)
+  const failedWhy = results.find((r) => !r.page && r.error)?.error
   const pages = Array.from({ length: imp.pageCount }, (_, i) => ({ pageNumber: i + 1, image: importer.pageImage(imp, i + 1) }))
   const [savedExam, originals] = await Promise.all([bank.examForImport(id), importer.originals(id)])
   const original = {
@@ -100,8 +101,10 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         strength={(await services().settings.get(imp.ownerId)).strength}
         heading={{
           title: imp.title ?? imp.fileName,
-          meta: `${imp.pageCount} 頁 · ${readBy(imp, results)}`,
-          menu: [<OriginalFiles key="original" importId={id} state={original} />, <DeleteImportButton key="menu" importId={id} menu />],
+          meta: imp.provider === BLANK ? '從零建立' : `${imp.pageCount} 頁 · ${readBy(imp, results)}`,
+          menu: imp.provider === BLANK
+            ? [<DeleteImportButton key="menu" importId={id} menu />]
+            : [<OriginalFiles key="original" importId={id} state={original} />, <DeleteImportButton key="menu" importId={id} menu />],
         }}
         notice={
           failed.length > 0 && (
@@ -110,6 +113,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
                 <span className="font-medium text-bad">第 {failed.join('、')} 頁沒有讀到。</span>
                 <span className="text-muted">重讀只處理這幾頁，但完成後草稿會重新產生，目前在這頁做的修改會被覆蓋。</span>
               </p>
+              {failedWhy && <ImportError error={failedWhy} />}
               <RerunForm importId={id} providers={providers} current={current} pages={failed} label="重讀這幾頁" />
             </Card>
           )

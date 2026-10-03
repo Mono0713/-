@@ -65,7 +65,7 @@ export function ClassHome() {
             if (name.trim()) run('create', () => createClass(name))
           }}
         >
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：三年二班 生物" aria-label="班級名稱" maxLength={80} className={inputClass} />
+          <input autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：三年二班 生物" aria-label="班級名稱" maxLength={80} className={inputClass} />
           <Button type="submit" loading={busy === 'create'} disabled={pending || !name.trim()} className="shrink-0 whitespace-nowrap">
             建立
           </Button>

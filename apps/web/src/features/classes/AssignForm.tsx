@@ -71,7 +71,7 @@ export function AssignForm({ classId, exams, preselected }: { classId: string; e
         </div>
         <label className="block">
           <span className={label}>作業名稱</span>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={exam?.title ?? ''} maxLength={80} className={inputClass} />
+          <input autoComplete="off" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={exam?.title ?? ''} maxLength={80} className={inputClass} />
         </label>
       </div>
 
@@ -100,21 +100,21 @@ export function AssignForm({ classId, exams, preselected }: { classId: string; e
       <div className="grid gap-4 text-sm sm:grid-cols-2">
         <label className="block">
           <span className={label}>開始時間</span>
-          <input type="datetime-local" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} className={`${inputBase} w-full`} />
+          <input autoComplete="off" type="datetime-local" value={opensAt} onChange={(e) => setOpensAt(e.target.value)} className={`${inputBase} w-full`} />
         </label>
         <label className="block">
           <span className={label}>截止時間</span>
-          <input type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} className={`${inputBase} w-full`} />
+          <input autoComplete="off" type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} className={`${inputBase} w-full`} />
         </label>
         {mode === 'exam' && (
           <label className="block">
             <span className={label}>限時（分鐘）</span>
-            <input type="number" min={1} value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} placeholder="不限時" className={`${inputBase} w-full`} />
+            <input autoComplete="off" type="number" min={1} value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} placeholder="不限時" className={`${inputBase} w-full`} />
           </label>
         )}
         <label className="block">
           <span className={label}>可作答次數</span>
-          <input type="number" min={1} value={maxAttempts} onChange={(e) => setMaxAttempts(e.target.value)} placeholder="不限" className={`${inputBase} w-full`} />
+          <input autoComplete="off" type="number" min={1} value={maxAttempts} onChange={(e) => setMaxAttempts(e.target.value)} placeholder="不限" className={`${inputBase} w-full`} />
         </label>
       </div>
 

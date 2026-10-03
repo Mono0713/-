@@ -26,6 +26,7 @@ export function ClassMenu({ classId, name, role }: { classId: string; name: stri
           <label className="block space-y-1">
             <span className="text-xs text-muted">班級名稱</span>
             <input
+              autoComplete="off"
               value={title}
               maxLength={80}
               onChange={(e) => setTitle(e.target.value)}

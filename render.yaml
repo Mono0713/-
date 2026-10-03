@@ -15,6 +15,7 @@ services:
         value: "22"
       - key: DATABASE_URL
         sync: false
+      # Encrypts saved API keys. Use the same value as the local .env (they share one database). Never change it afterwards.
       - key: SETTINGS_SECRET
         sync: false
       - key: NEXT_PUBLIC_SUPABASE_URL
@@ -30,6 +31,8 @@ services:
       - key: R2_ACCESS_KEY_ID
         sync: false
       - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: SUPPORT_EMAIL
         sync: false
       - key: STORAGE_QUOTA_MB
         value: "1024"

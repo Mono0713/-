@@ -1,7 +1,7 @@
 import { extname } from 'node:path'
 import type { Bank, ImportRecord } from '@exam/bank'
 import type { DraftExam, DraftFigure, ExtractedPage, IngestedDocument, PageImage } from '@exam/core'
-import { createProvider, extractDocument, ManualProvider, mergePages, type PageResult, type ProviderConfig, type TextFiles } from '@exam/extraction'
+import { createProvider, extractDocument, keepEdits, ManualProvider, mergePages, type PageResult, type ProviderConfig, type TextFiles } from '@exam/extraction'
 import type { FileStore } from '@exam/files'
 import { cleanFigure, cropExamFigures } from '@exam/figures'
 import { ingestBuffer, storedPage } from '@exam/ingest'
@@ -62,8 +62,14 @@ export interface ManualState {
 
 const WAITING = 'waiting for a reply'
 
+/** `provider` of an exam made from scratch rather than read from a file. */
+export const BLANK = 'blank'
+
 /** Days the uploaded files stay after an import is first saved to the bank, unless the owner keeps them. */
 export const ORIGINAL_DAYS = 30
+
+/** The error of a reading cut off when the server stopped (a restart or a deploy). */
+export const INTERRUPTED = 'Reading was interrupted because the server restarted'
 
 /**
  * Runs an uploaded exam through ingest, extraction and figure cropping, and keeps
@@ -72,6 +78,8 @@ export const ORIGINAL_DAYS = 30
  */
 export class Importer {
   private readonly running = new Map<string, Promise<void>>()
+  /** Runs start only after interrupted imports were marked, so a new run is never mistaken for one. */
+  private recovered: Promise<unknown> = Promise.resolve()
 
   constructor(private readonly opts: ImporterOptions) {}
 
@@ -81,6 +89,24 @@ export class Importer {
 
   get files(): FileStore {
     return this.opts.files
+  }
+
+  /**
+   * An exam written from scratch: no file and no pages, just an empty draft that opens
+   * straight in the editor, where questions are added by hand.
+   */
+  async createBlank(ownerId: string): Promise<ImportRecord> {
+    const record = await this.bank.createImport({ ownerId, fileName: '新考卷', pageCount: 0, provider: BLANK, model: null })
+    const draft: DraftExam = {
+      fileName: '新考卷',
+      meta: { title: null, subject: null, institution: null, term: null, language: null },
+      groups: [],
+      questions: [],
+      pages: [],
+    }
+    await this.bank.saveDraft(record.id, draft)
+    await this.bank.updateImport(record.id, { status: 'review' })
+    return (await this.bank.getImport(record.id)) ?? record
   }
 
   /** Stores the upload, renders its pages and starts extraction in the background. */
@@ -99,14 +125,28 @@ export class Importer {
 
   /** Runs extraction for the given pages (all when omitted) unless a run is already going. */
   async start(id: string, pages?: number[]): Promise<void> {
+    await this.recovered
     if (this.running.has(id)) return
     const imp = await this.require(id)
     // Mark it right away so a page rendered before rendering finishes already shows progress.
     await this.bank.updateImport(id, { status: 'processing', error: null, progress: { done: 0, total: pages?.length || imp.pageCount } })
     const run = this.run(id, pages)
-      .catch((err) => this.bank.updateImport(id, { status: 'failed', error: err instanceof Error ? err.message : String(err) }))
+      .catch((err) => {
+        console.error(`Reading import ${id} failed:`, err)
+        return this.bank.updateImport(id, { status: 'failed', error: err instanceof Error ? err.message : String(err) })
+      })
       .finally(() => this.running.delete(id))
     this.running.set(id, run)
+  }
+
+  /**
+   * Readings run inside this server, so after a restart any import still "processing" will never
+   * finish: it is marked failed, to be read again. Call once when the server starts, before any run.
+   */
+  recoverInterrupted(): Promise<number> {
+    const done = this.bank.failInterrupted(INTERRUPTED)
+    this.recovered = done.catch(() => {})
+    return done
   }
 
   /** Resolves when the current run of an import, if any, is over. */
@@ -274,9 +314,13 @@ export class Importer {
       await this.bank.updateImport(id, { status: 'failed', error: results.find((r) => r.error)?.error ?? 'No page could be read' })
       return
     }
-    const exam = mergePages(imp.fileName, results)
+    // Reading more pages must not undo what the person already changed on the others.
+    const previous = await this.bank.getDraft(id)
+    const exam = previous ? keepEdits(previous, mergePages(imp.fileName, results), new Set(selected)) : mergePages(imp.fileName, results)
+    // Figures already in the draft keep their images; new crops get names that cannot overwrite them.
+    const stamp = previous ? `-${Date.now().toString(36)}` : ''
     await cropExamFigures(exam, doc.pages, async (name, png) => {
-      const key = `${this.base(imp)}/figures/${name}.png`
+      const key = `${this.base(imp)}/figures/${name}${stamp}.png`
       await this.files.write(key, png)
       return key
     })

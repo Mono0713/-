@@ -1,5 +1,5 @@
 export { extractDocument, extractPage, retryDelayMs, type ExtractOptions, type PageOptions, type PageResult } from './extract.ts'
-export { mergePages } from './merge.ts'
+export { keepEdits, mergePages } from './merge.ts'
 export { DEFAULT_REVIEW_LANGUAGE, SYSTEM_PROMPT, systemPrompt, userPrompt } from './prompt.ts'
 export { ProviderStopError, type PageRequest, type ProviderReply, type VisionProvider } from './provider.ts'
 export { createProvider, providerIds, registerProvider, type ProviderConfig } from './registry.ts'

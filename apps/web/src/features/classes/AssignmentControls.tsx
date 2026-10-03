@@ -43,6 +43,7 @@ export function AssignmentControls({ classId, assignmentId, closesAt, answers, p
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-muted">截止時間</span>
           <input
+            autoComplete="off"
             type="datetime-local"
             value={close}
             onChange={(e) => setClose(e.target.value)}
