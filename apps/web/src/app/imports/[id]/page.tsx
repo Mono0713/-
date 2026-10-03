@@ -97,6 +97,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         initial={draft}
         pages={pages}
         savedExam={savedExam}
+        strength={(await services().settings.get(imp.ownerId)).strength}
         heading={{
           title: imp.title ?? imp.fileName,
           meta: `${imp.pageCount} 頁 · ${readBy(imp, results)}`,

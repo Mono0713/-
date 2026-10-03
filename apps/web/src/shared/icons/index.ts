@@ -17,6 +17,7 @@ export {
   ChevronDown as IconChevronDown,
   ChevronLeft as IconChevronLeft,
   ChevronRight as IconChevronRight,
+  CircleGauge as IconStrength,
   ClipboardCheck as IconQuiz,
   Ellipsis as IconMore,
   Sigma as IconFormula,

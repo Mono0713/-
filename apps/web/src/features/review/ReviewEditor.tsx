@@ -3,6 +3,7 @@
 import { DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { DraftExam, DraftQuestion } from '@exam/core'
+import type { Strength } from '@exam/models'
 import Link from 'next/link'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
@@ -27,6 +28,7 @@ import {
   IconPlus,
   IconSave,
   IconSplit,
+  IconStrength,
   IconTrash,
   IconUndo,
   IconX,
@@ -38,7 +40,9 @@ import { MathTextInput } from '@/shared/math/MathTextInput'
 import { Badge, Button, inputClass } from '@/shared/ui'
 import { publishDraft, saveDraft } from './actions'
 import { PageViewer } from './PageViewer'
+import { STRENGTH_LABELS } from '@/features/settings/strengths'
 import { mergeParts, splitNumber, splitParts } from './parts'
+import { StrengthPanel } from './StrengthPanel'
 import { ActiveOverlay, alongList, EdgeScroll, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 
 type SaveState = 'saved' | 'dirty' | 'saving'
@@ -70,6 +74,7 @@ export function ReviewEditor({
   savedExam,
   notice,
   heading,
+  strength,
 }: {
   importId: string
   initial: DraftExam
@@ -79,6 +84,8 @@ export function ReviewEditor({
   notice?: React.ReactNode
   /** Title in the toolbar; a short details line and page actions (menu rows) in its menu. */
   heading: { title: string; meta?: string; menu?: React.ReactNode }
+  /** The AI strength from settings; given, the floating button can change it. */
+  strength?: Strength
 }) {
   const [draft, setDraft] = useState(initial)
   const [selected, setSelected] = useState<number | null>(null)
@@ -340,6 +347,9 @@ export function ReviewEditor({
   const chosenNumber = chosen ? chosen.number : ''
   const chosenGroup = chosen?.groupId ? draft.groups.find((g) => g.id === chosen.groupId) : undefined
   const canMerge = !!chosenGroup && !!mergeParts(chosenGroup, draft.questions.filter((q) => q.groupId === chosenGroup.id))
+  const [strengthOpen, setStrengthOpen] = useState(false)
+  // what the panel last saved, so the floating button's label follows it without a reload
+  const [shownStrength, setShownStrength] = useState(strength ?? 'balanced')
   const fabActions: FabAction[] = [
     ...(flagged > 0 ? [{ id: 'next', label: '下一題待確認', icon: <IconAlert size={19} />, badge: flagged, onClick: nextFlagged }] : []),
     ...(chosen && selected !== null
@@ -350,6 +360,9 @@ export function ReviewEditor({
           { id: 'insert', label: `在第 ${chosenNumber} 題後面新增`, icon: <IconPlus size={20} />, onClick: () => addQuestion(selected) },
         ]
       : [{ id: 'add', label: '新增題目', icon: <IconPlus size={20} />, onClick: () => addQuestion() }]),
+    ...(strength
+      ? [{ id: 'strength', label: `AI 強度：${STRENGTH_LABELS.find(([v]) => v === shownStrength)![1]}`, icon: <IconStrength size={19} />, onClick: () => setStrengthOpen(true) }]
+      : []),
     { id: 'undo', label: '復原上一步', icon: <IconUndo size={19} />, onClick: undoDelete, disabled: !trash.current.length },
   ]
 
@@ -780,6 +793,7 @@ export function ReviewEditor({
       </Toast>
 
       <Fab actions={fabActions} badge={flagged || undefined} />
+      {strength && <StrengthPanel open={strengthOpen} initial={shownStrength} onChange={setShownStrength} onClose={() => setStrengthOpen(false)} />}
     </div>
   )
 }
