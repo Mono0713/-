@@ -36,6 +36,18 @@ describe.each(stores)('%s', (_name, open) => {
     expect(await store.get('nope')).toBeNull()
   })
 
+  it('lets the owner turn copying off, and keeps that choice when only the answers change', async () => {
+    const store = open()
+    const [exam] = await exams()
+    expect(await store.open(exam, 'owner', 'after_submit')).toMatchObject({ allowCopy: true })
+    const { token } = await store.open(exam, 'owner', 'after_submit', false)
+    expect(await store.get(token)).toMatchObject({ allowCopy: false })
+    expect(await store.open(exam, 'owner', 'never')).toMatchObject({ token, answers: 'never', allowCopy: false })
+    expect(await store.get(token)).toMatchObject({ allowCopy: false })
+    await store.open(exam, 'owner', 'never', true)
+    expect(await store.get(token)).toMatchObject({ allowCopy: true })
+  })
+
   it('remembers the copies each person made from a link', async () => {
     const store = open()
     const [exam, copy] = await exams()

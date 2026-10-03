@@ -20,11 +20,11 @@ async function myExam(examId: string) {
   return exam
 }
 
-/** Opens the exam's link (or keeps the open one) with when its answers show. */
-export async function shareExam(examId: string, answers: AnswerRelease): Promise<{ token: string }> {
+/** Opens the exam's link (or keeps the open one) with when its answers show and whether it may be copied. */
+export async function shareExam(examId: string, answers: AnswerRelease, allowCopy: boolean): Promise<{ token: string }> {
   const exam = await myExam(examId)
   if (!RELEASES.includes(answers)) throw new Error('不明的答案設定')
-  const share = await services().shares.open(exam.id, exam.ownerId, answers)
+  const share = await services().shares.open(exam.id, exam.ownerId, answers, allowCopy)
   revalidatePath(`/bank/exams/${exam.id}`)
   return { token: share.token }
 }
@@ -37,14 +37,14 @@ export async function closeShare(examId: string): Promise<void> {
 }
 
 /** Starts practice or an exam on a shared exam; the attempt is the visitor's own. */
-export async function startShared(token: string, mode: QuizMode, shuffle: boolean): Promise<{ error: string } | undefined> {
+export async function startShared(token: string, mode: QuizMode, shuffle: { questions: boolean; options: boolean }): Promise<{ error: string } | undefined> {
   const opened = await openShare(token)
   if (!opened) return { error: '這個連結已經關閉了。' }
   if (!opened.questions.length) return { error: '這份考卷還沒有題目。' }
   const attempt = await startQuiz({
     ownerId: await currentOwner(),
     questions: opened.questions,
-    settings: { mode, shuffleQuestions: shuffle, shuffleOptions: shuffle, timeLimitMinutes: null, keyHidden: opened.share.answers === 'never' },
+    settings: { mode, shuffleQuestions: shuffle.questions, shuffleOptions: shuffle.options, timeLimitMinutes: null, keyHidden: opened.share.answers === 'never' },
     share: token,
   })
   revalidatePath('/quiz')
@@ -59,6 +59,7 @@ export async function startShared(token: string, mode: QuizMode, shuffle: boolea
 export async function copyShared(token: string): Promise<{ error: string } | undefined> {
   const opened = await openShare(token)
   if (!opened) return { error: '這個連結已經關閉了。' }
+  if (!opened.share.allowCopy) return { error: '分享的人沒有開放加到題庫。' }
   const owner = await currentOwner()
   const { bank, files, shares } = services()
   const folder = `${keyPrefixOf(owner)}copies/${randomUUID()}`

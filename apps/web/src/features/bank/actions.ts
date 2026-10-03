@@ -2,7 +2,6 @@
 
 import type { DraftQuestion, ExamMeta } from '@exam/core'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { services } from '@/server/context'
 import { ownedExam, ownedQuestion } from '@/server/owned'
 
@@ -24,11 +23,12 @@ export async function updateBankQuestion(id: string, question: DraftQuestion) {
   revalidatePath(`/bank/exams/${q.examId}`)
 }
 
+/** Deletes for good; the 復原 note calls it once it has run out. */
 export async function deleteBankQuestion(id: string) {
   const q = await requireQuestion(id)
   await services().bank.deleteQuestion(id)
   revalidatePath('/bank')
-  redirect(`/bank/exams/${q.examId}`)
+  revalidatePath(`/bank/exams/${q.examId}`)
 }
 
 export async function updateExamMeta(id: string, meta: Partial<ExamMeta>) {
@@ -38,9 +38,9 @@ export async function updateExamMeta(id: string, meta: Partial<ExamMeta>) {
   revalidatePath(`/bank/exams/${id}`)
 }
 
+/** Deletes for good; the 復原 note calls it once it has run out. */
 export async function deleteExam(id: string) {
   await requireExam(id)
   await services().bank.deleteExam(id)
   revalidatePath('/bank')
-  redirect('/bank')
 }

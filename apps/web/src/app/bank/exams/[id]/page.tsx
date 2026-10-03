@@ -7,6 +7,7 @@ import { services } from '@/server/context'
 import { ownedExam } from '@/server/owned'
 import { Markdown } from '@/shared/Markdown'
 import { FigureView } from '@/shared/FigureView'
+import { Removable } from '@/shared/removal'
 import { ButtonLink, PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -27,7 +28,7 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
         actions={
           <>
             {exam.importId && <ButtonLink href={`/imports/${exam.importId}`}>看原始考卷</ButtonLink>}
-            <ShareMenu examId={exam.id} initial={share && { token: share.token, answers: share.answers }} />
+            <ShareMenu examId={exam.id} initial={share && { token: share.token, answers: share.answers, allowCopy: share.allowCopy }} />
             <ButtonLink href={`/quiz/new?exam=${exam.id}`} variant="primary">
               用這份考卷測驗
             </ButtonLink>
@@ -41,26 +42,28 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
           const showSection = q.section && q.section !== questions[i - 1]?.section
           const group = q.groupId && q.groupId !== questions[i - 1]?.groupId ? groups.get(q.groupId) : undefined
           return (
-            <div key={q.id}>
-              {showSection && <h3 className="mb-2 mt-6 text-sm font-semibold text-muted">{q.section}</h3>}
-              {group && (
-                <div className="mb-3 rounded-xl border border-line bg-paper p-4">
-                  <Markdown>{group.stem}</Markdown>
-                  {group.figures.map((f, k) => (
-                    <FigureView key={k} figure={f} />
-                  ))}
-                </div>
-              )}
-              {/* Questions of a group, like the sub-questions 11(a) and 11(b), sit under its shared text. */}
-              <section className={`rounded-2xl bg-surface shadow-sheet p-4 ${q.groupId && groups.has(q.groupId) ? 'ml-4 sm:ml-7' : ''}`}>
-                <QuestionView q={q} />
-                <div className="mt-3 flex justify-end border-t border-line pt-3">
-                  <Link href={`/bank/${q.id}`} className="text-sm text-accent hover:underline">
-                    編輯這題
-                  </Link>
-                </div>
-              </section>
-            </div>
+            <Removable key={q.id} id={q.id}>
+              <div>
+                {showSection && <h3 className="mb-2 mt-6 text-sm font-semibold text-muted">{q.section}</h3>}
+                {group && (
+                  <div className="mb-3 rounded-xl border border-line bg-paper p-4">
+                    <Markdown>{group.stem}</Markdown>
+                    {group.figures.map((f, k) => (
+                      <FigureView key={k} figure={f} />
+                    ))}
+                  </div>
+                )}
+                {/* Questions of a group, like the sub-questions 11(a) and 11(b), sit under its shared text. */}
+                <section className={`rounded-2xl bg-surface shadow-sheet p-4 ${q.groupId && groups.has(q.groupId) ? 'ml-4 sm:ml-7' : ''}`}>
+                  <QuestionView q={q} />
+                  <div className="mt-3 flex justify-end border-t border-line pt-3">
+                    <Link href={`/bank/${q.id}`} className="text-sm text-accent hover:underline">
+                      編輯這題
+                    </Link>
+                  </div>
+                </section>
+              </div>
+            </Removable>
           )
         })}
       </div>

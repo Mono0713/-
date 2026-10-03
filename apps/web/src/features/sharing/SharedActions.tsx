@@ -7,9 +7,10 @@ import { IconBank, IconLoader, IconQuiz } from '@/shared/icons'
 import { Button } from '@/shared/ui'
 import { copyShared, startShared } from './actions'
 
-/** What someone with the link can do: practise, take it as an exam, or copy it to their bank. */
-export function SharedActions({ token, copy }: { token: string; copy: string | null }) {
-  const [shuffle, setShuffle] = useState(true)
+/** What someone with the link can do: practise, take it as an exam, or copy it to their bank when allowed. */
+export function SharedActions({ token, copy, allowCopy }: { token: string; copy: string | null; allowCopy: boolean }) {
+  const [shuffleQuestions, setShuffleQuestions] = useState(true)
+  const [shuffleOptions, setShuffleOptions] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pending, start] = useTransition()
   const [busy, setBusy] = useState<'practice' | 'exam' | 'copy' | null>(null)
@@ -23,48 +24,59 @@ export function SharedActions({ token, copy }: { token: string; copy: string | n
       setBusy(null)
     })
   }
-  const quiz = (mode: QuizMode) => run(mode, () => startShared(token, mode, shuffle))
+  const quiz = (mode: QuizMode) => run(mode, () => startShared(token, mode, { questions: shuffleQuestions, options: shuffleOptions }))
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <Choice title="練習" detail="一題一題做，做完就能看對錯和解析。" onClick={() => quiz('practice')} loading={busy === 'practice'} disabled={pending} primary />
+        <Choice title="練習" detail="一題一題做，做完就能看對錯和解析。" onClick={() => quiz('practice')} loading={busy === 'practice'} disabled={pending} />
         <Choice title="考試" detail="全部做完再交卷，交卷後才看分數。" onClick={() => quiz('exam')} loading={busy === 'exam'} disabled={pending} />
       </div>
-      <label className="flex items-center gap-2 text-sm text-muted">
-        <input type="checkbox" className="m-check" checked={shuffle} onChange={(e) => setShuffle(e.target.checked)} />
-        打亂題目和選項順序
-      </label>
-      <div className="flex flex-wrap items-center gap-3 border-t border-line/70 pt-4">
-        {copy ? (
-          <Link href={`/bank/exams/${copy}`} className="inline-flex items-center gap-1.5 text-sm text-accent hover:underline">
-            <IconBank size={15} />
-            已經在你的題庫裡，打開
-          </Link>
-        ) : (
-          <Button icon={<IconBank size={15} />} loading={busy === 'copy'} disabled={pending} onClick={() => run('copy', () => copyShared(token))}>
-            加到我的題庫
-          </Button>
-        )}
-        <span className="text-xs text-muted">加進去的是你自己的副本，可以修改，不影響原本的考卷。</span>
+      <div className="flex flex-wrap gap-x-6 gap-y-2">
+        <label className="flex items-center gap-2 text-sm text-muted">
+          <input type="checkbox" className="m-check" checked={shuffleQuestions} onChange={(e) => setShuffleQuestions(e.target.checked)} />
+          打亂題目順序
+        </label>
+        <label className="flex items-center gap-2 text-sm text-muted">
+          <input type="checkbox" className="m-check" checked={shuffleOptions} onChange={(e) => setShuffleOptions(e.target.checked)} />
+          打亂選項順序
+        </label>
       </div>
+      {(copy || allowCopy) && (
+        <div className="flex flex-wrap items-center gap-3 border-t border-line/70 pt-4">
+          {copy ? (
+            <Link href={`/bank/exams/${copy}`} className="inline-flex items-center gap-1.5 text-sm text-accent hover:underline">
+              <IconBank size={15} />
+              已經在你的題庫裡，打開
+            </Link>
+          ) : (
+            <Button icon={<IconBank size={15} />} loading={busy === 'copy'} disabled={pending} onClick={() => run('copy', () => copyShared(token))}>
+              加到我的題庫
+            </Button>
+          )}
+          <span className="text-xs text-muted">加進去的是你自己的副本，可以修改，不影響原本的考卷。</span>
+        </div>
+      )}
       {error && <p className="m-shake text-sm text-bad">{error}</p>}
     </div>
   )
 }
 
-function Choice({ title, detail, onClick, loading, disabled, primary = false }: { title: string; detail: string; onClick: () => void; loading: boolean; disabled: boolean; primary?: boolean }) {
+/** Both ways in look alike; the one under the pointer (or keyboard focus, or the one starting) lights up in ink blue. */
+function Choice({ title, detail, onClick, loading, disabled }: { title: string; detail: string; onClick: () => void; loading: boolean; disabled: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`m-press flex items-start gap-3 rounded-2xl p-4 text-left disabled:cursor-not-allowed ${primary ? 'm-push bg-brand text-on-accent hover:brightness-110' : 'm-push-quiet bg-surface shadow-sheet hover:bg-accent-soft/50'}`}
+      data-on={loading || undefined}
+      className="m-press m-push-quiet flex items-start gap-3 rounded-2xl bg-surface p-4 text-left shadow-sheet outline-none transition-colors duration-150 enabled:hover:bg-accent enabled:hover:text-on-accent enabled:hover:[--m-depth:var(--color-accent-deep)] focus-visible:bg-accent focus-visible:text-on-accent disabled:cursor-not-allowed data-[on]:bg-accent data-[on]:text-on-accent"
     >
       {loading ? <IconLoader size={20} className="m-spin mt-0.5 shrink-0" aria-hidden /> : <IconQuiz size={20} className="mt-0.5 shrink-0" />}
       <span>
         <span className="block font-semibold">{title}</span>
-        <span className={`mt-0.5 block text-sm ${primary ? 'opacity-80' : 'text-muted'}`}>{detail}</span>
+        {/* the text colour of the card, a little lighter, so it reads on either background */}
+        <span className="mt-0.5 block text-sm opacity-75">{detail}</span>
       </span>
     </button>
   )

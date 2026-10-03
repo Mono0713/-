@@ -11,6 +11,8 @@ export interface Share {
   examId: string
   ownerId: string
   answers: AnswerRelease
+  /** Whether people with the link may add a copy to their own bank ("加到我的題庫"). */
+  allowCopy: boolean
   createdAt: string
   closedAt: string | null
 }
@@ -20,8 +22,11 @@ export interface Share {
  * the shared page can open a copy already made and a copy remembers where it came from.
  */
 export interface ShareStore {
-  /** The exam's open link, made now if there is none; `answers` is applied either way. */
-  open(examId: string, ownerId: string, answers: AnswerRelease): Promise<Share>
+  /**
+   * The exam's open link, made now if there is none; `answers` is applied either way, and
+   * `allowCopy` when given (a new link allows copies unless told otherwise).
+   */
+  open(examId: string, ownerId: string, answers: AnswerRelease, allowCopy?: boolean): Promise<Share>
   get(token: string): Promise<Share | null>
   /** The exam's open link, if any. */
   forExam(examId: string): Promise<Share | null>
@@ -50,19 +55,26 @@ export class SqliteShareStore implements ShareStore {
       token TEXT PRIMARY KEY, exam_id TEXT NOT NULL, owner_id TEXT NOT NULL, answers TEXT NOT NULL,
       created_at TEXT NOT NULL, closed_at TEXT)`)
     this.db.exec('CREATE INDEX IF NOT EXISTS exam_shares_exam ON exam_shares (exam_id)')
+    // added after the table: older databases get the column, copies allowed as before
+    if (!(this.db.prepare('PRAGMA table_info(exam_shares)').all() as Row[]).some((c) => c.name === 'allow_copy')) {
+      this.db.exec('ALTER TABLE exam_shares ADD COLUMN allow_copy INTEGER NOT NULL DEFAULT 1')
+    }
     this.db.exec(`CREATE TABLE IF NOT EXISTS share_copies (
       token TEXT NOT NULL, owner_id TEXT NOT NULL, exam_id TEXT NOT NULL, created_at TEXT NOT NULL)`)
     this.db.exec('CREATE INDEX IF NOT EXISTS share_copies_token ON share_copies (token, owner_id)')
   }
 
-  async open(examId: string, ownerId: string, answers: AnswerRelease): Promise<Share> {
+  async open(examId: string, ownerId: string, answers: AnswerRelease, allowCopy?: boolean): Promise<Share> {
     const open = await this.forExam(examId)
     if (open) {
-      this.db.prepare('UPDATE exam_shares SET answers = ? WHERE token = ?').run(answers, open.token)
-      return { ...open, answers }
+      const copy = allowCopy ?? open.allowCopy
+      this.db.prepare('UPDATE exam_shares SET answers = ?, allow_copy = ? WHERE token = ?').run(answers, copy ? 1 : 0, open.token)
+      return { ...open, answers, allowCopy: copy }
     }
     const token = newToken()
-    this.db.prepare('INSERT INTO exam_shares (token, exam_id, owner_id, answers, created_at) VALUES (?, ?, ?, ?, ?)').run(token, examId, ownerId, answers, new Date().toISOString())
+    this.db
+      .prepare('INSERT INTO exam_shares (token, exam_id, owner_id, answers, allow_copy, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(token, examId, ownerId, answers, (allowCopy ?? true) ? 1 : 0, new Date().toISOString())
     return (await this.get(token))!
   }
 
@@ -93,14 +105,15 @@ export class SqliteShareStore implements ShareStore {
 export class PostgresShareStore implements ShareStore {
   constructor(private readonly sql: Sql) {}
 
-  async open(examId: string, ownerId: string, answers: AnswerRelease): Promise<Share> {
+  async open(examId: string, ownerId: string, answers: AnswerRelease, allowCopy?: boolean): Promise<Share> {
     const open = await this.forExam(examId)
     if (open) {
-      await this.sql`update exam_shares set answers = ${answers} where token = ${open.token}`
-      return { ...open, answers }
+      const copy = allowCopy ?? open.allowCopy
+      await this.sql`update exam_shares set answers = ${answers}, allow_copy = ${copy} where token = ${open.token}`
+      return { ...open, answers, allowCopy: copy }
     }
     const token = newToken()
-    await this.sql`insert into exam_shares (token, exam_id, owner_id, answers) values (${token}, ${examId}, ${ownerId}, ${answers})`
+    await this.sql`insert into exam_shares (token, exam_id, owner_id, answers, allow_copy) values (${token}, ${examId}, ${ownerId}, ${answers}, ${allowCopy ?? true})`
     return (await this.get(token))!
   }
 
@@ -138,6 +151,8 @@ function toShare(r: Row): Share {
     examId: String(r.exam_id),
     ownerId: String(r.owner_id),
     answers: String(r.answers) as AnswerRelease,
+    // sqlite keeps 1/0, Postgres a boolean
+    allowCopy: r.allow_copy === undefined || r.allow_copy === null ? true : Boolean(Number(r.allow_copy)),
     createdAt: at(r.created_at)!,
     closedAt: at(r.closed_at),
   }

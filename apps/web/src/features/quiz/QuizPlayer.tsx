@@ -105,7 +105,16 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
   const isChecked = checked[current]
   const last = current === total - 1
   const progress = practice ? `已完成 ${checked.filter(Boolean).length} / ${total} 題` : `已作答 ${answeredCount} / ${total} 題`
-  const submit = () => confirm(confirmText(total - answeredCount)) && finish()
+  // No dialog: with questions left blank the first press only says how many, and a second press hands in.
+  const unanswered = total - answeredCount
+  const [armed, setArmed] = useState(false)
+  useEffect(() => {
+    if (!armed) return
+    const timer = setTimeout(() => setArmed(false), 3500)
+    return () => clearTimeout(timer)
+  }, [armed])
+  const submit = () => (unanswered && !armed ? setArmed(true) : finish())
+  const submitLabel = pending ? '交卷中…' : armed && unanswered ? `還有 ${unanswered} 題沒寫，再按一次交卷` : '交卷'
 
   const navGrid = (
     <div className="grid grid-cols-6 gap-1 sm:grid-cols-8 lg:grid-cols-6">
@@ -157,7 +166,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
             {navGrid}
             {!practice && (
               <Button variant="primary" className="w-full" onClick={submit} disabled={pending}>
-                {pending ? '交卷中…' : '交卷'}
+                {submitLabel}
               </Button>
             )}
           </div>
@@ -211,7 +220,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
             )}
             {last && (!practice || isChecked) && (
               <Button variant="primary" onClick={() => (practice ? finish() : submit())} disabled={pending} loading={pending} icon={<IconFinish size={16} />}>
-                {practice ? '完成練習' : '交卷'}
+                {practice ? '完成練習' : armed && unanswered ? submitLabel : '交卷'}
               </Button>
             )}
           </div>
@@ -234,16 +243,12 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
         </Card>
         {!practice && (
           <Button variant="primary" className="w-full" onClick={submit} disabled={pending}>
-            {pending ? '交卷中…' : '交卷'}
+            {submitLabel}
           </Button>
         )}
       </aside>
     </div>
   )
-}
-
-function confirmText(unanswered: number) {
-  return unanswered ? `還有 ${unanswered} 題沒作答，確定要交卷嗎？` : '確定要交卷嗎？'
 }
 
 /** Seconds left in a timed exam, or null without a limit; calls onEnd once at zero. */

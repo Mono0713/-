@@ -43,7 +43,7 @@ export default async function SharedPage({ params }: { params: Promise<{ token: 
           ))}
           {share.answers === 'never' && <span className="rounded-full border border-line px-2 py-0.5">答案不公開</span>}
         </div>
-        <SharedActions token={token} copy={copy} />
+        <SharedActions token={token} copy={copy} allowCopy={share.allowCopy} />
       </Card>
     </div>
   )

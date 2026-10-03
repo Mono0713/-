@@ -4,6 +4,7 @@ import { ExamCard } from '@/features/bank/ExamCard'
 import { QuestionView } from '@/features/questions/QuestionView'
 import { currentOwner, services } from '@/server/context'
 import { IconQuiz, IconUpload } from '@/shared/icons'
+import { Removable } from '@/shared/removal'
 import { ButtonLink, EmptyState, PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -46,9 +47,11 @@ export default async function BankPage({ searchParams }: { searchParams: Promise
       ) : (
         <ul className="m-stagger grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {exams.map((exam) => (
-            <li key={exam.id}>
-              <ExamCard exam={exam} />
-            </li>
+            <Removable key={exam.id} id={exam.id}>
+              <li>
+                <ExamCard exam={exam} />
+              </li>
+            </Removable>
           ))}
         </ul>
       )}
