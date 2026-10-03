@@ -118,6 +118,8 @@
 .m-odo-col { display: inline-block; height: 1em; line-height: 1; overflow: hidden; vertical-align: top; }
 .m-odo-col > span { display: block; transition: transform 900ms var(--m-spring); }
 .m-odo-col > span > span { display: block; height: 1em; }
+/* signs and units (%, /, .) sit on the same 1em line as the rolling digits, so they share a baseline */
+.m-odo-ch { display: inline-block; height: 1em; line-height: 1; vertical-align: top; }
 
 /* a toast at the bottom (shared/Toast.tsx): rises 8 px and fades in, fades out quicker */
 .m-toast { opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity 160ms ease-in, transform 200ms ease-in; }
