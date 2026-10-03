@@ -184,6 +184,34 @@ describe('Importer', () => {
   })
 })
 
+describe('reading more pages', () => {
+  it('keeps the edits and moved boxes of pages already read', async () => {
+    // the free quota runs out after the first page; it is back when the second page is read again
+    let calls = 0
+    registerProvider('quota', () => ({
+      id: 'quota',
+      model: 'quota-1',
+      complete: async () => {
+        if (calls++ === 1) throw Object.assign(new Error('quota'), { status: 401 })
+        return { text: JSON.stringify(page([question({ number: String(calls) })])), model: 'quota-1', usage: { inputTokens: 1, outputTokens: 1 } }
+      },
+    }))
+    const importer = new Importer({ bank, files: new LocalFileStore(dataDir), concurrency: 1 })
+    const imp = await importer.create({ ownerId: 'local', files: [{ name: 'p1.png', data: await png() }, { name: 'p2.png', data: await png() }], provider: 'quota' })
+    await importer.settled(imp.id)
+    const draft = (await bank.getDraft(imp.id))!
+    expect(draft.questions.map((q) => q.number)).toEqual(['1'])
+    const moved = { pageNumber: 1, bbox: { x: 0.2, y: 0.3, width: 0.5, height: 0.2 }, manual: true }
+    await importer.saveDraft(imp.id, { ...draft, questions: [{ ...draft.questions[0]!, stem: 'edited', locations: [moved] }] })
+
+    await importer.rerun(imp.id, { pages: [2] })
+    await importer.settled(imp.id)
+    const after = (await bank.getDraft(imp.id))!
+    expect(after.questions.map((q) => [q.number, q.stem])).toEqual([['1', 'edited'], ['3', question().stem]])
+    expect(after.questions[0]!.locations).toEqual([moved])
+  })
+})
+
 describe('exams written from scratch', () => {
   it('opens an empty draft for review, saves it to the bank and deletes cleanly', async () => {
     const imp = await importer.createBlank('local')

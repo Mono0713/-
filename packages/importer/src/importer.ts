@@ -1,7 +1,7 @@
 import { extname } from 'node:path'
 import type { Bank, ImportRecord } from '@exam/bank'
 import type { DraftExam, DraftFigure, ExtractedPage, IngestedDocument, PageImage } from '@exam/core'
-import { createProvider, extractDocument, ManualProvider, mergePages, type PageResult, type ProviderConfig, type TextFiles } from '@exam/extraction'
+import { createProvider, extractDocument, keepEdits, ManualProvider, mergePages, type PageResult, type ProviderConfig, type TextFiles } from '@exam/extraction'
 import type { FileStore } from '@exam/files'
 import { cleanFigure, cropExamFigures } from '@exam/figures'
 import { ingestBuffer, storedPage } from '@exam/ingest'
@@ -314,9 +314,13 @@ export class Importer {
       await this.bank.updateImport(id, { status: 'failed', error: results.find((r) => r.error)?.error ?? 'No page could be read' })
       return
     }
-    const exam = mergePages(imp.fileName, results)
+    // Reading more pages must not undo what the person already changed on the others.
+    const previous = await this.bank.getDraft(id)
+    const exam = previous ? keepEdits(previous, mergePages(imp.fileName, results), new Set(selected)) : mergePages(imp.fileName, results)
+    // Figures already in the draft keep their images; new crops get names that cannot overwrite them.
+    const stamp = previous ? `-${Date.now().toString(36)}` : ''
     await cropExamFigures(exam, doc.pages, async (name, png) => {
-      const key = `${this.base(imp)}/figures/${name}.png`
+      const key = `${this.base(imp)}/figures/${name}${stamp}.png`
       await this.files.write(key, png)
       return key
     })

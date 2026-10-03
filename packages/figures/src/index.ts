@@ -97,7 +97,7 @@ export function printedTextSvg(text: string, width: number, height: number, inse
 const FIGURE_CONCURRENCY = 4
 
 /**
- * Crops every figure of a draft exam and records the saved image on the figure.
+ * Crops each figure of a draft exam that has no image yet and records the saved image on the figure.
  * `save` stores one PNG under a stable name (e.g. "q6-1") and returns the path to record.
  */
 export async function cropExamFigures(
@@ -108,7 +108,7 @@ export async function cropExamFigures(
   const named: [string, DraftFigure][] = [
     ...exam.groups.flatMap((g) => g.figures.map((f, k): [string, DraftFigure] => [`group-${g.id.replace(/\W+/g, '-')}-${k + 1}`, f])),
     ...exam.questions.flatMap((q, n) => q.figures.map((f, k): [string, DraftFigure] => [`q${n + 1}-${k + 1}`, f])),
-  ]
+  ].filter(([, f]) => !f.image)
   const failures: { name: string; error: string }[] = []
   // A few at a time: saving each one is a round trip or three to the file store, which adds up when it is remote.
   let next = 0
