@@ -12,6 +12,8 @@ export interface AssignExam {
   id: string
   title: string
   count: number
+  /** Subject, school and when it was added, to tell apart exams with the same title. */
+  hint?: string
 }
 
 const ANSWERS = [
@@ -22,8 +24,8 @@ const ANSWERS = [
 
 const ANSWER_NOTES: Record<AssignmentAnswers, string> = {
   after_submit: '學生交卷後就看得到答案和詳解（練習模式是每做完一題）。',
-  after_close: '截止時間到了才公布答案，避免先交的人把答案傳出去。沒設截止時間就一直不公布。',
-  never: '學生只看得到對錯和分數，看不到答案和詳解。',
+  after_close: '截止時間到了才公布答案和成績，避免先交的人把答案傳出去。在那之前學生交卷後只看到「已交卷」。沒設截止時間就一直不公布。',
+  never: '學生交卷後只看到「已交卷」，看不到分數、對錯和答案。',
 }
 
 /** A `datetime-local` value as an ISO moment, read in the browser's own time zone. */
@@ -65,7 +67,7 @@ export function AssignForm({ classId, exams, preselected }: { classId: string; e
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <span className={label}>考卷</span>
-          <Listbox label="考卷" value={examId} groups={[{ options: exams.map((e) => ({ value: e.id, label: `${e.title}（${e.count} 題）` })) }]} onChange={setExamId} className={inputClass} />
+          <Listbox label="考卷" value={examId} groups={[{ options: exams.map((e) => ({ value: e.id, label: `${e.title}（${e.count} 題）`, hint: e.hint })) }]} onChange={setExamId} className={inputClass} />
         </div>
         <label className="block">
           <span className={label}>作業名稱</span>
@@ -129,8 +131,14 @@ export function AssignForm({ classId, exams, preselected }: { classId: string; e
 
       <div className="space-y-1.5">
         <p className={label}>公布答案</p>
-        <Segmented value={answers} options={ANSWERS} onChange={setAnswers} />
-        <p className="text-xs text-muted">{ANSWER_NOTES[answers]}</p>
+        {mode === 'practice' ? (
+          <p className="text-xs text-muted">練習模式每寫完一題就會看到對錯和答案。</p>
+        ) : (
+          <>
+            <Segmented value={answers} options={ANSWERS} onChange={setAnswers} />
+            <p className="text-xs text-muted">{ANSWER_NOTES[answers]}</p>
+          </>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-3 border-t border-line/70 pt-4">

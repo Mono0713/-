@@ -29,7 +29,7 @@ export default async function AssignPage({ params, searchParams }: { params: Pro
       ) : (
         <AssignForm
           classId={found.classroom.id}
-          exams={exams.map((e) => ({ id: e.id, title: e.title ?? '未命名考卷', count: e.questionCount }))}
+          exams={exams.map((e) => ({ id: e.id, title: e.title ?? '未命名考卷', count: e.questionCount, hint: [e.subject, e.institution, e.term, `${new Date(e.createdAt).toLocaleDateString('zh-TW')} 加入`].filter(Boolean).join(' · ') }))}
           preselected={exams.some((e) => e.id === exam) ? exam! : null}
         />
       )}

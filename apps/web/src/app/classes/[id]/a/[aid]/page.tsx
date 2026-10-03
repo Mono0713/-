@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { AssignmentControls } from '@/features/classes/AssignmentControls'
 import { LocalTime } from '@/features/classes/LocalTime'
 import { StartAssignment } from '@/features/classes/StartAssignment'
-import { inAssignment } from '@/server/classes'
+import { inAssignment, resultsWithheld } from '@/server/classes'
 import { services } from '@/server/context'
 import { Badge, Card, PageHeader } from '@/shared/ui'
 
@@ -49,6 +49,8 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
 
   if (!teaches) {
     const tries = (await Promise.all((await classes.attempts(a.id, me.userId)).map((t) => quizzes.get(t.attemptId)))).filter((x) => x !== null)
+    const handedIn = tries.find((t) => t.finishedAt && !t.assignment?.preview)
+    const withheld = handedIn ? await resultsWithheld(handedIn) : false
     const running = tries.find((t) => !t.finishedAt && !isOver(t)) ?? null
     const left = s.maxAttempts === null ? null : Math.max(0, s.maxAttempts - tries.length)
     const open = isOpen(a)
@@ -80,6 +82,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
           )}
           {left !== null && left > 0 && tries.length > 0 && !running && <p className="text-xs text-muted">還可以作答 {left} 次，老師看的是最後一次交的卷。</p>}
         </Card>
+        {/* The score waits with the answers. */}
         {tries.some((t) => t.finishedAt) && (
           <Card className="p-4">
             <h2 className="mb-2 text-sm font-semibold">我交的卷</h2>
@@ -95,8 +98,8 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
                         <span className="flex-1 text-muted">
                           <LocalTime at={t.finishedAt!} />
                         </span>
-                        {sum.pending > 0 && <Badge tone="accent">待批改 {sum.pending}</Badge>}
-                        <span className="num">{sum.max ? `${sum.score} / ${sum.max}` : '已交'}</span>
+                        {sum.pending > 0 && !withheld && <Badge tone="accent">待批改 {sum.pending}</Badge>}
+                        <span className="num">{sum.max && !withheld ? `${sum.score} / ${sum.max}` : '已交'}</span>
                       </Link>
                     </li>
                   )
@@ -246,7 +249,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
             </div>
             {times}
           </Card>
-          <AssignmentControls classId={classroom.id} assignmentId={a.id} closesAt={a.closesAt} answers={s.answers} />
+          <AssignmentControls classId={classroom.id} assignmentId={a.id} closesAt={a.closesAt} answers={s.answers} practice={s.mode === 'practice'} />
         </aside>
       </div>
     </div>

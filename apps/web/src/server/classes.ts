@@ -4,6 +4,7 @@ import type { QuizAttempt, QuizSettings, QuizSource } from '@exam/quiz'
 import { monthStart, spend } from '@exam/usage'
 import { authEnabled, currentOwner, currentUser, localPerson } from './auth'
 import { keyPrefixOf, providersOf, services, teacherFor, type Teacher } from './context'
+import { keyShown } from '@/features/quiz/visible'
 
 export interface InClass {
   classroom: Classroom
@@ -136,11 +137,22 @@ export async function taughtAttempt(attemptId: string): Promise<{ attempt: QuizA
  * teacher can change it after students started): never, after the assignment closes,
  * or once handed in. Attempts outside a class keep their own settings.
  */
+/**
+ * Whether a handed-in class attempt shows only "handed in" to its student: while the answers are not out,
+ * neither are the score and which questions were right, or they would give the answers away.
+ */
+export async function resultsWithheld(attempt: Pick<QuizAttempt, 'settings' | 'assignment'>): Promise<boolean> {
+  if (!attempt.assignment || attempt.assignment.preview) return false
+  return !keyShown(await keyRule(attempt))
+}
+
 export async function keyRule(attempt: Pick<QuizAttempt, 'settings' | 'assignment'>): Promise<Pick<QuizSettings, 'keyHidden' | 'keyUntil'>> {
   const a = attempt.assignment
   if (!a || a.preview) return attempt.settings
   const assignment = await services().classes.assignment(a.assignmentId)
   if (!assignment) return attempt.settings
+  // Practice shows each answer once it is written.
+  if (assignment.settings.mode === 'practice') return {}
   const { answers } = assignment.settings
   if (answers === 'never') return { keyHidden: true }
   if (answers === 'after_close') return assignment.closesAt ? { keyUntil: assignment.closesAt } : { keyHidden: true }

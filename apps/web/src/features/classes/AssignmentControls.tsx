@@ -23,7 +23,7 @@ function toLocal(iso: string | null): string {
 }
 
 /** The teacher's handles on an assignment: when it closes, when answers show, trying it, deleting it. */
-export function AssignmentControls({ classId, assignmentId, closesAt, answers }: { classId: string; assignmentId: string; closesAt: string | null; answers: AssignmentAnswers }) {
+export function AssignmentControls({ classId, assignmentId, closesAt, answers, practice }: { classId: string; assignmentId: string; closesAt: string | null; answers: AssignmentAnswers; practice: boolean }) {
   const router = useRouter()
   const { remove } = useRemoval()
   const [close, setClose] = useState(toLocal(closesAt))
@@ -61,18 +61,21 @@ export function AssignmentControls({ classId, assignmentId, closesAt, answers }:
           </Button>
         )}
       </div>
-      <div className="space-y-1.5">
-        <p className="text-xs font-medium text-muted">公布答案</p>
-        <Segmented
-          value={release}
-          options={ANSWERS}
-          onChange={(next) => {
-            setRelease(next)
-            save({ answers: next })
-          }}
-        />
-        <p className="text-xs text-muted">改了馬上生效，已經交卷的學生也照新的設定。</p>
-      </div>
+      {/* Practice shows each answer as soon as it is written. */}
+      {!practice && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted">公布答案</p>
+          <Segmented
+            value={release}
+            options={ANSWERS}
+            onChange={(next) => {
+              setRelease(next)
+              save({ answers: next })
+            }}
+          />
+          <p className="text-xs text-muted">改了馬上生效，已經交卷的學生也照新的設定。</p>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2 border-t border-line/70 pt-3">
         <Button loading={trying} disabled={trying} onClick={() => startTrying(async () => void (await startAssignment(assignmentId)))}>
           自己試做
