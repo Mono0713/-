@@ -217,6 +217,9 @@ importers:
 
   packages/files:
     dependencies:
+      '@exam/db':
+        specifier: workspace:*
+        version: link:../db
       aws4fetch:
         specifier: ^1.0.20
         version: 1.0.20

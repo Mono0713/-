@@ -5,7 +5,7 @@ import { PostgresBank, SqliteBank, type Bank } from '@exam/bank'
 import { PostgresClassStore, SqliteClassStore, type ClassStore } from '@exam/classes'
 import { connect } from '@exam/db'
 import { DEFAULT_MODELS, type ModelTier } from '@exam/extraction'
-import { fileStoreFromEnv, type FileStore } from '@exam/files'
+import { DedupFileStore, fileStoreFromEnv, PostgresFileIndex, SqliteFileIndex, type FileIndex } from '@exam/files'
 import { AUTO, Importer } from '@exam/importer'
 import { AiTeacher, createTextModel, PostgresGradingCache, SqliteGradingCache, type GradingCache, type TextModel } from '@exam/grading'
 import { BUILTIN_LABELS, BUILTIN_MODELS, route, type ModelChoice, type ProviderInfo, type Route, type Strength, type Task } from '@exam/models'
@@ -37,7 +37,8 @@ interface Services {
   usage: UsageStore
   shares: ShareStore
   classes: ClassStore
-  files: FileStore
+  /** Each distinct file is kept once, whatever key it is written under. */
+  files: DedupFileStore
 }
 
 // Kept on globalThis so hot reloads in development reuse one database connection
@@ -48,9 +49,10 @@ export function services(): Services {
   if (!globals.__examServices) {
     mkdirSync(dataDir, { recursive: true })
     const stores = process.env.DATABASE_URL ? postgresStores(process.env.DATABASE_URL) : sqliteStores()
-    const files = fileStoreFromEnv(dataDir)
+    const { fileIndex, ...rest } = stores
+    const files = new DedupFileStore(fileStoreFromEnv(dataDir), fileIndex)
     globals.__examServices = {
-      ...stores,
+      ...rest,
       files,
       importer: new Importer({
         bank: stores.bank,
@@ -86,12 +88,36 @@ function sweepOriginals(importer: Importer) {
   setInterval(sweep, SWEEP_EVERY).unref()
 }
 
+/**
+ * Most an account may keep, in bytes: STORAGE_QUOTA_MB (1 GB by default). Only with accounts;
+ * the single local user keeps what fits on the computer.
+ */
+export function storageQuota(): number | null {
+  if (!authEnabled()) return null
+  return (Number(process.env.STORAGE_QUOTA_MB) || 1024) * 1024 * 1024
+}
+
+/** What an account keeps, and how much it may. */
+export async function storageOf(ownerId: string): Promise<{ used: number; quota: number | null }> {
+  // Without accounts, file keys carry no owner.
+  return { used: await services().files.usage(authEnabled() ? ownerId : null), quota: storageQuota() }
+}
+
+const mb = (bytes: number) => (bytes / 1024 / 1024).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)
+
+/** Why `bytes` more would not fit in the account, or null when it fits. */
+export async function noRoomFor(ownerId: string, bytes: number): Promise<string | null> {
+  const { used, quota } = await storageOf(ownerId)
+  if (quota === null || used + bytes <= quota) return null
+  return `空間不夠：已用 ${mb(used)} MB，上限 ${mb(quota)} MB。可以刪掉用不到的匯入或考卷，或取消「永久保留原檔」，再試一次。`
+}
+
 /** Start of every file key of an owner when there are accounts, so a file link can be checked against the person asking. */
 export function keyPrefixOf(ownerId: string): string {
   return authEnabled() ? `u/${ownerId}/` : ''
 }
 
-type Stores = Pick<Services, 'bank' | 'quizzes' | 'settings' | 'gradingCache' | 'usage' | 'shares' | 'classes'>
+type Stores = Pick<Services, 'bank' | 'quizzes' | 'settings' | 'gradingCache' | 'usage' | 'shares' | 'classes'> & { fileIndex: FileIndex }
 
 function sqliteStores(): Stores {
   const dbFile = join(dataDir, 'bank.sqlite')
@@ -103,6 +129,7 @@ function sqliteStores(): Stores {
     usage: new SqliteUsageStore(dbFile),
     shares: new SqliteShareStore(dbFile),
     classes: new SqliteClassStore(dbFile),
+    fileIndex: new SqliteFileIndex(dbFile),
   }
 }
 
@@ -110,7 +137,7 @@ function postgresStores(url: string): Stores {
   const secret = process.env.SETTINGS_SECRET
   if (!secret) throw new Error('SETTINGS_SECRET is required with DATABASE_URL: it encrypts the API keys people save.')
   const sql = connect(url)
-  return { bank: new PostgresBank(sql), quizzes: new PostgresQuizStore(sql), settings: new PostgresSettingsStore(sql, secret), gradingCache: new PostgresGradingCache(sql), usage: new PostgresUsageStore(sql), shares: new PostgresShareStore(sql), classes: new PostgresClassStore(sql) }
+  return { bank: new PostgresBank(sql), quizzes: new PostgresQuizStore(sql), settings: new PostgresSettingsStore(sql, secret), gradingCache: new PostgresGradingCache(sql), usage: new PostgresUsageStore(sql), shares: new PostgresShareStore(sql), classes: new PostgresClassStore(sql), fileIndex: new PostgresFileIndex(sql) }
 }
 
 /**

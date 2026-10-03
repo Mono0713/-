@@ -3,7 +3,7 @@
 import { extractJson } from '@exam/extraction'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { currentOwner, services } from '@/server/context'
+import { currentOwner, noRoomFor, services } from '@/server/context'
 import { requireImport } from '@/server/owned'
 
 export async function createImport(formData: FormData): Promise<{ error: string } | void> {
@@ -11,10 +11,13 @@ export async function createImport(formData: FormData): Promise<{ error: string 
   if (!files.length) return { error: '請選擇至少一個 PDF 或圖片檔。' }
   const provider = String(formData.get('provider') ?? 'manual')
   const model = String(formData.get('model') ?? '').trim() || null
+  const owner = await currentOwner()
+  const full = await noRoomFor(owner, files.reduce((n, f) => n + f.size, 0))
+  if (full) return { error: full }
   let id: string
   try {
     const record = await services().importer.create({
-      ownerId: await currentOwner(),
+      ownerId: owner,
       provider,
       model,
       files: await Promise.all(files.map(async (f) => ({ name: f.name, data: Buffer.from(await f.arrayBuffer()) }))),

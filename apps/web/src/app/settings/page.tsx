@@ -2,7 +2,8 @@ import { formatUsd } from '@exam/models'
 import { LOCALES, publicView } from '@exam/settings'
 import { monthStart, spend } from '@exam/usage'
 import { SettingsForm } from '@/features/settings/SettingsForm'
-import { authEnabled, availableProviders, currentOwner, keySource, localeOf, providersOf, services, teacherChoice } from '@/server/context'
+import { StorageCard } from '@/features/settings/StorageCard'
+import { authEnabled, availableProviders, currentOwner, keySource, localeOf, providersOf, services, storageOf, teacherChoice } from '@/server/context'
 import { PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -15,13 +16,14 @@ export default async function SettingsPage() {
   const owner = await currentOwner()
   const { settings: store, usage } = services()
   // Only the public view reaches the browser: API keys stay on the server.
-  const [saved, providers, teacher, locale, recent, thisMonth] = await Promise.all([
+  const [saved, providers, teacher, locale, recent, thisMonth, storage] = await Promise.all([
     store.get(owner),
     availableProviders(owner),
     teacherChoice(owner),
     localeOf(owner),
     usage.summary(owner, new Date(Date.now() - ESTIMATE_WINDOW_DAYS * 86_400_000)),
     usage.summary(owner, monthStart()),
+    storageOf(owner),
   ])
   const settings = publicView(saved)
   const routing = providersOf(saved)
@@ -52,6 +54,7 @@ export default async function SettingsPage() {
         }))}
         hosted={authEnabled()}
       />
+      <StorageCard used={storage.used} quota={storage.quota} />
     </div>
   )
 }

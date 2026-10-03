@@ -99,7 +99,7 @@ function ReplyCard({
       </div>
       <div className="mt-3 flex flex-wrap gap-3">
         {images.map((p) => (
-          <a key={p.pageNumber} href={fileUrl(p.image)} download={`page-${p.pageNumber}.png`} className="group block w-28 text-center text-xs text-muted" title="下載這一頁的圖片">
+          <a key={p.pageNumber} href={fileUrl(p.image)} download={`page-${p.pageNumber}.${p.image.split('.').pop()}`} className="group block w-28 text-center text-xs text-muted" title="下載這一頁的圖片">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={fileUrl(p.image)} alt={`第 ${p.pageNumber} 頁`} className="h-36 w-28 rounded-md border border-line object-cover object-top group-hover:border-accent" />
             <span className="mt-1 block group-hover:text-accent">下載 page-{p.pageNumber}.png</span>

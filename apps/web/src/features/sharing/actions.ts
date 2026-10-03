@@ -8,7 +8,7 @@ import type { AnswerRelease } from '@exam/sharing'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { startQuiz } from '@/features/quiz/start'
-import { currentOwner, keyPrefixOf, services } from '@/server/context'
+import { currentOwner, keyPrefixOf, noRoomFor, services } from '@/server/context'
 import { ownedExam } from '@/server/owned'
 import { openShare } from '@/server/shared'
 
@@ -62,6 +62,10 @@ export async function copyShared(token: string): Promise<{ error: string } | und
   if (!opened.share.allowCopy) return { error: '分享的人沒有開放加到題庫。' }
   const owner = await currentOwner()
   const { bank, files, shares } = services()
+  // The copy's figures count toward the account (each one is stored once all the same).
+  const figureCount = opened.questions.reduce((n, q) => n + q.figures.length, 0) + opened.exam.groups.reduce((n, g) => n + g.figures.length, 0)
+  const full = await noRoomFor(owner, figureCount * 50_000)
+  if (full) return { error: full }
   const folder = `${keyPrefixOf(owner)}copies/${randomUUID()}`
   let n = 0
   const copyFigure = async (f: DraftFigure): Promise<DraftFigure> => {

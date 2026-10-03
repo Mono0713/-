@@ -4,7 +4,7 @@ import type { DraftExam, DraftFigure, ExtractedPage, IngestedDocument, PageImage
 import { createProvider, extractDocument, ManualProvider, mergePages, type PageResult, type ProviderConfig, type TextFiles } from '@exam/extraction'
 import type { FileStore } from '@exam/files'
 import { cleanFigure, cropExamFigures } from '@exam/figures'
-import { ingestBuffer } from '@exam/ingest'
+import { ingestBuffer, storedPage } from '@exam/ingest'
 
 export interface UploadFile {
   name: string
@@ -88,11 +88,11 @@ export class Importer {
     if (!input.files.length) throw new Error('No file uploaded')
     const doc = await this.ingest(input.files)
     const fileName = input.files.length === 1 ? input.files[0]!.name : `${input.files[0]!.name} 等 ${input.files.length} 個檔案`
-    const record = await this.bank.createImport({ ownerId: input.ownerId, fileName, pageCount: doc.pages.length, provider: input.provider, model: input.model || null })
+    const record = await this.bank.createImport({ ownerId: input.ownerId, fileName, pageCount: doc.pages.length, provider: input.provider, model: input.model || null, pageFormat: 'webp' })
     const base = this.base(record)
     for (const [i, f] of input.files.entries()) await this.files.write(`${base}/sources/${i + 1}${sourceExt(f.name)}`, f.data)
     await this.files.write(`${base}/sources/names.json`, JSON.stringify(input.files.map((f) => f.name)))
-    for (const page of doc.pages) await this.files.write(this.pageImage(record, page.pageNumber), page.data)
+    for (const page of doc.pages) await this.files.write(this.pageImage(record, page.pageNumber), await storedPage(page.data))
     await this.start(record.id)
     return record
   }
@@ -121,8 +121,8 @@ export class Importer {
   }
 
   /** File key of a rendered page. */
-  pageImage(imp: Pick<ImportRecord, 'id' | 'ownerId'>, pageNumber: number): string {
-    return `${this.base(imp)}/pages/page-${pageNumber}.png`
+  pageImage(imp: Pick<ImportRecord, 'id' | 'ownerId' | 'pageFormat'>, pageNumber: number): string {
+    return `${this.base(imp)}/pages/page-${pageNumber}.${imp.pageFormat ?? 'png'}`
   }
 
   /**

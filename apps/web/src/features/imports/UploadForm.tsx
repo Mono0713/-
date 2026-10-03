@@ -7,6 +7,7 @@ import type { ProviderOption } from '@/server/context'
 import { ProviderFields } from '@/features/settings/ModelPicker'
 import { Button } from '@/shared/ui'
 import { createImport } from './actions'
+import { shrinkPhoto } from './shrink'
 
 const ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.gif,.bmp'
 
@@ -15,6 +16,7 @@ export function UploadForm({ providers, defaultProvider }: { providers: Provider
   const [dragging, setDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
+  const [shrinking, setShrinking] = useState(false)
   const input = useRef<HTMLInputElement>(null)
   const start = providers.find((p) => p.id === defaultProvider && p.ready) ?? providers.find((p) => p.ready && p.id !== 'manual') ?? providers.find((p) => p.id === 'manual')!
   const [choice, setChoice] = useState({ provider: start.id, model: start.model })
@@ -27,10 +29,13 @@ export function UploadForm({ providers, defaultProvider }: { providers: Provider
 
   const submit = (form: FormData) => {
     form.delete('files')
-    for (const f of files) form.append('files', f)
     form.set('provider', choice.provider)
     form.set('model', choice.model)
     startTransition(async () => {
+      setShrinking(true)
+      const ready = await Promise.all(files.map(shrinkPhoto))
+      setShrinking(false)
+      for (const f of ready) form.append('files', f)
       const result = await createImport(form)
       if (result?.error) setError(result.error)
     })
@@ -100,7 +105,7 @@ export function UploadForm({ providers, defaultProvider }: { providers: Provider
       {error && <p className="m-shake rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">{error}</p>}
 
       <Button type="submit" variant="primary" disabled={!files.length || pending} loading={pending} icon={<IconSparkles size={16} />}>
-        {pending ? '上傳並轉換頁面中…' : '開始辨識'}
+        {shrinking ? '壓縮照片中…' : pending ? '上傳並轉換頁面中…' : '開始辨識'}
       </Button>
     </form>
   )

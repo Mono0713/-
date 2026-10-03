@@ -28,6 +28,8 @@ export interface ImportRecord {
   keepOriginal: boolean
   /** When the uploaded files were deleted; page images stay. */
   originalDeletedAt: string | null
+  /** How the page images are stored: png before 2026-10-03, compressed webp since. */
+  pageFormat: PageFormat
   createdAt: string
   updatedAt: string
 }
@@ -38,12 +40,15 @@ export interface NewExam {
   questions: DraftQuestion[]
 }
 
+export type PageFormat = 'png' | 'webp'
+
 export interface NewImport {
   ownerId: string
   fileName: string
   pageCount: number
   provider: string
   model: string | null
+  pageFormat?: PageFormat
 }
 
 /**

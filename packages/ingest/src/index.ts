@@ -4,7 +4,7 @@ import type { IngestedDocument } from '@exam/core'
 import { prepareImage } from './image.ts'
 import { renderPdf } from './pdf.ts'
 
-export { prepareImage } from './image.ts'
+export { prepareImage, storedPage } from './image.ts'
 export { renderPdf } from './pdf.ts'
 
 export interface IngestOptions {

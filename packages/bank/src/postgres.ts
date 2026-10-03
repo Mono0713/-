@@ -15,8 +15,8 @@ export class PostgresBank implements Bank {
 
   async createImport(input: NewImport): Promise<ImportRecord> {
     const id = randomUUID()
-    await this.sql`insert into imports (id, owner_id, file_name, page_count, provider, model, status)
-      values (${id}, ${input.ownerId}, ${input.fileName}, ${input.pageCount}, ${input.provider}, ${input.model}, 'processing')`
+    await this.sql`insert into imports (id, owner_id, file_name, page_count, provider, model, page_format, status)
+      values (${id}, ${input.ownerId}, ${input.fileName}, ${input.pageCount}, ${input.provider}, ${input.model}, ${input.pageFormat ?? 'png'}, 'processing')`
     return (await this.getImport(id))!
   }
 
@@ -246,6 +246,7 @@ function toImport(row: Row): ImportRecord {
     questionCount: Number(row.question_count ?? 0),
     keepOriginal: Boolean(row.keep_original),
     originalDeletedAt: iso((row.original_deleted_at ?? null) as Date | null),
+    pageFormat: row.page_format === 'webp' ? 'webp' : 'png',
     createdAt: iso(row.created_at as Date)!,
     updatedAt: iso(row.updated_at as Date)!,
   }
