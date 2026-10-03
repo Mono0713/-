@@ -41,14 +41,12 @@ export function Reveal({
   // Blanks answered with option labels show them as labelled in this quiz.
   const key = kind.kind === 'blanks' ? q.answer.values.map((v) => toQuizLabels(item, v)) : q.answer.values
   const withheld = q.answer.values.length > 0 && q.answer.values.every((v) => v === '')
-  const answer =
+  // A choice is shown as on the paper, label and text: "(2) X-ray crystallography".
+  const choices =
     kind.kind === 'single' || kind.kind === 'multiple'
-      ? key.map((l) => displayLabel(item, l)).join('、')
-      : kind.kind === 'true_false'
-        ? key[0] === 'true'
-          ? '○ 是'
-          : '╳ 非'
-        : null
+      ? key.map((l) => ({ label: displayLabel(item, l), content: q.options.find((o) => o.label === l)?.content ?? '' }))
+      : null
+  const answer = kind.kind === 'true_false' ? (key[0] === 'true' ? '○ 是' : '╳ 非') : null
 
   return (
     <div className="m-expand space-y-3 rounded-lg border border-line bg-paper p-4 text-sm">
@@ -67,9 +65,19 @@ export function Reveal({
       {withheld && <p className="text-muted">{withheldNote}</p>}
 
       {key.length > 0 && !withheld && (
-        <div>
-          <span className="font-medium text-good">正確答案：</span>
-          {answer !== null ? (
+        <div className={choices?.length === 1 ? 'flex items-baseline' : undefined}>
+          <span className="shrink-0 font-medium text-good">正確答案：</span>
+          {choices ? (
+            // one answer stays on the line, several go one per line below
+            <ul className={choices.length === 1 ? 'min-w-0' : 'mt-1 space-y-1'}>
+              {choices.map((c) => (
+                <li key={c.label} className="flex items-baseline gap-2">
+                  <span className="num shrink-0 font-semibold">({c.label})</span>
+                  {c.content.trim() ? <Markdown className="hl-md m-sweep min-w-0">{c.content}</Markdown> : null}
+                </li>
+              ))}
+            </ul>
+          ) : answer !== null ? (
             <span className="hl m-sweep">{answer}</span>
           ) : key.length === 1 ? (
             <Markdown className="hl-md m-sweep">{key[0]!}</Markdown>
