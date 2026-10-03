@@ -1,10 +1,14 @@
 import { signOut } from '@/features/auth/actions'
-import { authEnabled, currentUser, type SignedInUser } from '@/server/auth'
+import { authEnabled, currentUser, LOCAL_PEOPLE, localPerson, type SignedInUser } from '@/server/auth'
 import { IconSignOut } from '@/shared/icons'
+import { LocalSwitcher } from './LocalSwitcher'
 
-/** The signed-in person and a sign-out button. Nothing when sign-in is off (one local user). */
+/** The signed-in person and a sign-out button; without sign-in, which local person this browser acts as. */
 export async function Account({ tone }: { tone: 'sidebar' | 'header' }) {
-  if (!authEnabled()) return null
+  if (!authEnabled()) {
+    const switcher = <LocalSwitcher current={(await localPerson()).id} people={LOCAL_PEOPLE} tone={tone} />
+    return tone === 'header' ? <div className="ml-auto shrink-0">{switcher}</div> : <div className="border-t border-white/[0.07] px-3 py-2">{switcher}</div>
+  }
   const user = await currentUser()
   if (!user) return null
   const label = user.name ?? user.email ?? '帳號'

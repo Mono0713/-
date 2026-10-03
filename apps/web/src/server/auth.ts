@@ -48,11 +48,27 @@ export const currentUser = cache(async (): Promise<SignedInUser | null> => {
 })
 
 /**
- * Whose data this request works on. Sends a signed-out person to the sign-in page.
- * Without accounts it is "local", or EXAM_LOCAL_USER, so a second local server can play a student.
+ * People to switch between without accounts, so one computer can try both sides of a
+ * class (the teacher, and students joining it). "local" owns everything made before.
  */
+export const LOCAL_PEOPLE = [
+  { id: 'local', name: '本機使用者' },
+  { id: 'student-a', name: '學生 A' },
+  { id: 'student-b', name: '學生 B' },
+  { id: 'student-c', name: '學生 C' },
+] as const
+
+export const LOCAL_AS_COOKIE = 'exam-local-as'
+
+/** Which local person this browser is acting as; only without accounts. */
+export async function localPerson(): Promise<(typeof LOCAL_PEOPLE)[number]> {
+  const id = (await cookies()).get(LOCAL_AS_COOKIE)?.value
+  return LOCAL_PEOPLE.find((p) => p.id === id) ?? LOCAL_PEOPLE[0]
+}
+
+/** Whose data this request works on. Sends a signed-out person to the sign-in page. Without accounts: the local person picked. */
 export async function currentOwner(): Promise<string> {
-  if (!authEnabled()) return process.env.EXAM_LOCAL_USER || 'local'
+  if (!authEnabled()) return (await localPerson()).id
   const user = await currentUser()
   if (!user) redirect('/login')
   return user.id

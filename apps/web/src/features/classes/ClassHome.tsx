@@ -46,7 +46,7 @@ export function ClassHome() {
             maxLength={8}
             className={`${inputClass} font-mono tracking-[0.2em] uppercase placeholder:font-sans placeholder:tracking-normal`}
           />
-          <Button type="submit" variant="primary" loading={busy === 'join'} disabled={pending || !code.trim()}>
+          <Button type="submit" variant="primary" loading={busy === 'join'} disabled={pending || !code.trim()} className="shrink-0 whitespace-nowrap">
             加入
           </Button>
         </form>
@@ -66,7 +66,7 @@ export function ClassHome() {
           }}
         >
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：三年二班 生物" aria-label="班級名稱" maxLength={80} className={inputClass} />
-          <Button type="submit" loading={busy === 'create'} disabled={pending || !name.trim()}>
+          <Button type="submit" loading={busy === 'create'} disabled={pending || !name.trim()} className="shrink-0 whitespace-nowrap">
             建立
           </Button>
         </form>

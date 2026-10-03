@@ -48,7 +48,7 @@ export function NavLinks() {
             }}
             aria-current={on ? 'page' : undefined}
             aria-label={item.label}
-            className={`m-press relative flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 sm:px-3 ${on ? 'font-medium text-ink' : 'text-muted hover:text-ink'} ${on && !pill ? 'bg-surface shadow-[0_0_0_1px_var(--color-line)]' : ''}`}
+            className={`m-press relative flex items-center gap-1.5 rounded-lg px-2 py-1.5 min-[400px]:px-2.5 sm:px-3 ${on ? 'font-medium text-ink' : 'text-muted hover:text-ink'} ${on && !pill ? 'bg-surface shadow-[0_0_0_1px_var(--color-line)]' : ''}`}
           >
             <I size={16} strokeWidth={2} className={on ? 'text-accent' : ''} />
             {/* with five sections a phone shows icons only, the current one on its pill */}

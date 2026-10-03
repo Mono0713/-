@@ -2,7 +2,7 @@ import { canTeach, type Assignment, type Classroom, type ClassRole, type Member 
 import type { DraftFigure } from '@exam/core'
 import type { QuizAttempt, QuizSettings, QuizSource } from '@exam/quiz'
 import { monthStart, spend } from '@exam/usage'
-import { currentOwner, currentUser } from './auth'
+import { authEnabled, currentOwner, currentUser, localPerson } from './auth'
 import { keyPrefixOf, providersOf, services, teacherFor, type Teacher } from './context'
 
 export interface InClass {
@@ -38,8 +38,9 @@ export async function inAssignment(assignmentId: string): Promise<(InClass & { a
 
 /** The name classmates see: the account's name, else the part of the e-mail before the @. */
 export async function displayName(): Promise<string> {
+  if (!authEnabled()) return (await localPerson()).name
   const user = await currentUser()
-  return user?.name ?? user?.email?.split('@')[0] ?? (process.env.EXAM_LOCAL_USER || '本機使用者')
+  return user?.name ?? user?.email?.split('@')[0] ?? '我'
 }
 
 export const ROLE_LABELS: Record<ClassRole, string> = { teacher: '老師', assistant: '助教', student: '學生' }

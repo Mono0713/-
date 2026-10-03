@@ -1,5 +1,6 @@
 import { connection } from 'next/server'
 import { Suspense } from 'react'
+import { localPerson } from '@/server/auth'
 import { authEnabled, currentUser, services } from '@/server/context'
 import { Logo } from '@/shared/brand/Logo'
 import { Removable } from '@/shared/removal'
@@ -26,7 +27,7 @@ async function Recent() {
   await connection()
   const { bank } = services()
   // Signed out (the sign-in page): nothing to list.
-  const owner = authEnabled() ? (await currentUser())?.id : 'local'
+  const owner = authEnabled() ? (await currentUser())?.id : (await localPerson()).id
   if (!owner) return null
   const [all, exams] = await Promise.all([bank.listImports(owner), bank.listExams({ ownerId: owner })])
   const imports = all.slice(0, 6)
