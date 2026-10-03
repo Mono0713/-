@@ -7,7 +7,7 @@ import { connect } from '@exam/db'
 import { DEFAULT_MODELS, type ModelTier } from '@exam/extraction'
 import { DedupFileStore, fileStoreFromEnv, PostgresFileIndex, SqliteFileIndex, type FileIndex } from '@exam/files'
 import { AUTO, Importer } from '@exam/importer'
-import { AiTeacher, createTextModel, PostgresGradingCache, SqliteGradingCache, type GradingCache, type TextModel } from '@exam/grading'
+import { AiTeacher, AiTutor, createTextModel, PostgresGradingCache, SqliteGradingCache, type GradingCache, type TextModel } from '@exam/grading'
 import { BUILTIN_LABELS, BUILTIN_MODELS, route, type ModelChoice, type ProviderInfo, type Route, type Strength, type Task } from '@exam/models'
 import { PostgresQuizStore, SqliteQuizStore, type QuizStore } from '@exam/quiz'
 import { DEFAULT_LOCALE, FileSettingsStore, PostgresSettingsStore, type Settings, type SettingsStore } from '@exam/settings'
@@ -283,6 +283,14 @@ export async function teacherFor(ownerId: string, opts: { scope?: string; always
   const marker = await chain(s, ownerId, 'grading', [grading.primary, ...grading.fallbacks], opts.scope)
   const reader = await chain(s, ownerId, 'handwriting', [handwriting.primary, ...handwriting.fallbacks], opts.scope)
   return { teacher: new AiTeacher(marker), reader, provider: grading.primary.provider, model: grading.primary.model }
+}
+
+/** The AI tutor for this user, on their own keys and the tutoring route; null when no service has a key. */
+export async function tutorFor(ownerId: string): Promise<AiTutor | null> {
+  const s = await services().settings.get(ownerId)
+  const tutoring = await routeFor(ownerId, 'tutoring')
+  if (!tutoring) return null
+  return new AiTutor(await chain(s, ownerId, 'tutoring', [tutoring.primary, ...tutoring.fallbacks]))
 }
 
 /** A text model that moves on to the next choice when one fails, logging what each call used. */

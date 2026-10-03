@@ -174,6 +174,20 @@ h2 {
 .prose-q p {
   margin: 0.25rem 0;
 }
+.prose-q ol,
+.prose-q ul {
+  margin: 0.25rem 0;
+  padding-left: 1.4rem;
+}
+.prose-q ol {
+  list-style: decimal;
+}
+.prose-q ul {
+  list-style: disc;
+}
+.prose-q li + li {
+  margin-top: 0.15rem;
+}
 /* The first and last lines sit flush, so text lines up with labels and icons beside it. */
 .prose-q > :first-child {
   margin-top: 0;

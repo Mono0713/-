@@ -1,15 +1,15 @@
 'use server'
 
-import { markOpenAnswers, unreadHandwriting } from '@exam/grading'
-import { gradeItem, isOver, needsTeacher, type QuizAttempt, type QuizResponse, type QuizSettings } from '@exam/quiz'
+import { MAX_MESSAGE, markOpenAnswers, unreadHandwriting } from '@exam/grading'
+import { gradeItem, isOver, needsTeacher, type QuizAttempt, type QuizResponse, type QuizSettings, type TutorTurn } from '@exam/quiz'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { graderFor, keyRule, selfMarks } from '@/server/classes'
-import { currentOwner, localeOf, services } from '@/server/context'
+import { currentOwner, localeOf, services, tutorFor } from '@/server/context'
 import { ownedAttempt } from '@/server/owned'
 import { startQuiz } from './start'
 import { readInk, startTeacher } from './teacher'
-import { revealedItem } from './visible'
+import { keyShown, revealedItem } from './visible'
 
 async function owned(id: string): Promise<QuizAttempt> {
   const attempt = await ownedAttempt(id)
@@ -126,6 +126,40 @@ export async function askTeacher(id: string): Promise<{ error: string } | undefi
   if (!(await graderFor(attempt))) return { error: attempt.assignment ? '這個班級的 AI 批改現在沒有開放，老師會批改。' : '沒有可用的 AI：請在設定裡開啟 AI 批改並加上 API 金鑰。' }
   await startTeacher(id)
   revalidatePath(`/quiz/${id}`)
+}
+
+/** Messages one question's conversation keeps; then it starts over. */
+const MAX_TURNS = 40
+
+/**
+ * Asks the AI tutor about one question once its answer has been shown: the first time to explain it,
+ * then follow-up questions. The conversation is kept with the attempt. Paid with the student's own keys.
+ */
+export async function askTutor(id: string, index: number, message: string): Promise<{ turns: TutorTurn[] } | { error: string }> {
+  const attempt = await owned(id)
+  const item = attempt.items[index]
+  if (!item) return { error: '找不到這一題' }
+  if (!attempt.finishedAt && !attempt.checked[index]) return { error: '看過答案後才能問 AI 家教' }
+  // The tutor would give the answer away.
+  if (!keyShown(await keyRule(attempt))) return { error: attempt.assignment ? '老師公開答案後才能問 AI 家教。' : '這份考卷的答案沒有公開，不能問 AI 家教。' }
+  const text = message.trim().slice(0, MAX_MESSAGE)
+  if (!text) return { error: '請輸入問題' }
+  const tutor = await tutorFor(attempt.ownerId)
+  if (!tutor) return { error: '還沒有可用的 AI：請到設定加上 API 金鑰。' }
+  const earlier = attempt.tutoring?.[index] ?? []
+  const asked: TutorTurn = { from: 'student', text, at: new Date().toISOString() }
+  let reply: string
+  try {
+    reply = await tutor.reply({ item, response: attempt.responses[index] ?? null, marking: attempt.markings[index] ?? null, turns: [...earlier, asked], language: await localeOf(attempt.ownerId) })
+  } catch {
+    return { error: 'AI 家教暫時沒有回應，請再試一次。' }
+  }
+  const answered: TutorTurn = { from: 'tutor', text: reply, at: new Date().toISOString() }
+  const saved = await services().quizzes.update(id, (a) => {
+    const turns = [...(a.tutoring?.[index] ?? []), asked, answered].slice(-MAX_TURNS)
+    return { ...a, tutoring: { ...a.tutoring, [index]: turns } }
+  })
+  return { turns: saved?.tutoring?.[index] ?? [...earlier, asked, answered] }
 }
 
 /** Removes a quiz for good; the list calls it once the 復原 note has run out. */

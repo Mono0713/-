@@ -28,6 +28,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
   )
   const [markings, setMarkings] = useState(attempt.markings)
   const [checked, setChecked] = useState(attempt.checked)
+  const [tutoring, setTutoring] = useState(attempt.tutoring ?? {})
   const [current, setCurrent] = useState(() => (practice ? Math.max(0, attempt.checked.indexOf(false)) : 0))
   const [pending, start] = useTransition()
   const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>())
@@ -202,7 +203,14 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
         </div>
 
         {practice && isChecked && grades[current] && (
-          <Reveal item={item} grade={grades[current]!} marking={markings[current] ?? null} onMark={own ? (credit) => mark(current, credit) : undefined} withheldNote={own ? undefined : '老師還沒有公開答案。'} />
+          <Reveal
+            item={item}
+            grade={grades[current]!}
+            marking={markings[current] ?? null}
+            onMark={own ? (credit) => mark(current, credit) : undefined}
+            withheldNote={own ? undefined : '老師還沒有公開答案。'}
+            tutor={{ attemptId: attempt.id, index: current, turns: tutoring[current] ?? [], onTurns: (turns) => setTutoring((t) => ({ ...t, [current]: turns })) }}
+          />
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-2">

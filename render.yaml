@@ -1,0 +1,35 @@
+# Render Blueprint: New → Blueprint → pick this repository. Fill the secret values Render asks for
+# (see docs/HOSTING.md). The site needs a server that stays on, because reading and marking run in the background.
+services:
+  - type: web
+    name: sheetloop
+    runtime: node
+    plan: starter
+    region: singapore
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter @exam/web build
+    preDeployCommand: pnpm db:migrate
+    startCommand: pnpm --filter @exam/web start
+    healthCheckPath: /login
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        sync: false
+      - key: SETTINGS_SECRET
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SITE_URL
+        sync: false
+      - key: R2_ENDPOINT
+        sync: false
+      - key: R2_BUCKET
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: STORAGE_QUOTA_MB
+        value: "1024"

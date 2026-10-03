@@ -1,9 +1,9 @@
-import type { AnswerGrader, GradingTask, Marking } from '@exam/quiz'
+import type { AnswerGrader, GradingTask, Marking, QuizItem, QuizResponse } from '@exam/quiz'
 import { answerKind, toPaperLabels } from '@exam/quiz'
 import { z } from 'zod'
 import type { TextModel } from './model.ts'
 
-const LANGUAGE_NAMES: Record<string, string> = {
+export const LANGUAGE_NAMES: Record<string, string> = {
   'zh-Hant': 'Traditional Chinese (繁體中文)',
   'zh-Hans': 'Simplified Chinese (简体中文)',
   en: 'English',
@@ -83,9 +83,15 @@ Reply with JSON only, one entry per item:
 
 /** One item as the teacher sees it: the question, the key, and the student's answer. */
 function describe({ item, response }: GradingTask, n: number): string {
+  const lines = [`### Item ${n}`, `Type: ${item.question.type}. Points: ${item.question.points ?? 1}.`, ...questionLines(item)]
+  lines.push(`Student's answer:\n${studentAnswer(item, response)}`)
+  return lines.join('\n')
+}
+
+/** The question with its passage, options, figure descriptions, key and explanation. */
+export function questionLines(item: QuizItem): string[] {
   const q = item.question
-  const kind = answerKind(q).kind
-  const lines = [`### Item ${n}`, `Type: ${q.type}. Points: ${q.points ?? 1}.`]
+  const lines: string[] = []
   if (item.group?.stem) lines.push(`Shared passage:\n${item.group.stem}`)
   lines.push(`Question:\n${q.stem}`)
   if (q.options.length) lines.push(`Options:\n${q.options.map((o) => `(${o.label}) ${o.content}`).join('\n')}`)
@@ -93,10 +99,14 @@ function describe({ item, response }: GradingTask, n: number): string {
   const key = q.answer.values.filter((v) => v.trim())
   lines.push(key.length ? `Reference answer:\n${numbered(key)}` : 'Reference answer: none given.')
   if (q.explanation) lines.push(`Explanation:\n${q.explanation}`)
-  // Blanks answered with the option labels shown in this quiz are marked in the paper's labels.
+  return lines
+}
+
+/** The student's answer as text; blanks answered with the option labels shown in this quiz are given in the paper's labels. */
+export function studentAnswer(item: QuizItem, response: QuizResponse): string {
+  const kind = answerKind(item.question).kind
   const given = response.values.map((v) => (kind === 'blanks' ? toPaperLabels(item, v) : v).slice(0, MAX_ANSWER))
-  lines.push(`Student's answer:\n${kind === 'blanks' ? numbered(given.map((v) => v || '(blank)')) : given.join('\n')}`)
-  return lines.join('\n')
+  return kind === 'blanks' ? numbered(given.map((v) => v || '(blank)')) : given.join('\n')
 }
 
 const numbered = (values: string[]) => (values.length === 1 ? values[0]! : values.map((v, i) => `${i + 1}. ${v}`).join('\n'))

@@ -130,7 +130,7 @@ export function QuizResults({ attempt, summary, teacher }: { attempt: QuizAttemp
       {shown.map((i) => (
         <Card key={i} className="m-enter space-y-4 p-5">
           <QuizQuestion item={attempt.items[i]!} index={i} response={attempt.responses[i] ?? null} reveal />
-          <Reveal item={attempt.items[i]!} grade={grades[i]!} marking={attempt.markings[i] ?? null} onMark={own ? (credit) => mark(i, credit) : undefined} withheldNote={withheldNote} />
+          <Reveal item={attempt.items[i]!} grade={grades[i]!} marking={attempt.markings[i] ?? null} onMark={own ? (credit) => mark(i, credit) : undefined} withheldNote={withheldNote} tutor={{ attemptId: attempt.id, index: i, turns: attempt.tutoring?.[i] ?? [] }} />
         </Card>
       ))}
       {!shown.length && <p className="text-sm text-muted">沒有符合的題目。</p>}
