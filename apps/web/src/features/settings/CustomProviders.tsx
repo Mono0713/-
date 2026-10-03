@@ -46,6 +46,7 @@ const TIERS: [Tier, string][] = [
 /** Services added by the person: any OpenAI-compatible API, with the models picked from it. */
 export function CustomProviders({ providers, hosted, onSaved }: { providers: CustomProviderView[]; hosted: boolean; onSaved: () => void }) {
   const [adding, setAdding] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
   return (
     <>
       {providers.map((p) => (
@@ -53,18 +54,21 @@ export function CustomProviders({ providers, hosted, onSaved }: { providers: Cus
       ))}
       <div className="border-t border-line/70 px-5 py-4 first:border-t-0">
         {adding ? (
-          <AddForm hosted={hosted} onDone={() => (setAdding(false), onSaved())} onCancel={() => setAdding(false)} />
+          <AddForm hosted={hosted} onDone={(n) => (setAdding(false), setNote(n ?? null), onSaved())} onCancel={() => setAdding(false)} />
         ) : (
-          <Button onClick={() => setAdding(true)} icon={<IconPlus size={15} />}>
-            接上其他 AI 服務
-          </Button>
+          <>
+            {note && <p className="mb-3 text-sm text-muted">{note}</p>}
+            <Button onClick={() => (setAdding(true), setNote(null))} icon={<IconPlus size={15} />}>
+              接上其他 AI 服務
+            </Button>
+          </>
         )}
       </div>
     </>
   )
 }
 
-function AddForm({ hosted, onDone, onCancel }: { hosted: boolean; onDone: () => void; onCancel: () => void }) {
+function AddForm({ hosted, onDone, onCancel }: { hosted: boolean; onDone: (note?: string) => void; onCancel: () => void }) {
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
   const [key, setKey] = useState('')
@@ -79,8 +83,7 @@ function AddForm({ hosted, onDone, onCancel }: { hosted: boolean; onDone: () => 
         start(async () => {
           const result = await addCustomProvider({ name, baseUrl: url, apiKey: key })
           if (!result.ok) return setError(result.error)
-          if (result.note) alert(result.note)
-          onDone()
+          onDone(result.note)
         })
       }}
     >
@@ -250,7 +253,7 @@ function PriceInput({ value, onChange }: { value: CustomModel['price']; onChange
     const next = input.trim() && output.trim() && Number.isFinite(i) && Number.isFinite(o) && i >= 0 && o >= 0 ? { input: i, output: o } : null
     if (JSON.stringify(next) !== JSON.stringify(value)) onChange(next)
   }
-  const field = 'm-ink w-16 rounded-md border border-line bg-surface px-2 py-1 text-xs outline-none focus:border-accent/45'
+  const field = 'w-16 rounded-md border border-line bg-surface px-2 py-1 text-xs outline-none focus:border-accent/45'
   return (
     <span className="flex items-center gap-1 text-xs text-muted">
       $<input value={input} onChange={(e) => setInput(e.target.value)} onBlur={commit} inputMode="decimal" placeholder="輸入" className={field} aria-label="輸入價格" />/

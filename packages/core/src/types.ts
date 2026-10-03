@@ -30,7 +30,8 @@ export interface DraftFigure extends Figure {
 export interface DraftQuestion extends Omit<ExtractedQuestion, 'continuesFromPreviousPage' | 'continuesOnNextPage' | 'bbox' | 'figures'> {
   figures: DraftFigure[]
   /** Where the question sits on the source pages, one entry per page it spans. */
-  locations: { pageNumber: number; bbox: ExtractedQuestion['bbox'] }[]
+  /** `manual`: the person drew or moved this box themselves, so it is kept exactly as they left it. */
+  locations: { pageNumber: number; bbox: ExtractedQuestion['bbox']; manual?: boolean }[]
 }
 
 export interface DraftExam {

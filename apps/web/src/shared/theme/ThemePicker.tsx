@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { Segmented } from '@/shared/Segmented'
 import { applyTheme, readTheme, type ThemeChoice } from './theme'
 
@@ -12,13 +12,16 @@ const OPTIONS = [
 
 /** Light / dark / follow-the-device switch; applies at once and is remembered in this browser. */
 export function ThemePicker() {
-  const [choice, setChoice] = useState<ThemeChoice>('system')
-  useEffect(() => setChoice(readTheme()), [])
+  // nothing is marked until the saved choice is read (before the first paint), so no tab is
+  // highlighted first and then left behind
+  const [choice, setChoice] = useState<ThemeChoice | null>(null)
+  useLayoutEffect(() => setChoice(readTheme()), [])
   return (
-    <Segmented
-      value={choice}
+    <Segmented<ThemeChoice | ''>
+      value={choice ?? ''}
       options={OPTIONS}
       onChange={(next) => {
+        if (!next) return
         setChoice(next)
         applyTheme(next)
       }}

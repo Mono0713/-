@@ -14,4 +14,10 @@ describe('untangleBoxes', () => {
     const qs = [at(1, 0.05, 0.4, 0.4, 0.3), at(1, 0.55, 0.5, 0.4, 0.2), at(2, 0.05, 0.5, 0.4, 0.2)]
     expect(untangleBoxes(qs)).toBe(qs)
   })
+
+  it('keeps a box the person placed by hand', () => {
+    const five = { locations: [{ pageNumber: 1, bbox: { x: 0.55, y: 0.4, width: 0.4, height: 0.25 }, manual: true }] }
+    const qs = [five, at(1, 0.56, 0.6, 0.38, 0.2)]
+    expect(untangleBoxes(qs)).toBe(qs)
+  })
 })

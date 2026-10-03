@@ -1,7 +1,7 @@
 'use client'
 
 import { compactStroke, emptyInk, hitsStroke, strokePath, type InkDoc, type InkPoint, type Stroke } from '@exam/ink'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, type CSSProperties } from 'react'
 import { IconEraser, IconPen, IconRedo, IconTrash, IconUndo } from '@/shared/icons'
 
 /** Drawing units: paths are computed for a page this many pixels wide and scaled by the SVG. */
@@ -11,10 +11,12 @@ const COLORS = [
   ['#2f55d4', '藍'],
   ['#d23c3c', '紅'],
 ] as const
-const SIZES = [
-  [0.0035, '細'],
-  [0.006, '粗'],
-] as const
+/** Pen width range (in page widths) for the size slider, and where it starts. */
+const SIZE_MIN = 0.002
+const SIZE_MAX = 0.009
+const SIZE_START = 0.0035
+/** Black ink is stored as black (AI reads it on white) but drawn in the theme's ink color, so it shows in dark mode. */
+const shown = (c: string) => (c === COLORS[0][0] ? 'var(--color-ink)' : c)
 
 // Once a pen has touched any pad, fingers scroll instead of drawing (palm rejection).
 let penSeen = false
@@ -45,7 +47,7 @@ export function InkPad({
   const svg = useRef<SVGSVGElement>(null)
   const [tool, setTool] = useState<'pen' | 'eraser'>('pen')
   const [color, setColor] = useState<string>(COLORS[0][0])
-  const [size, setSize] = useState<number>(SIZES[0][0])
+  const [size, setSize] = useState<number>(SIZE_START)
   const [live, setLive] = useState<Stroke | null>(null)
   const history = useRef<{ undo: InkDoc[]; redo: InkDoc[] }>({ undo: [], redo: [] })
   const gesture = useRef<{ id: number; mode: 'draw' | 'erase' | 'scroll'; lastY: number; erased: boolean; last: InkPoint | null } | null>(null)
@@ -168,14 +170,31 @@ export function InkPad({
               aria-label={`${name}色`}
               aria-pressed={color === c}
             >
-              <span className="h-4 w-4 rounded-full ring-2 ring-white" style={{ background: c, boxShadow: color === c ? `0 0 0 2px ${c}` : undefined }} />
+              <span className="h-4 w-4 rounded-full ring-2 ring-surface" style={{ background: shown(c), boxShadow: color === c ? `0 0 0 2px ${shown(c)}` : undefined }} />
             </button>
           ))}
-          {SIZES.map(([s, name]) => (
-            <button key={s} type="button" onClick={() => setSize(s)} className={`${button(size === s)} w-9 text-xs`} aria-pressed={size === s}>
-              {name}
-            </button>
-          ))}
+          <span className="mx-1 h-5 w-px bg-line" />
+          {/* pen width: a wedge that thickens to the right, with a dot showing the real width */}
+          <label className="flex items-center gap-2 pl-1 pr-2" title="筆的粗細">
+            <span className="m-wedge" style={{ '--v': `${((size - SIZE_MIN) / (SIZE_MAX - SIZE_MIN)) * 100}%` } as CSSProperties}>
+            <input
+              type="range"
+              min={SIZE_MIN}
+              max={SIZE_MAX}
+              step={0.0001}
+              value={size}
+              onChange={(e) => {
+                setSize(Number(e.target.value))
+                setTool('pen')
+              }}
+              aria-label="筆的粗細"
+              className="w-24"
+            />
+            </span>
+            <span className="grid h-6 w-6 place-items-center">
+              <span className="rounded-full" style={{ width: Math.max(2, size * 2400), height: Math.max(2, size * 2400), background: shown(color) }} />
+            </span>
+          </label>
           <span className="ml-auto flex items-center gap-1">
             <button type="button" className={button(false)} onClick={undo} disabled={!history.current.undo.length} aria-label="復原" title="復原">
               <IconUndo size={16} />
@@ -183,7 +202,7 @@ export function InkPad({
             <button type="button" className={button(false)} onClick={redo} disabled={!history.current.redo.length} aria-label="重做" title="重做">
               <IconRedo size={16} />
             </button>
-            <button type="button" className={`${button(false)} hover:text-bad`} onClick={() => doc.strokes.length && confirm('清除整頁？') && commit({ ...doc, strokes: [] })} aria-label="清除" title="清除整頁">
+            <button type="button" className={`${button(false)} hover:text-bad`} onClick={() => doc.strokes.length && commit({ ...doc, strokes: [] })} aria-label="清除" title="清除整頁（可以復原）">
               <IconTrash size={15} />
             </button>
           </span>
@@ -198,13 +217,13 @@ export function InkPad({
         onPointerMove={move}
         onPointerUp={up}
         onPointerCancel={up}
-        className={`block w-full select-none bg-[radial-gradient(rgb(22_24_43/0.09)_1px,transparent_1.2px)] bg-[length:22px_22px] ${readOnly ? '' : 'cursor-crosshair touch-none'}`}
+        className={`block w-full select-none bg-[radial-gradient(color-mix(in_srgb,var(--color-ink)_11%,transparent)_1px,transparent_1.2px)] bg-[length:22px_22px] ${readOnly ? '' : 'cursor-crosshair touch-none'}`}
         style={{ aspectRatio: `${W} / ${height}` }}
       >
         {paths.map((p, i) => (
-          <path key={i} d={p.d} fill={p.color} />
+          <path key={i} d={p.d} fill={shown(p.color)} />
         ))}
-        {live && <path d={strokePath(live, W)} fill={live.color} />}
+        {live && <path d={strokePath(live, W)} fill={shown(live.color)} />}
       </svg>
       {!readOnly && (
         <button type="button" onClick={() => change({ ...doc, height: doc.height + 0.3 })} className="w-full border-t border-line/70 py-1.5 text-xs text-muted hover:bg-paper hover:text-ink">

@@ -51,7 +51,7 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
   const visible = { ...attempt, items: attempt.items.map((item, i) => (attempt.checked[i] ? item : hiddenItem(item))) }
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader title={attempt.title} subtitle={`${mode} · ${attempt.items.length} 題`} />
+      <PageHeader title={attempt.title} subtitle={`${mode} · ${attempt.items.length} 題`} actions={<DeleteQuizButton quizId={attempt.id} label="不做了，刪除" />} />
       <QuizPlayer attempt={visible} />
     </div>
   )
