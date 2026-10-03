@@ -113,4 +113,13 @@ export interface QuizAttempt {
   assignment?: { classId: string; assignmentId: string; preview?: boolean }
   /** Set once an AI teacher has been asked to mark this attempt. */
   teacher?: TeacherState
+  /** Conversations with the AI tutor, by question position. */
+  tutoring?: Record<number, TutorTurn[]>
+}
+
+/** One message in a conversation with the AI tutor about a question. */
+export interface TutorTurn {
+  from: 'student' | 'tutor'
+  text: string
+  at: string
 }

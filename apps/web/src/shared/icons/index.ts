@@ -45,6 +45,7 @@ export {
   Plus as IconPlus,
   Redo2 as IconRedo,
   RefreshCw as IconRefresh,
+  SendHorizontal as IconSend,
   ScanText as IconScan,
   Settings as IconSettings,
   Sparkles as IconSparkles,

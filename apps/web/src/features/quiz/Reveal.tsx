@@ -1,9 +1,10 @@
 'use client'
 
-import type { Grade, Marking, QuizItem } from '@exam/quiz'
+import type { Grade, Marking, QuizItem, TutorTurn } from '@exam/quiz'
 import { answerKind, displayLabel, toQuizLabels } from '@exam/quiz/logic'
 import { Markdown } from '@/shared/Markdown'
 import { Badge, Button } from '@/shared/ui'
+import { TutorChat } from './TutorChat'
 
 export const GRADE_LABELS = {
   correct: ['答對', 'good'],
@@ -21,6 +22,7 @@ export function Reveal({
   marking,
   onMark,
   withheldNote = '分享這份考卷的人沒有公開答案。',
+  tutor,
 }: {
   item: QuizItem
   grade: Grade
@@ -29,6 +31,8 @@ export function Reveal({
   onMark?: (credit: number | null) => void
   /** Said in place of the answer key when it is not shown. */
   withheldNote?: string
+  /** Offers the AI tutor for this question, with the conversation so far. */
+  tutor?: { attemptId: string; index: number; turns: TutorTurn[]; onTurns?: (turns: TutorTurn[]) => void }
 }) {
   const q = item.question
   const kind = answerKind(q)
@@ -116,6 +120,9 @@ export function Reveal({
           <Markdown className="text-muted">{q.translation}</Markdown>
         </div>
       )}
+
+      {/* The tutor would give a hidden answer away. */}
+      {tutor && !withheld && <TutorChat key={tutor.index} {...tutor} />}
     </div>
   )
 }
