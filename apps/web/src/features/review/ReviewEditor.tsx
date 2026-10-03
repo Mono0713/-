@@ -230,10 +230,10 @@ export function ReviewEditor({
     setSelected(null)
     showDeleted(question.number)
   }
-  const moveBox = (index: number, location: number, bbox: DraftQuestion['locations'][number]['bbox']) => {
+  const moveBox = (index: number, location: number, bbox: DraftQuestion['locations'][number]['bbox'], pageNumber?: number) => {
     const q = draft.questions[index]!
     trash.current.push({ kind: 'box', key: keys.current[index]!, locations: q.locations })
-    updateQuestion(index, { ...q, locations: q.locations.map((l, i) => (i === location ? { ...l, bbox, manual: true } : l)) })
+    updateQuestion(index, { ...q, locations: q.locations.map((l, i) => (i === location ? { ...l, bbox, manual: true, ...(pageNumber !== undefined && { pageNumber }) } : l)) })
   }
   const undoDelete = () => {
     const last = trash.current.pop()

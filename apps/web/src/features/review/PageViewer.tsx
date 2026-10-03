@@ -55,8 +55,8 @@ export function PageViewer({
   questions: DraftQuestion[]
   selected: number | null
   onSelect: (index: number) => void
-  /** Given, the selected question's box can be moved and resized on the page. */
-  onBoxChange?: (index: number, location: number, bbox: Box) => void
+  /** Given, the selected question's box can be moved and resized, and dragged onto another page (`pageNumber`). */
+  onBoxChange?: (index: number, location: number, bbox: Box, pageNumber?: number) => void
   className?: string
 }) {
   const scroller = useRef<HTMLDivElement>(null)
@@ -181,34 +181,130 @@ export function PageViewer({
     setPanning(false)
   }
 
-  // The selected box: dragged by its body to move, by its edges and corners to resize.
-  const [live, setLive] = useState<{ index: number; location: number; bbox: Box } | null>(null)
-  const edit = useRef<{ index: number; location: number; grip: Grip; start: Box; x: number; y: number; w: number; h: number } | null>(null)
+  // The selected box: dragged by its body to move (onto another page too), by its edges and corners to resize.
+  // Moves follow the pointer over whichever page it is on, and the viewer scrolls when the pointer
+  // nears its top or bottom edge, so a box can be carried to a page that is out of view.
+  const [live, setLive] = useState<{ index: number; location: number; bbox: Box; pageNumber: number } | null>(null)
+  // Boxes carried to another page remount there; they skip the reveal animation from then on.
+  const carried = useRef(new Set<string>())
+  const edit = useRef<{
+    index: number
+    location: number
+    grip: Grip
+    start: Box
+    pageNumber: number
+    // the page the pointer was last over, kept while it crosses the gap between two pages
+    over: number
+    // where on the box it was grabbed, as fractions of the page
+    grabX: number
+    grabY: number
+    x: number
+    y: number
+    w: number
+    h: number
+    last: { x: number; y: number }
+    end: () => void
+  } | null>(null)
+  const edgeSpeed = useRef(0)
+  const edgeFrame = useRef(0)
+
+  const figureAt = (x: number, y: number) =>
+    document.elementsFromPoint(x, y).map((el) => el.closest<HTMLElement>('figure[data-page]')).find((f) => f !== null) ?? null
+  const placed = (x: number, y: number) => {
+    const d = edit.current!
+    if (d.grip !== 'move') return { bbox: dragged(d.start, d.grip, (x - d.x) / d.w, (y - d.y) / d.h), pageNumber: d.pageNumber }
+    const figure = figureAt(x, y) ?? scroller.current?.querySelector<HTMLElement>(`figure[data-page="${d.over}"]`)
+    if (!figure) return { bbox: d.start, pageNumber: d.pageNumber }
+    d.over = Number(figure.dataset.page)
+    const r = figure.getBoundingClientRect()
+    const b = d.start
+    return {
+      bbox: { ...b, x: clamp((x - r.left) / r.width - d.grabX, 0, 1 - b.width), y: clamp((y - r.top) / r.height - d.grabY, 0, 1 - b.height) },
+      pageNumber: Number(figure.dataset.page),
+    }
+  }
+  const follow = (x: number, y: number) => {
+    const d = edit.current
+    if (!d) return
+    d.last = { x, y }
+    setLive({ index: d.index, location: d.location, ...placed(x, y) })
+  }
+  // near the top or bottom of the view the pages scroll, faster the closer the pointer gets
+  const edgeScroll = (y: number) => {
+    const el = scroller.current
+    const view = el && scrolls() ? el.getBoundingClientRect() : { top: 0, bottom: innerHeight }
+    const zone = 56
+    edgeSpeed.current = y < view.top + zone ? -Math.min(1, (view.top + zone - y) / zone) * 16 : y > view.bottom - zone ? Math.min(1, (y - view.bottom + zone) / zone) * 16 : 0
+    if (!edgeSpeed.current || edgeFrame.current) return
+    const step = () => {
+      const d = edit.current
+      if (!d || !edgeSpeed.current) return void (edgeFrame.current = 0)
+      if (el && scrolls()) el.scrollBy({ top: edgeSpeed.current, behavior: 'instant' })
+      else window.scrollBy({ top: edgeSpeed.current, behavior: 'instant' })
+      follow(d.last.x, d.last.y)
+      edgeFrame.current = requestAnimationFrame(step)
+    }
+    edgeFrame.current = requestAnimationFrame(step)
+  }
   const startEdit = (e: ReactPointerEvent, index: number, location: number, bbox: Box, grip: Grip) => {
     if (!onBoxChange || e.button !== 0) return
-    const page = (e.currentTarget as HTMLElement).closest('figure')?.getBoundingClientRect()
-    if (!page) return
+    const figure = (e.currentTarget as HTMLElement).closest<HTMLElement>('figure[data-page]')
+    if (!figure) return
+    const page = figure.getBoundingClientRect()
     e.stopPropagation() // not a pan
     e.preventDefault()
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    edit.current = { index, location, grip, start: bbox, x: e.clientX, y: e.clientY, w: page.width, h: page.height }
+    // Listened to on the window: a box carried onto another page is a new element there.
+    const move = (ev: PointerEvent) => {
+      follow(ev.clientX, ev.clientY)
+      if (edit.current?.grip === 'move') edgeScroll(ev.clientY)
+    }
+    const up = (ev: PointerEvent) => endEdit(ev)
+    const end = () => {
+      removeEventListener('pointermove', move)
+      removeEventListener('pointerup', up)
+      removeEventListener('pointercancel', up)
+    }
+    addEventListener('pointermove', move)
+    addEventListener('pointerup', up)
+    addEventListener('pointercancel', up)
+    edit.current = {
+      index,
+      location,
+      grip,
+      start: bbox,
+      pageNumber: Number(figure.dataset.page),
+      over: Number(figure.dataset.page),
+      grabX: (e.clientX - page.left) / page.width - bbox.x,
+      grabY: (e.clientY - page.top) / page.height - bbox.y,
+      x: e.clientX,
+      y: e.clientY,
+      w: page.width,
+      h: page.height,
+      last: { x: e.clientX, y: e.clientY },
+      end,
+    }
   }
-  const moveEdit = (e: ReactPointerEvent) => {
+  const endEdit = (e: PointerEvent) => {
     const d = edit.current
     if (!d) return
-    e.stopPropagation()
-    setLive({ index: d.index, location: d.location, bbox: dragged(d.start, d.grip, (e.clientX - d.x) / d.w, (e.clientY - d.y) / d.h) })
-  }
-  const endEdit = (e: ReactPointerEvent) => {
-    const d = edit.current
-    if (!d) return
-    e.stopPropagation()
+    d.end()
+    edgeSpeed.current = 0
+    cancelAnimationFrame(edgeFrame.current)
+    edgeFrame.current = 0
+    const { bbox, pageNumber } = placed(e.clientX, e.clientY)
     edit.current = null
-    const bbox = dragged(d.start, d.grip, (e.clientX - d.x) / d.w, (e.clientY - d.y) / d.h)
     setLive(null)
-    if (Math.abs(bbox.x - d.start.x) + Math.abs(bbox.y - d.start.y) + Math.abs(bbox.width - d.start.width) + Math.abs(bbox.height - d.start.height) > 0.001) onBoxChange?.(d.index, d.location, bbox)
+    if (pageNumber !== d.pageNumber) {
+      carried.current.add(`${d.index}-${d.location}`)
+      onBoxChange?.(d.index, d.location, bbox, pageNumber)
+    } else if (Math.abs(bbox.x - d.start.x) + Math.abs(bbox.y - d.start.y) + Math.abs(bbox.width - d.start.width) + Math.abs(bbox.height - d.start.height) > 0.001) {
+      onBoxChange?.(d.index, d.location, bbox)
+    }
   }
-  const editHandlers = { onPointerMove: moveEdit, onPointerUp: endEdit, onPointerCancel: endEdit }
+  useEffect(() => () => {
+    edit.current?.end()
+    cancelAnimationFrame(edgeFrame.current)
+  }, [])
 
   if (!pages.length) return null
   const scale = ZOOMS[zoom]!
@@ -265,10 +361,22 @@ export function PageViewer({
               )}
               {loaded[page.pageNumber] === 'ok' &&
                 boxes
-                  .flatMap((q, index) => q.locations.map((l, location) => ({ l, location, index })).filter(({ l }) => l.pageNumber === page.pageNumber))
-                  .map(({ l, location, index }, order) => {
-                    const box = live && live.index === index && live.location === location ? live.bbox : l.bbox
-                    const place = { '--i': order, left: `${box.x * 100}%`, top: `${box.y * 100}%`, width: `${box.width * 100}%`, height: `${box.height * 100}%` } as CSSProperties
+                  .flatMap((q, index) =>
+                    q.locations
+                      .map((l, location) => ({ l, location, index, moving: live !== null && live.index === index && live.location === location }))
+                      // a box being carried shows on the page under the pointer
+                      .filter(({ l, moving }) => (moving ? live!.pageNumber : l.pageNumber) === page.pageNumber),
+                  )
+                  .map(({ l, location, index, moving }, order) => {
+                    const box = moving ? live!.bbox : l.bbox
+                    const place = {
+                      '--i': order,
+                      left: `${box.x * 100}%`,
+                      top: `${box.y * 100}%`,
+                      width: `${box.width * 100}%`,
+                      height: `${box.height * 100}%`,
+                      ...((moving || carried.current.has(`${index}-${location}`)) && { animation: 'none' }),
+                    } as CSSProperties
                     const editing = index === selected && !!onBoxChange
                     // Every box is the same element whether or not it is selected, so selecting one never
                     // remounts another and replays its reveal (m-found plays once, when the page shows).
@@ -287,7 +395,7 @@ export function PageViewer({
                           e.preventDefault()
                           onSelect(index)
                         }}
-                        {...(editing && { onPointerDown: (e: ReactPointerEvent) => startEdit(e, index, location, l.bbox, 'move'), ...editHandlers })}
+                        {...(editing && { onPointerDown: (e: ReactPointerEvent) => startEdit(e, index, location, l.bbox, 'move') })}
                         className={`m-found absolute rounded-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${
                           index === selected ? 'z-[1] bg-accent/15 ring-2 ring-accent' : 'cursor-pointer ring-1 ring-accent/0 hover:bg-accent/5 hover:ring-accent/40'
                         } ${editing ? `touch-none ${live?.index === index ? 'cursor-grabbing' : 'cursor-move'}` : ''}`}
@@ -299,7 +407,6 @@ export function PageViewer({
                               key={grip}
                               aria-hidden
                               onPointerDown={(e) => startEdit(e, index, location, l.bbox, grip)}
-                              {...editHandlers}
                               className={`absolute ${className} ${grip.length === 2 ? 'h-3.5 w-3.5' : ''}`}
                             />
                           ))}
