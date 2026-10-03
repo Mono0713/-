@@ -48,8 +48,9 @@ export const currentUser = cache(async (): Promise<SignedInUser | null> => {
 })
 
 /**
- * People to switch between without accounts, so one computer can try both sides of a
- * class (the teacher, and students joining it). "local" owns everything made before.
+ * A testing aid for `pnpm dev` only, never in a built app: people to switch between
+ * without accounts, so one computer can try both sides of a class (the teacher, and
+ * students joining it). "local" owns everything made before.
  */
 export const LOCAL_PEOPLE = [
   { id: 'local', name: '本機使用者' },
@@ -60,8 +61,12 @@ export const LOCAL_PEOPLE = [
 
 export const LOCAL_AS_COOKIE = 'exam-local-as'
 
-/** Which local person this browser is acting as; only without accounts. */
+/** Whether the person switcher is on: development server, no accounts. */
+export const localSwitching = (): boolean => process.env.NODE_ENV === 'development' && !authEnabled()
+
+/** Which local person this browser is acting as; always "local" outside development. */
 export async function localPerson(): Promise<(typeof LOCAL_PEOPLE)[number]> {
+  if (!localSwitching()) return LOCAL_PEOPLE[0]
   const id = (await cookies()).get(LOCAL_AS_COOKIE)?.value
   return LOCAL_PEOPLE.find((p) => p.id === id) ?? LOCAL_PEOPLE[0]
 }

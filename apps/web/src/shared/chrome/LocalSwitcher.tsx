@@ -7,7 +7,7 @@ import { IconCheck } from '@/shared/icons'
 import { Menu } from './Menu'
 
 /**
- * Without accounts: who this browser acts as. Switching to a student lets one computer try
+ * For testing under `pnpm dev` only (never in a built app): who this browser acts as. Switching to a student lets one computer try
  * a class from both sides (join with the code, hand in, then switch back to mark).
  */
 export function LocalSwitcher({ current, people, tone }: { current: string; people: readonly { id: string; name: string }[]; tone: 'sidebar' | 'header' }) {
@@ -34,7 +34,7 @@ export function LocalSwitcher({ current, people, tone }: { current: string; peop
             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-night-accent text-xs font-semibold text-night">{initial}</span>
             <span className="min-w-0 flex-1">
               <span className="block truncate">{me.name}</span>
-              <span className="block text-[11px] text-white/40">本機測試 · 點這裡切換身分</span>
+              <span className="block text-[11px] text-white/40">測試用 · 點這裡切換身分</span>
             </span>
           </>
         )
@@ -42,7 +42,7 @@ export function LocalSwitcher({ current, people, tone }: { current: string; peop
     >
       {(close) => (
         <div className="p-1 text-sm text-ink">
-          <p className="px-2 pb-1 pt-1.5 text-xs text-muted">沒有登入功能時，可以切換成學生測試班級</p>
+          <p className="px-2 pb-1 pt-1.5 text-xs text-muted">只在 pnpm dev 出現，正式版不會有</p>
           {people.map((p) => (
             <button
               key={p.id}

@@ -1,11 +1,12 @@
 import { signOut } from '@/features/auth/actions'
-import { authEnabled, currentUser, LOCAL_PEOPLE, localPerson, type SignedInUser } from '@/server/auth'
+import { authEnabled, currentUser, LOCAL_PEOPLE, localPerson, localSwitching, type SignedInUser } from '@/server/auth'
 import { IconSignOut } from '@/shared/icons'
 import { LocalSwitcher } from './LocalSwitcher'
 
-/** The signed-in person and a sign-out button; without sign-in, which local person this browser acts as. */
+/** The signed-in person and a sign-out button. Without sign-in nothing, except the testing switcher under `pnpm dev`. */
 export async function Account({ tone }: { tone: 'sidebar' | 'header' }) {
   if (!authEnabled()) {
+    if (!localSwitching()) return null
     const switcher = <LocalSwitcher current={(await localPerson()).id} people={LOCAL_PEOPLE} tone={tone} />
     return tone === 'header' ? <div className="ml-auto shrink-0">{switcher}</div> : <div className="border-t border-white/[0.07] px-3 py-2">{switcher}</div>
   }

@@ -2,7 +2,7 @@
 
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { authEnabled, LOCAL_AS_COOKIE, LOCAL_PEOPLE, supabaseServer } from '@/server/auth'
+import { authEnabled, LOCAL_AS_COOKIE, LOCAL_PEOPLE, localSwitching, supabaseServer } from '@/server/auth'
 
 /** Where the person came from, to return there after signing in; only paths inside the app. */
 function safeNext(next: unknown): string {
@@ -28,8 +28,8 @@ export async function signOut() {
   redirect('/login')
 }
 
-/** Without accounts: acts as another local person (e.g. a student) in this browser. */
+/** `pnpm dev` without accounts only: acts as another local person (e.g. a student) in this browser. */
 export async function switchLocalPerson(id: string) {
-  if (authEnabled() || !LOCAL_PEOPLE.some((p) => p.id === id)) return
+  if (!localSwitching() || !LOCAL_PEOPLE.some((p) => p.id === id)) return
   ;(await cookies()).set(LOCAL_AS_COOKIE, id, { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 })
 }
