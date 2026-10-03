@@ -25,8 +25,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh-Hant" className={`${body.variable} ${bricolage.variable} ${mono.variable}`} suppressHydrationWarning>
       <head>
-        {/* Applies the saved light/dark and motion choices before the first paint. */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT + MOTION_SCRIPT }} />
+        {/* Applies the saved light/dark and motion choices before the first paint. Browser extensions
+            sometimes rewrite this tag before React starts, so a mismatch here is not ours to report. */}
+        <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_SCRIPT + MOTION_SCRIPT }} />
       </head>
       <body className="min-h-screen font-sans antialiased">
         <RemovalProvider>
