@@ -79,6 +79,18 @@ describe('S3FileStore', () => {
     expect(link.searchParams.get('X-Amz-Expires')).toBe('60')
     expect(link.searchParams.get('X-Amz-Signature')).toMatch(/^[0-9a-f]{64}$/)
   })
+
+  it('gives up on a bucket that never answers instead of waiting forever', async () => {
+    const silent = createServer(() => {})
+    await new Promise<void>((done) => silent.listen(0, done))
+    try {
+      const store = new S3FileStore({ endpoint: `http://127.0.0.1:${(silent.address() as { port: number }).port}`, bucket: 'exams', accessKeyId: 'id', secretAccessKey: 'secret', timeoutMs: 1000 })
+      await expect(store.write('u/a/figures/f1.png', Buffer.from([1]))).rejects.toThrow('could not write u/a/figures/f1.png: no answer within 1 s')
+    } finally {
+      silent.closeAllConnections()
+      silent.close()
+    }
+  })
 })
 
 describe('checkKey', () => {

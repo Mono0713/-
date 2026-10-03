@@ -113,6 +113,10 @@ class SqliteBankSync {
     return rows.map(toImport)
   }
 
+  failInterrupted(error: string): number {
+    return Number(this.db.prepare("UPDATE imports SET status = 'failed', error = ?, updated_at = ? WHERE status = 'processing'").run(error, new Date().toISOString()).changes)
+  }
+
   deleteImport(id: string): void {
     this.db.prepare('DELETE FROM imports WHERE id = ?').run(id)
   }
@@ -404,6 +408,7 @@ export class SqliteBank implements Bank {
   async listImports(ownerId: string) { return this.db.listImports(ownerId) }
   async updateImport(id: string, patch: ImportPatch) { this.db.updateImport(id, patch) }
   async originalsToExpire(savedBefore: Date) { return this.db.originalsToExpire(savedBefore) }
+  async failInterrupted(error: string) { return this.db.failInterrupted(error) }
   async deleteImport(id: string) { this.db.deleteImport(id) }
   async getDraft(importId: string) { return this.db.getDraft(importId) }
   async saveDraft(importId: string, draft: DraftExam) { this.db.saveDraft(importId, draft) }

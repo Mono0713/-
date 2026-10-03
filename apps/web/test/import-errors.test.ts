@@ -34,4 +34,9 @@ describe('explainError', () => {
   it('falls back to a general note', () => {
     expect(explainError('something odd').title).toBe('AI 沒有讀完這份考卷')
   })
+
+  it('says a reading cut off by a restart or a stalled file store can simply be run again', () => {
+    expect(explainError('Reading was interrupted because the server restarted')).toMatchObject({ title: '辨識到一半被中斷了', fix: 'retry' })
+    expect(explainError('File store could not write u/a/figures/f1.png: no answer within 60 s')).toMatchObject({ title: '檔案沒有存進去', fix: 'retry' })
+  })
 })

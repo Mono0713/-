@@ -54,6 +54,11 @@ export class PostgresBank implements Bank {
     return rows.map(toImport)
   }
 
+  async failInterrupted(error: string): Promise<number> {
+    const rows = await this.sql`update imports set status = 'failed', error = ${error}, updated_at = now() where status = 'processing' returning id`
+    return rows.length
+  }
+
   async deleteImport(id: string): Promise<void> {
     if (isUuid(id)) await this.sql`delete from imports where id = ${id}`
   }

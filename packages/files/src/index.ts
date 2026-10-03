@@ -83,27 +83,31 @@ export interface S3Options {
   secretAccessKey: string
   /** "auto" for R2. */
   region?: string
+  /** How long one request may take, retries included, before it fails instead of waiting forever. */
+  timeoutMs?: number
 }
 
 /** Files in Cloudflare R2, or another S3-compatible bucket, through its S3 API. */
 export class S3FileStore implements FileStore {
   private readonly client: AwsClient
   private readonly base: string
+  private readonly timeoutMs: number
 
   constructor(opts: S3Options) {
+    this.timeoutMs = opts.timeoutMs ?? 60_000
     this.client = new AwsClient({ accessKeyId: opts.accessKeyId, secretAccessKey: opts.secretAccessKey, service: 's3', region: opts.region ?? 'auto' })
     this.base = `${opts.endpoint.replace(/\/+$/, '')}/${opts.bucket}`
   }
 
   async read(key: string): Promise<Buffer | null> {
-    const res = await this.client.fetch(this.url(key))
+    const res = await this.send(this.url(key), {}, 'read', key)
     if (res.status === 404) return null
     await ok(res, 'read', key)
     return Buffer.from(await res.arrayBuffer())
   }
 
   async write(key: string, data: Buffer | string, contentType = contentTypeOf(key)): Promise<void> {
-    const res = await this.client.fetch(this.url(key), { method: 'PUT', body: typeof data === 'string' ? data : new Uint8Array(data), headers: { 'content-type': contentType } })
+    const res = await this.send(this.url(key), { method: 'PUT', body: typeof data === 'string' ? data : new Uint8Array(data), headers: { 'content-type': contentType } }, 'write', key)
     await ok(res, 'write', key)
   }
 
@@ -113,7 +117,7 @@ export class S3FileStore implements FileStore {
     do {
       const query = new URLSearchParams({ 'list-type': '2', prefix })
       if (token) query.set('continuation-token', token)
-      const res = await this.client.fetch(`${this.base}?${query}`)
+      const res = await this.send(`${this.base}?${query}`, {}, 'list', prefix)
       await ok(res, 'list', prefix)
       const xml = await res.text()
       for (const m of xml.matchAll(/<Key>([^<]*)<\/Key>/g)) keys.push(unescapeXml(m[1]!))
@@ -126,7 +130,7 @@ export class S3FileStore implements FileStore {
     for (let i = 0; i < keys.length; i += 8) {
       await Promise.all(
         keys.slice(i, i + 8).map(async (key) => {
-          const res = await this.client.fetch(this.url(key), { method: 'DELETE' })
+          const res = await this.send(this.url(key), { method: 'DELETE' }, 'remove', key)
           if (res.status !== 404) await ok(res, 'remove', key)
         }),
       )
@@ -138,6 +142,16 @@ export class S3FileStore implements FileStore {
     url.searchParams.set('X-Amz-Expires', String(seconds))
     const signed = await this.client.sign(url.toString(), { aws: { signQuery: true } })
     return signed.url
+  }
+
+  /** A request that gives up after timeoutMs, so a stalled connection fails instead of hanging. */
+  private async send(url: string, init: RequestInit, action: string, key: string): Promise<Response> {
+    try {
+      return await this.client.fetch(url, { ...init, signal: AbortSignal.timeout(this.timeoutMs) })
+    } catch (err) {
+      if ((err as Error).name === 'TimeoutError') throw new Error(`File store could not ${action} ${key}: no answer within ${Math.round(this.timeoutMs / 1000)} s`)
+      throw err
+    }
   }
 
   private url(key: string): string {
