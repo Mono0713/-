@@ -496,7 +496,7 @@ export function ReviewEditor({
 
           {/* Question numbers: sub-questions sit together under their number. Below lg they get a row of their own. */}
           <div className="order-last flex min-w-0 basis-full items-center gap-2 lg:order-none lg:flex-1 lg:basis-0">
-            <div className="flex shrink-0 rounded-lg bg-ink/[0.06] p-0.5 text-sm lg:hidden">
+            <div className={`flex shrink-0 rounded-lg bg-ink/[0.06] p-0.5 text-sm lg:hidden ${pages.length ? '' : 'hidden'}`}>
               {(
                 [
                   ['questions', '題目'],
@@ -638,42 +638,48 @@ export function ReviewEditor({
             />
           )}
 
-          <div
-            ref={viewer}
-            className={`lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:h-[calc(100dvh-var(--bar)-1.5rem)] lg:w-[calc((100%_-_var(--side))_*_var(--split))] lg:shrink-0 lg:self-start ${mobileView === 'page' ? '' : 'hidden'}`}
-          >
-            <PageViewer
-              pages={pages}
-              questions={draft.questions}
-              selected={selected}
-              onSelect={(i) => select(i, true)}
-              onBoxChange={moveBox}
-              className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]"
-            />
-          </div>
+          {/* An exam written from scratch has no original pages: the questions take the room. */}
+          {pages.length > 0 && (
+            <>
+              <div
+                ref={viewer}
+                className={`lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:h-[calc(100dvh-var(--bar)-1.5rem)] lg:w-[calc((100%_-_var(--side))_*_var(--split))] lg:shrink-0 lg:self-start ${mobileView === 'page' ? '' : 'hidden'}`}
+              >
+                <PageViewer
+                  pages={pages}
+                  questions={draft.questions}
+                  selected={selected}
+                  onSelect={(i) => select(i, true)}
+                  onBoxChange={moveBox}
+                  className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]"
+                />
+              </div>
 
-          <div
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="調整原卷寬度"
-            aria-valuenow={Math.round(layout.split * 100)}
-            aria-valuemin={30}
-            aria-valuemax={72}
-            tabIndex={0}
-            title="拖曳調整原卷寬度，點兩下還原"
-            onPointerDown={startResize}
-            onDoubleClick={() => setLayout({ split: DEFAULT_LAYOUT.split })}
-            onKeyDown={(e) => {
-              if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') setLayout({ split: clampSplit(layout.split + (e.key === 'ArrowLeft' ? -0.02 : 0.02)) })
-            }}
-            className="group sticky top-[calc(var(--bar)+1rem)] hidden h-[calc(100dvh-var(--bar)-1.5rem)] w-5 shrink-0 cursor-col-resize touch-none items-center justify-center self-start outline-none lg:flex"
-          >
-            <span className="h-14 w-1 rounded-full bg-ink/10 transition-colors group-hover:bg-accent/60 group-focus-visible:bg-accent group-active:bg-accent" />
-          </div>
+              <div
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="調整原卷寬度"
+                aria-valuenow={Math.round(layout.split * 100)}
+                aria-valuemin={30}
+                aria-valuemax={72}
+                tabIndex={0}
+                title="拖曳調整原卷寬度，點兩下還原"
+                onPointerDown={startResize}
+                onDoubleClick={() => setLayout({ split: DEFAULT_LAYOUT.split })}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') setLayout({ split: clampSplit(layout.split + (e.key === 'ArrowLeft' ? -0.02 : 0.02)) })
+                }}
+                className="group sticky top-[calc(var(--bar)+1rem)] hidden h-[calc(100dvh-var(--bar)-1.5rem)] w-5 shrink-0 cursor-col-resize touch-none items-center justify-center self-start outline-none lg:flex"
+              >
+                <span className="h-14 w-1 rounded-full bg-ink/10 transition-colors group-hover:bg-accent/60 group-focus-visible:bg-accent group-active:bg-accent" />
+              </div>
+            </>
+          )}
 
-          <div className={`min-w-0 flex-1 space-y-4 pb-24 lg:block ${mobileView === 'questions' ? '' : 'hidden'}`}>
+          <div className={`min-w-0 flex-1 space-y-4 pb-24 lg:block ${pages.length ? '' : 'mx-auto max-w-3xl'} ${mobileView === 'questions' ? '' : 'hidden'}`}>
             {notice}
-            <details className={`group rounded-2xl bg-surface shadow-sheet ${layout.outline ? 'lg:hidden' : ''}`}>
+            {/* a new exam written from scratch starts with its details open: the title comes first */}
+            <details open={(!pages.length && !initial.meta.title) || undefined} className={`group rounded-2xl bg-surface shadow-sheet ${layout.outline ? 'lg:hidden' : ''}`}>
               <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
                 <span className="font-medium">考卷資訊</span>
                 <span className="min-w-0 flex-1 truncate text-muted">{[meta.subject, meta.institution, meta.term].filter(Boolean).join(' · ')}</span>
@@ -781,8 +787,11 @@ export function ReviewEditor({
               />
             </DndContext>
 
+            {!draft.questions.length && (
+              <p className="px-1 pt-2 text-sm text-muted">還沒有題目。新增一題後選題型、寫題目和答案，寫好的題目可以拖曳排序。</p>
+            )}
             <Button onClick={() => addQuestion()} className="w-full border border-dashed border-ink/15 bg-transparent py-3 shadow-none" icon={<IconPlus size={16} />}>
-              新增題目
+              {draft.questions.length ? '新增題目' : '新增第一題'}
             </Button>
           </div>
         </div>

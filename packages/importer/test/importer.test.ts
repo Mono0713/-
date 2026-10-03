@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SqliteBank } from '@exam/bank'
 import { LocalFileStore } from '@exam/files'
 import { registerProvider } from '@exam/extraction'
-import { AUTO, Importer, type ReadingPlan } from '../src/index.ts'
+import { AUTO, BLANK, Importer, type ReadingPlan } from '../src/index.ts'
 import { page, question } from '../../core/test/fixtures.ts'
 
 let dataDir: string
@@ -181,5 +181,18 @@ describe('Importer', () => {
     await importer.settled(imp.id)
     expect(await bank.getImport(imp.id)).toMatchObject({ status: 'failed' })
     expect((await bank.getImport(imp.id))?.error).toBeTruthy()
+  })
+})
+
+describe('exams written from scratch', () => {
+  it('opens an empty draft for review, saves it to the bank and deletes cleanly', async () => {
+    const imp = await importer.createBlank('local')
+    expect(imp).toMatchObject({ status: 'review', pageCount: 0, provider: BLANK })
+    expect((await bank.getDraft(imp.id))?.questions).toEqual([])
+    const exam = await importer.publish(imp.id, { ...(await bank.getDraft(imp.id))!, meta: { title: '自己出的題', subject: null, institution: null, term: null, language: null }, questions: [{ ...question(), locations: [] } as never] })
+    expect(exam.title).toBe('自己出的題')
+    expect(await importer.originals(imp.id)).toEqual([])
+    await importer.remove(imp.id)
+    expect(await bank.getImport(imp.id)).toBeNull()
   })
 })

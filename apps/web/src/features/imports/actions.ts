@@ -30,6 +30,13 @@ export async function createImport(formData: FormData): Promise<{ error: string 
   redirect(`/imports/${id}`)
 }
 
+/** Opens an empty exam in the editor, to be written question by question. */
+export async function createBlankExam() {
+  const record = await services().importer.createBlank(await currentOwner())
+  revalidatePath('/imports')
+  redirect(`/imports/${record.id}`)
+}
+
 /** Saves a reply pasted from a chat app and re-reads those pages. */
 export async function submitManualReply(importId: string, target: number | 'batch', text: string): Promise<{ error: string } | void> {
   await requireImport(importId)

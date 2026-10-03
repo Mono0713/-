@@ -1,4 +1,5 @@
 import type { ImportRecord } from '@exam/bank'
+import { BLANK } from '@exam/importer'
 import Link from 'next/link'
 import { STATUS_LABELS } from '@/shared/labels'
 import { Removable } from '@/shared/removal'
@@ -21,7 +22,7 @@ export function ImportList({ imports }: { imports: ImportRecord[] }) {
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-2 font-medium sm:truncate">{imp.title ?? imp.fileName}</p>
                 <p className="truncate text-xs text-muted">
-                  {[imp.subject, imp.title ? imp.fileName : null, `${imp.pageCount} 頁`, imp.questionCount ? `${imp.questionCount} 題在題庫` : null]
+                  {[imp.subject, imp.provider === BLANK ? '從零建立' : imp.title ? imp.fileName : null, imp.provider === BLANK ? null : `${imp.pageCount} 頁`, imp.questionCount ? `${imp.questionCount} 題在題庫` : null]
                     .filter(Boolean)
                     .join(' · ')}
                 </p>

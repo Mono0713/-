@@ -1,4 +1,4 @@
-import { ORIGINAL_DAYS } from '@exam/importer'
+import { BLANK, ORIGINAL_DAYS } from '@exam/importer'
 import { notFound } from 'next/navigation'
 import { AutoRefresh } from '@/features/imports/AutoRefresh'
 import { DeleteImportButton } from '@/features/imports/DeleteImportButton'
@@ -100,8 +100,10 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         strength={(await services().settings.get(imp.ownerId)).strength}
         heading={{
           title: imp.title ?? imp.fileName,
-          meta: `${imp.pageCount} 頁 · ${readBy(imp, results)}`,
-          menu: [<OriginalFiles key="original" importId={id} state={original} />, <DeleteImportButton key="menu" importId={id} menu />],
+          meta: imp.provider === BLANK ? '從零建立' : `${imp.pageCount} 頁 · ${readBy(imp, results)}`,
+          menu: imp.provider === BLANK
+            ? [<DeleteImportButton key="menu" importId={id} menu />]
+            : [<OriginalFiles key="original" importId={id} state={original} />, <DeleteImportButton key="menu" importId={id} menu />],
         }}
         notice={
           failed.length > 0 && (

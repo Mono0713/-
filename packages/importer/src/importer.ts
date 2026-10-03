@@ -62,6 +62,9 @@ export interface ManualState {
 
 const WAITING = 'waiting for a reply'
 
+/** `provider` of an exam made from scratch rather than read from a file. */
+export const BLANK = 'blank'
+
 /** Days the uploaded files stay after an import is first saved to the bank, unless the owner keeps them. */
 export const ORIGINAL_DAYS = 30
 
@@ -81,6 +84,24 @@ export class Importer {
 
   get files(): FileStore {
     return this.opts.files
+  }
+
+  /**
+   * An exam written from scratch: no file and no pages, just an empty draft that opens
+   * straight in the editor, where questions are added by hand.
+   */
+  async createBlank(ownerId: string): Promise<ImportRecord> {
+    const record = await this.bank.createImport({ ownerId, fileName: '新考卷', pageCount: 0, provider: BLANK, model: null })
+    const draft: DraftExam = {
+      fileName: '新考卷',
+      meta: { title: null, subject: null, institution: null, term: null, language: null },
+      groups: [],
+      questions: [],
+      pages: [],
+    }
+    await this.bank.saveDraft(record.id, draft)
+    await this.bank.updateImport(record.id, { status: 'review' })
+    return (await this.bank.getImport(record.id)) ?? record
   }
 
   /** Stores the upload, renders its pages and starts extraction in the background. */
