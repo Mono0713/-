@@ -90,11 +90,16 @@ export function ProviderFields({
           ))}
         </select>
       </label>
-      <div className={compact ? '' : 'block text-sm'}>
-        {!compact && <span className="mb-1 block font-medium">{provider === 'manual' ? '使用的聊天 App（選填）' : '模型'}</span>}
-        {/* key: a new method starts a fresh picker, custom entry included. */}
-        <ModelPicker key={provider} models={current?.models ?? []} value={model} onChange={(m) => onChange({ provider, model: m })} compact={compact} emptyLabel={provider === 'manual' ? '不指定' : '預設'} />
-      </div>
+      {current?.note !== undefined || provider === 'auto' ? (
+        // automatic: the models follow the AI strength in settings, so there is nothing to pick here
+        <p className={compact ? 'max-w-80 text-xs text-muted' : 'self-end pb-2 text-xs text-muted'}>{current?.note ?? '在設定加上 API 金鑰後才能用。'}</p>
+      ) : (
+        <div className={compact ? '' : 'block text-sm'}>
+          {!compact && <span className="mb-1 block font-medium">{provider === 'manual' ? '使用的聊天 App（選填）' : '模型'}</span>}
+          {/* key: a new method starts a fresh picker, custom entry included. */}
+          <ModelPicker key={provider} models={current?.models ?? []} value={model} onChange={(m) => onChange({ provider, model: m })} compact={compact} emptyLabel={provider === 'manual' ? '不指定' : '預設'} />
+        </div>
+      )}
     </>
   )
 }

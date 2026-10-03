@@ -90,6 +90,28 @@ describe.each(banks)('%s', (_name, open) => {
     expect(await bank.getQuestion(q.id)).toBeNull()
   })
 
+  it('finds saved imports whose uploaded files are due to go', async () => {
+    const bank = await open()
+    const make = async (keep: boolean) => {
+      const imp = await bank.createImport({ ownerId: 'local', fileName: 'x.pdf', pageCount: 1, provider: 'claude', model: null })
+      if (keep) await bank.updateImport(imp.id, { keepOriginal: true })
+      return imp
+    }
+    const saved = await make(false)
+    const kept = await make(true)
+    const unsaved = await make(false)
+    for (const imp of [saved, kept]) await bank.saveExam(imp.id, draft([draftQuestion()]))
+    const ids = async (before: Date) => (await bank.originalsToExpire(before)).map((i) => i.id).filter((id) => [saved.id, kept.id, unsaved.id].includes(id))
+
+    expect(await ids(new Date(Date.now() - 60_000))).toEqual([])
+    expect(await ids(new Date(Date.now() + 60_000))).toEqual([saved.id])
+    expect(await bank.getImport(kept.id)).toMatchObject({ keepOriginal: true, originalDeletedAt: null })
+
+    const at = new Date().toISOString()
+    await bank.updateImport(saved.id, { originalDeletedAt: at })
+    expect(await bank.getImport(saved.id)).toMatchObject({ originalDeletedAt: at })
+    expect(await ids(new Date(Date.now() + 60_000))).toEqual([])
+  })
 })
 
 describe('SqliteBank', () => {

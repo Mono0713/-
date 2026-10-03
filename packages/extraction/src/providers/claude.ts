@@ -24,11 +24,13 @@ export class ClaudeProvider implements VisionProvider {
   }
 
   async complete(req: PageRequest): Promise<ProviderReply> {
+    // Haiku 4.5 takes neither adaptive thinking nor effort; it reads the page without them.
+    const small = /haiku/.test(this.model)
     const stream = this.client.messages.stream({
       model: this.model,
-      max_tokens: 64000,
-      thinking: { type: 'adaptive' },
-      output_config: { effort: this.effort, format: { type: 'json_schema', schema: req.jsonSchema } },
+      max_tokens: small ? 32000 : 64000,
+      ...(small ? {} : { thinking: { type: 'adaptive' as const } }),
+      output_config: { ...(small ? {} : { effort: this.effort }), format: { type: 'json_schema', schema: req.jsonSchema } },
       system: req.system,
       messages: [
         {

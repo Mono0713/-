@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS imports (
   title TEXT,
   subject TEXT,
   draft TEXT,
+  keep_original INTEGER NOT NULL DEFAULT 0,
+  original_deleted_at TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -64,6 +66,7 @@ class SqliteBankSync {
     this.db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;')
     this.db.exec(SCHEMA)
     this.migrate()
+    this.addImportColumns()
   }
 
   createImport(input: NewImport): ImportRecord {
@@ -97,7 +100,17 @@ class SqliteBankSync {
     if (patch.subject !== undefined) columns.subject = patch.subject
     if (patch.provider !== undefined) columns.provider = patch.provider
     if (patch.model !== undefined) columns.model = patch.model
+    if (patch.keepOriginal !== undefined) columns.keep_original = patch.keepOriginal ? 1 : 0
+    if (patch.originalDeletedAt !== undefined) columns.original_deleted_at = patch.originalDeletedAt
     this.setColumns('imports', id, columns)
+  }
+
+  originalsToExpire(savedBefore: Date): ImportRecord[] {
+    const rows = this.db
+      .prepare(`${IMPORT_SELECT} WHERE i.keep_original = 0 AND i.original_deleted_at IS NULL
+        AND EXISTS (SELECT 1 FROM exams e WHERE e.import_id = i.id AND e.created_at < ?)`)
+      .all(savedBefore.toISOString()) as Row[]
+    return rows.map(toImport)
   }
 
   deleteImport(id: string): void {
@@ -281,6 +294,13 @@ class SqliteBankSync {
     }
   }
 
+  /** Columns added after the first release, for data folders made before them. */
+  private addImportColumns() {
+    const columns = (this.db.prepare('PRAGMA table_info(imports)').all() as Row[]).map((c) => String(c.name))
+    if (!columns.includes('keep_original')) this.db.exec('ALTER TABLE imports ADD COLUMN keep_original INTEGER NOT NULL DEFAULT 0')
+    if (!columns.includes('original_deleted_at')) this.db.exec('ALTER TABLE imports ADD COLUMN original_deleted_at TEXT')
+  }
+
   private setColumns(table: 'imports' | 'exams' | 'questions', id: string, columns: Record<string, string | number | null>) {
     const keys = Object.keys(columns)
     if (!keys.length) return
@@ -331,6 +351,8 @@ function toImport(row: Row): ImportRecord {
     title: row.title === null ? null : String(row.title),
     subject: row.subject === null ? null : String(row.subject),
     questionCount: Number(row.question_count ?? 0),
+    keepOriginal: Boolean(row.keep_original),
+    originalDeletedAt: text(row.original_deleted_at),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   }
@@ -363,6 +385,7 @@ export class SqliteBank implements Bank {
   async getImport(id: string) { return this.db.getImport(id) }
   async listImports(ownerId: string) { return this.db.listImports(ownerId) }
   async updateImport(id: string, patch: ImportPatch) { this.db.updateImport(id, patch) }
+  async originalsToExpire(savedBefore: Date) { return this.db.originalsToExpire(savedBefore) }
   async deleteImport(id: string) { this.db.deleteImport(id) }
   async getDraft(importId: string) { return this.db.getDraft(importId) }
   async saveDraft(importId: string, draft: DraftExam) { this.db.saveDraft(importId, draft) }

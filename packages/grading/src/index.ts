@@ -1,5 +1,5 @@
 export { cacheKey, PostgresGradingCache, SqliteGradingCache, type GradingCache } from './cache.ts'
 export { markOpenAnswers, type MarkResult } from './mark.ts'
-export { createTextModel, registerTextModel, type TextModel } from './model.ts'
+export { createTextModel, registerTextModel, type TextModel, type TextModelConfig } from './model.ts'
 export { AiTeacher } from './teacher.ts'
 export { inkToPng, readHandwriting, readHandwrittenAnswers, repairLatex, unreadHandwriting } from './handwriting.ts'

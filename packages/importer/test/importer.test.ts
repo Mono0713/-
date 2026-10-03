@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SqliteBank } from '@exam/bank'
 import { LocalFileStore } from '@exam/files'
 import { registerProvider } from '@exam/extraction'
-import { Importer } from '../src/index.ts'
+import { AUTO, Importer, type ReadingPlan } from '../src/index.ts'
 import { page, question } from '../../core/test/fixtures.ts'
 
 let dataDir: string
@@ -20,6 +20,11 @@ registerProvider('fake', () => ({
   complete: async () => ({ text: JSON.stringify(page([question()])), model: 'fake-1', usage: { inputTokens: 10, outputTokens: 5 } }),
 }))
 
+// For automatic reading: a provider that is down, one unsure of what it read, and a sure one.
+const reply = (confidence: 'high' | 'low', model: string) => async () => ({ text: JSON.stringify(page([question({ confidence })])), model, usage: { inputTokens: 100, outputTokens: 50 } })
+registerProvider('down', () => ({ id: 'down', model: 'down-1', complete: async () => Promise.reject(Object.assign(new Error('invalid key'), { status: 401 })) }))
+registerProvider('unsure', (c) => ({ id: 'unsure', model: c.model ?? 'unsure-1', complete: reply(c.model === 'unsure-best' ? 'high' : 'low', c.model ?? 'unsure-1') }))
+
 const png = () => sharp({ create: { width: 200, height: 300, channels: 3, background: '#fff' } }).png().toBuffer()
 
 beforeEach(async () => {
@@ -30,6 +35,64 @@ beforeEach(async () => {
 afterEach(async () => {
   await bank.close()
   await rm(dataDir, { recursive: true, force: true })
+})
+
+describe('automatic reading', () => {
+  const auto = (plan: ReadingPlan | null) => {
+    const seen: string[] = []
+    const importer = new Importer({ bank, files: new LocalFileStore(dataDir), plan: async () => plan, onPage: (_imp, r) => seen.push(`${r.pageNumber}:${r.model}:${r.page ? 'ok' : 'failed'}`) })
+    return { importer, seen }
+  }
+
+  it('hands pages the first provider cannot read to the next one', async () => {
+    const { importer, seen } = auto({ primary: { provider: 'down' }, fallbacks: [{ provider: 'fake' }], escalate: null })
+    const imp = await importer.create({ ownerId: 'local', files: [{ name: 'p1.png', data: await png() }], provider: AUTO })
+    await importer.settled(imp.id)
+    expect(await bank.getImport(imp.id)).toMatchObject({ status: 'review', provider: AUTO })
+    expect((await importer.pageResults(imp.id))[0]).toMatchObject({ provider: 'fake', model: 'fake-1' })
+    expect(seen).toEqual(['1:down-1:failed', '1:fake-1:ok'])
+  })
+
+  it('reads doubtful pages again with the stronger model', async () => {
+    const { importer, seen } = auto({ primary: { provider: 'unsure', model: 'unsure-1' }, fallbacks: [], escalate: { provider: 'unsure', model: 'unsure-best' } })
+    const imp = await importer.create({ ownerId: 'local', files: [{ name: 'p1.png', data: await png() }], provider: AUTO })
+    await importer.settled(imp.id)
+    expect((await importer.pageResults(imp.id))[0]).toMatchObject({ model: 'unsure-best' })
+    expect(seen).toEqual(['1:unsure-1:ok', '1:unsure-best:ok'])
+  })
+
+  it('fails with a clear message when no provider has a key', async () => {
+    const { importer } = auto(null)
+    const imp = await importer.create({ ownerId: 'local', files: [{ name: 'p1.png', data: await png() }], provider: AUTO })
+    await importer.settled(imp.id)
+    expect(await bank.getImport(imp.id)).toMatchObject({ status: 'failed', error: expect.stringMatching(/API key/) })
+  })
+})
+
+describe('uploaded files', () => {
+  it('deletes them 30 days after saving unless kept, and reads again from the page images', async () => {
+    const imp = await importer.create({ ownerId: 'local', files: [{ name: '小考.png', data: await png() }], provider: 'fake' })
+    await importer.settled(imp.id)
+    await importer.publish(imp.id, (await bank.getDraft(imp.id))!)
+    const kept = await importer.create({ ownerId: 'local', files: [{ name: 'kept.png', data: await png() }], provider: 'fake' })
+    await importer.settled(kept.id)
+    await importer.publish(kept.id, (await bank.getDraft(kept.id))!)
+    await bank.updateImport(kept.id, { keepOriginal: true })
+    expect(await importer.originals(imp.id)).toEqual([{ name: '小考.png', key: expect.stringMatching(/sources\/1\.png$/) }])
+
+    expect(await importer.expireOriginals()).toBe(0)
+    const later = new Date(Date.now() + 31 * 86_400_000)
+    expect(await importer.expireOriginals(later)).toBe(1)
+    expect(await importer.originals(imp.id)).toEqual([])
+    expect(await importer.originals(kept.id)).toHaveLength(1)
+    expect(await bank.getImport(imp.id)).toMatchObject({ originalDeletedAt: later.toISOString() })
+    expect(existsSync(join(dataDir, importer.pageImage(imp, 1)))).toBe(true)
+
+    await importer.rerun(imp.id)
+    await importer.settled(imp.id)
+    expect(await bank.getImport(imp.id)).toMatchObject({ status: 'review', error: null })
+    expect(await importer.expireOriginals(later)).toBe(0)
+  })
 })
 
 describe('Importer', () => {

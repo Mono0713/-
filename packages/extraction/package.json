@@ -7,5 +7,5 @@
   "types": "./src/index.ts",
   "exports": { ".": "./src/index.ts" },
   "scripts": { "typecheck": "tsc --noEmit -p ." },
-  "dependencies": { "@exam/core": "workspace:*", "zod": "^4.1.0", "@anthropic-ai/sdk": "^0.128.0", "openai": "^7.23.0", "@google/genai": "^2.24.0" }
+  "dependencies": { "@exam/core": "workspace:*", "@exam/models": "workspace:*", "zod": "^4.1.0", "@anthropic-ai/sdk": "^0.128.0", "openai": "^7.23.0", "@google/genai": "^2.24.0" }
 }

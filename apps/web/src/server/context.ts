@@ -3,13 +3,16 @@ import { join, resolve } from 'node:path'
 import { repoRoot } from './env'
 import { PostgresBank, SqliteBank, type Bank } from '@exam/bank'
 import { connect } from '@exam/db'
-import { DEFAULT_MODELS, MODEL_CATALOG, type ModelTier } from '@exam/extraction'
+import { DEFAULT_MODELS, type ModelTier } from '@exam/extraction'
 import { fileStoreFromEnv, type FileStore } from '@exam/files'
-import { Importer } from '@exam/importer'
+import { AUTO, Importer } from '@exam/importer'
 import { AiTeacher, createTextModel, PostgresGradingCache, SqliteGradingCache, type GradingCache, type TextModel } from '@exam/grading'
+import { BUILTIN_LABELS, BUILTIN_MODELS, route, type ModelChoice, type ProviderInfo, type Route, type Strength, type Task } from '@exam/models'
 import { PostgresQuizStore, SqliteQuizStore, type QuizStore } from '@exam/quiz'
-import { DEFAULT_LOCALE, FileSettingsStore, PostgresSettingsStore, type SettingsStore } from '@exam/settings'
+import { DEFAULT_LOCALE, FileSettingsStore, PostgresSettingsStore, type Settings, type SettingsStore } from '@exam/settings'
+import { PostgresUsageStore, SqliteUsageStore, type UsageStore } from '@exam/usage'
 import { authEnabled } from './auth'
+import { checkServiceUrl } from './serviceUrl'
 
 export { currentOwner, currentUser, authEnabled } from './auth'
 
@@ -29,6 +32,7 @@ interface Services {
   quizzes: QuizStore
   settings: SettingsStore
   gradingCache: GradingCache
+  usage: UsageStore
   files: FileStore
 }
 
@@ -52,15 +56,33 @@ export function services(): Services {
         reviewLanguage: localeOf,
         providerConfig: async (providerId, ownerId) => {
           const s = await stores.settings.get(ownerId)
-          return { apiKey: s.apiKeys[providerId] || undefined, model: s.models[providerId] || undefined }
+          const custom = s.customProviders.find((c) => c.id === providerId)
+          return { apiKey: s.apiKeys[providerId] || undefined, model: s.models[providerId] || custom?.models[0]?.id, baseUrl: await serviceUrlOf(s, providerId) }
         },
+        plan: async (ownerId) => {
+          const r = await routeFor(ownerId, 'recognition')
+          return r && { primary: r.primary, fallbacks: r.fallbacks, escalate: r.escalate }
+        },
+        onPage: (imp, r) =>
+          void stores.usage.record({ ownerId: imp.ownerId, task: 'recognition', provider: r.provider, model: r.model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens }).catch(() => {}),
       }),
     }
+    sweepOriginals(globals.__examServices.importer)
   }
   return globals.__examServices
 }
 
-type Stores = Pick<Services, 'bank' | 'quizzes' | 'settings' | 'gradingCache'>
+// How often uploaded files past their 30 days are looked for.
+const SWEEP_EVERY = 6 * 3_600_000
+
+/** Deletes expired uploaded files now and then while the server runs. */
+function sweepOriginals(importer: Importer) {
+  const sweep = () => void importer.expireOriginals().catch((err) => console.error('Deleting expired uploads failed:', err))
+  setTimeout(sweep, 10_000).unref()
+  setInterval(sweep, SWEEP_EVERY).unref()
+}
+
+type Stores = Pick<Services, 'bank' | 'quizzes' | 'settings' | 'gradingCache' | 'usage'>
 
 function sqliteStores(): Stores {
   const dbFile = join(dataDir, 'bank.sqlite')
@@ -69,6 +91,7 @@ function sqliteStores(): Stores {
     quizzes: new SqliteQuizStore(dbFile),
     settings: new FileSettingsStore(join(dataDir, 'settings.json')),
     gradingCache: new SqliteGradingCache(dbFile),
+    usage: new SqliteUsageStore(dbFile),
   }
 }
 
@@ -76,7 +99,7 @@ function postgresStores(url: string): Stores {
   const secret = process.env.SETTINGS_SECRET
   if (!secret) throw new Error('SETTINGS_SECRET is required with DATABASE_URL: it encrypts the API keys people save.')
   const sql = connect(url)
-  return { bank: new PostgresBank(sql), quizzes: new PostgresQuizStore(sql), settings: new PostgresSettingsStore(sql, secret), gradingCache: new PostgresGradingCache(sql) }
+  return { bank: new PostgresBank(sql), quizzes: new PostgresQuizStore(sql), settings: new PostgresSettingsStore(sql, secret), gradingCache: new PostgresGradingCache(sql), usage: new PostgresUsageStore(sql) }
 }
 
 /**
@@ -93,6 +116,8 @@ export const ENV_KEYS: Record<string, string[]> = {
   openai: ['OPENAI_API_KEY'],
   gemini: ['GEMINI_API_KEY', 'GOOGLE_API_KEY'],
 }
+
+const BUILTIN = ['claude', 'openai', 'gemini']
 
 /** Where a provider's API key comes from for this user: the settings page, the .env file, or nowhere. */
 export async function keySource(ownerId: string, providerId: string): Promise<'settings' | 'env' | null> {
@@ -114,6 +139,51 @@ function envKey(providerId: string): string | undefined {
   return ENV_KEYS[providerId]?.map((name) => process.env[name]).find(Boolean)
 }
 
+/**
+ * Every service this user can route to: Claude, OpenAI and Gemini with their catalogued
+ * models, then the services they added. A local service such as Ollama needs no key.
+ */
+export function providersOf(s: Settings): ProviderInfo[] {
+  return [
+    ...BUILTIN.map((id) => ({ id, label: BUILTIN_LABELS[id]!, ready: Boolean(s.apiKeys[id] || envKey(id)), models: BUILTIN_MODELS[id]! })),
+    ...s.customProviders.map((c) => ({
+      id: c.id,
+      label: c.name,
+      ready: true,
+      models: c.models.map((m) => ({ id: m.id, label: m.id, tier: m.tier, vision: m.vision, price: m.price })),
+    })),
+  ]
+}
+
+/**
+ * The address of a service the person added, checked again before every use: hosted, a
+ * name that now points inside the network is refused. Undefined for the built-in providers.
+ */
+async function serviceUrlOf(s: Settings, providerId: string): Promise<string | undefined> {
+  const custom = s.customProviders.find((c) => c.id === providerId)
+  return custom ? checkServiceUrl(custom.baseUrl, authEnabled()) : undefined
+}
+
+/** The strength a task runs at for this user: its own, or the overall one. */
+export const strengthOf = (s: Settings, task: Task): Strength => s.taskStrength[task] ?? s.strength
+
+/** A model picked by hand for a task, if any; AI marking's older setting still counts. */
+function overrideOf(s: Settings, task: Task): ModelChoice | null {
+  const picked = s.taskModels[task]
+  if (picked) return picked
+  if (task === 'grading' && s.aiGrading.provider) {
+    const model = s.aiGrading.model || route('grading', s.strength, providersOf(s).filter((p) => p.id === s.aiGrading.provider))?.primary.model
+    return model ? { provider: s.aiGrading.provider, model } : null
+  }
+  return null
+}
+
+/** The models a task uses for this user right now; null when no service with a key can do it. */
+export async function routeFor(ownerId: string, task: Task): Promise<Route | null> {
+  const s = await services().settings.get(ownerId)
+  return route(task, strengthOf(s, task), providersOf(s), { override: overrideOf(s, task) })
+}
+
 export interface ProviderOption {
   id: string
   label: string
@@ -121,55 +191,89 @@ export interface ProviderOption {
   /** Models to offer, and the one to preselect. */
   models: { id: string; label: string; tier: ModelTier | null }[]
   model: string
+  /** What the option does, for one that picks its models itself. */
+  note?: string
 }
 
 // Manual mode records which chat app read the pages, for reference only.
 const CHAT_APPS = ['Claude', 'ChatGPT', 'Gemini'].map((id) => ({ id, label: id, tier: null }))
 
-/** Recognition methods for this user: whether each has an API key, and its models. */
+/** Recognition methods for this user: automatic, manual, then every service, with its models and whether it has a key. */
 export async function availableProviders(ownerId: string): Promise<ProviderOption[]> {
   const s = await services().settings.get(ownerId)
-  const api = (id: string, label: string): ProviderOption => {
-    const catalog = MODEL_CATALOG[id] ?? []
-    const known = (s.knownModels[id] ?? []).filter((m) => !catalog.some((c) => c.id === m)).map((m) => ({ id: m, label: m, tier: null }))
-    return { id, label, ready: Boolean(s.apiKeys[id] || envKey(id)), models: [...catalog, ...known], model: s.models[id] || process.env[`${id.toUpperCase()}_MODEL`] || DEFAULT_MODELS[id] || '' }
+  const providers = providersOf(s)
+  const plan = route('recognition', strengthOf(s, 'recognition'), providers, { override: overrideOf(s, 'recognition') })
+  const name = (c: ModelChoice) => providers.find((p) => p.id === c.provider)?.models.find((m) => m.id === c.model)?.label ?? c.model
+  const auto: ProviderOption = {
+    id: AUTO,
+    label: '自動（依 AI 強度）',
+    ready: plan !== null,
+    models: [],
+    model: '',
+    note: plan ? `用 ${name(plan.primary)}${plan.escalate ? `，沒把握的頁再用 ${name(plan.escalate)} 讀一次` : ''}${plan.fallbacks.length ? `；讀不了時換 ${plan.fallbacks.map(name).join('、')}` : ''}` : undefined,
   }
-  return [
-    { id: 'manual', label: '手動（貼上聊天 App 的回覆）', ready: true, models: CHAT_APPS, model: s.models.manual ?? '' },
-    api('claude', 'Claude API'),
-    api('gemini', 'Gemini API'),
-    api('openai', 'OpenAI API'),
-  ]
+  const options = providers.map((p): ProviderOption => {
+    const custom = !BUILTIN.includes(p.id)
+    const catalog = p.models.map(({ id, label, tier }) => ({ id, label, tier }))
+    const known = (s.knownModels[p.id] ?? []).filter((m) => !catalog.some((c) => c.id === m)).map((m) => ({ id: m, label: m, tier: null }))
+    const fallback = custom ? (p.models[0]?.id ?? '') : process.env[`${p.id.toUpperCase()}_MODEL`] || DEFAULT_MODELS[p.id] || ''
+    return { id: p.id, label: custom ? p.label : `${p.label} API`, ready: p.ready, models: [...catalog, ...known], model: s.models[p.id] || fallback }
+  })
+  return [auto, { id: 'manual', label: '手動（貼上聊天 App 的回覆）', ready: true, models: CHAT_APPS, model: s.models.manual ?? '' }, ...options]
 }
 
-const API_PROVIDERS = ['claude', 'openai', 'gemini']
-
-/**
- * The AI teacher for this user, or null when AI marking is off or no API key is set.
- * Unless the user picked one, it uses the first provider with a key and its cheapest model:
- * marking answers needs far less than reading a scanned page.
- */
 export type Teacher = { teacher: AiTeacher; reader: TextModel; provider: string; model: string }
 
 /** The provider and model AI marking would use, whether or not it is switched on (null: no key yet). */
-export async function teacherChoice(ownerId: string): Promise<{ provider: string; model: string } | null> {
-  const s = await services().settings.get(ownerId)
-  const { aiGrading } = s
-  const keyOf = (id: string) => s.apiKeys[id] || envKey(id)
-  const provider = aiGrading.provider && keyOf(aiGrading.provider) ? aiGrading.provider : API_PROVIDERS.find((id) => keyOf(id))
-  if (!provider) return null
-  const model = (aiGrading.provider === provider && aiGrading.model) || MODEL_CATALOG[provider]?.find((m) => m.tier === 'fast')?.id || DEFAULT_MODELS[provider]!
-  return { provider, model }
+export async function teacherChoice(ownerId: string): Promise<ModelChoice | null> {
+  return (await routeFor(ownerId, 'grading'))?.primary ?? null
 }
 
+/**
+ * The AI teacher for this user, or null when AI marking is off or no service has a key.
+ * Marking and reading handwriting each follow their own route, fallbacks included,
+ * and every call is logged for the usage summary.
+ */
 export async function teacherFor(ownerId: string): Promise<Teacher | null> {
   const s = await services().settings.get(ownerId)
   if (!s.aiGrading.enabled) return null
-  const choice = await teacherChoice(ownerId)
-  if (!choice) return null
-  const { provider, model } = choice
-  const keyOf = (id: string) => s.apiKeys[id] || envKey(id)
-  // The same model also reads handwritten answers (all catalogued models take images).
-  const reader = createTextModel(provider, { apiKey: keyOf(provider)!, model })
-  return { teacher: new AiTeacher(reader), reader, provider, model }
+  const grading = await routeFor(ownerId, 'grading')
+  if (!grading) return null
+  const handwriting = (await routeFor(ownerId, 'handwriting')) ?? grading
+  const marker = await chain(s, ownerId, 'grading', [grading.primary, ...grading.fallbacks])
+  const reader = await chain(s, ownerId, 'handwriting', [handwriting.primary, ...handwriting.fallbacks])
+  return { teacher: new AiTeacher(marker), reader, provider: grading.primary.provider, model: grading.primary.model }
+}
+
+/** A text model that moves on to the next choice when one fails, logging what each call used. */
+async function chain(s: Settings, ownerId: string, task: Task, choices: ModelChoice[]): Promise<TextModel> {
+  // A service whose address no longer passes the check is left out; the others still work.
+  const settled = await Promise.allSettled(
+    choices.map(async ({ provider, model }) =>
+      createTextModel(provider, {
+        apiKey: s.apiKeys[provider] || envKey(provider) || '',
+        model,
+        baseUrl: await serviceUrlOf(s, provider),
+        onUsage: (u) => void services().usage.record({ ownerId, task, provider, model, ...u }).catch(() => {}),
+      }),
+    ),
+  )
+  const models = settled.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []))
+  if (!models.length) throw (settled[0] as PromiseRejectedResult).reason
+  const first = models[0]!
+  return {
+    provider: first.provider,
+    model: first.model,
+    async complete(system, prompt, images) {
+      let error: unknown
+      for (const m of models) {
+        try {
+          return await m.complete(system, prompt, images)
+        } catch (err) {
+          error = err
+        }
+      }
+      throw error
+    },
+  }
 }

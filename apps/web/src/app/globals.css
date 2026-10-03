@@ -97,6 +97,14 @@
   color-scheme: dark;
 }
 
+/* While the theme switches (shared/theme/theme.ts), nothing eases its colors, so the whole page
+   changes in one frame; the theme picker's own sliding pill keeps moving. */
+:root[data-theme-switching] *:not([data-keep-motion]),
+:root[data-theme-switching] *::before,
+:root[data-theme-switching] *::after {
+  transition: none !important;
+}
+
 html {
   color-scheme: light;
   /* scrollbars: a thin pencil-grey thumb, no track or arrows, in both themes */

@@ -1,6 +1,6 @@
 import { extname } from 'node:path'
 import type { Bank, ImportRecord } from '@exam/bank'
-import type { DraftExam, DraftFigure, IngestedDocument, PageImage } from '@exam/core'
+import type { DraftExam, DraftFigure, ExtractedPage, IngestedDocument, PageImage } from '@exam/core'
 import { createProvider, extractDocument, ManualProvider, mergePages, type PageResult, type ProviderConfig, type TextFiles } from '@exam/extraction'
 import type { FileStore } from '@exam/files'
 import { cleanFigure, cropExamFigures } from '@exam/figures'
@@ -28,7 +28,30 @@ export interface ImporterOptions {
   providerConfig?: (providerId: string, ownerId: string) => ProviderConfig | Promise<ProviderConfig>
   /** Interface language of the uploader (e.g. "en", "zh-Hant"); the model writes review notes in it. */
   reviewLanguage?: (ownerId: string) => string | Promise<string>
+  /** Models for an AUTO import of this owner; null when no provider can read pages for them. */
+  plan?: (ownerId: string) => Promise<ReadingPlan | null>
+  /** Told about every page a model read (or failed to), e.g. to log usage. */
+  onPage?: (imp: ImportRecord, result: PageResult) => void
 }
+
+/** A provider and, optionally, one of its models. */
+export interface ModelPick {
+  provider: string
+  model?: string | null
+}
+
+/**
+ * How an import set to AUTO is read: the first model, the ones that take over pages it
+ * could not read (an outage, a used-up quota), and the one doubtful pages are read again with.
+ */
+export interface ReadingPlan {
+  primary: ModelPick
+  fallbacks: ModelPick[]
+  escalate: ModelPick | null
+}
+
+/** The provider id of an import whose models are picked by `plan` when it runs. */
+export const AUTO = 'auto'
 
 export interface ManualState {
   /** error: why the last pasted reply for this page was rejected. */
@@ -38,6 +61,9 @@ export interface ManualState {
 }
 
 const WAITING = 'waiting for a reply'
+
+/** Days the uploaded files stay after an import is first saved to the bank, unless the owner keeps them. */
+export const ORIGINAL_DAYS = 30
 
 /**
  * Runs an uploaded exam through ingest, extraction and figure cropping, and keeps
@@ -160,6 +186,35 @@ export class Importer {
     return this.bank.saveExam(id, draft)
   }
 
+  /** The uploaded files of an import, as file keys with the names they were uploaded under; empty once deleted. */
+  async originals(id: string): Promise<{ name: string; key: string }[]> {
+    const imp = await this.require(id)
+    const dir = `${this.base(imp)}/sources`
+    const names = JSON.parse((await this.files.read(`${dir}/names.json`))?.toString('utf8') ?? 'null') as string[] | null
+    if (!names) return []
+    const stored = await this.files.list(`${dir}/`)
+    return names.flatMap((name, i) => {
+      const key = stored.find((k) => k.slice(dir.length + 1).startsWith(`${i + 1}.`))
+      return key ? [{ name, key }] : []
+    })
+  }
+
+  /**
+   * Deletes the uploaded files of imports saved to the bank more than ORIGINAL_DAYS ago, unless
+   * their owner keeps them. Page images stay, so the review page and reading again still work.
+   * Returns how many imports lost their files.
+   */
+  async expireOriginals(now = new Date()): Promise<number> {
+    const due = await this.bank.originalsToExpire(new Date(now.getTime() - ORIGINAL_DAYS * 86_400_000))
+    for (const imp of due) {
+      if (this.running.has(imp.id)) continue
+      const dir = `${this.base(imp)}/sources/`
+      await this.files.remove(await this.files.list(dir))
+      await this.bank.updateImport(imp.id, { originalDeletedAt: now.toISOString() })
+    }
+    return due.length
+  }
+
   /** Deletes the import and its files. Questions already in the bank stay, and so do the figure images they show. */
   async remove(id: string): Promise<void> {
     await this.settled(id)
@@ -178,14 +233,36 @@ export class Importer {
     let done = 0
     await this.bank.updateImport(id, { status: 'processing', error: null, progress: { done, total: selected.length } })
 
-    const config = await this.opts.providerConfig?.(imp.provider, imp.ownerId)
-    const provider = createProvider(imp.provider, { ...config, model: imp.model ?? config?.model, files: this.manualFiles(imp) })
-    const fresh = await extractDocument(provider, doc, {
-      concurrency: this.opts.concurrency ?? 2,
-      pages: selected,
-      reviewLanguage: await this.opts.reviewLanguage?.(imp.ownerId),
-      onPage: () => void this.bank.updateImport(id, { progress: { done: ++done, total: selected.length } }).catch(() => {}),
-    })
+    const plan = await this.planFor(imp)
+    const reviewLanguage = await this.opts.reviewLanguage?.(imp.ownerId)
+    const read = async (pick: ModelPick, list: number[], progress: boolean) => {
+      const config = await this.opts.providerConfig?.(pick.provider, imp.ownerId)
+      const provider = createProvider(pick.provider, { ...config, model: pick.model ?? config?.model, files: this.manualFiles(imp) })
+      const results = await extractDocument(provider, doc, {
+        concurrency: this.opts.concurrency ?? 2,
+        pages: list,
+        reviewLanguage,
+        onPage: (r) => {
+          if (!(provider instanceof ManualProvider)) this.opts.onPage?.(imp, r)
+          if (progress) void this.bank.updateImport(id, { progress: { done: ++done, total: selected.length } }).catch(() => {})
+        },
+      })
+      return { provider, results }
+    }
+    const first = await read(plan.primary, selected, true)
+    const provider = first.provider
+    let fresh = first.results
+    // Pages the first model could not read go to the next provider, then the next.
+    for (const fallback of plan.fallbacks) {
+      const failed = fresh.filter((r) => !r.page && !r.error?.startsWith(WAITING)).map((r) => r.pageNumber)
+      if (!failed.length) break
+      fresh = replaceRead(fresh, (await read(fallback, failed, false)).results)
+    }
+    // Pages read with doubts are read again by the stronger model; its reading wins when it succeeds.
+    if (plan.escalate) {
+      const doubtful = fresh.filter((r) => r.page && isDoubtful(r.page)).map((r) => r.pageNumber)
+      if (doubtful.length) fresh = replaceRead(fresh, (await read(plan.escalate, doubtful, false)).results)
+    }
     const results = await this.saveResults(imp, fresh)
 
     if (results.some((r) => r.error?.startsWith(WAITING))) {
@@ -216,11 +293,14 @@ export class Importer {
     return { fileName: files[0]!.name, kind: files.length === 1 && extname(files[0]!.name).toLowerCase() === '.pdf' ? 'pdf' : 'image', pages }
   }
 
-  /** Re-renders the stored upload; rendering is deterministic, so page images match the first run. */
+  /**
+   * Re-renders the stored upload; rendering is deterministic, so page images match the first run.
+   * Once the upload is deleted, the saved page images are read instead (without a PDF's text layer).
+   */
   private async load(imp: ImportRecord): Promise<IngestedDocument> {
     const dir = `${this.base(imp)}/sources`
     const names = JSON.parse((await this.files.read(`${dir}/names.json`))?.toString('utf8') ?? 'null') as string[] | null
-    if (!names) throw new Error('The uploaded files are missing')
+    if (!names) return this.loadPages(imp)
     const stored = await this.files.list(`${dir}/`)
     const files = await Promise.all(
       names.map(async (name, i) => {
@@ -231,6 +311,25 @@ export class Importer {
       }),
     )
     return this.ingest(files)
+  }
+
+  private async loadPages(imp: ImportRecord): Promise<IngestedDocument> {
+    const pages: PageImage[] = []
+    for (let n = 1; n <= imp.pageCount; n++) {
+      const data = await this.files.read(this.pageImage(imp, n))
+      if (!data) throw new Error('The uploaded files are missing')
+      const [page] = (await ingestBuffer(`page-${n}.png`, data, { maxEdge: this.opts.maxEdge })).pages
+      pages.push({ ...page!, pageNumber: n })
+    }
+    return { fileName: imp.fileName, kind: 'image', pages }
+  }
+
+  /** The models to read with: the import's own choice, or for AUTO, the owner's plan. */
+  private async planFor(imp: ImportRecord): Promise<ReadingPlan> {
+    if (imp.provider !== AUTO) return { primary: { provider: imp.provider, model: imp.model }, fallbacks: [], escalate: null }
+    const plan = await this.opts.plan?.(imp.ownerId)
+    if (!plan) throw new Error('No AI service with an API key can read pages: add a key in settings, or read the pages with a chat app (manual mode).')
+    return plan
   }
 
   /** Latest result of every page that has been sent to a model. */
@@ -272,6 +371,17 @@ export class Importer {
     if (!imp) throw new Error(`Import ${id} not found`)
     return imp
   }
+}
+
+/** A page with a question the model could not read with confidence. */
+export function isDoubtful(page: ExtractedPage): boolean {
+  return page.questions.some((q) => q.confidence === 'low')
+}
+
+/** `results` with the pages `again` managed to read replaced by those readings. */
+function replaceRead(results: PageResult[], again: PageResult[]): PageResult[] {
+  const better = new Map(again.filter((r) => r.page).map((r) => [r.pageNumber, r]))
+  return results.map((r) => better.get(r.pageNumber) ?? r)
 }
 
 /** Extension of an uploaded file for its stored copy; anything odd becomes ".bin". */

@@ -53,3 +53,10 @@ export async function deleteImport(importId: string) {
   revalidatePath('/imports')
   redirect('/imports')
 }
+
+/** Keeps the uploaded files past the 30 days after saving, or lets them go again. */
+export async function keepOriginal(importId: string, keep: boolean): Promise<void> {
+  await requireImport(importId)
+  await services().bank.updateImport(importId, { keepOriginal: keep })
+  revalidatePath(`/imports/${importId}`)
+}

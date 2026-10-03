@@ -1,6 +1,8 @@
 import type { DraftExam, DraftQuestion } from '@exam/core'
 
-export { splitNumber } from '../../shared/questionNumber'
+import { splitNumber } from '../../shared/questionNumber'
+
+export { splitNumber }
 
 type Group = DraftExam['groups'][number]
 
@@ -58,7 +60,7 @@ export function splitParts(q: DraftQuestion, groupId: string): { group: Group; p
     options: q.options.map((o) => ({ ...o })),
     answer: answers ? { ...q.answer, values: answers[i]! } : i === 0 ? q.answer : { values: [], source: 'none' as const },
     points,
-    issues: answers || !q.answer.values.length || i > 0 ? [...q.issues] : [...q.issues, '拆成小題時沒辦法把答案分到各小題，請檢查答案'],
+    issues: answers || !q.answer.values.length || i > 0 ? [...q.issues] : [...q.issues, SPLIT_NOTE],
     locations: q.locations.map((l) => ({ ...l, bbox: { ...l.bbox } })),
   }))
   return { group, parts }
@@ -73,4 +75,38 @@ function shareAnswers(values: string[], count: number): string[][] | null {
     if (found?.length === count) return found.map((f, i) => [values[0]!.slice(f.end, found[i + 1]?.start ?? values[0]!.length).trim().replace(/[;；,，。]$/, '')])
   }
   return null
+}
+
+const SPLIT_NOTE = '拆成小題時沒辦法把答案分到各小題，請檢查答案'
+const CONFIDENCE: DraftQuestion['confidence'][] = ['low', 'medium', 'high']
+
+/**
+ * Undoes splitParts: the sub-questions of one number (11(a), 11(b)) become one question again,
+ * with the shared text first and each part's text after its marker. Answers and explanations are
+ * written per part the same way, points are added up, and the lowest confidence wins. The parts'
+ * first box stands for the question. Null unless every part carries the same number with a part label.
+ */
+export function mergeParts(group: Group, parts: DraftQuestion[]): DraftQuestion | null {
+  const numbers = parts.map((p) => splitNumber(p.number))
+  if (!parts.length || numbers.some((n) => n.part === null || n.main !== numbers[0]!.main)) return null
+  const labelled = (texts: (string | null)[]) => {
+    const kept = texts.map((t, i) => (t?.trim() ? `(${numbers[i]!.part}) ${t.trim()}` : null)).filter((t): t is string => t !== null)
+    return kept.length ? kept : null
+  }
+  const first = parts[0]!
+  const values = parts.map((p) => p.answer.values.filter((v) => v.trim()))
+  const answered = values.some((v) => v.length)
+  const explanation = labelled(parts.map((p) => p.explanation))
+  return {
+    ...first,
+    number: numbers[0]!.main,
+    groupId: null,
+    stem: [group.stem.trim(), ...parts.map((p, i) => `(${numbers[i]!.part}) ${p.stem.trim()}`)].filter(Boolean).join('\n\n'),
+    figures: [...group.figures, ...parts.flatMap((p) => p.figures)],
+    answer: answered ? { ...first.answer, values: [labelled(values.map((v) => v.join('、')))!.join('; ')] } : { values: [], source: 'none' },
+    explanation: explanation ? explanation.join('\n\n') : null,
+    points: parts.every((p) => p.points !== null) ? Math.round(parts.reduce((sum, p) => sum + p.points!, 0) * 100) / 100 : null,
+    confidence: CONFIDENCE[Math.min(...parts.map((p) => CONFIDENCE.indexOf(p.confidence)))]!,
+    issues: [...new Set(parts.flatMap((p) => p.issues))].filter((issue) => issue !== SPLIT_NOTE),
+  }
 }

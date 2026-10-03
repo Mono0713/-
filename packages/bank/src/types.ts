@@ -24,6 +24,10 @@ export interface ImportRecord {
   title: string | null
   subject: string | null
   questionCount: number
+  /** The uploaded files stay after the 30 days that follow saving to the bank. */
+  keepOriginal: boolean
+  /** When the uploaded files were deleted; page images stay. */
+  originalDeletedAt: string | null
   createdAt: string
   updatedAt: string
 }
