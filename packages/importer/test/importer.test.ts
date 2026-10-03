@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -148,7 +148,7 @@ describe('Importer', () => {
     const state = await importer.manualState(imp.id)
     expect(state.pages.map((p) => [p.pageNumber, p.done, Boolean(p.prompt)])).toEqual([[1, false, true], [2, false, true]])
     expect(state.batch?.pages).toEqual([1, 2])
-    expect(state.pages[0]!.image).toBe(`imports/${imp.id}/pages/page-1.png`)
+    expect(state.pages[0]!.image).toBe(`imports/${imp.id}/pages/page-1.webp`)
     await expect(readFile(join(dataDir, state.pages[0]!.image))).resolves.toBeInstanceOf(Buffer)
 
     await importer.submitManualReply(imp.id, 1, '```json\n' + JSON.stringify(page([question()])) + '\n```')
@@ -166,7 +166,10 @@ describe('Importer', () => {
     const shared = new Importer({ bank, files: new LocalFileStore(dataDir), keyPrefix: (owner) => `u/${owner}/` })
     const imp = await shared.create({ ownerId: 'alice', files: [{ name: 'a.png', data: await png() }], provider: 'fake' })
     await shared.settled(imp.id)
-    expect(shared.pageImage(imp, 1)).toBe(`u/alice/imports/${imp.id}/pages/page-1.png`)
+    expect(shared.pageImage(imp, 1)).toBe(`u/alice/imports/${imp.id}/pages/page-1.webp`)
+    // kept compressed; imports made before keep their PNG pages
+    expect(readFileSync(join(dataDir, 'u', 'alice', 'imports', imp.id, 'pages', 'page-1.webp')).subarray(8, 12).toString()).toBe('WEBP')
+    expect(shared.pageImage({ ...imp, pageFormat: 'png' }, 1)).toBe(`u/alice/imports/${imp.id}/pages/page-1.png`)
     const figure = await shared.recropFigure(imp.id, { description: 'd', pageNumber: 1, bbox: { x: 0, y: 0, width: 1, height: 1 }, blanks: [], image: null })
     expect(figure.image!.file.startsWith(`u/alice/imports/${imp.id}/figures/`)).toBe(true)
     expect(existsSync(join(dataDir, 'u', 'alice', 'imports', imp.id, 'results.json'))).toBe(true)

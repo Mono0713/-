@@ -73,9 +73,9 @@ class SqliteBankSync {
     const now = new Date().toISOString()
     const id = randomUUID()
     this.db
-      .prepare(`INSERT INTO imports (id, owner_id, file_name, page_count, provider, model, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, 'processing', ?, ?)`)
-      .run(id, input.ownerId, input.fileName, input.pageCount, input.provider, input.model, now, now)
+      .prepare(`INSERT INTO imports (id, owner_id, file_name, page_count, provider, model, page_format, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'processing', ?, ?)`)
+      .run(id, input.ownerId, input.fileName, input.pageCount, input.provider, input.model, input.pageFormat ?? 'png', now, now)
     return this.getImport(id)!
   }
 
@@ -315,6 +315,7 @@ class SqliteBankSync {
     const columns = (this.db.prepare('PRAGMA table_info(imports)').all() as Row[]).map((c) => String(c.name))
     if (!columns.includes('keep_original')) this.db.exec('ALTER TABLE imports ADD COLUMN keep_original INTEGER NOT NULL DEFAULT 0')
     if (!columns.includes('original_deleted_at')) this.db.exec('ALTER TABLE imports ADD COLUMN original_deleted_at TEXT')
+    if (!columns.includes('page_format')) this.db.exec("ALTER TABLE imports ADD COLUMN page_format TEXT NOT NULL DEFAULT 'png'")
   }
 
   private setColumns(table: 'imports' | 'exams' | 'questions', id: string, columns: Record<string, string | number | null>) {
@@ -369,6 +370,7 @@ function toImport(row: Row): ImportRecord {
     questionCount: Number(row.question_count ?? 0),
     keepOriginal: Boolean(row.keep_original),
     originalDeletedAt: text(row.original_deleted_at),
+    pageFormat: row.page_format === 'webp' ? 'webp' : 'png',
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   }

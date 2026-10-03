@@ -27,3 +27,12 @@ export async function prepareImage(input: Buffer, pageNumber: number, opts: Imag
     textLayer: null,
   }
 }
+
+/**
+ * A rendered page as it is kept: WebP at quality 80, about a tenth of the PNG (a scanned
+ * A4 page is 80-200 KB). Models read the PNG while importing; the kept copy is for
+ * showing the page, cropping figures again and re-reading after the upload expires.
+ */
+export async function storedPage(png: Buffer): Promise<Buffer> {
+  return sharp(png).webp({ quality: 80 }).toBuffer()
+}

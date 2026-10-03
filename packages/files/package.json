@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
+    "@exam/db": "workspace:*",
     "aws4fetch": "^1.0.20"
   }
 }

@@ -176,3 +176,4 @@ export function fileStoreFromEnv(localRoot: string, env: NodeJS.ProcessEnv = pro
   }
   return new LocalFileStore(localRoot)
 }
+export * from './dedup.ts'
