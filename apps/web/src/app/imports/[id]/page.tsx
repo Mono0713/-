@@ -48,7 +48,8 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         <Card className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center">
           {reading > 0 && <Scan image={importer.pageImage(imp, reading)} pageNumber={reading} />}
           <div className="min-w-0 flex-1 space-y-3">
-            <p className="font-medium">模型正在讀取頁面…</p>
+            {/* after the last page the draft is put together and its figures cut out and stored */}
+            <p className="font-medium">{total && done >= total ? '頁面都讀完了，正在整理題目、存圖片…' : '模型正在讀取頁面…'}</p>
             <PencilProgress value={total ? done / total : 0} label={`已完成 ${done} / ${total} 頁`} />
             <p className="text-sm text-muted">遇到免費額度限制時會自動等待後重試，可以先離開這個頁面。</p>
           </div>
