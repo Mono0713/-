@@ -5,9 +5,10 @@ import { QuizPlayer } from '@/features/quiz/QuizPlayer'
 import { QuizResults } from '@/features/quiz/QuizResults'
 import { startTeacher } from '@/features/quiz/teacher'
 import { hiddenItem, revealedItem } from '@/features/quiz/visible'
-import { graderFor, keyRule, selfMarks } from '@/server/classes'
+import { graderFor, keyRule, resultsWithheld, selfMarks } from '@/server/classes'
 import { services } from '@/server/context'
 import { ownedAttempt } from '@/server/owned'
+import { HandedIn } from '@/features/classes/HandedIn'
 import { ButtonLink, PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -47,7 +48,11 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
             </>
           }
         />
-        <QuizResults attempt={{ ...attempt, items: attempt.items.map((item) => revealedItem(item, key)) }} summary={summarize(attempt)} teacher={(await graderFor(attempt)) !== null} />
+        {(await resultsWithheld(attempt)) ? (
+          <HandedIn finishedAt={attempt.finishedAt} opensAt={key.keyHidden ? null : (key.keyUntil ?? null)} />
+        ) : (
+          <QuizResults attempt={{ ...attempt, items: attempt.items.map((item) => revealedItem(item, key)) }} summary={summarize(attempt)} teacher={(await graderFor(attempt)) !== null} />
+        )}
       </div>
     )
   }

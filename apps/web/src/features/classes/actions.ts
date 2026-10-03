@@ -142,7 +142,8 @@ export async function createAssignment(classId: string, input: NewAssignmentInpu
     shuffleOptions: Boolean(s.shuffleOptions),
     timeLimitMinutes: s.mode === 'exam' ? count(s.timeLimitMinutes) : null,
     maxAttempts: count(s.maxAttempts),
-    answers: ANSWERS.includes(s.answers) ? s.answers : 'after_submit',
+    // Practice shows each answer once it is written, so its answers cannot wait.
+    answers: s.mode !== 'practice' && ANSWERS.includes(s.answers) ? s.answers : 'after_submit',
   }
   const id = randomUUID()
   const { sources } = await sourcesOf(items)
@@ -159,7 +160,7 @@ export async function updateAssignment(assignmentId: string, patch: { opensAt?: 
   await services().classes.updateAssignment(found.assignment.id, {
     ...(patch.opensAt !== undefined && { opensAt: when(patch.opensAt) }),
     ...(patch.closesAt !== undefined && { closesAt: when(patch.closesAt) }),
-    ...(patch.answers && ANSWERS.includes(patch.answers) && { answers: patch.answers }),
+    ...(patch.answers && ANSWERS.includes(patch.answers) && found.assignment.settings.mode !== 'practice' && { answers: patch.answers }),
     ...(patch.title && { title: clean(patch.title) }),
   })
   revalidatePath(`/classes/${found.classroom.id}/a/${found.assignment.id}`)

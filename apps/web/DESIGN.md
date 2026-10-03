@@ -80,14 +80,17 @@ to an instant change under `prefers-reduced-motion`.
 Controls with a moving part must not change the layout around them: the sliding pill of
 `Segmented` is clipped, so its spring overshoot never widens the row or flashes a scrollbar, and it
 slides only after a click: a value read from storage on opening (外觀) lands in place.
-Text fields have no focus animation, only a deeper blue border.
+Text fields have no focus animation, only a deeper blue border. Every delete button (trash icon)
+turns red on hover, through one rule in `globals.css`; never give one its own hover color.
 
 Scrollbars are thin pencil-grey thumbs with no track (`globals.css`). Every scrolling area keeps
 the bar's room even when nothing scrolls (`scrollbar-gutter: stable`), so content never shifts
 sideways when a bar appears. Rows that scroll sideways (the editor's number bar) have no bar at
 all: their ends fade out, the wheel scrolls them, and the selected number is kept in the middle.
 Long lists to pick from use `Listbox` (`src/shared/Listbox.tsx`, opening with `.m-menu`), not the
-native `<select>`, whose popup scrolls by itself when the pointer rests near its edges.
+native `<select>`, whose popup scrolls by itself when the pointer rests near its edges. A list of
+more than 8 opens with a search field (typing narrows it, arrows and Enter pick); options may carry
+a quieter `hint` line (subject, date) that is searched too.
 
 No loading screens between pages: the current page stays until the next one is ready. Deleting
 never asks first; it shows a toast with 復原, and Ctrl+Z brings questions back (quizzes in the

@@ -144,6 +144,14 @@ h2 {
   letter-spacing: -0.02em;
 }
 
+/* Every delete button (any button or link carrying the trash icon) turns red on hover, wherever it
+   is and however it is styled; plain CSS outside the layers, so it wins over a feature's own hover. */
+:is(button, a):has(svg.lucide-trash):not(:disabled):hover {
+  color: var(--color-bad);
+  background-color: var(--color-bad-soft);
+  border-color: color-mix(in srgb, var(--color-bad) 35%, transparent);
+}
+
 /* primary actions: solid ballpoint blue (the old gradient is gone) */
 .bg-brand {
   background-color: var(--color-accent);
