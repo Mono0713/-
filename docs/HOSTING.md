@@ -18,7 +18,7 @@
 2. **資料庫**：Project Settings → Database → Connection string，選 URI，把 `[YOUR-PASSWORD]` 換成建立專案時設的密碼，填進 `DATABASE_URL`。
    - 長時間跑的伺服器用「Session pooler」或直接連線的網址；Vercel 這類無伺服器平台用「Transaction pooler」（port 6543）。程式已關閉 prepared statements，兩種都能用。
 3. **建立資料表**：`pnpm db:migrate`。會套用 `supabase/migrations/` 裡還沒套用過的檔案，重跑也安全。也可以用 Supabase CLI 的 `supabase db push`。
-4. **`SETTINGS_SECRET`**：隨便一串 32 個字以上的亂碼（例如 `openssl rand -base64 32`）。用戶存的 API 金鑰會用它加密後才寫進資料庫。**之後不能改**，改了已存的金鑰就讀不出來，要請大家重新貼。
+4. **`SETTINGS_SECRET`**：隨便一串 32 個字以上的亂碼（例如 `node -p "require('crypto').randomBytes(32).toString('hex')"`）。本機和 Render 共用同一個資料庫時，兩邊要填同一串。用戶存的 API 金鑰會用它加密後才寫進資料庫。**之後不能改**，改了已存的金鑰就讀不出來，要請大家重新貼。
 
 資料表都開了 Row Level Security 且沒有任何規則，所以瀏覽器拿到的公開 anon key 無法直接讀寫資料；只有網站伺服器（用 `DATABASE_URL` 連線）能存取，並由伺服器檢查每筆資料的擁有者。
 
