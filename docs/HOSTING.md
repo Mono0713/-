@@ -8,6 +8,7 @@
 | 雲端資料庫 | `DATABASE_URL`、`SETTINGS_SECRET` | 題庫、測驗、設定、批改快取改存 Supabase 的 Postgres |
 | Google 登入 | `NEXT_PUBLIC_SUPABASE_URL`、`NEXT_PUBLIC_SUPABASE_ANON_KEY`（上線時加 `SITE_URL`） | 每個人用 Google 帳號登入，只看得到自己的資料 |
 | 雲端檔案 | `R2_ENDPOINT`、`R2_BUCKET`、`R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY` | 上傳檔、頁面圖、裁切圖改存 Cloudflare R2 |
+| 儲存上限 | `STORAGE_QUOTA_MB`（預設 1024） | 登入版每個帳號能用的空間 |
 
 全部寫在專案根目錄的 `.env`（範本見 `.env.example`）。
 
@@ -52,6 +53,23 @@
 ## 部署
 
 辨識和 AI 批改在網站伺服器的背景執行，所以要用**一直開著的 Node 伺服器**（Render、Railway、Fly.io、自己的主機等），`pnpm build` 後 `pnpm --filter @exam/web start`。Vercel 這類無伺服器平台會在回應後停掉背景工作，之後要改成工作佇列才適合。
+
+### 用 Render 上線（建議）
+
+專案根目錄的 `render.yaml` 已經寫好：Node 22、新加坡機房（離台灣近）、每次部署前自動跑 `pnpm db:migrate`。
+
+1. 先完成上面 1 到 3（Supabase、Google、R2），手邊備好那些值。
+2. https://render.com 用 GitHub 登入 → New → Blueprint → 選這個 repo 和要上線的分支。
+3. Render 會列出要填的變數，照 `.env` 的值貼上。`SITE_URL` 先填 Render 給的網址（`https://sheetloop-xxxx.onrender.com`），之後換自己的網域再改。
+4. 方案用 Starter（每月約 7 美元）。免費方案閒置 15 分鐘會休眠、記憶體只有 512 MB，處理 PDF 容易不夠，而且不支援部署前自動建資料表。
+5. 部署好後，回 Supabase → Authentication → URL Configuration，把 `https://<Render 網址>/auth/callback` 加進 Redirect URLs，Site URL 也改成這個網址。
+
+### 上線後檢查
+
+- 用 Google 登入，再用另一個 Google 帳號登入，確認彼此看不到對方的考卷。
+- 設定頁貼 API 金鑰，匯入一份考卷，確認頁面圖顯示得出來（圖來自 R2）。
+- 設定頁的「儲存空間」顯示用量；上限由 `STORAGE_QUOTA_MB` 決定（預設 1024，也就是 1 GB）。
+- 分享連結用沒登入的瀏覽器打開，會先被帶去登入，登入後才能作答或存進題庫。
 
 ## 本機資料
 
