@@ -87,7 +87,9 @@ the bar's room even when nothing scrolls (`scrollbar-gutter: stable`), so conten
 sideways when a bar appears. Rows that scroll sideways (the editor's number bar) have no bar at
 all: their ends fade out, the wheel scrolls them, and the selected number is kept in the middle.
 Long lists to pick from use `Listbox` (`src/shared/Listbox.tsx`, opening with `.m-menu`), not the
-native `<select>`, whose popup scrolls by itself when the pointer rests near its edges.
+native `<select>`, whose popup scrolls by itself when the pointer rests near its edges. A list of
+more than 8 opens with a search field (typing narrows it, arrows and Enter pick); options may carry
+a quieter `hint` line (subject, date) that is searched too.
 
 No loading screens between pages: the current page stays until the next one is ready. Deleting
 never asks first; it shows a toast with 復原, and Ctrl+Z brings questions back (quizzes in the

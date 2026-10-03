@@ -50,6 +50,7 @@ export {
   Settings as IconSettings,
   Sparkles as IconSparkles,
   Timer as IconTimer,
+  Search as IconSearch,
   Trash2 as IconTrash,
   TriangleAlert as IconAlert,
   Undo2 as IconUndo,
