@@ -19,6 +19,12 @@ describe('explainError', () => {
     expect(explainError('{"error":{"code":400,"message":"API key not valid. Please pass a valid API key.","status":"INVALID_ARGUMENT"}}')).toMatchObject({ fix: 'settings' })
   })
 
+  it('names the model a retired one should be replaced with', () => {
+    const retired = `{"error":{"code":404,"message":"This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements.","status":"NOT_FOUND"}}`
+    expect(explainError(retired)).toMatchObject({ title: '這個模型已經停止提供', fix: 'model' })
+    expect(explainError(retired).detail).toContain('改用 gemini-3.8-flash。')
+  })
+
   it('recognises a missing model, an overloaded service and a network failure', () => {
     expect(explainError('404 model: claude-old not found').title).toBe('找不到這個模型')
     expect(explainError('529 {"type":"error","error":{"type":"overloaded_error"}}').fix).toBe('retry')

@@ -30,8 +30,15 @@ export function explainError(raw: string): Explained {
   }
   if (status === 401 || status === 403 || /api[_ ]?key|unauthori[sz]ed|permission|invalid.*key|forbidden/.test(text))
     return { title: 'API 金鑰沒有通過', detail: '金鑰可能打錯、過期，或沒有這個模型的使用權限。到設定換一把金鑰再試。', fix: 'settings' }
-  if (status === 404 || /not.?found|does not exist|unknown model/.test(text))
-    return { title: '找不到這個模型', detail: '模型可能已經下架或改名了。在下面換一個模型再試。', fix: 'model' }
+  if (status === 404 || /not.?found|does not exist|unknown model|no longer available/.test(text)) {
+    // Google names the replacement: "Please update your code to use models/gemini-3.8-flash"
+    const instead = /(?:use|switch to|migrate to)\s+(?:models\/)?([a-z][\w.-]*\d[\w.-]*)/i.exec(raw)?.[1]?.replace(/[.,]$/, '')
+    return {
+      title: /no longer available|deprecated|retired/.test(text) ? '這個模型已經停止提供' : '找不到這個模型',
+      detail: instead ? `供應商建議改用 ${instead}。在下面選它，再按重新辨識。` : '模型可能已經下架或改名了。在下面換一個模型再試。',
+      fix: 'model',
+    }
+  }
   if (status === 413 || /too large|too long|context length|maximum.*tokens|payload/.test(text))
     return { title: '這份檔案對這個模型來說太大了', detail: '換一個能讀更長內容的模型，或把檔案拆成幾份再匯入。', fix: 'model' }
   if (status >= 500 || /overloaded|unavailable|internal error|timeout|timed out/.test(text))

@@ -16,7 +16,8 @@ describe('route', () => {
   it('puts the cheapest provider first and keeps the others as fallbacks', () => {
     const r = route('grading', 'save', [builtin('claude'), builtin('gemini'), builtin('openai')])!
     expect(r.primary).toEqual({ provider: 'openai', model: 'gpt-5-nano' })
-    expect(r.fallbacks.map((f) => f.provider)).toEqual(['gemini', 'claude'])
+    // Gemini's fast model has no known price yet, so it comes after the ones that do
+    expect(r.fallbacks.map((f) => f.provider)).toEqual(['claude', 'gemini'])
   })
 
   it('skips providers without a key and returns null when none is left', () => {
