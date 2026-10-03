@@ -80,7 +80,8 @@ to an instant change under `prefers-reduced-motion`.
 Controls with a moving part must not change the layout around them: the sliding pill of
 `Segmented` is clipped, so its spring overshoot never widens the row or flashes a scrollbar, and it
 slides only after a click: a value read from storage on opening (外觀) lands in place.
-Text fields have no focus animation, only a deeper blue border.
+Text fields have no focus animation, only a deeper blue border. Every delete button (trash icon)
+turns red on hover, through one rule in `globals.css`; never give one its own hover color.
 
 Scrollbars are thin pencil-grey thumbs with no track (`globals.css`). Every scrolling area keeps
 the bar's room even when nothing scrolls (`scrollbar-gutter: stable`), so content never shifts
