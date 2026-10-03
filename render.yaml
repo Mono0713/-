@@ -15,8 +15,9 @@ services:
         value: "22"
       - key: DATABASE_URL
         sync: false
+      # Encrypts saved API keys; Render makes one up. Never change it afterwards.
       - key: SETTINGS_SECRET
-        sync: false
+        generateValue: true
       - key: NEXT_PUBLIC_SUPABASE_URL
         sync: false
       - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
