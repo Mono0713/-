@@ -67,8 +67,19 @@ export function services(): Services {
           void stores.usage.record({ ownerId: imp.ownerId, task: 'recognition', provider: r.provider, model: r.model, inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens }).catch(() => {}),
       }),
     }
+    sweepOriginals(globals.__examServices.importer)
   }
   return globals.__examServices
+}
+
+// How often uploaded files past their 30 days are looked for.
+const SWEEP_EVERY = 6 * 3_600_000
+
+/** Deletes expired uploaded files now and then while the server runs. */
+function sweepOriginals(importer: Importer) {
+  const sweep = () => void importer.expireOriginals().catch((err) => console.error('Deleting expired uploads failed:', err))
+  setTimeout(sweep, 10_000).unref()
+  setInterval(sweep, SWEEP_EVERY).unref()
 }
 
 type Stores = Pick<Services, 'bank' | 'quizzes' | 'settings' | 'gradingCache' | 'usage'>

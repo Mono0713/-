@@ -43,7 +43,15 @@ export class PostgresBank implements Bank {
     if (patch.subject !== undefined) columns.subject = patch.subject
     if (patch.provider !== undefined) columns.provider = patch.provider
     if (patch.model !== undefined) columns.model = patch.model
+    if (patch.keepOriginal !== undefined) columns.keep_original = patch.keepOriginal
+    if (patch.originalDeletedAt !== undefined) columns.original_deleted_at = patch.originalDeletedAt && new Date(patch.originalDeletedAt)
     await this.setColumns(this.sql, 'imports', id, columns)
+  }
+
+  async originalsToExpire(savedBefore: Date): Promise<ImportRecord[]> {
+    const rows = await this.sql`${this.importSelect()} where not i.keep_original and i.original_deleted_at is null
+      and exists (select 1 from exams e where e.import_id = i.id and e.created_at < ${savedBefore})`
+    return rows.map(toImport)
   }
 
   async deleteImport(id: string): Promise<void> {
@@ -223,6 +231,8 @@ function toImport(row: Row): ImportRecord {
     title: text(row.title),
     subject: text(row.subject),
     questionCount: Number(row.question_count ?? 0),
+    keepOriginal: Boolean(row.keep_original),
+    originalDeletedAt: iso((row.original_deleted_at ?? null) as Date | null),
     createdAt: iso(row.created_at as Date)!,
     updatedAt: iso(row.updated_at as Date)!,
   }

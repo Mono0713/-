@@ -1,8 +1,10 @@
+import { ORIGINAL_DAYS } from '@exam/importer'
 import { notFound } from 'next/navigation'
 import { AutoRefresh } from '@/features/imports/AutoRefresh'
 import { DeleteImportButton } from '@/features/imports/DeleteImportButton'
 import { StatusBadge } from '@/features/imports/ImportList'
 import { ManualPanel } from '@/features/imports/ManualPanel'
+import { OriginalFiles } from '@/features/imports/OriginalFiles'
 import { RerunForm } from '@/features/imports/RerunForm'
 import { Scan } from '@/features/imports/Scan'
 import { ReviewEditor } from '@/features/review/ReviewEditor'
@@ -81,7 +83,13 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
   const results = await importer.pageResults(id)
   const failed = results.filter((r) => !r.page).map((r) => r.pageNumber)
   const pages = Array.from({ length: imp.pageCount }, (_, i) => ({ pageNumber: i + 1, image: importer.pageImage(imp, i + 1) }))
-  const savedExam = await bank.examForImport(id)
+  const [savedExam, originals] = await Promise.all([bank.examForImport(id), importer.originals(id)])
+  const original = {
+    files: originals.map((f) => f.name),
+    keep: imp.keepOriginal,
+    expiresAt: savedExam ? new Date(Date.parse(savedExam.createdAt) + ORIGINAL_DAYS * 86_400_000).toISOString() : null,
+    deletedAt: imp.originalDeletedAt,
+  }
   return (
     <ReviewEditor
         key={id}
@@ -92,7 +100,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         heading={{
           title: imp.title ?? imp.fileName,
           meta: `${imp.pageCount} 頁 · ${readBy(imp, results)}`,
-          menu: <DeleteImportButton key="menu" importId={id} menu />,
+          menu: [<OriginalFiles key="original" importId={id} state={original} />, <DeleteImportButton key="menu" importId={id} menu />],
         }}
         notice={
           failed.length > 0 && (

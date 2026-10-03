@@ -62,6 +62,9 @@ export interface ManualState {
 
 const WAITING = 'waiting for a reply'
 
+/** Days the uploaded files stay after an import is first saved to the bank, unless the owner keeps them. */
+export const ORIGINAL_DAYS = 30
+
 /**
  * Runs an uploaded exam through ingest, extraction and figure cropping, and keeps
  * its state in the bank. Knows nothing about the web: any front end calls these methods.
@@ -183,6 +186,35 @@ export class Importer {
     return this.bank.saveExam(id, draft)
   }
 
+  /** The uploaded files of an import, as file keys with the names they were uploaded under; empty once deleted. */
+  async originals(id: string): Promise<{ name: string; key: string }[]> {
+    const imp = await this.require(id)
+    const dir = `${this.base(imp)}/sources`
+    const names = JSON.parse((await this.files.read(`${dir}/names.json`))?.toString('utf8') ?? 'null') as string[] | null
+    if (!names) return []
+    const stored = await this.files.list(`${dir}/`)
+    return names.flatMap((name, i) => {
+      const key = stored.find((k) => k.slice(dir.length + 1).startsWith(`${i + 1}.`))
+      return key ? [{ name, key }] : []
+    })
+  }
+
+  /**
+   * Deletes the uploaded files of imports saved to the bank more than ORIGINAL_DAYS ago, unless
+   * their owner keeps them. Page images stay, so the review page and reading again still work.
+   * Returns how many imports lost their files.
+   */
+  async expireOriginals(now = new Date()): Promise<number> {
+    const due = await this.bank.originalsToExpire(new Date(now.getTime() - ORIGINAL_DAYS * 86_400_000))
+    for (const imp of due) {
+      if (this.running.has(imp.id)) continue
+      const dir = `${this.base(imp)}/sources/`
+      await this.files.remove(await this.files.list(dir))
+      await this.bank.updateImport(imp.id, { originalDeletedAt: now.toISOString() })
+    }
+    return due.length
+  }
+
   /** Deletes the import and its files. Questions already in the bank stay, and so do the figure images they show. */
   async remove(id: string): Promise<void> {
     await this.settled(id)
@@ -261,11 +293,14 @@ export class Importer {
     return { fileName: files[0]!.name, kind: files.length === 1 && extname(files[0]!.name).toLowerCase() === '.pdf' ? 'pdf' : 'image', pages }
   }
 
-  /** Re-renders the stored upload; rendering is deterministic, so page images match the first run. */
+  /**
+   * Re-renders the stored upload; rendering is deterministic, so page images match the first run.
+   * Once the upload is deleted, the saved page images are read instead (without a PDF's text layer).
+   */
   private async load(imp: ImportRecord): Promise<IngestedDocument> {
     const dir = `${this.base(imp)}/sources`
     const names = JSON.parse((await this.files.read(`${dir}/names.json`))?.toString('utf8') ?? 'null') as string[] | null
-    if (!names) throw new Error('The uploaded files are missing')
+    if (!names) return this.loadPages(imp)
     const stored = await this.files.list(`${dir}/`)
     const files = await Promise.all(
       names.map(async (name, i) => {
@@ -276,6 +311,17 @@ export class Importer {
       }),
     )
     return this.ingest(files)
+  }
+
+  private async loadPages(imp: ImportRecord): Promise<IngestedDocument> {
+    const pages: PageImage[] = []
+    for (let n = 1; n <= imp.pageCount; n++) {
+      const data = await this.files.read(this.pageImage(imp, n))
+      if (!data) throw new Error('The uploaded files are missing')
+      const [page] = (await ingestBuffer(`page-${n}.png`, data, { maxEdge: this.opts.maxEdge })).pages
+      pages.push({ ...page!, pageNumber: n })
+    }
+    return { fileName: imp.fileName, kind: 'image', pages }
   }
 
   /** The models to read with: the import's own choice, or for AUTO, the owner's plan. */

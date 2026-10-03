@@ -69,6 +69,32 @@ describe('automatic reading', () => {
   })
 })
 
+describe('uploaded files', () => {
+  it('deletes them 30 days after saving unless kept, and reads again from the page images', async () => {
+    const imp = await importer.create({ ownerId: 'local', files: [{ name: '小考.png', data: await png() }], provider: 'fake' })
+    await importer.settled(imp.id)
+    await importer.publish(imp.id, (await bank.getDraft(imp.id))!)
+    const kept = await importer.create({ ownerId: 'local', files: [{ name: 'kept.png', data: await png() }], provider: 'fake' })
+    await importer.settled(kept.id)
+    await importer.publish(kept.id, (await bank.getDraft(kept.id))!)
+    await bank.updateImport(kept.id, { keepOriginal: true })
+    expect(await importer.originals(imp.id)).toEqual([{ name: '小考.png', key: expect.stringMatching(/sources\/1\.png$/) }])
+
+    expect(await importer.expireOriginals()).toBe(0)
+    const later = new Date(Date.now() + 31 * 86_400_000)
+    expect(await importer.expireOriginals(later)).toBe(1)
+    expect(await importer.originals(imp.id)).toEqual([])
+    expect(await importer.originals(kept.id)).toHaveLength(1)
+    expect(await bank.getImport(imp.id)).toMatchObject({ originalDeletedAt: later.toISOString() })
+    expect(existsSync(join(dataDir, importer.pageImage(imp, 1)))).toBe(true)
+
+    await importer.rerun(imp.id)
+    await importer.settled(imp.id)
+    expect(await bank.getImport(imp.id)).toMatchObject({ status: 'review', error: null })
+    expect(await importer.expireOriginals(later)).toBe(0)
+  })
+})
+
 describe('Importer', () => {
   it('turns several photos into one draft ready for review, then into bank questions', async () => {
     const imp = await importer.create({ ownerId: 'local', files: [{ name: 'p1.png', data: await png() }, { name: 'p2.png', data: await png() }], provider: 'fake' })
