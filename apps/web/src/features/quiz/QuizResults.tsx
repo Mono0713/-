@@ -60,7 +60,7 @@ export function QuizResults({ attempt, summary, teacher }: { attempt: QuizAttemp
         {percent !== null && (
           <div className="relative grid place-items-center">
             <ProgressRing value={percent / 100} size={84} stroke={9} tone={percent >= 60 ? 'var(--color-good)' : 'var(--color-warn)'} />
-            <span className="num absolute text-lg">
+            <span className="num absolute text-lg leading-none">
               <Odometer value={`${percent}%`} />
             </span>
           </div>

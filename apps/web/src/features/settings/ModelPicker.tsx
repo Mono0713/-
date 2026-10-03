@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { ProviderOption } from '@/server/context'
+import { Listbox } from '@/shared/Listbox'
 import { inputBase, inputClass } from '@/shared/ui'
 
 const CUSTOM = '__custom'
@@ -31,32 +32,24 @@ export function ModelPicker({
     .filter(([, list]) => list.length > 0)
   return (
     <div className={`flex gap-2 ${compact ? 'items-center' : 'flex-col'}`}>
-      <select
+      <Listbox
         value={custom ? CUSTOM : value}
-        onChange={(e) => {
-          const next = e.target.value
+        onChange={(next) => {
           setCustom(next === CUSTOM)
           if (next !== CUSTOM) onChange(next)
         }}
-        className={base}
-        aria-label={label}
-      >
-        {!models.some((m) => m.id === value) && !custom && <option value={value}>{value || emptyLabel}</option>}
-        {groups.map(([tier, list]) => {
-          const options = list.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label}
-            </option>
-          ))
-          // A plain list (e.g. chat apps) needs no group heading.
-          return groups.length === 1 && !tier ? options : (
-            <optgroup key={tier ?? 'other'} label={tier ? TIER_LABELS[tier] : '其他可用模型'}>
-              {options}
-            </optgroup>
-          )
-        })}
-        <option value={CUSTOM}>自己輸入模型名稱…</option>
-      </select>
+        className={`${base} ${compact ? 'min-w-44' : ''}`}
+        label={label}
+        groups={[
+          ...(!models.some((m) => m.id === value) && !custom ? [{ options: [{ value, label: value || emptyLabel }] }] : []),
+          // a plain list (e.g. chat apps) needs no group heading
+          ...groups.map(([tier, list]) => ({
+            label: groups.length === 1 && !tier ? undefined : tier ? TIER_LABELS[tier] : '其他可用模型',
+            options: list.map((m) => ({ value: m.id, label: m.label })),
+          })),
+          { options: [{ value: CUSTOM, label: '自己輸入模型名稱…' }] },
+        ]}
+      />
       {custom && (
         <input value={value} onChange={(e) => onChange(e.target.value.trim())} placeholder="例如 claude-opus-5-5" className={`${base} ${compact ? 'w-48' : ''}`} aria-label={`${label}名稱`} autoFocus />
       )}

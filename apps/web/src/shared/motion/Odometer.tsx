@@ -27,7 +27,7 @@ export function Odometer({ value, className = '' }: { value: string; className?:
             </span>
           </span>
         ) : (
-          <span key={i} aria-hidden>
+          <span key={i} className="m-odo-ch" aria-hidden>
             {ch}
           </span>
         ),

@@ -9,7 +9,7 @@ import { InkPad } from '@/shared/ink/InkPad'
 import { TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
 import { IconKeyboard, IconPen, IconScratch } from '@/shared/icons'
-import { PenCircle, PenTick } from '@/shared/motion/PenMarks'
+import { PenTick } from '@/shared/motion/PenMarks'
 import { Segmented } from '@/shared/Segmented'
 import { Badge, inputBase, inputClass } from '@/shared/ui'
 
@@ -140,22 +140,20 @@ export function QuizQuestion({
             const correct = reveal && key.includes(label)
             const wrong = reveal && picked && !correct
             const tone = correct ? 'border-good bg-good-soft' : wrong ? 'border-bad bg-bad-soft' : picked ? 'border-accent bg-accent-soft' : 'border-line bg-surface hover:border-accent/50'
-            // feedback plays once when the answer is revealed: a wrong pick is circled in red pen and
-            // nudged, then the right option gets its tick
+            // feedback plays once when the answer is revealed: a wrong pick is nudged (its red tint says
+            // the rest; a red-pen ring was too loud) and the right option gets its tick
             const feedback = !celebrate ? '' : correct && picked ? 'm-pop' : wrong ? 'm-nudge' : ''
             return (
-              // the red ring reaches past the option's box, so that option sits above the ones after it
-              <li key={label} className={wrong ? 'relative z-10' : undefined}>
+              <li key={label}>
                 <button type="button" disabled={locked} onClick={() => toggle(label)} className={`m-press relative flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left text-sm ${tone} ${feedback}`}>
                   <span className={`num shrink-0 font-semibold leading-relaxed ${picked ? 'text-accent' : 'text-muted'}`}>({item.displayLabels[i]})</span>
                   <Markdown className="min-w-0 flex-1">{option?.content ?? ''}</Markdown>
                   {/* Marks sit one line high, centred on the option's first line. */}
                   {correct && (
                     <span className="flex h-[1.625em] shrink-0 items-center">
-                      <PenTick size={20} late={values.some((v) => !key.includes(v))} />
+                      <PenTick size={20} />
                     </span>
                   )}
-                  {wrong && <PenCircle />}
                 </button>
               </li>
             )

@@ -151,14 +151,24 @@ const API_PROVIDERS = ['claude', 'openai', 'gemini']
  */
 export type Teacher = { teacher: AiTeacher; reader: TextModel; provider: string; model: string }
 
-export async function teacherFor(ownerId: string): Promise<Teacher | null> {
+/** The provider and model AI marking would use, whether or not it is switched on (null: no key yet). */
+export async function teacherChoice(ownerId: string): Promise<{ provider: string; model: string } | null> {
   const s = await services().settings.get(ownerId)
   const { aiGrading } = s
-  if (!aiGrading.enabled) return null
   const keyOf = (id: string) => s.apiKeys[id] || envKey(id)
   const provider = aiGrading.provider && keyOf(aiGrading.provider) ? aiGrading.provider : API_PROVIDERS.find((id) => keyOf(id))
   if (!provider) return null
   const model = (aiGrading.provider === provider && aiGrading.model) || MODEL_CATALOG[provider]?.find((m) => m.tier === 'fast')?.id || DEFAULT_MODELS[provider]!
+  return { provider, model }
+}
+
+export async function teacherFor(ownerId: string): Promise<Teacher | null> {
+  const s = await services().settings.get(ownerId)
+  if (!s.aiGrading.enabled) return null
+  const choice = await teacherChoice(ownerId)
+  if (!choice) return null
+  const { provider, model } = choice
+  const keyOf = (id: string) => s.apiKeys[id] || envKey(id)
   // The same model also reads handwritten answers (all catalogued models take images).
   const reader = createTextModel(provider, { apiKey: keyOf(provider)!, model })
   return { teacher: new AiTeacher(reader), reader, provider, model }

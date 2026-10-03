@@ -4,7 +4,8 @@ import { Badge } from '@/shared/ui'
 
 /**
  * One exam in the bank list, drawn as a sheet. Its bottom-right corner rests slightly curled,
- * like the logo, and lifts on hover to show a link straight into practice.
+ * like the logo, and lifts on hover to show a link straight into practice; the corner itself is
+ * that link too. The rest of the card opens the exam.
  */
 export function ExamCard({ exam }: { exam: BankExam }) {
   const details = [exam.institution, exam.term].filter(Boolean).join(' · ')
@@ -30,7 +31,12 @@ export function ExamCard({ exam }: { exam: BankExam }) {
           </Link>
         )}
       </div>
-      <span aria-hidden className="m-curl" />
+      {/* the curled corner itself is a way into practice: it opens the mode choice for this exam */}
+      {exam.questionCount > 0 ? (
+        <Link href={`/quiz/new?exam=${exam.id}`} tabIndex={-1} aria-hidden className="m-curl" title="開始練習" />
+      ) : (
+        <span aria-hidden className="m-curl pointer-events-none" />
+      )}
     </div>
   )
 }

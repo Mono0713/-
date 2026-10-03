@@ -33,7 +33,7 @@ async function Recent() {
   return (
     <>
       {imports.length > 0 && (
-        <div className="mt-8 min-h-0 flex-1 overflow-y-auto px-3">
+        <div className="mt-8 min-h-0 flex-1 overflow-y-auto px-3 [scrollbar-gutter:stable]">
           <p className="mb-1.5 px-2 text-[11px] font-semibold tracking-[0.12em] text-white/35">最近匯入</p>
           <ul className="space-y-px">
             {imports.map((imp) => (

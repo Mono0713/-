@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import type { ProviderOption } from '@/server/context'
-import { IconCheck, IconKey, IconRefresh } from '@/shared/icons'
+import { IconKey, IconRefresh } from '@/shared/icons'
 import { Badge, Button, Card, inputClass } from '@/shared/ui'
 import { refreshModels, removeApiKey, saveAiGrading, saveApiKey, saveDefaultProvider, saveLocale, saveModel } from './actions'
 import { ModelPicker } from './ModelPicker'
+import { CalmSwitch } from '@/shared/motion/CalmSwitch'
 import { ThemePicker } from '@/shared/theme/ThemePicker'
 
 export interface KeyInfo {
@@ -35,17 +36,15 @@ export function SettingsForm({
   defaultProvider: string
   providers: ProviderOption[]
   keys: Record<string, KeyInfo>
-  /** The saved choice, and what it resolves to now (null: AI marking cannot run). */
+  /** The saved choice, and what it resolves to even while switched off (null: no key yet). */
   aiGrading: { enabled: boolean; provider: string | null; model: string | null; active: { provider: string; model: string } | null }
   /** Keys are kept encrypted in the hosted database rather than in the local data folder. */
   keysInDatabase: boolean
 }) {
-  const [saved, flash] = useFlash()
   const [, start] = useTransition()
-  const run = (action: () => Promise<unknown>) => start(async () => {
-    await action()
-    flash()
-  })
+  const run = (action: () => Promise<unknown>) => start(async () => void (await action()))
+  // every change saves on the spot; no "saved" note (the control itself already shows the new value)
+  const flash = () => {}
   const apis = providers.filter((p) => p.id !== 'manual')
 
   return (
@@ -62,6 +61,9 @@ export function SettingsForm({
         </Row>
         <Row label="外觀" hint="淺色或深色。只記在這個瀏覽器裡。">
           <ThemePicker />
+        </Row>
+        <Row plain label="做題時減少動畫" hint="換題、對答案時不播動畫，畫面直接切換，專心作答。只記在這個瀏覽器裡。">
+          <CalmSwitch />
         </Row>
         <Row label="預設辨識方式" hint="匯入考卷時先選好的方式，每次上傳仍可以改。">
           <select defaultValue={defaultProvider} onChange={(e) => run(() => saveDefaultProvider(e.target.value))} className={inputClass}>
@@ -91,12 +93,6 @@ export function SettingsForm({
         ))}
       </Section>
 
-      {/* a sticky note: stuck on when saved, peeled off a moment later */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center">
-        <p aria-live="polite" data-show={saved || undefined} className="m-sticky relative flex items-center gap-1.5 px-4 pb-2.5 pt-2">
-          <IconCheck size={15} /> 已儲存
-        </p>
-      </div>
     </div>
   )
 }
@@ -226,6 +222,8 @@ function TeacherSettings({
   const [, start] = useTransition()
   const save = (patch: Parameters<typeof saveAiGrading>[0]) => start(async () => (await saveAiGrading(patch), onSaved()))
   const chosen = providers.find((p) => p.id === provider)
+  // what marking will use; known before the switch flips, so turning it on never flashes the no-key warning
+  const active = chosen?.ready ? (model || chosen.models.find((m) => m.tier === 'fast')?.id || chosen.model) : provider ? null : initial.active?.model
   return (
     <>
       <Row plain label="用 AI 批改" hint="問答、計算、填空題，以及沒有標準答案的題目，交卷後由 AI 老師評分並寫評語；你隨時可以自己改分數。">
@@ -244,7 +242,7 @@ function TeacherSettings({
             <span className={`absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 [transition-timing-function:var(--m-spring)] ${enabled ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
           </button>
           <span className="text-sm text-muted">
-            {!enabled ? '關閉，問答題自己評分' : initial.active ? `目前使用 ${initial.active.model}` : '需要先在下面加上任一家的 API 金鑰'}
+            {!enabled ? '關閉，問答題自己評分' : active ? `目前使用 ${active}` : '需要先在下面加上任一家的 API 金鑰'}
           </span>
         </span>
       </Row>
@@ -311,17 +309,4 @@ function Row({ label, hint, children, plain = false }: { label: string; hint?: s
       </span>
     </Tag>
   )
-}
-
-/** A flag that turns itself off after a moment, for "saved" feedback. */
-function useFlash(): [boolean, () => void] {
-  const [on, setOn] = useState(0)
-  return [
-    on > 0,
-    () => {
-      const id = Date.now()
-      setOn(id)
-      setTimeout(() => setOn((cur) => (cur === id ? 0 : cur)), 1600)
-    },
-  ]
 }

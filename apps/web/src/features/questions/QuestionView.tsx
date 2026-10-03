@@ -18,24 +18,10 @@ export function QuestionView({ q, compact = false, actions, onConfirm }: { q: Dr
   const answerByBlank = blanks.length > 0 && blanks.length === q.answer.values.length
   const isChoice = q.type === 'single_choice' || q.type === 'multiple_choice'
   let blankOffset = 0
-  const { main, part } = splitNumber(q.number)
   const flagged = q.confidence !== 'high' || q.issues.length > 0
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        {part ? (
-          // A sub-question: its part stands out, the main number stays quiet.
-          <span className="num text-xl leading-none">
-            <span className="text-base text-muted">{main}</span>({part})
-          </span>
-        ) : (
-          <span className="num text-xl leading-none">{q.number}.</span>
-        )}
-        <Badge>{TYPE_LABELS[q.type]}</Badge>
-        {q.points !== null && <Badge>{q.points} 分</Badge>}
-        {q.confidence !== 'high' && !onConfirm && <Badge tone={q.confidence === 'low' ? 'bad' : 'warn'}>{CONFIDENCE_LABELS[q.confidence]}</Badge>}
-        {actions && <div className="ml-auto flex items-center gap-0.5">{actions}</div>}
-      </div>
+      <QuestionHeading q={q} showConfidence={!onConfirm} actions={actions} />
 
       <Markdown>{q.stem}</Markdown>
       {q.translation && <Markdown className="border-l-2 border-line pl-3 text-sm text-muted">{q.translation}</Markdown>}
@@ -105,4 +91,27 @@ export function QuestionView({ q, compact = false, actions, onConfirm }: { q: Dr
 function displayAnswer(type: DraftQuestion['type'], value: string): string {
   if (type === 'true_false') return value === 'true' ? '○（是）' : value === 'false' ? '╳（非）' : value
   return value
+}
+
+/** A card's first line: number, type, points and the actions on the right. The copy of a card that
+ *  follows the pointer while dragged uses it too, so it lines up with the card exactly. */
+export function QuestionHeading({ q, showConfidence = false, actions, children }: { q: DraftQuestion; showConfidence?: boolean; actions?: React.ReactNode; children?: React.ReactNode }) {
+  const { main, part } = splitNumber(q.number)
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {part ? (
+        // A sub-question: its part stands out, the main number stays quiet.
+        <span className="num text-xl leading-none">
+          <span className="text-base text-muted">{main}</span>({part})
+        </span>
+      ) : (
+        <span className="num text-xl leading-none">{q.number}.</span>
+      )}
+      <Badge>{TYPE_LABELS[q.type]}</Badge>
+      {q.points !== null && <Badge>{q.points} 分</Badge>}
+      {showConfidence && q.confidence !== 'high' && <Badge tone={q.confidence === 'low' ? 'bad' : 'warn'}>{CONFIDENCE_LABELS[q.confidence]}</Badge>}
+      {children}
+      {actions && <div className="ml-auto flex items-center gap-0.5">{actions}</div>}
+    </div>
+  )
 }

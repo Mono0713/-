@@ -1,11 +1,40 @@
 'use client'
 
 import { untangleBoxes, type DraftQuestion } from '@exam/core'
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { fileUrl } from '@/shared/files'
 import { IconChevronLeft, IconChevronRight, IconExternal, IconLoader, IconMinus, IconPlus } from '@/shared/icons'
 
 const ZOOMS = [1, 1.25, 1.5, 2, 2.5]
+
+type Box = DraftQuestion['locations'][number]['bbox']
+/** What a press on the selected box changes: the whole box, or the edges named (n s e w). */
+type Grip = 'move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
+const GRIPS: { grip: Grip; className: string }[] = [
+  { grip: 'n', className: '-top-1 inset-x-2 h-2 cursor-ns-resize' },
+  { grip: 's', className: '-bottom-1 inset-x-2 h-2 cursor-ns-resize' },
+  { grip: 'w', className: '-left-1 inset-y-2 w-2 cursor-ew-resize' },
+  { grip: 'e', className: '-right-1 inset-y-2 w-2 cursor-ew-resize' },
+  { grip: 'nw', className: '-left-[5px] -top-[5px] cursor-nwse-resize' },
+  { grip: 'ne', className: '-right-[5px] -top-[5px] cursor-nesw-resize' },
+  { grip: 'sw', className: '-bottom-[5px] -left-[5px] cursor-nesw-resize' },
+  { grip: 'se', className: '-bottom-[5px] -right-[5px] cursor-nwse-resize' },
+]
+const MIN = 0.012
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+
+/** The box after a grip moved by (dx, dy), as fractions of the page; it never leaves the page or turns inside out. */
+function dragged(b: Box, grip: Grip, dx: number, dy: number): Box {
+  if (grip === 'move') return { ...b, x: clamp(b.x + dx, 0, 1 - b.width), y: clamp(b.y + dy, 0, 1 - b.height) }
+  let { x, y } = b
+  let right = b.x + b.width
+  let bottom = b.y + b.height
+  if (grip.includes('n')) y = clamp(y + dy, 0, bottom - MIN)
+  if (grip.includes('s')) bottom = clamp(bottom + dy, y + MIN, 1)
+  if (grip.includes('w')) x = clamp(x + dx, 0, right - MIN)
+  if (grip.includes('e')) right = clamp(right + dx, x + MIN, 1)
+  return { x, y, width: right - x, height: bottom - y }
+}
 
 /**
  * Every source page, one under the other, with a box around each question: the selected one is
@@ -18,12 +47,15 @@ export function PageViewer({
   questions,
   selected,
   onSelect,
+  onBoxChange,
   className = '',
 }: {
   pages: { pageNumber: number; image: string }[]
   questions: DraftQuestion[]
   selected: number | null
   onSelect: (index: number) => void
+  /** Given, the selected question's box can be moved and resized on the page. */
+  onBoxChange?: (index: number, location: number, bbox: Box) => void
   className?: string
 }) {
   const scroller = useRef<HTMLDivElement>(null)
@@ -79,6 +111,79 @@ export function PageViewer({
     else el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  // Zoomed in, the pages can be grabbed and moved with the mouse or pen (touch already pans).
+  // A press that moves more than a few pixels is a pan, and the click that ends it selects nothing;
+  // a press that stays put is a click on whatever is under it (a question's box).
+  const strip = useRef<HTMLDivElement>(null)
+  const [panning, setPanning] = useState(false)
+  const pan = useRef<{ x: number; y: number; moved: boolean } | null>(null)
+  const startPan = (e: ReactPointerEvent) => {
+    if (zoom === 0 || e.pointerType === 'touch' || e.button !== 0) return
+    pan.current = { x: e.clientX, y: e.clientY, moved: false }
+  }
+  const movePan = (e: ReactPointerEvent) => {
+    const p = pan.current
+    if (!p) return
+    if (e.buttons === 0) return endPan() // released outside before the pan began
+    const dx = e.clientX - p.x
+    const dy = e.clientY - p.y
+    if (!p.moved && Math.hypot(dx, dy) < 4) return
+    if (!p.moved) {
+      // only a real pan captures the pointer, so a plain click still reaches the question's box
+      setPanning(true)
+      e.currentTarget.setPointerCapture(e.pointerId)
+    }
+    p.moved = true
+    p.x = e.clientX
+    p.y = e.clientY
+    strip.current?.scrollBy({ left: -dx, behavior: 'instant' })
+    const el = scroller.current
+    if (el && scrolls()) el.scrollBy({ left: -dx, top: -dy, behavior: 'instant' })
+    else window.scrollBy({ top: -dy, behavior: 'instant' })
+  }
+  const endPan = () => {
+    if (pan.current?.moved) {
+      // swallow the click that follows a pan
+      const stop = (ev: MouseEvent) => {
+        ev.stopPropagation()
+        ev.preventDefault()
+      }
+      addEventListener('click', stop, { capture: true, once: true })
+      setTimeout(() => removeEventListener('click', stop, { capture: true }), 0)
+    }
+    pan.current = null
+    setPanning(false)
+  }
+
+  // The selected box: dragged by its body to move, by its edges and corners to resize.
+  const [live, setLive] = useState<{ index: number; location: number; bbox: Box } | null>(null)
+  const edit = useRef<{ index: number; location: number; grip: Grip; start: Box; x: number; y: number; w: number; h: number } | null>(null)
+  const startEdit = (e: ReactPointerEvent, index: number, location: number, bbox: Box, grip: Grip) => {
+    if (!onBoxChange || e.button !== 0) return
+    const page = (e.currentTarget as HTMLElement).closest('figure')?.getBoundingClientRect()
+    if (!page) return
+    e.stopPropagation() // not a pan
+    e.preventDefault()
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    edit.current = { index, location, grip, start: bbox, x: e.clientX, y: e.clientY, w: page.width, h: page.height }
+  }
+  const moveEdit = (e: ReactPointerEvent) => {
+    const d = edit.current
+    if (!d) return
+    e.stopPropagation()
+    setLive({ index: d.index, location: d.location, bbox: dragged(d.start, d.grip, (e.clientX - d.x) / d.w, (e.clientY - d.y) / d.h) })
+  }
+  const endEdit = (e: ReactPointerEvent) => {
+    const d = edit.current
+    if (!d) return
+    e.stopPropagation()
+    edit.current = null
+    const bbox = dragged(d.start, d.grip, (e.clientX - d.x) / d.w, (e.clientY - d.y) / d.h)
+    setLive(null)
+    if (Math.abs(bbox.x - d.start.x) + Math.abs(bbox.y - d.start.y) + Math.abs(bbox.width - d.start.width) + Math.abs(bbox.height - d.start.height) > 0.001) onBoxChange?.(d.index, d.location, bbox)
+  }
+  const editHandlers = { onPointerMove: moveEdit, onPointerUp: endEdit, onPointerCancel: endEdit }
+
   if (!pages.length) return null
   const scale = ZOOMS[zoom]!
   const index = Math.max(0, pages.findIndex((p) => p.pageNumber === current))
@@ -88,8 +193,16 @@ export function PageViewer({
     // A column, so the controls sit at the bottom of the viewer even before the pages fill it.
     <div ref={scroller} onScroll={onScroll} className={`relative flex flex-col ${className}`}>
       {/* Zoomed pages scroll sideways here on phones; wider screens scroll the whole viewer. */}
-      <div className="flex-1 overflow-x-auto lg:overflow-visible">
-        <div className="space-y-3 pb-1" style={{ width: `${scale * 100}%` }}>
+      <div ref={strip} className="flex-1 overflow-x-auto lg:overflow-visible">
+        <div
+          className={`space-y-3 pb-1 ${zoom > 0 ? (panning ? 'cursor-grabbing select-none' : 'cursor-grab') : ''}`}
+          style={{ width: `${scale * 100}%` }}
+          onPointerDown={startPan}
+          onPointerMove={movePan}
+          onPointerUp={endPan}
+          onPointerCancel={endPan}
+          onDragStart={(e) => zoom > 0 && e.preventDefault()}
+        >
           {pages.map((page) => (
             <figure
               key={page.pageNumber}
@@ -126,20 +239,46 @@ export function PageViewer({
               )}
               {loaded[page.pageNumber] === 'ok' &&
                 boxes
-                  .flatMap((q, index) => q.locations.filter((l) => l.pageNumber === page.pageNumber).map((l, i) => ({ l, i, index })))
-                  .map(({ l, i, index }, order) => (
-                    <button
-                      key={`${index}-${i}`}
-                      type="button"
-                      data-q={index}
-                      onClick={() => onSelect(index)}
-                      title={`第 ${questions[index]!.number} 題`}
-                      style={{ '--i': order, left: `${l.bbox.x * 100}%`, top: `${l.bbox.y * 100}%`, width: `${l.bbox.width * 100}%`, height: `${l.bbox.height * 100}%` } as CSSProperties}
-                      className={`m-found absolute rounded-sm transition-colors ${
-                        index === selected ? 'bg-accent/15 ring-2 ring-accent' : 'ring-1 ring-accent/0 hover:bg-accent/5 hover:ring-accent/40'
-                      }`}
-                    />
-                  ))}
+                  .flatMap((q, index) => q.locations.map((l, location) => ({ l, location, index })).filter(({ l }) => l.pageNumber === page.pageNumber))
+                  .map(({ l, location, index }, order) => {
+                    const box = live && live.index === index && live.location === location ? live.bbox : l.bbox
+                    const place = { '--i': order, left: `${box.x * 100}%`, top: `${box.y * 100}%`, width: `${box.width * 100}%`, height: `${box.height * 100}%` } as CSSProperties
+                    if (index === selected && onBoxChange)
+                      return (
+                        <div
+                          key={`${index}-${location}`}
+                          data-q={index}
+                          title={`第 ${questions[index]!.number} 題：拖曳移動，拉邊角調整大小`}
+                          style={place}
+                          onPointerDown={(e) => startEdit(e, index, location, l.bbox, 'move')}
+                          {...editHandlers}
+                          className={`absolute z-[1] touch-none rounded-sm bg-accent/15 ring-2 ring-accent ${live?.index === index ? 'cursor-grabbing' : 'cursor-move'}`}
+                        >
+                          {GRIPS.map(({ grip, className }) => (
+                            <span
+                              key={grip}
+                              aria-hidden
+                              onPointerDown={(e) => startEdit(e, index, location, l.bbox, grip)}
+                              {...editHandlers}
+                              className={`absolute ${className} ${grip.length === 2 ? 'h-2.5 w-2.5 rounded-full bg-surface ring-2 ring-accent' : ''}`}
+                            />
+                          ))}
+                        </div>
+                      )
+                    return (
+                      <button
+                        key={`${index}-${location}`}
+                        type="button"
+                        data-q={index}
+                        onClick={() => onSelect(index)}
+                        title={`第 ${questions[index]!.number} 題`}
+                        style={place}
+                        className={`m-found absolute rounded-sm transition-colors ${
+                          index === selected ? 'bg-accent/15 ring-2 ring-accent' : 'ring-1 ring-accent/0 hover:bg-accent/5 hover:ring-accent/40'
+                        }`}
+                      />
+                    )
+                  })}
               {pages.length > 1 && (
                 <span className="num pointer-events-none absolute left-2 top-2 rounded-md bg-night/70 px-1.5 py-0.5 text-[11px] text-white backdrop-blur">{page.pageNumber}</span>
               )}

@@ -99,6 +99,18 @@
 
 html {
   color-scheme: light;
+  /* scrollbars: a thin pencil-grey thumb, no track or arrows, in both themes */
+  scrollbar-color: color-mix(in srgb, var(--color-ink) 22%, transparent) transparent;
+  /* the bar's room is kept even when nothing scrolls, so a page never shifts sideways when it appears */
+  scrollbar-gutter: stable;
+}
+* {
+  scrollbar-width: thin;
+}
+/* a row that scrolls sideways without a bar: the ends fade out instead (the editor's number bar) */
+.scroll-strip {
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, transparent, #000 18px, #000 calc(100% - 18px), transparent);
 }
 
 body {
@@ -122,6 +134,14 @@ h2 {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
+}
+
+/* Every delete button (any button or link carrying the trash icon) turns red on hover, wherever it
+   is and however it is styled; plain CSS outside the layers, so it wins over a feature's own hover. */
+:is(button, a):has(svg.lucide-trash):not(:disabled):hover {
+  color: var(--color-bad);
+  background-color: var(--color-bad-soft);
+  border-color: color-mix(in srgb, var(--color-bad) 35%, transparent);
 }
 
 /* primary actions: solid ballpoint blue (the old gradient is gone) */
@@ -165,6 +185,17 @@ h2 {
   border-collapse: collapse;
   margin: 0.5rem 0;
   font-size: 0.9em;
+}
+/* tables printed one after another sit side by side, wrapping when the column is too narrow */
+.prose-q .table-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem 1rem;
+  margin: 0.5rem 0;
+}
+.prose-q .table-row > table {
+  margin: 0;
 }
 .prose-q th,
 .prose-q td {

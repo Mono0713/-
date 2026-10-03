@@ -1,6 +1,6 @@
 'use client'
 
-import { DndContext, DragOverlay, type DragEndEvent } from '@dnd-kit/core'
+import { DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { DraftExam, DraftQuestion } from '@exam/core'
 import Link from 'next/link'
@@ -34,13 +34,13 @@ import {
 } from '@/shared/icons'
 import { TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
+import { Toast } from '@/shared/Toast'
 import { MathTextInput } from '@/shared/math/MathTextInput'
 import { Badge, Button, inputClass } from '@/shared/ui'
 import { publishDraft, saveDraft } from './actions'
 import { PageViewer } from './PageViewer'
 import { splitNumber, splitParts } from './parts'
-import { DragTilt } from '@/shared/motion/DragTilt'
-import { alongList, dropAnimation, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
+import { ActiveOverlay, alongList, EdgeScroll, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 
 type SaveState = 'saved' | 'dirty' | 'saving'
 
@@ -97,10 +97,7 @@ export function ReviewEditor({
   const cards = useRef(new Map<number, HTMLElement>())
   const keys = useRef<string[]>([])
   if (keys.current.length !== draft.questions.length) keys.current = draft.questions.map((_, i) => keys.current[i] ?? newKey())
-  const cardSensors = useDragSensors(true)
-  // The card being dragged: it shrinks to a slot in the list while a compact copy follows the pointer.
-  const [dragKey, setDragKey] = useState<string | null>(null)
-  const dragIndex = dragKey ? keys.current.indexOf(dragKey) : -1
+  const cardSensors = useDragSensors(true, true)
   const outlineSensors = useDragSensors(false)
   const row = useRef<HTMLDivElement>(null)
   const viewer = useRef<HTMLDivElement>(null)
@@ -128,6 +125,27 @@ export function ReviewEditor({
     observer.observe(el)
     return () => observer.disconnect()
   }, [])
+  // The number bar has no scrollbar: the wheel scrolls it sideways, and the chosen number stays in view.
+  const numberBar = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const el = numberBar.current
+    if (!el) return
+    const wheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
+      e.preventDefault()
+      el.scrollBy({ left: e.deltaY, behavior: 'instant' })
+    }
+    el.addEventListener('wheel', wheel, { passive: false })
+    return () => el.removeEventListener('wheel', wheel)
+  }, [])
+  useEffect(() => {
+    const el = numberBar.current
+    const chip = el?.querySelector<HTMLElement>('[aria-current="true"]')
+    if (!el || !chip) return
+    const box = el.getBoundingClientRect()
+    const c = chip.getBoundingClientRect()
+    el.scrollTo({ left: el.scrollLeft + c.left - box.left - el.clientWidth / 2 + c.width / 2, behavior: 'smooth' })
+  }, [selected])
   // Autosave shortly after the last edit.
   useEffect(() => {
     if (draft === initial) return
@@ -163,13 +181,65 @@ export function ReviewEditor({
     setEditing(null)
     setSelected(index)
   }
+  // Deleting asks nothing; Ctrl+Z (or 復原 on the note) puts questions back, last deleted first.
+  // A box moved on the original page goes on the same stack, so Ctrl+Z also puts it back.
+  type Undo = { kind: 'delete'; index: number; question: DraftQuestion; key: string } | { kind: 'box'; key: string; locations: DraftQuestion['locations'] }
+  const trash = useRef<Undo[]>([])
+  const [deletedNote, setDeletedNote] = useState<string | null>(null)
+  const noteTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const showDeleted = (number: string | null) => {
+    clearTimeout(noteTimer.current)
+    setDeletedNote(number)
+    if (number !== null) noteTimer.current = setTimeout(() => setDeletedNote(null), 5000)
+  }
   const removeQuestion = (index: number) => {
-    if (!confirm(`刪除第 ${draft.questions[index]!.number} 題？`)) return
+    const question = draft.questions[index]!
+    trash.current.push({ kind: 'delete', index, question, key: keys.current[index]! })
     keys.current = keys.current.filter((_, i) => i !== index)
     setDraft((d) => ({ ...d, questions: d.questions.filter((_, i) => i !== index) }))
     setEditing(null)
     setSelected(null)
+    showDeleted(question.number)
   }
+  const moveBox = (index: number, location: number, bbox: DraftQuestion['locations'][number]['bbox']) => {
+    const q = draft.questions[index]!
+    trash.current.push({ kind: 'box', key: keys.current[index]!, locations: q.locations })
+    updateQuestion(index, { ...q, locations: q.locations.map((l, i) => (i === location ? { ...l, bbox, manual: true } : l)) })
+  }
+  const undoDelete = () => {
+    const last = trash.current.pop()
+    if (!last) return
+    if (last.kind === 'box') {
+      const index = keys.current.indexOf(last.key)
+      if (index >= 0) {
+        setDraft((d) => ({ ...d, questions: d.questions.map((q, i) => (i === index ? { ...q, locations: last.locations } : q)) }))
+        setSelected(index)
+      }
+      return
+    }
+    const at = Math.min(last.index, keys.current.length)
+    keys.current = [...keys.current.slice(0, at), last.key, ...keys.current.slice(at)]
+    setDraft((d) => ({ ...d, questions: [...d.questions.slice(0, at), last.question, ...d.questions.slice(at)] }))
+    setSelected(at)
+    showDeleted(null)
+  }
+  const undoRef = useRef(undoDelete)
+  undoRef.current = undoDelete
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'z' || !trash.current.length) return
+      // typing fields keep their own undo
+      const t = e.target as HTMLElement | null
+      if (t?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"], math-field')) return
+      e.preventDefault()
+      undoRef.current()
+    }
+    addEventListener('keydown', onKey)
+    return () => {
+      removeEventListener('keydown', onKey)
+      clearTimeout(noteTimer.current)
+    }
+  }, [])
   const moveQuestion = (from: number, to: number) => {
     // Selection and editing follow the question that moved.
     const follow = (i: number | null) =>
@@ -288,6 +358,29 @@ export function ReviewEditor({
   }
 
   const iconButton = 'm-press grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-ink/[0.05] hover:text-ink'
+  // A card's buttons when it is not being edited; the dragged copy draws the same row (inert) so it lines up.
+  const viewActions = (q: DraftQuestion, index: number, handle: DragHandle | null) => (
+    <>
+      {!q.groupId && splitParts(q, '') && (
+        <button type="button" onClick={() => splitQuestion(index)} className={iconButton} aria-label="拆成小題" title="拆成小題：(a)(b) 各自一題，可以分別作答和計分">
+          <IconSplit size={15} />
+        </button>
+      )}
+      <button type="button" onClick={() => setEditing(index)} className={iconButton} aria-label="編輯" title="編輯（或點兩下題目）">
+        <IconEdit size={15} />
+      </button>
+      <button type="button" onClick={() => removeQuestion(index)} className={`${iconButton} hover:bg-bad-soft hover:text-bad`} aria-label="刪除" title="刪除">
+        <IconTrash size={15} />
+      </button>
+      {handle ? (
+        gripButton(q, handle)
+      ) : (
+        <span className={iconButton.replace('text-muted', 'text-accent')}>
+          <IconGrip size={16} />
+        </span>
+      )}
+    </>
+  )
   const gripButton = (q: DraftQuestion, handle: DragHandle) => (
     <button
       type="button"
@@ -372,8 +465,8 @@ export function ReviewEditor({
                 </button>
               ))}
             </div>
-            <nav className="flex min-w-0 flex-1 overflow-x-auto" aria-label="題號">
-              <div className="mx-auto flex w-max items-center gap-1 py-0.5">
+            <nav ref={numberBar} className="scroll-strip flex min-w-0 flex-1 overflow-x-auto" aria-label="題號">
+              <div className="flex w-max items-center gap-1 py-0.5">
                 {numberClusters(draft.questions).map((cluster) => {
                   const shown = cluster.items.filter((i) => !flaggedOnly || isFlagged(draft.questions[i]!))
                   if (!shown.length) return null
@@ -385,6 +478,7 @@ export function ReviewEditor({
                         key={keys.current[shown[0]!]}
                         type="button"
                         onClick={() => select(shown[0]!, true)}
+                        aria-current={selected === shown[0] || undefined}
                         title={isFlagged(draft.questions[shown[0]!]!) ? '待確認' : undefined}
                         className={`num h-7 min-w-7 shrink-0 rounded-md px-1.5 text-xs transition-colors ${
                           selected === shown[0]
@@ -401,7 +495,7 @@ export function ReviewEditor({
                     <span key={keys.current[shown[0]!]} className="flex h-7 shrink-0 items-center gap-px rounded-md bg-surface pl-1.5 pr-0.5 shadow-sheet" title={`第 ${cluster.main} 題的小題`}>
                       <span className="num mr-0.5 text-xs text-ink/70">{cluster.main}</span>
                       {shown.map((i) => (
-                        <button key={keys.current[i]} type="button" onClick={() => select(i, true)} className={`num h-6 min-w-6 rounded px-1 text-[11px] transition-colors ${tone(i)}`}>
+                        <button key={keys.current[i]} type="button" onClick={() => select(i, true)} aria-current={selected === i || undefined} className={`num h-6 min-w-6 rounded px-1 text-[11px] transition-colors ${tone(i)}`}>
                           {splitNumber(draft.questions[i]!.number).part}
                         </button>
                       ))}
@@ -492,7 +586,8 @@ export function ReviewEditor({
               questions={draft.questions}
               selected={selected}
               onSelect={(i) => select(i, true)}
-              className="lg:h-full lg:overflow-auto lg:pr-1"
+              onBoxChange={moveBox}
+              className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]"
             />
           </div>
 
@@ -532,13 +627,10 @@ export function ReviewEditor({
               collisionDetection={underPointer}
               modifiers={[alongList]}
               measuring={listMeasuring}
-              onDragStart={({ active }) => setDragKey(String(active.id))}
-              onDragCancel={() => setDragKey(null)}
-              onDragEnd={(e) => {
-                setDragKey(null)
-                onDragEnd(e)
-              }}
+              autoScroll={false}
+              onDragEnd={onDragEnd}
             >
+              <EdgeScroll top={barHeight} />
               <SortableContext items={visibleKeys} strategy={verticalListSortingStrategy}>
                 {draft.questions.map((q, index) => {
                   if (flaggedOnly && !isFlagged(q)) return null
@@ -564,9 +656,9 @@ export function ReviewEditor({
                             className={`relative scroll-mt-40 rounded-2xl bg-surface p-4 transition-shadow sm:p-5 ${
                               inGroup ? 'ml-4 before:absolute before:-left-3 before:-top-4 before:bottom-4 before:w-0.5 before:rounded-full before:bg-ink/10 sm:ml-7 sm:before:-left-4' : ''
                             } ${
-                              // While dragged, the card is an empty slot as tall as the copy that follows the pointer,
-                              // so the cards around it only move by that much. It stays mounted: touch drags end on it.
-                              dragging ? 'h-14 overflow-hidden !bg-accent-soft/60 !p-0 outline-2 -outline-offset-2 outline-dashed outline-accent/35 [&>*]:invisible' : 'shadow-sheet'
+                              // While dragged, the card stays as an empty slot of its own size while its full-size copy
+                              // follows the pointer. It stays mounted: touch drags end on it.
+                              dragging ? '!bg-accent-soft/60 outline-2 -outline-offset-2 outline-dashed outline-accent/35 [&>*]:invisible' : 'shadow-sheet'
                             } ${selected === index && !dragging ? 'ring-2 ring-accent/70' : ''}`}
                           >
                             {isFlagged(q) && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-hl" />}
@@ -576,15 +668,16 @@ export function ReviewEditor({
                                 onChange={(v) => updateQuestion(index, v)}
                                 importId={importId}
                                 actions={
+                                  // the same places as the card's own buttons: done where edit was, then delete and the grip
                                   <>
+                                    <button type="button" onClick={() => setEditing(null)} className={`${iconButton} !text-accent hover:bg-accent-soft`} aria-label="完成" title="完成">
+                                      <IconCheck size={17} strokeWidth={2.6} />
+                                    </button>
                                     <button type="button" onClick={() => removeQuestion(index)} className={`${iconButton} hover:bg-bad-soft hover:text-bad`} aria-label="刪除" title="刪除">
                                       <IconTrash size={15} />
                                     </button>
                                     {/* Phones keep the header on one line; cards are reordered outside editing there. */}
                                     <span className="hidden sm:contents">{gripButton(q, handle)}</span>
-                                    <Button variant="primary" className="ml-1 h-9 px-2.5 py-0 sm:px-3" onClick={() => setEditing(null)} icon={<IconCheck size={15} />} aria-label="完成">
-                                      <span className="hidden sm:inline">完成</span>
-                                    </Button>
                                   </>
                                 }
                               />
@@ -592,22 +685,7 @@ export function ReviewEditor({
                               <QuestionView
                                 q={q}
                                 onConfirm={() => confirmQuestion(index)}
-                                actions={
-                                  <>
-                                    {!q.groupId && splitParts(q, '') && (
-                                      <button type="button" onClick={() => splitQuestion(index)} className={iconButton} aria-label="拆成小題" title="拆成小題：(a)(b) 各自一題，可以分別作答和計分">
-                                        <IconSplit size={15} />
-                                      </button>
-                                    )}
-                                    <button type="button" onClick={() => setEditing(index)} className={iconButton} aria-label="編輯" title="編輯（或點兩下題目）">
-                                      <IconEdit size={15} />
-                                    </button>
-                                    <button type="button" onClick={() => removeQuestion(index)} className={`${iconButton} hover:bg-bad-soft hover:text-bad`} aria-label="刪除" title="刪除">
-                                      <IconTrash size={15} />
-                                    </button>
-                                    {gripButton(q, handle)}
-                                  </>
-                                }
+                                actions={viewActions(q, index, handle)}
                               />
                             )}
                           </section>
@@ -617,9 +695,21 @@ export function ReviewEditor({
                   )
                 })}
               </SortableContext>
-              <DragOverlay dropAnimation={dropAnimation} modifiers={[alongList]}>
-                {dragIndex >= 0 && <DragPreview q={draft.questions[dragIndex]!} />}
-              </DragOverlay>
+              <ActiveOverlay
+                render={(key) => {
+                  const index = keys.current.indexOf(key)
+                  const q = draft.questions[index]
+                  return q ? (
+                    <DragPreview
+                      q={q}
+                      inGroup={q.groupId !== null && draft.groups.some((g) => g.id === q.groupId)}
+                      offset={cards.current.get(index)?.offsetTop ?? 0}
+                      flagged={isFlagged(q)}
+                      actions={viewActions(q, index, null)}
+                    />
+                  ) : null
+                }}
+              />
             </DndContext>
 
             <Button onClick={addQuestion} className="w-full border border-dashed border-ink/15 bg-transparent py-3 shadow-none" icon={<IconPlus size={16} />}>
@@ -628,6 +718,10 @@ export function ReviewEditor({
           </div>
         </div>
       </div>
+
+      <Toast show={deletedNote !== null} action="復原" onAction={undoDelete}>
+        已刪除第 {deletedNote} 題
+      </Toast>
 
       <Fab actions={fabActions} badge={flagged || undefined} />
     </div>
@@ -653,20 +747,19 @@ const SPLITTER = 20
 const SAVE_LABELS: Record<SaveState, string> = { saved: '草稿已自動儲存', saving: '儲存中…', dirty: '有未儲存的修改' }
 
 /** Short plain-text preview of a question stem for the outline. */
-/** The compact copy of a card that follows the pointer while it is dragged. */
-function DragPreview({ q }: { q: DraftQuestion }) {
+/**
+ * The copy of a card that follows the pointer while it is dragged: the whole card as it looks,
+ * same size and same buttons, lifted by its shadow only (`.m-lifted`). `offset` skips a section
+ * heading or group text above the card; the drag measures from those.
+ */
+function DragPreview({ q, inGroup, offset, flagged, actions }: { q: DraftQuestion; inGroup: boolean; offset: number; flagged: boolean; actions: React.ReactNode }) {
   return (
-    <DragTilt>
-      <div
-        data-drag-overlay
-        className="m-scale-in flex h-14 cursor-grabbing items-center gap-3 rounded-2xl bg-surface px-4 shadow-[0_24px_48px_-16px_rgb(22_24_43/0.4),0_0_0_1px_rgb(22_24_43/0.08)]"
-      >
-        <span className="num text-lg leading-none">{q.number}.</span>
-        <Badge>{TYPE_LABELS[q.type]}</Badge>
-        <span className="min-w-0 flex-1 truncate text-sm text-muted">{preview(q.stem)}</span>
-        <IconGrip size={16} className="shrink-0 text-accent" />
+    <div style={{ paddingTop: offset }} className={inGroup ? 'ml-4 sm:ml-7' : ''}>
+      <div data-drag-overlay inert className="m-lifted relative cursor-grabbing rounded-2xl bg-surface p-4 sm:p-5">
+        {flagged && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-hl" />}
+        <QuestionView q={q} onConfirm={() => {}} actions={actions} />
       </div>
-    </DragTilt>
+    </div>
   )
 }
 
@@ -711,7 +804,7 @@ function Outline({
   return (
     <nav
       aria-label="題目大綱"
-      className="m-enter mr-5 hidden w-[232px] shrink-0 space-y-6 self-start lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:max-h-[calc(100dvh-var(--bar)-1.5rem)] lg:overflow-y-auto lg:pb-4"
+      className="m-enter -ml-2 mr-3 hidden w-[248px] shrink-0 space-y-6 self-start px-2 lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:max-h-[calc(100dvh-var(--bar)-1.5rem)] lg:overflow-y-auto lg:pb-4 [scrollbar-gutter:stable]"
     >
       <section>
         <p className="mb-2 flex items-center justify-between px-1 text-[11px] font-semibold tracking-[0.12em] text-muted">

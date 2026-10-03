@@ -6,6 +6,7 @@ import { gradeItem } from '@exam/quiz/logic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { IconChevronLeft, IconChevronRight, IconFinish, IconSparkles, IconTimer } from '@/shared/icons'
+import { quizIsCalm } from '@/shared/motion/preference'
 import { Button, Card } from '@/shared/ui'
 import { checkAnswer, finishQuiz, markAnswer, saveResponse } from './actions'
 import { QuizQuestion } from './QuizQuestion'
@@ -87,11 +88,14 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
   const secondsLeft = useCountdown(practice ? null : attempt.deadline, finish)
   const [navOpen, setNavOpen] = useState(false)
   const [direction, setDirection] = useState<1 | -1>(1)
-  // the question being turned away, drawn on top of the new one until its page has turned
+  // the question being left, drawn over the new one while it slides off
   const [turning, setTurning] = useState<number | null>(null)
+  // set once you change question, so the first question does not slide in on page load
+  const [moved, setMoved] = useState(false)
   const go = (i: number) => {
     setDirection(i >= current ? 1 : -1)
-    setTurning(i > current && !matchMedia('(prefers-reduced-motion: reduce)').matches ? current : null)
+    setTurning(i !== current && !quizIsCalm() ? current : null)
+    setMoved(i !== current)
     setCurrent(i)
     setNavOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -129,7 +133,8 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
   )
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-6">
+    // m-calm-zone: 設定裡的「做題時減少動畫」 stills everything in here
+    <div className="m-calm-zone grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-6">
       {/* Phones: progress, time and the question list in a bar that stays on screen. */}
       <div className="sticky top-14 z-20 -mx-4 border-b border-line bg-paper/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
         <div className="flex items-center gap-3">
@@ -160,10 +165,10 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
       </div>
 
       <div className="min-w-0 space-y-4">
-        {/* Keyed by question. Going forward, the old question turns away like a page over the new
-            one; going back, the earlier page turns back in from the left. */}
-        <div className="relative [perspective:1400px]">
-          <div key={current} className={direction > 0 ? 'm-turn-under' : 'm-turn-back'}>
+        {/* Keyed by question. The old sheet slides off quickly and is gone before the next one
+            slides in from the side you are heading to, so two questions never show at once. */}
+        <div className="relative">
+          <div key={current} data-back={direction < 0 || undefined} className={moved ? 'm-leaf-in' : undefined}>
             <Card className="p-4 sm:p-5">
               <QuizQuestion
                 item={item}
@@ -176,7 +181,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
             </Card>
           </div>
           {turning !== null && items[turning] && (
-            <div key={`turn-${turning}`} aria-hidden inert className="m-turn-out absolute inset-x-0 top-0" onAnimationEnd={() => setTurning(null)}>
+            <div key={`leaf-${turning}`} aria-hidden inert data-back={direction < 0 || undefined} className="m-leaf-out absolute inset-x-0 top-0" onAnimationEnd={(e) => e.target === e.currentTarget && setTurning(null)}>
               <Card className="p-4 sm:p-5">
                 <QuizQuestion item={items[turning]!} index={turning} response={responses[turning] ?? null} reveal={practice && checked[turning]} />
               </Card>
