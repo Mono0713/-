@@ -23,7 +23,9 @@ import {
   IconEdit,
   IconGrip,
   IconLoader,
+  IconIndent,
   IconMerge,
+  IconOutdent,
   IconOutline,
   IconPlus,
   IconSave,
@@ -41,7 +43,7 @@ import { Badge, Button, inputClass } from '@/shared/ui'
 import { publishDraft, saveDraft } from './actions'
 import { PageViewer } from './PageViewer'
 import { STRENGTH_LABELS } from '@/features/settings/strengths'
-import { mergeParts, splitNumber, splitParts } from './parts'
+import { attachToPrevious, detachPart, groupLooseParts, mergeParts, nextPart, splitNumber, splitParts } from './parts'
 import { StrengthPanel } from './StrengthPanel'
 import { ActiveOverlay, alongList, EdgeScroll, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 
@@ -87,14 +89,16 @@ export function ReviewEditor({
   /** The AI strength from settings; given, the floating button can change it. */
   strength?: Strength
 }) {
-  const [draft, setDraft] = useState(initial)
+  // Sub-questions read as separate questions (1(1), 1(2)) start out grouped, so they merge like split ones.
+  const [start] = useState(() => groupLooseParts(initial, (n) => `parts-${Date.now().toString(36)}-${n}`))
+  const [draft, setDraft] = useState(start)
   const [selected, setSelected] = useState<number | null>(null)
   const [editing, setEditing] = useState<number | null>(null)
   const [layout, setLayoutState] = useState(DEFAULT_LAYOUT)
   const [saveState, setSaveState] = useState<SaveState>('saved')
   const [published, setPublished] = useState(savedExam ? { count: savedExam.questionCount, examId: savedExam.id } : null)
   // The draft as it was last put in the bank: until it changes, there is nothing to update.
-  const [inBank, setInBank] = useState<DraftExam | null>(savedExam ? initial : null)
+  const [inBank, setInBank] = useState<DraftExam | null>(savedExam ? start : null)
   const inSync = inBank === draft
   const [flaggedOnly, setFlaggedOnly] = useState(false)
   const [publishing, startPublish] = useTransition()
@@ -204,6 +208,21 @@ export function ReviewEditor({
     setEditing(null)
     setSelected(at)
   }
+  // By hand: a question becomes a sub-question of the one before it, or leaves its group again.
+  const attachPart = (index: number) => {
+    const next = attachToPrevious(draft, index, `parts-${Date.now().toString(36)}`)
+    if (!next) return
+    setDraft(next)
+    setSelected(index)
+  }
+  const detachQuestion = (index: number) => {
+    const result = detachPart(draft, index)
+    if (!result) return
+    keys.current = arrayMove(keys.current, index, result.at)
+    setDraft(result.draft)
+    setEditing(null)
+    setSelected(result.at)
+  }
   // A number whose sub-questions are split heads them with its group card: picking the number shows that card.
   const selectGroup = (groupId: string, first: number) => {
     setSelected(first)
@@ -287,10 +306,13 @@ export function ReviewEditor({
     const at = after ?? draft.questions.length - 1
     const ref = draft.questions[at]
     const next = ref && /^\d+$/.test(splitNumber(ref.number).main) ? String(Number(splitNumber(ref.number).main) + 1) : String(draft.questions.length + 1)
+    // added after a sub-question, it is the next sub-question of the same number
+    const group = after !== undefined && ref?.groupId && draft.groups.some((g) => g.id === ref.groupId) ? ref.groupId : null
+    const { main, part } = splitNumber(ref?.number ?? '')
     const q: DraftQuestion = {
-      number: after === undefined ? String(draft.questions.length + 1) : next,
+      number: after === undefined ? String(draft.questions.length + 1) : group ? `${main}(${nextPart(part)})` : next,
       section: ref?.section ?? null,
-      groupId: null,
+      groupId: group,
       type: 'single_choice',
       stem: '',
       translation: null,
@@ -355,6 +377,10 @@ export function ReviewEditor({
     ...(chosen && selected !== null
       ? [
           ...(splitParts(chosen, '') ? [{ id: 'split', label: `把第 ${chosenNumber} 題拆成小題`, icon: <IconSplit size={19} />, onClick: () => splitQuestion(selected) }] : []),
+          ...(selected > 0 && attachToPrevious(draft, selected, '')
+            ? [{ id: 'attach', label: `把第 ${chosenNumber} 題設為第 ${splitNumber(draft.questions[selected - 1]!.number).main} 題的小題`, icon: <IconIndent size={19} />, onClick: () => attachPart(selected) }]
+            : []),
+          ...(chosenGroup ? [{ id: 'detach', label: `把第 ${chosenNumber} 題移出小題`, icon: <IconOutdent size={19} />, onClick: () => detachQuestion(selected) }] : []),
           ...(canMerge ? [{ id: 'merge', label: `把第 ${splitNumber(chosenNumber).main} 題的小題合併`, icon: <IconMerge size={19} />, onClick: () => mergeGroup(chosenGroup!.id) }] : []),
           { id: 'copy', label: `複製第 ${chosenNumber} 題`, icon: <IconCopy size={19} />, onClick: () => duplicateQuestion(selected) },
           { id: 'insert', label: `在第 ${chosenNumber} 題後面新增`, icon: <IconPlus size={20} />, onClick: () => addQuestion(selected) },
