@@ -32,6 +32,12 @@ export interface ImportRecord {
   updatedAt: string
 }
 
+export interface NewExam {
+  meta: Partial<ExamMeta>
+  groups: DraftExam['groups']
+  questions: DraftQuestion[]
+}
+
 export interface NewImport {
   ownerId: string
   fileName: string

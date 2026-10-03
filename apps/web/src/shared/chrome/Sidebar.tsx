@@ -2,6 +2,7 @@ import { connection } from 'next/server'
 import { Suspense } from 'react'
 import { authEnabled, currentUser, services } from '@/server/context'
 import { Logo } from '@/shared/brand/Logo'
+import { Removable } from '@/shared/removal'
 import { Account } from './Account'
 import { RecentLink, SideNav } from './SideNav'
 
@@ -37,9 +38,11 @@ async function Recent() {
           <p className="mb-1.5 px-2 text-[11px] font-semibold tracking-[0.12em] text-white/35">最近匯入</p>
           <ul className="space-y-px">
             {imports.map((imp) => (
-              <li key={imp.id}>
-                <RecentLink href={`/imports/${imp.id}`} title={imp.title ?? imp.fileName} status={imp.status} />
-              </li>
+              <Removable key={imp.id} id={imp.id}>
+                <li>
+                  <RecentLink href={`/imports/${imp.id}`} title={imp.title ?? imp.fileName} status={imp.status} />
+                </li>
+              </Removable>
             ))}
           </ul>
         </div>

@@ -2,7 +2,9 @@
 
 import type { BankExam } from '@exam/bank'
 import type { ExamMeta } from '@exam/core'
+import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
+import { useRemoval } from '@/shared/removal'
 import { Button, Card, inputClass } from '@/shared/ui'
 import { deleteExam, updateExamMeta } from './actions'
 
@@ -18,6 +20,8 @@ export function ExamMetaForm({ exam }: { exam: BankExam }) {
   const [meta, setMeta] = useState<Partial<ExamMeta>>(() => Object.fromEntries(FIELDS.map(([k]) => [k, exam[k]])))
   const [dirty, setDirty] = useState(false)
   const [pending, start] = useTransition()
+  const router = useRouter()
+  const { remove } = useRemoval()
 
   return (
     <Card className="p-4">
@@ -37,7 +41,14 @@ export function ExamMetaForm({ exam }: { exam: BankExam }) {
         ))}
       </div>
       <div className="mt-3 flex items-center justify-between gap-3">
-        <Button variant="danger" onClick={() => confirm('刪除這份考卷和它的所有題目？') && start(() => deleteExam(exam.id))}>
+        <Button
+          variant="danger"
+          onClick={() => {
+            // back to the bank, where the card is already gone and a note offers 復原
+            remove({ id: exam.id, note: '已刪除考卷', commit: () => deleteExam(exam.id) })
+            router.push('/bank')
+          }}
+        >
           刪除考卷
         </Button>
         <Button variant="primary" disabled={!dirty || pending} onClick={() => start(async () => { await updateExamMeta(exam.id, meta); setDirty(false) })}>

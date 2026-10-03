@@ -4,6 +4,7 @@ import type { Tier } from '@exam/models'
 import { useState, useTransition } from 'react'
 import { IconKey, IconPlus, IconRefresh, IconX } from '@/shared/icons'
 import { Listbox } from '@/shared/Listbox'
+import { useRemoval } from '@/shared/removal'
 import { Badge, Button, inputBase, inputClass } from '@/shared/ui'
 import { addCustomProvider, refreshModels, removeCustomProvider, saveApiKey, saveCustomModels } from './actions'
 
@@ -47,9 +48,10 @@ const TIERS: [Tier, string][] = [
 export function CustomProviders({ providers, hosted, onSaved }: { providers: CustomProviderView[]; hosted: boolean; onSaved: () => void }) {
   const [adding, setAdding] = useState(false)
   const [note, setNote] = useState<string | null>(null)
+  const { isRemoved } = useRemoval()
   return (
     <>
-      {providers.map((p) => (
+      {providers.filter((p) => !isRemoved(`provider:${p.id}`)).map((p) => (
         <ProviderCard key={p.id} provider={p} onSaved={onSaved} />
       ))}
       <div className="border-t border-line/70 px-5 py-4 first:border-t-0">
@@ -124,6 +126,7 @@ function ProviderCard({ provider: p, onSaved }: { provider: CustomProviderView; 
   const [key, setKey] = useState('')
   const [message, setMessage] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null)
   const [pending, start] = useTransition()
+  const { remove } = useRemoval()
   const commit = (next: CustomModel[]) => {
     setModels(next)
     start(async () => (await saveCustomModels(p.id, next), onSaved()))
@@ -153,7 +156,7 @@ function ProviderCard({ provider: p, onSaved }: { provider: CustomProviderView; 
           >
             更新清單
           </Button>
-          <Button variant="danger" onClick={() => confirm(`移除 ${p.name}？`) && start(async () => (await removeCustomProvider(p.id), onSaved()))}>
+          <Button variant="danger" onClick={() => remove({ id: `provider:${p.id}`, note: `已移除 ${p.name}`, commit: async () => (await removeCustomProvider(p.id), onSaved()) })}>
             移除
           </Button>
         </span>

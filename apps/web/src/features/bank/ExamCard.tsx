@@ -1,6 +1,7 @@
 import type { BankExam } from '@exam/bank'
 import Link from 'next/link'
 import { Badge } from '@/shared/ui'
+import { DeleteExamButton } from './DeleteExamButton'
 
 /**
  * One exam in the bank list, drawn as a sheet. Its bottom-right corner rests slightly curled,
@@ -10,7 +11,7 @@ import { Badge } from '@/shared/ui'
 export function ExamCard({ exam }: { exam: BankExam }) {
   const details = [exam.institution, exam.term].filter(Boolean).join(' · ')
   return (
-    <div className="m-curl-host m-lift relative flex h-full flex-col overflow-hidden rounded-2xl bg-surface p-5 shadow-sheet">
+    <div className="group m-curl-host m-lift relative flex h-full flex-col overflow-hidden rounded-2xl bg-surface p-5 shadow-sheet">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">{exam.subject ? <Badge tone="accent">{exam.subject}</Badge> : <Badge>未分類</Badge>}</div>
         <span className="flex shrink-0 items-baseline gap-1 text-muted">
@@ -24,7 +25,10 @@ export function ExamCard({ exam }: { exam: BankExam }) {
       </Link>
       {details && <p className="mt-1 text-sm text-muted">{details}</p>}
       <div className="mt-auto flex items-end justify-between gap-3 pt-6">
-        <span className="text-xs text-muted">{new Date(exam.createdAt).toLocaleDateString('zh-TW')} 加入</span>
+        <span className="flex items-center gap-1 text-xs text-muted">
+          {new Date(exam.createdAt).toLocaleDateString('zh-TW')} 加入
+          <DeleteExamButton id={exam.id} title={exam.title ?? '未命名考卷'} />
+        </span>
         {exam.questionCount > 0 && (
           <Link href={`/quiz/new?exam=${exam.id}`} className="m-curl-label relative z-10 mr-10 -mb-1 rounded-md px-1.5 py-1 text-[13px] font-bold text-accent outline-none focus-visible:ring-2 focus-visible:ring-accent">
             開始練習 →
@@ -33,7 +37,7 @@ export function ExamCard({ exam }: { exam: BankExam }) {
       </div>
       {/* the curled corner itself is a way into practice: it opens the mode choice for this exam */}
       {exam.questionCount > 0 ? (
-        <Link href={`/quiz/new?exam=${exam.id}`} tabIndex={-1} aria-hidden className="m-curl" title="開始練習" />
+        <Link href={`/quiz/new?exam=${exam.id}`} tabIndex={-1} aria-hidden className="m-curl" />
       ) : (
         <span aria-hidden className="m-curl pointer-events-none" />
       )}

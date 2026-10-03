@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
 import type { DraftExam, DraftQuestion, ExamMeta } from '@exam/core'
 import { draftFields, META_KEYS, searchText, type Bank, type ImportPatch } from './bank.ts'
-import type { BankExam, BankQuestion, ExamQuery, ImportRecord, NewImport, QuestionQuery } from './types.ts'
+import type { BankExam, BankQuestion, ExamQuery, ImportRecord, NewExam, NewImport, QuestionQuery } from './types.ts'
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS imports (
@@ -149,6 +149,22 @@ class SqliteBankSync {
       this.db.exec('ROLLBACK')
       throw err
     }
+  }
+
+  createExam(ownerId: string, exam: NewExam): BankExam {
+    const now = new Date().toISOString()
+    const id = randomUUID()
+    this.db.exec('BEGIN')
+    try {
+      this.db.prepare('INSERT INTO exams (id, owner_id, import_id, groups, created_at, updated_at) VALUES (?, ?, NULL, ?, ?, ?)').run(id, ownerId, JSON.stringify(exam.groups), now, now)
+      this.setColumns('exams', id, metaColumns(exam.meta))
+      this.insertQuestions(ownerId, id, exam.questions, now)
+      this.db.exec('COMMIT')
+    } catch (err) {
+      this.db.exec('ROLLBACK')
+      throw err
+    }
+    return this.getExam(id)!
   }
 
   examForImport(importId: string): BankExam | null {
@@ -390,6 +406,7 @@ export class SqliteBank implements Bank {
   async getDraft(importId: string) { return this.db.getDraft(importId) }
   async saveDraft(importId: string, draft: DraftExam) { this.db.saveDraft(importId, draft) }
   async saveExam(importId: string, draft: DraftExam) { return this.db.saveExam(importId, draft) }
+  async createExam(ownerId: string, exam: NewExam) { return this.db.createExam(ownerId, exam) }
   async examForImport(importId: string) { return this.db.examForImport(importId) }
   async listExams(query: ExamQuery) { return this.db.listExams(query) }
   async getExam(id: string) { return this.db.getExam(id) }

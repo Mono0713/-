@@ -12,6 +12,8 @@ export {
   Cloud as IconCloud,
   CodeXml as IconCode,
   Copy as IconCopy,
+  Share2 as IconShare,
+  Link2Off as IconUnlink,
   CloudCheck as IconCloudCheck,
   ExternalLink as IconExternal,
   ChevronDown as IconChevronDown,

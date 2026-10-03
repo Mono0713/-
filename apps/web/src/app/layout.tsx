@@ -4,6 +4,7 @@ import { BRAND, brandTagline } from '@/shared/brand/brand'
 import { Header } from '@/shared/chrome/Header'
 import { Sidebar } from '@/shared/chrome/Sidebar'
 import { MOTION_SCRIPT } from '@/shared/motion/preference'
+import { RemovalProvider } from '@/shared/removal'
 import { THEME_SCRIPT } from '@/shared/theme/theme'
 import '@fontsource/lxgw-wenkai-tc/400.css'
 import './globals.css'
@@ -28,16 +29,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT + MOTION_SCRIPT }} />
       </head>
       <body className="min-h-screen font-sans antialiased">
-        <div className="xl:flex">
-          <Sidebar />
-          <div className="min-w-0 flex-1">
-            <Header />
-            {/* Pages marked .workspace (the review editor) use the full width. */}
-            <main className="mx-auto max-w-[1320px] px-4 py-6 sm:px-6 xl:px-10 xl:py-10 has-[.workspace]:max-w-none has-[.workspace]:py-0 sm:has-[.workspace]:px-0 xl:has-[.workspace]:px-0">
-              {children}
-            </main>
+        <RemovalProvider>
+          <div className="xl:flex">
+            <Sidebar />
+            <div className="min-w-0 flex-1">
+              <Header />
+              {/* Pages marked .workspace (the review editor) use the full width. */}
+              <main className="mx-auto max-w-[1320px] px-4 py-6 sm:px-6 xl:px-10 xl:py-10 has-[.workspace]:max-w-none has-[.workspace]:py-0 sm:has-[.workspace]:px-0 xl:has-[.workspace]:px-0">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
+        </RemovalProvider>
       </body>
     </html>
   )

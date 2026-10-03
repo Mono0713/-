@@ -47,11 +47,11 @@ export async function rerunImport(importId: string, opts: { provider?: string; m
   revalidatePath(`/imports/${importId}`)
 }
 
+/** Deletes for good; the 復原 note calls it once it has run out. */
 export async function deleteImport(importId: string) {
   await requireImport(importId)
   await services().importer.remove(importId)
   revalidatePath('/imports')
-  redirect('/imports')
 }
 
 /** Keeps the uploaded files past the 30 days after saving, or lets them go again. */

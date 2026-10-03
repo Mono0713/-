@@ -2,7 +2,9 @@
 
 import type { BankQuestion } from '@exam/bank'
 import type { DraftQuestion } from '@exam/core'
+import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
+import { useRemoval } from '@/shared/removal'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
 import { Button, Card } from '@/shared/ui'
 import { deleteBankQuestion, updateBankQuestion } from './actions'
@@ -12,6 +14,8 @@ export function BankQuestionEditor({ question, importId }: { question: BankQuest
   const [q, setQ] = useState<DraftQuestion>(question)
   const [state, setState] = useState<'saved' | 'dirty'>('saved')
   const [pending, start] = useTransition()
+  const router = useRouter()
+  const { remove } = useRemoval()
 
   const save = () =>
     start(async () => {
@@ -30,7 +34,14 @@ export function BankQuestionEditor({ question, importId }: { question: BankQuest
         }}
       />
       <div className="mt-5 flex items-center justify-between gap-3 border-t border-line pt-4">
-        <Button variant="danger" onClick={() => confirm('從題庫刪除這一題？') && start(() => deleteBankQuestion(question.id))}>
+        <Button
+          variant="danger"
+          onClick={() => {
+            // back to the exam, where the question is already gone and a note offers 復原
+            remove({ id: question.id, note: '已刪除題目', commit: () => deleteBankQuestion(question.id) })
+            router.push(`/bank/exams/${question.examId}`)
+          }}
+        >
           刪除
         </Button>
         <div className="flex items-center gap-3">

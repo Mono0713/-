@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import type { ProviderOption } from '@/server/context'
 import { IconKey, IconRefresh } from '@/shared/icons'
+import { useRemoval } from '@/shared/removal'
 import { Badge, Button, Card, inputClass } from '@/shared/ui'
 import { refreshModels, removeApiKey, saveAiGrading, saveApiKey, saveDefaultProvider, saveLocale, saveModel } from './actions'
 import { ModelPicker } from './ModelPicker'
@@ -127,7 +128,10 @@ export function SettingsForm({
   )
 }
 
-function ProviderRow({ provider: p, info, onSaved }: { provider: ProviderOption; info: KeyInfo; onSaved: () => void }) {
+function ProviderRow({ provider: p, info: saved, onSaved }: { provider: ProviderOption; info: KeyInfo; onSaved: () => void }) {
+  const { remove, isRemoved } = useRemoval()
+  // while a removed key waits for 復原 the row already shows it gone
+  const info: KeyInfo = isRemoved(`key:${p.id}`) ? { ...saved, source: null, hint: null } : saved
   const [editing, setEditing] = useState(info.source === null)
   const [key, setKey] = useState('')
   const [model, setModel] = useState(p.model)
@@ -191,9 +195,7 @@ function ProviderRow({ provider: p, info, onSaved }: { provider: ProviderOption;
           {info.source === 'settings' && (
             <Button
               variant="danger"
-              onClick={() => {
-                if (confirm(`移除 ${p.label} 的金鑰？`)) start(async () => (await removeApiKey(p.id), onSaved()))
-              }}
+              onClick={() => remove({ id: `key:${p.id}`, note: `已移除 ${p.label} 的金鑰`, commit: async () => (await removeApiKey(p.id), onSaved()) })}
             >
               移除
             </Button>

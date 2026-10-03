@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { DraftExam, DraftQuestion, ExamMeta } from '@exam/core'
 import { iso, isUuid, likePattern, type Sql, type TransactionSql } from '@exam/db'
 import { draftFields, META_KEYS, searchText, type Bank, type ImportPatch } from './bank.ts'
-import type { BankExam, BankQuestion, ExamQuery, ImportRecord, NewImport, QuestionQuery } from './types.ts'
+import type { BankExam, BankQuestion, ExamQuery, ImportRecord, NewExam, NewImport, QuestionQuery } from './types.ts'
 
 type Row = Record<string, unknown>
 
@@ -95,6 +95,19 @@ export class PostgresBank implements Bank {
       return id
     })
     return (await this.getExam(examId))!
+  }
+
+  async createExam(ownerId: string, exam: NewExam): Promise<BankExam> {
+    const id = randomUUID()
+    await this.sql.begin(async (tx) => {
+      await tx`insert into exams (id, owner_id, import_id) values (${id}, ${ownerId}, null)`
+      await this.setColumns(tx, 'exams', id, { ...metaColumns(exam.meta), groups: tx.json(exam.groups as never) })
+      if (exam.questions.length) {
+        const rows = exam.questions.map((q, position) => ({ id: randomUUID(), owner_id: ownerId, exam_id: id, position, type: q.type, search_text: searchText(q), data: tx.json(q as never) }))
+        await tx`insert into questions ${tx(rows)}`
+      }
+    })
+    return (await this.getExam(id))!
   }
 
   async examForImport(importId: string): Promise<BankExam | null> {

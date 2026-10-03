@@ -90,6 +90,13 @@ describe.each(banks)('%s', (_name, open) => {
     expect(await bank.getQuestion(q.id)).toBeNull()
   })
 
+  it('makes an exam from questions, without an import', async () => {
+    const bank = await open()
+    const exam = await bank.createExam('reader', { meta: { title: '副本', subject: '數學' }, groups: [{ id: 'g1', stem: 'Read.', figures: [], pageNumber: 1 }], questions: [draftQuestion(), draftQuestion({ number: '2' })] })
+    expect(exam).toMatchObject({ ownerId: 'reader', importId: null, title: '副本', subject: '數學', questionCount: 2, groups: [{ id: 'g1' }] })
+    expect((await bank.listQuestions({ ownerId: 'reader', examId: exam.id })).items.map((q) => q.number)).toEqual(['1', '2'])
+  })
+
   it('finds saved imports whose uploaded files are due to go', async () => {
     const bank = await open()
     const make = async (keep: boolean) => {
