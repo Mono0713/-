@@ -84,9 +84,16 @@ export function QuizQuestion({
   const byHand = writable && mode === 'ink'
   // Writing replaces anything typed, so there is one answer to mark.
   const setInk = (handwriting: InkDoc) => patch({ handwriting, values: [] })
-  // Essays default to manuscript squares in Chinese, Japanese or Korean and ruled lines otherwise.
+  // Compositions default to manuscript squares in Chinese, Japanese or Korean and ruled lines otherwise;
+  // other long answers to ruled lines.
   const [paperKind, setPaperKind] = useState<PaperKind>(() =>
-    q.type === 'essay' ? (/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(q.stem) ? 'squares' : 'lines') : 'dots',
+    q.type === 'composition'
+      ? /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(q.stem)
+        ? 'squares'
+        : 'lines'
+      : q.type === 'essay'
+        ? 'lines'
+        : 'dots',
   )
   const practice = kind.kind === 'writing' ? practicePaper(key) : null
   // 書寫模式 can fold the question away so the page has the room
@@ -417,7 +424,7 @@ export function QuizQuestion({
           className={`${inputBase} w-full`}
         />
       )}
-      {!byHand && kind.kind === 'text' && q.type === 'essay' && (
+      {!byHand && kind.kind === 'text' && (q.type === 'essay' || q.type === 'composition') && (
         <p className="-mt-2 text-right text-xs tabular-nums text-muted">{t('{n} 字', { n: wordCount(values[0] ?? '') })}</p>
       )}
     </div>

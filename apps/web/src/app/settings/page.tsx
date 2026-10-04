@@ -2,8 +2,9 @@ import { formatUsd } from '@exam/models'
 import { LOCALES, publicView } from '@exam/settings'
 import { monthStart, spend } from '@exam/usage'
 import { SettingsForm } from '@/features/settings/SettingsForm'
+import { ProfileCard } from '@/features/settings/ProfileCard'
 import { StorageCard } from '@/features/settings/StorageCard'
-import { authEnabled, availableProviders, currentOwner, keySource, providersOf, services, storageOf, teacherChoice } from '@/server/context'
+import { authEnabled, availableProviders, currentOwner, currentUser, keySource, providersOf, services, storageOf, teacherChoice } from '@/server/context'
 import { getLocale, getT } from '@/shared/i18n/server'
 import { PageHeader } from '@/shared/ui'
 
@@ -21,7 +22,7 @@ export default async function SettingsPage() {
   const owner = await currentOwner()
   const { settings: store, usage } = services()
   // Only the public view reaches the browser: API keys stay on the server.
-  const [saved, providers, teacher, locale, recent, thisMonth, storage] = await Promise.all([
+  const [saved, providers, teacher, locale, recent, thisMonth, storage, user] = await Promise.all([
     store.get(owner),
     availableProviders(owner),
     teacherChoice(owner),
@@ -29,6 +30,7 @@ export default async function SettingsPage() {
     usage.summary(owner, new Date(Date.now() - ESTIMATE_WINDOW_DAYS * 86_400_000)),
     usage.summary(owner, monthStart()),
     storageOf(owner),
+    authEnabled() ? currentUser() : null,
   ])
   const settings = publicView(saved)
   const routing = providersOf(saved)
@@ -37,6 +39,7 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader title={t('設定')} subtitle={t('語言、AI 強度、模型和 API 金鑰。')} />
+      {user && <ProfileCard user={user} />}
       <SettingsForm
         locales={[...LOCALES]}
         locale={locale}

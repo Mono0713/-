@@ -127,6 +127,7 @@ export function SettingsForm({
       </Section>
 
       <Section
+        id="keys"
         title={t('模型與 API 金鑰')}
         note={
           keysInDatabase
@@ -286,9 +287,9 @@ function TeacherSettings({ initial, onSaved }: { initial: { enabled: boolean; ac
   )
 }
 
-function Section({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
+function Section({ id, title, note, children }: { id?: string; title: string; note?: string; children: React.ReactNode }) {
   return (
-    <section>
+    <section id={id} className="scroll-mt-6">
       <h2 className="mb-2 px-1 text-[13px] font-semibold tracking-wide text-muted">{title}</h2>
       <Card className="overflow-hidden">{children}</Card>
       {note && <p className="mt-2 px-1 text-xs text-muted">{note}</p>}

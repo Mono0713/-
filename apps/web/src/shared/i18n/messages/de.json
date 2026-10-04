@@ -798,9 +798,11 @@
   "看範字、描寫": "Ansehen und nachfahren",
   "第 {n} / {total} 字": "Zeichen {n} von {total}",
   "下一步": "Weiter",
-  "回到一般畫面": "Zurück zur normalen Ansicht",
-  "一般畫面": "Normale Ansicht",
-  "書寫模式": "Schreibmodus",
   "收合題目": "Frage ausblenden",
-  "展開題目": "Frage einblenden"
+  "展開題目": "Frage einblenden",
+  "個人資料": "Profil",
+  "用 Google 帳號登入，名稱和頭像跟著 Google。": "Mit Google angemeldet; Name und Bild stammen aus deinem Google-Konto.",
+  "所有設定": "Alle Einstellungen",
+  "收合側欄": "Seitenleiste einklappen",
+  "作文": "Aufsatz"
 }

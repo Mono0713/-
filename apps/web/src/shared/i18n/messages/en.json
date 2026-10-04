@@ -798,9 +798,11 @@
   "看範字、描寫": "Copy and trace",
   "第 {n} / {total} 字": "Character {n} of {total}",
   "下一步": "Next",
-  "回到一般畫面": "Back to the normal view",
-  "一般畫面": "Normal view",
-  "書寫模式": "Writing mode",
   "收合題目": "Hide question",
-  "展開題目": "Show question"
+  "展開題目": "Show question",
+  "個人資料": "Profile",
+  "用 Google 帳號登入，名稱和頭像跟著 Google。": "Signed in with Google; your name and picture come from your Google account.",
+  "所有設定": "All settings",
+  "收合側欄": "Collapse sidebar",
+  "作文": "Composition"
 }

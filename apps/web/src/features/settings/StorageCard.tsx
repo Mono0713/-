@@ -8,7 +8,7 @@ export async function StorageCard({ used, quota }: { used: number; quota: number
   const t = await getT()
   const share = quota ? Math.min(1, used / quota) : null
   return (
-    <Card className="mt-6 space-y-3 p-5">
+    <Card id="storage" className="mt-6 scroll-mt-6 space-y-3 p-5">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="font-semibold">{t('儲存空間')}</h2>
         <p className="text-sm text-muted">

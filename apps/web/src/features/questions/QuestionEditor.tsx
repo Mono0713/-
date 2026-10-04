@@ -301,7 +301,7 @@ function AnswerEditor({ q, setAnswer }: { q: DraftQuestion; setAnswer: (patch: P
     // One box per answer (a question with several blanks or parts has several).
     const values = q.answer.values.length ? q.answer.values : ['']
     const setAt = (i: number, v: string) => setAnswer({ values: values.map((x, j) => (j === i ? v : x)).filter((x, j, all) => x.trim() || all.length > 1) })
-    const long = q.type === 'essay' || q.type === 'calculation' || q.type === 'short_answer'
+    const long = q.type === 'essay' || q.type === 'composition' || q.type === 'calculation' || q.type === 'short_answer'
     body = (
       <div className="grid gap-1.5">
         {values.map((v, i) => (

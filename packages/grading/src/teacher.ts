@@ -80,6 +80,7 @@ function systemPrompt(language: string): string {
 - Blanks: each blank is an equal share; credit is the share of blanks answered correctly.
 - Calculations: a correct final answer earns full credit. With a wrong final answer, give partial credit for correct method only when the working is shown.
 - Short answers and essays: compare with the key points of the reference answer and give credit in proportion to the points covered. Do not reward length or restating the question.
+- Compositions: judge the piece as a whole (relevance to the topic, content, organisation, language) against any marking scheme in the reference answer; length alone earns nothing.
 - No reference answer: work out the correct answer yourself first (use the explanation if there is one), then mark against it.
 - If you cannot judge an answer, for example because it depends on a figure you cannot see, set "credit" to null.
 - "feedback": in ${language}, one or two sentences the student can act on: what is wrong or missing, and the right idea. Use $...$ for maths. Empty when the answer is fully right.

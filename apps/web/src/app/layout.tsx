@@ -11,6 +11,7 @@ import { I18nProvider } from '@/shared/i18n/client'
 import { getLocale } from '@/shared/i18n/server'
 import { RemovalProvider } from '@/shared/removal'
 import { THEME_SCRIPT } from '@/shared/theme/theme'
+import { RAIL_SCRIPT } from '@/shared/chrome/rail'
 import '@fontsource/lxgw-wenkai-tc/400.css'
 import './globals.css'
 
@@ -44,7 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         {/* Applies the saved light/dark and motion choices before the first paint. Browser extensions
             sometimes rewrite this tag before React starts, so a mismatch here is not ours to report. */}
-        <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_SCRIPT + MOTION_SCRIPT }} />
+        <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_SCRIPT + MOTION_SCRIPT + RAIL_SCRIPT }} />
       </head>
       <body className="min-h-screen font-sans antialiased">
         <I18nProvider locale={locale} messages={CATALOGS[locale]} save={saveLocale}>

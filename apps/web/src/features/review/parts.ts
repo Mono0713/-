@@ -7,7 +7,7 @@ export { splitNumber }
 
 type Group = DraftExam['groups'][number]
 
-const OPEN_TYPES: DraftQuestion['type'][] = ['calculation', 'short_answer', 'essay', 'other']
+const OPEN_TYPES: DraftQuestion['type'][] = ['calculation', 'short_answer', 'essay', 'composition', 'other']
 
 const SEQUENCES = [
   'abcdefghij'.split(''),
@@ -39,7 +39,7 @@ function findParts(stem: string): { label: string; start: number; end: number }[
 /**
  * Splits a question whose stem holds sub-questions like "(a) … (b) …" into one question per part,
  * sharing the text before the first part (and the figures) as a group. Answers are shared out
- * when there is one per part, points evenly. Only open questions (calculation, short answer, essay, other)
+ * when there is one per part, points evenly. Only open questions (calculation, short answer, essay, composition, other)
  * are split. Null when the stem has no parts in sequence or the question already belongs to a group.
  */
 export function splitParts(q: DraftQuestion, groupId: string): { group: Group; parts: DraftQuestion[] } | null {

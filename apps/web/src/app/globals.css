@@ -7,6 +7,8 @@
  * Every color is a token; dark mode redefines the tokens only.
  */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+/* The sidebar folded into a rail of icons (shared/chrome/rail.ts). */
+@custom-variant rail (&:where([data-sidebar='rail'], [data-sidebar='rail'] *));
 
 @theme {
   --font-sans: var(--font-body), 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
@@ -246,11 +248,6 @@ h2 {
 /* The review workspace needs the whole screen for the exam and its questions;
    its own toolbar links back to the rest of the app. */
 body:has(.workspace) :is(.app-sidebar, .app-header) {
-  display: none;
-}
-
-/* 書寫模式 (writing practice, essays): the page is for writing; the quiz's own bar navigates. */
-body:has(.writing-focus) :is(.app-sidebar, .app-header) {
   display: none;
 }
 

@@ -7,6 +7,8 @@ const TYPE_LABELS: Record<string, string> = {
   fill_in_blank: '填充',
   short_answer: '簡答',
   essay: '問答',
+  composition: '作文',
+  writing: '寫字練習',
   calculation: '計算',
   matching: '配合',
   other: '其他',

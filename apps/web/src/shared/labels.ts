@@ -10,6 +10,7 @@ export const TYPE_LABELS: Record<QuestionType, string> = {
   fill_in_blank: msg('填充'),
   short_answer: msg('簡答'),
   essay: msg('問答'),
+  composition: msg('作文'),
   calculation: msg('計算'),
   matching: msg('配合'),
   writing: msg('寫字練習'),

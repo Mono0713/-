@@ -6,7 +6,7 @@ import { answerKind, gradeItem } from '@exam/quiz/logic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useT } from '@/shared/i18n/client'
-import { IconChevronLeft, IconChevronRight, IconFinish, IconFocus, IconReveal, IconSparkles, IconTimer, IconUnfocus } from '@/shared/icons'
+import { IconChevronLeft, IconChevronRight, IconFinish, IconReveal, IconSparkles, IconTimer } from '@/shared/icons'
 import { quizIsCalm } from '@/shared/motion/preference'
 import { Button, Card } from '@/shared/ui'
 import { checkAnswer, finishQuiz, markAnswer, saveResponse, translateQuestion } from './actions'
@@ -114,11 +114,9 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
   }
 
   const item = items[current]!
-  // 書寫模式: writing practice and essays get the whole screen, with a slim bar on top.
-  // Leaving it once keeps the normal page for the rest of this quiz.
-  const [plain, setPlain] = useState(false)
-  const special = item.question.type === 'writing' || item.question.type === 'essay'
-  const focus = special && !plain
+  // 書寫模式: writing practice and compositions get a bigger writing area inside the same frame,
+  // so moving between question types never rearranges the page.
+  const focus = item.question.type === 'writing' || item.question.type === 'composition'
   const isChecked = checked[current]
   // The sparkle means AI: only when an AI teacher will mark this answer (never for choice questions).
   const aiChecks = aiMarks && !['single', 'multiple', 'true_false'].includes(answerKind(item.question).kind)
@@ -162,16 +160,10 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
 
   return (
     // m-calm-zone: 設定裡的「做題時減少動畫」 stills everything in here
-    <div className={`m-calm-zone grid grid-cols-1 gap-4 lg:gap-6 ${focus ? 'writing-focus mx-auto max-w-5xl' : 'lg:grid-cols-[minmax(0,1fr)_16rem]'}`}>
-      {/* Phones (and 書寫模式 on any screen): progress, time and the question list in a bar that stays on screen. */}
-      <div className={`sticky z-20 -mx-4 border-b border-line bg-paper/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 ${focus ? 'top-0' : 'top-14 lg:hidden'}`}>
+    <div className="m-calm-zone grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-6">
+      {/* Phones: progress, time and the question list in a bar that stays on screen. */}
+      <div className="sticky top-14 z-20 -mx-4 border-b border-line bg-paper/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
         <div className="flex items-center gap-3">
-          {focus && (
-            <button type="button" onClick={() => setPlain(true)} className="m-press -ml-1 flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted hover:bg-ink/[0.06] hover:text-ink" title={t('回到一般畫面')}>
-              <IconUnfocus size={15} />
-              <span className="hidden sm:inline">{t('一般畫面')}</span>
-            </button>
-          )}
           <span className="text-sm font-medium tabular-nums">
             {t('第 {n} / {total} 題', { n: current + 1, total })}
           </span>
@@ -199,19 +191,12 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
       </div>
 
       <div className="min-w-0 space-y-4">
-        {special && plain && (
-          <div className="flex justify-end">
-            <button type="button" onClick={() => setPlain(false)} className="m-press flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted hover:bg-ink/[0.06] hover:text-ink">
-              <IconFocus size={15} />
-              {t('書寫模式')}
-            </button>
-          </div>
-        )}
-        {/* Keyed by question. The old sheet slides off quickly and is gone before the next one
+        {/* One sheet size for every question, so the buttons under it stay put as types change.
+            Keyed by question. The old sheet slides off quickly and is gone before the next one
             slides in from the side you are heading to, so two questions never show at once. */}
         <div className="relative">
           <div key={current} data-back={direction < 0 || undefined} className={moved ? 'm-leaf-in' : undefined}>
-            <Card className="p-4 sm:p-5">
+            <Card className="p-4 sm:min-h-[24rem] sm:p-5">
               <QuizQuestion
                 item={item}
                 index={current}
@@ -228,7 +213,7 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
           </div>
           {turning !== null && items[turning] && (
             <div key={`leaf-${turning}`} aria-hidden inert data-back={direction < 0 || undefined} className="m-leaf-out absolute inset-x-0 top-0" onAnimationEnd={(e) => e.target === e.currentTarget && setTurning(null)}>
-              <Card className="p-4 sm:p-5">
+              <Card className="p-4 sm:min-h-[24rem] sm:p-5">
                 <QuizQuestion item={items[turning]!} index={turning} response={responses[turning] ?? null} reveal={practice && checked[turning]} />
               </Card>
             </div>
@@ -271,7 +256,7 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
         </div>
       </div>
 
-      <aside className={`hidden space-y-3 lg:sticky lg:top-20 lg:self-start ${focus ? '' : 'lg:block'}`}>
+      <aside className="hidden space-y-3 lg:sticky lg:top-20 lg:block lg:self-start">
         {secondsLeft !== null && (
           <Card className="p-3 text-center">
             <p className="text-xs text-muted">{t('剩餘時間')}</p>

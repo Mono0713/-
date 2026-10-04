@@ -19,6 +19,8 @@ export const QuestionType = z.enum([
   'fill_in_blank',
   'short_answer',
   'essay',
+  /** A composition (作文): free writing on a topic, judged as a whole rather than against key points. */
+  'composition',
   'calculation',
   'matching',
   /** Character or letter writing practice (生字練習): the answer holds the characters to write. */

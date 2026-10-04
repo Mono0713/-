@@ -798,9 +798,11 @@
   "看範字、描寫": "Copiar y repasar",
   "第 {n} / {total} 字": "Carácter {n} de {total}",
   "下一步": "Siguiente",
-  "回到一般畫面": "Volver a la vista normal",
-  "一般畫面": "Vista normal",
-  "書寫模式": "Modo escritura",
   "收合題目": "Ocultar pregunta",
-  "展開題目": "Mostrar pregunta"
+  "展開題目": "Mostrar pregunta",
+  "個人資料": "Perfil",
+  "用 Google 帳號登入，名稱和頭像跟著 Google。": "Sesión iniciada con Google; tu nombre y foto vienen de tu cuenta de Google.",
+  "所有設定": "Todos los ajustes",
+  "收合側欄": "Contraer barra lateral",
+  "作文": "Redacción"
 }
