@@ -1,5 +1,6 @@
 import { signOut } from '@/features/auth/actions'
 import { authEnabled, currentUser, LOCAL_PEOPLE, localPerson, localSwitching, type SignedInUser } from '@/server/auth'
+import { getT } from '@/shared/i18n/server'
 import { IconSignOut } from '@/shared/icons'
 import { LocalSwitcher } from './LocalSwitcher'
 
@@ -12,11 +13,12 @@ export async function Account({ tone }: { tone: 'sidebar' | 'header' }) {
   }
   const user = await currentUser()
   if (!user) return null
-  const label = user.name ?? user.email ?? '帳號'
+  const t = await getT()
+  const label = user.name ?? user.email ?? t('帳號')
   if (tone === 'header') {
     return (
       <form action={signOut} className="ml-auto shrink-0">
-        <button type="submit" className="m-press flex items-center gap-2 rounded-full p-0.5 text-muted hover:text-ink" title={`${label} · 登出`} aria-label="登出">
+        <button type="submit" className="m-press flex items-center gap-2 rounded-full p-0.5 text-muted hover:text-ink" title={t('{name} · 登出', { name: label })} aria-label={t('登出')}>
           <Avatar user={user} />
           <IconSignOut size={16} aria-hidden />
         </button>
@@ -31,7 +33,7 @@ export async function Account({ tone }: { tone: 'sidebar' | 'header' }) {
         {user.name && user.email && <p className="truncate text-[11px] text-white/40">{user.email}</p>}
       </div>
       <form action={signOut}>
-        <button type="submit" className="m-press grid h-8 w-8 place-items-center rounded-md text-white/45 hover:bg-white/[0.06] hover:text-white" title="登出" aria-label="登出">
+        <button type="submit" className="m-press grid h-8 w-8 place-items-center rounded-md text-white/45 hover:bg-white/[0.06] hover:text-white" title={t('登出')} aria-label={t('登出')}>
           <IconSignOut size={16} />
         </button>
       </form>

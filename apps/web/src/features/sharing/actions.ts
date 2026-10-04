@@ -11,19 +11,26 @@ import { startQuiz } from '@/features/quiz/start'
 import { currentOwner, keyPrefixOf, noRoomFor, services } from '@/server/context'
 import { ownedExam } from '@/server/owned'
 import { openShare } from '@/server/shared'
+import { getT } from '@/shared/i18n/server'
 
 const RELEASES: AnswerRelease[] = ['after_submit', 'never']
 
 async function myExam(examId: string) {
   const exam = await ownedExam(examId)
-  if (!exam) throw new Error('找不到這份考卷')
+  if (!exam) {
+    const t = await getT()
+    throw new Error(t('找不到這份考卷'))
+  }
   return exam
 }
 
 /** Opens the exam's link (or keeps the open one) with when its answers show and whether it may be copied. */
 export async function shareExam(examId: string, answers: AnswerRelease, allowCopy: boolean): Promise<{ token: string }> {
   const exam = await myExam(examId)
-  if (!RELEASES.includes(answers)) throw new Error('不明的答案設定')
+  if (!RELEASES.includes(answers)) {
+    const t = await getT()
+    throw new Error(t('不明的答案設定'))
+  }
   const share = await services().shares.open(exam.id, exam.ownerId, answers, allowCopy)
   revalidatePath(`/bank/exams/${exam.id}`)
   return { token: share.token }
@@ -39,8 +46,9 @@ export async function closeShare(examId: string): Promise<void> {
 /** Starts practice or an exam on a shared exam; the attempt is the visitor's own. */
 export async function startShared(token: string, mode: QuizMode, shuffle: { questions: boolean; options: boolean }): Promise<{ error: string } | undefined> {
   const opened = await openShare(token)
-  if (!opened) return { error: '這個連結已經關閉了。' }
-  if (!opened.questions.length) return { error: '這份考卷還沒有題目。' }
+  const t = await getT()
+  if (!opened) return { error: t('這個連結已經關閉了。') }
+  if (!opened.questions.length) return { error: t('這份考卷還沒有題目。') }
   const attempt = await startQuiz({
     ownerId: await currentOwner(),
     questions: opened.questions,
@@ -58,8 +66,9 @@ export async function startShared(token: string, mode: QuizMode, shuffle: { ques
  */
 export async function copyShared(token: string): Promise<{ error: string } | undefined> {
   const opened = await openShare(token)
-  if (!opened) return { error: '這個連結已經關閉了。' }
-  if (!opened.share.allowCopy) return { error: '分享的人沒有開放加到題庫。' }
+  const t = await getT()
+  if (!opened) return { error: t('這個連結已經關閉了。') }
+  if (!opened.share.allowCopy) return { error: t('分享的人沒有開放加到題庫。') }
   const owner = await currentOwner()
   const { bank, files, shares } = services()
   // The copy's figures count toward the account (each one is stored once all the same).

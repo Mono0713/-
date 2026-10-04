@@ -3,12 +3,14 @@
 import type { QuizMode } from '@exam/quiz'
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
+import { useT } from '@/shared/i18n/client'
 import { IconBank, IconLoader, IconQuiz } from '@/shared/icons'
 import { Button } from '@/shared/ui'
 import { copyShared, startShared } from './actions'
 
 /** What someone with the link can do: practise, take it as an exam, or copy it to their bank when allowed. */
 export function SharedActions({ token, copy, allowCopy }: { token: string; copy: string | null; allowCopy: boolean }) {
+  const t = useT()
   const [shuffleQuestions, setShuffleQuestions] = useState(true)
   const [shuffleOptions, setShuffleOptions] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -29,17 +31,17 @@ export function SharedActions({ token, copy, allowCopy }: { token: string; copy:
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
-        <Choice title="練習" detail="一題一題做，做完就能看對錯和解析。" onClick={() => quiz('practice')} loading={busy === 'practice'} disabled={pending} />
-        <Choice title="考試" detail="全部做完再交卷，交卷後才看分數。" onClick={() => quiz('exam')} loading={busy === 'exam'} disabled={pending} />
+        <Choice title={t('練習')} detail={t('一題一題做，做完就能看對錯和解析。')} onClick={() => quiz('practice')} loading={busy === 'practice'} disabled={pending} />
+        <Choice title={t('考試')} detail={t('全部做完再交卷，交卷後才看分數。')} onClick={() => quiz('exam')} loading={busy === 'exam'} disabled={pending} />
       </div>
       <div className="flex flex-wrap gap-x-6 gap-y-2">
         <label className="flex items-center gap-2 text-sm text-muted">
           <input type="checkbox" className="m-check" checked={shuffleQuestions} onChange={(e) => setShuffleQuestions(e.target.checked)} />
-          打亂題目順序
+          {t('打亂題目順序')}
         </label>
         <label className="flex items-center gap-2 text-sm text-muted">
           <input type="checkbox" className="m-check" checked={shuffleOptions} onChange={(e) => setShuffleOptions(e.target.checked)} />
-          打亂選項順序
+          {t('打亂選項順序')}
         </label>
       </div>
       {(copy || allowCopy) && (
@@ -47,14 +49,14 @@ export function SharedActions({ token, copy, allowCopy }: { token: string; copy:
           {copy ? (
             <Link href={`/bank/exams/${copy}`} className="inline-flex items-center gap-1.5 text-sm text-accent hover:underline">
               <IconBank size={15} />
-              已經在你的題庫裡，打開
+              {t('已經在你的題庫裡，打開')}
             </Link>
           ) : (
             <Button icon={<IconBank size={15} />} loading={busy === 'copy'} disabled={pending} onClick={() => run('copy', () => copyShared(token))}>
-              加到我的題庫
+              {t('加到我的題庫')}
             </Button>
           )}
-          <span className="text-xs text-muted">加進去的是你自己的副本，可以修改，不影響原本的考卷。</span>
+          <span className="text-xs text-muted">{t('加進去的是你自己的副本，可以修改，不影響原本的考卷。')}</span>
         </div>
       )}
       {error && <p className="m-shake text-sm text-bad">{error}</p>}

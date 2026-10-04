@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { explainError } from '../src/features/imports/errors'
+import { explainError as explain } from '../src/features/imports/errors'
+import { fill, type T } from '../src/shared/i18n/format'
+
+const t: T = (s, v) => fill(s, v)
+const explainError = (raw: string) => explain(raw, t)
 
 const geminiFreeTier = `{"error":{"code":429,"message":"You exceeded your current quota, please check your plan and billing details.\\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-3.1-pro\\nPlease retry in 7h22m53.455400204s.","status":"RESOURCE_EXHAUSTED","details":[{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"26573s"}]}}`
 

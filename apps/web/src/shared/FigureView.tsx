@@ -1,4 +1,7 @@
+'use client'
+
 import type { DraftFigure } from '@exam/core'
+import { useT } from '@/shared/i18n/client'
 import { fileUrl } from './files'
 import { Markdown } from './Markdown'
 
@@ -15,8 +18,9 @@ export function FigureView({
   answers?: string[]
   renderBlank?: (label: string, index: number) => React.ReactNode
 }) {
+  const t = useT()
   if (!figure.image) {
-    return <Markdown className="rounded-lg bg-paper px-3 py-2 text-sm text-muted">{`圖：${figure.description}`}</Markdown>
+    return <Markdown className="rounded-lg bg-paper px-3 py-2 text-sm text-muted">{t('圖：{description}', { description: figure.description })}</Markdown>
   }
   const { image } = figure
   return (

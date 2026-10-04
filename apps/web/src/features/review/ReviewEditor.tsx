@@ -35,6 +35,8 @@ import {
   IconUndo,
   IconX,
 } from '@/shared/icons'
+import { msg } from '@/shared/i18n/format'
+import { useT } from '@/shared/i18n/client'
 import { TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
 import { Toast } from '@/shared/Toast'
@@ -89,6 +91,7 @@ export function ReviewEditor({
   /** The AI strength from settings; given, the floating button can change it. */
   strength?: Strength
 }) {
+  const t = useT()
   // Sub-questions read as separate questions (1(1), 1(2)) start out grouped, so they merge like split ones.
   const [start] = useState(() => groupLooseParts(initial, (n) => `parts-${Date.now().toString(36)}-${n}`))
   const [draft, setDraft] = useState(start)
@@ -277,8 +280,8 @@ export function ReviewEditor({
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'z' || !trash.current.length) return
       // typing fields keep their own undo
-      const t = e.target as HTMLElement | null
-      if (t?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"], math-field')) return
+      const target = e.target as HTMLElement | null
+      if (target?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"], math-field')) return
       e.preventDefault()
       undoRef.current()
     }
@@ -373,36 +376,36 @@ export function ReviewEditor({
   // what the panel last saved, so the floating button's label follows it without a reload
   const [shownStrength, setShownStrength] = useState(strength ?? 'balanced')
   const fabActions: FabAction[] = [
-    ...(flagged > 0 ? [{ id: 'next', label: '下一題待確認', icon: <IconAlert size={19} />, badge: flagged, onClick: nextFlagged }] : []),
+    ...(flagged > 0 ? [{ id: 'next', label: t('下一題待確認'), icon: <IconAlert size={19} />, badge: flagged, onClick: nextFlagged }] : []),
     ...(chosen && selected !== null
       ? [
-          ...(splitParts(chosen, '') ? [{ id: 'split', label: `把第 ${chosenNumber} 題拆成小題`, icon: <IconSplit size={19} />, onClick: () => splitQuestion(selected) }] : []),
+          ...(splitParts(chosen, '') ? [{ id: 'split', label: t('把第 {n} 題拆成小題', { n: chosenNumber }), icon: <IconSplit size={19} />, onClick: () => splitQuestion(selected) }] : []),
           ...(selected > 0 && attachToPrevious(draft, selected, '')
-            ? [{ id: 'attach', label: `把第 ${chosenNumber} 題設為第 ${splitNumber(draft.questions[selected - 1]!.number).main} 題的小題`, icon: <IconIndent size={19} />, onClick: () => attachPart(selected) }]
+            ? [{ id: 'attach', label: t('把第 {n} 題設為第 {main} 題的小題', { n: chosenNumber, main: splitNumber(draft.questions[selected - 1]!.number).main }), icon: <IconIndent size={19} />, onClick: () => attachPart(selected) }]
             : []),
-          ...(chosenGroup ? [{ id: 'detach', label: `把第 ${chosenNumber} 題移出小題`, icon: <IconOutdent size={19} />, onClick: () => detachQuestion(selected) }] : []),
-          ...(canMerge ? [{ id: 'merge', label: `把第 ${splitNumber(chosenNumber).main} 題的小題合併`, icon: <IconMerge size={19} />, onClick: () => mergeGroup(chosenGroup!.id) }] : []),
-          { id: 'copy', label: `複製第 ${chosenNumber} 題`, icon: <IconCopy size={19} />, onClick: () => duplicateQuestion(selected) },
-          { id: 'insert', label: `在第 ${chosenNumber} 題後面新增`, icon: <IconPlus size={20} />, onClick: () => addQuestion(selected) },
+          ...(chosenGroup ? [{ id: 'detach', label: t('把第 {n} 題移出小題', { n: chosenNumber }), icon: <IconOutdent size={19} />, onClick: () => detachQuestion(selected) }] : []),
+          ...(canMerge ? [{ id: 'merge', label: t('把第 {n} 題的小題合併', { n: splitNumber(chosenNumber).main }), icon: <IconMerge size={19} />, onClick: () => mergeGroup(chosenGroup!.id) }] : []),
+          { id: 'copy', label: t('複製第 {n} 題', { n: chosenNumber }), icon: <IconCopy size={19} />, onClick: () => duplicateQuestion(selected) },
+          { id: 'insert', label: t('在第 {n} 題後面新增', { n: chosenNumber }), icon: <IconPlus size={20} />, onClick: () => addQuestion(selected) },
         ]
-      : [{ id: 'add', label: '新增題目', icon: <IconPlus size={20} />, onClick: () => addQuestion() }]),
+      : [{ id: 'add', label: t('新增題目'), icon: <IconPlus size={20} />, onClick: () => addQuestion() }]),
     ...(strength
-      ? [{ id: 'strength', label: `AI 強度：${STRENGTH_LABELS.find(([v]) => v === shownStrength)![1]}`, icon: <IconStrength size={19} />, onClick: () => setStrengthOpen(true) }]
+      ? [{ id: 'strength', label: t('AI 強度：{strength}', { strength: t(STRENGTH_LABELS.find(([v]) => v === shownStrength)![1]) }), icon: <IconStrength size={19} />, onClick: () => setStrengthOpen(true) }]
       : []),
-    { id: 'undo', label: '復原上一步', icon: <IconUndo size={19} />, onClick: undoDelete, disabled: !trash.current.length },
+    { id: 'undo', label: t('復原上一步'), icon: <IconUndo size={19} />, onClick: undoDelete, disabled: !trash.current.length },
   ]
 
   const metaFields = (compact: boolean) =>
     (
       [
-        ['title', '考卷名稱'],
-        ['subject', '科目'],
-        ['institution', '學校'],
-        ['term', '學期'],
+        ['title', msg('考卷名稱')],
+        ['subject', msg('科目')],
+        ['institution', msg('學校')],
+        ['term', msg('學期')],
       ] as const
     ).map(([key, label]) => (
       <label key={key} className="block text-sm">
-        <span className={`block font-medium text-muted ${compact ? 'mb-0.5 text-[11px]' : 'mb-1 text-xs'}`}>{label}</span>
+        <span className={`block font-medium text-muted ${compact ? 'mb-0.5 text-[11px]' : 'mb-1 text-xs'}`}>{t(label)}</span>
         <input autoComplete="off" value={meta[key] ?? ''} onChange={(e) => setMeta(key, e.target.value)} className={`${inputClass} ${compact ? 'py-1.5 text-[13px]' : ''}`} />
       </label>
     ))
@@ -436,14 +439,14 @@ export function ReviewEditor({
   const viewActions = (q: DraftQuestion, index: number, handle: DragHandle | null) => (
     <>
       {!q.groupId && splitParts(q, '') && (
-        <button type="button" onClick={() => splitQuestion(index)} className={iconButton} aria-label="拆成小題" title="拆成小題：(a)(b) 各自一題，可以分別作答和計分">
+        <button type="button" onClick={() => splitQuestion(index)} className={iconButton} aria-label={t('拆成小題')} title={t('拆成小題：(a)(b) 各自一題，可以分別作答和計分')}>
           <IconSplit size={15} />
         </button>
       )}
-      <button type="button" onClick={() => setEditing(index)} className={iconButton} aria-label="編輯" title="編輯（或點兩下題目）">
+      <button type="button" onClick={() => setEditing(index)} className={iconButton} aria-label={t('編輯')} title={t('編輯（或點兩下題目）')}>
         <IconEdit size={15} />
       </button>
-      <button type="button" onClick={() => removeQuestion(index)} className={`${iconButton} hover:bg-bad-soft hover:text-bad`} aria-label="刪除" title="刪除">
+      <button type="button" onClick={() => removeQuestion(index)} className={`${iconButton} hover:bg-bad-soft hover:text-bad`} aria-label={t('刪除')} title={t('刪除')}>
         <IconTrash size={15} />
       </button>
       {handle ? (
@@ -460,8 +463,8 @@ export function ReviewEditor({
       type="button"
       {...handle}
       className={`${iconButton} cursor-grab touch-none active:cursor-grabbing`}
-      aria-label={`拖曳第 ${q.number} 題來排序`}
-      title="拖曳排序"
+      aria-label={t('拖曳第 {n} 題來排序', { n: q.number })}
+      title={t('拖曳排序')}
     >
       <IconGrip size={16} />
     </button>
@@ -473,7 +476,7 @@ export function ReviewEditor({
       <div ref={bar} className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur-md">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2 sm:px-5">
           <div className="flex min-w-0 flex-1 items-center gap-1 lg:max-w-[22rem] lg:flex-none">
-            <Link href="/imports" className={iconButton} aria-label="回到匯入列表" title="回到匯入列表">
+            <Link href="/imports" className={iconButton} aria-label={t('回到匯入列表')} title={t('回到匯入列表')}>
               <IconBack size={18} />
             </Link>
             <button
@@ -481,14 +484,14 @@ export function ReviewEditor({
               onClick={() => setLayout({ outline: !layout.outline })}
               aria-pressed={layout.outline}
               className={`${iconButton} hidden lg:grid ${layout.outline ? 'bg-ink/[0.06] text-ink' : ''}`}
-              aria-label={layout.outline ? '收起題目大綱' : '顯示題目大綱'}
-              title={layout.outline ? '收起題目大綱' : '顯示題目大綱'}
+              aria-label={layout.outline ? t('收起題目大綱') : t('顯示題目大綱')}
+              title={layout.outline ? t('收起題目大綱') : t('顯示題目大綱')}
             >
               <IconOutline size={17} />
             </button>
             <h1 className="sr-only">{heading.title}</h1>
             <Menu
-              label="考卷選單"
+              label={t('考卷選單')}
               className="m-press flex max-w-full min-w-0 items-center gap-1 rounded-lg px-2 py-1 hover:bg-ink/[0.05]"
               button={
                 <>
@@ -506,13 +509,13 @@ export function ReviewEditor({
                   {published !== null && (
                     <Link href={`/bank/exams/${published.examId}`} role="menuitem" className={menuItem} onClick={close}>
                       <IconSave size={15} className="text-good" />
-                      <span className="flex-1">在題庫查看</span>
-                      <span className="num text-xs text-muted">{published.count} 題</span>
+                      <span className="flex-1">{t('在題庫查看')}</span>
+                      <span className="num text-xs text-muted">{t('{n} 題', { n: published.count })}</span>
                     </Link>
                   )}
                   <button type="button" role="menuitem" className={`${menuItem} hidden lg:flex`} onClick={() => (setLayout({ outline: !layout.outline }), close())}>
                     <IconOutline size={15} className="text-muted" />
-                    {layout.outline ? '收起題目大綱' : '題目大綱與考卷資訊'}
+                    {layout.outline ? t('收起題目大綱') : t('題目大綱與考卷資訊')}
                   </button>
                   {heading.menu && <div className="mt-1 border-t border-line/70 pt-1">{heading.menu}</div>}
                 </>
@@ -525,8 +528,8 @@ export function ReviewEditor({
             <div className={`flex shrink-0 rounded-lg bg-ink/[0.06] p-0.5 text-sm lg:hidden ${pages.length ? '' : 'hidden'}`}>
               {(
                 [
-                  ['questions', '題目'],
-                  ['page', '原卷'],
+                  ['questions', t('題目')],
+                  ['page', t('原卷')],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -539,7 +542,7 @@ export function ReviewEditor({
                 </button>
               ))}
             </div>
-            <nav ref={numberBar} className="scroll-strip flex min-w-0 flex-1 overflow-x-auto" aria-label="題號">
+            <nav ref={numberBar} className="scroll-strip flex min-w-0 flex-1 overflow-x-auto" aria-label={t('題號')}>
               {/* centred while the numbers fit; once they overflow, the strip scrolls from the start */}
               <div className="mx-auto flex w-max items-center gap-1 py-0.5">
                 {numberClusters(draft.questions).map((cluster) => {
@@ -554,7 +557,7 @@ export function ReviewEditor({
                         type="button"
                         onClick={() => select(shown[0]!, true)}
                         aria-current={selected === shown[0] || undefined}
-                        title={isFlagged(draft.questions[shown[0]!]!) ? '待確認' : undefined}
+                        title={isFlagged(draft.questions[shown[0]!]!) ? t('待確認') : undefined}
                         className={`num h-7 min-w-7 shrink-0 rounded-md px-1.5 text-xs transition-colors ${
                           selected === shown[0]
                             ? 'bg-accent text-on-accent'
@@ -567,7 +570,7 @@ export function ReviewEditor({
                       </button>
                     )
                   return (
-                    <span key={keys.current[shown[0]!]} className="flex h-7 shrink-0 items-center gap-px rounded-md bg-surface pr-0.5 shadow-sheet" title={`第 ${cluster.main} 題的小題`}>
+                    <span key={keys.current[shown[0]!]} className="flex h-7 shrink-0 items-center gap-px rounded-md bg-surface pr-0.5 shadow-sheet" title={t('第 {n} 題的小題', { n: cluster.main })}>
                       {/* the number itself opens the question's shared card; a hairline sets the parts apart */}
                       <button
                         type="button"
@@ -599,8 +602,8 @@ export function ReviewEditor({
                 type="button"
                 onClick={() => setFlaggedOnly(!flaggedOnly)}
                 aria-pressed={flaggedOnly}
-                aria-label={`${flagged} 題待確認`}
-                title={flaggedOnly ? `顯示全部題目` : `${flagged} 題待確認：點一下只看這些`}
+                aria-label={t('{n} 題待確認', { n: flagged })}
+                title={flaggedOnly ? t('顯示全部題目') : t('{n} 題待確認：點一下只看這些', { n: flagged })}
                 className={`m-press flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${flaggedOnly ? 'bg-hl text-night' : 'bg-warn-soft text-warn hover:bg-hl/40'}`}
               >
                 <IconAlert size={14} strokeWidth={2.4} />
@@ -609,8 +612,8 @@ export function ReviewEditor({
             )}
             <span
               className={`grid h-8 w-8 place-items-center ${saveState === 'saved' ? 'text-muted/70' : 'text-accent'}`}
-              title={SAVE_LABELS[saveState]}
-              aria-label={SAVE_LABELS[saveState]}
+              title={t(SAVE_LABELS[saveState])}
+              aria-label={t(SAVE_LABELS[saveState])}
               role="status"
             >
               {saveState === 'saved' ? <IconCloudCheck size={17} /> : saveState === 'saving' ? <IconLoader size={16} className="m-spin" /> : <IconCloud size={17} />}
@@ -619,10 +622,10 @@ export function ReviewEditor({
               <Link
                 href={`/bank/exams/${published.examId}`}
                 className="m-press flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-good hover:bg-good-soft max-sm:px-2"
-                title={`${published.count} 題已存入題庫，點一下查看`}
+                title={t('{n} 題已存入題庫，點一下查看', { n: published.count })}
               >
                 <IconCheck size={15} strokeWidth={2.6} />
-                <span className="max-sm:hidden">已存入</span>
+                <span className="max-sm:hidden">{t('已存入')}</span>
               </Link>
             ) : (
               <Button
@@ -632,9 +635,9 @@ export function ReviewEditor({
                 disabled={publishing || !draft.questions.length}
                 loading={publishing}
                 icon={<IconSave size={16} />}
-                aria-label={published !== null ? '更新題庫' : '存入題庫'}
+                aria-label={published !== null ? t('更新題庫') : t('存入題庫')}
               >
-                <span className="max-sm:hidden">{publishing ? '存入中…' : published !== null ? '更新題庫' : '存入題庫'}</span>
+                <span className="max-sm:hidden">{publishing ? t('存入中…') : published !== null ? t('更新題庫') : t('存入題庫')}</span>
               </Button>
             )}
           </div>
@@ -684,12 +687,12 @@ export function ReviewEditor({
               <div
                 role="separator"
                 aria-orientation="vertical"
-                aria-label="調整原卷寬度"
+                aria-label={t('調整原卷寬度')}
                 aria-valuenow={Math.round(layout.split * 100)}
                 aria-valuemin={30}
                 aria-valuemax={72}
                 tabIndex={0}
-                title="拖曳調整原卷寬度，點兩下還原"
+                title={t('拖曳調整原卷寬度，點兩下還原')}
                 onPointerDown={startResize}
                 onDoubleClick={() => setLayout({ split: DEFAULT_LAYOUT.split })}
                 onKeyDown={(e) => {
@@ -707,7 +710,7 @@ export function ReviewEditor({
             {/* a new exam written from scratch starts with its details open: the title comes first */}
             <details open={(!pages.length && !initial.meta.title) || undefined} className={`group rounded-2xl bg-surface shadow-sheet ${layout.outline ? 'lg:hidden' : ''}`}>
               <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm [&::-webkit-details-marker]:hidden">
-                <span className="font-medium">考卷資訊</span>
+                <span className="font-medium">{t('考卷資訊')}</span>
                 <span className="min-w-0 flex-1 truncate text-muted">{[meta.subject, meta.institution, meta.term].filter(Boolean).join(' · ')}</span>
                 <IconChevronDown size={16} className="text-muted transition-transform duration-300 group-open:rotate-180" />
               </summary>
@@ -771,10 +774,10 @@ export function ReviewEditor({
                                 actions={
                                   // the same places as the card's own buttons: done where edit was, then delete and the grip
                                   <>
-                                    <button type="button" onClick={() => setEditing(null)} className={`${iconButton} !text-accent hover:bg-accent-soft`} aria-label="完成" title="完成">
+                                    <button type="button" onClick={() => setEditing(null)} className={`${iconButton} !text-accent hover:bg-accent-soft`} aria-label={t('完成')} title={t('完成')}>
                                       <IconCheck size={17} strokeWidth={2.6} />
                                     </button>
-                                    <button type="button" onClick={() => removeQuestion(index)} className={`${iconButton} hover:bg-bad-soft hover:text-bad`} aria-label="刪除" title="刪除">
+                                    <button type="button" onClick={() => removeQuestion(index)} className={`${iconButton} hover:bg-bad-soft hover:text-bad`} aria-label={t('刪除')} title={t('刪除')}>
                                       <IconTrash size={15} />
                                     </button>
                                     {/* Phones keep the header on one line; cards are reordered outside editing there. */}
@@ -814,17 +817,17 @@ export function ReviewEditor({
             </DndContext>
 
             {!draft.questions.length && (
-              <p className="px-1 pt-2 text-sm text-muted">還沒有題目。新增一題後選題型、寫題目和答案，寫好的題目可以拖曳排序。</p>
+              <p className="px-1 pt-2 text-sm text-muted">{t('還沒有題目。新增一題後選題型、寫題目和答案，寫好的題目可以拖曳排序。')}</p>
             )}
             <Button onClick={() => addQuestion()} className="w-full border border-dashed border-ink/15 bg-transparent py-3 shadow-none" icon={<IconPlus size={16} />}>
-              {draft.questions.length ? '新增題目' : '新增第一題'}
+              {draft.questions.length ? t('新增題目') : t('新增第一題')}
             </Button>
           </div>
         </div>
       </div>
 
-      <Toast show={deletedNote !== null} action="復原" onAction={undoDelete}>
-        已刪除第 {deletedNote} 題
+      <Toast show={deletedNote !== null} action={t('復原')} onAction={undoDelete}>
+        {t('已刪除第 {n} 題', { n: deletedNote ?? '' })}
       </Toast>
 
       <Fab actions={fabActions} badge={flagged || undefined} />
@@ -849,7 +852,7 @@ function numberClusters(questions: DraftQuestion[]): { main: string; part: strin
 const OUTLINE_SPACE = 252
 const SPLITTER = 20
 
-const SAVE_LABELS: Record<SaveState, string> = { saved: '草稿已自動儲存', saving: '儲存中…', dirty: '有未儲存的修改' }
+const SAVE_LABELS: Record<SaveState, string> = { saved: msg('草稿已自動儲存'), saving: msg('儲存中…'), dirty: msg('有未儲存的修改') }
 
 /** Short plain-text preview of a question stem for the outline. */
 /**
@@ -906,15 +909,16 @@ function Outline({
   onClose: () => void
   meta: React.ReactNode
 }) {
+  const t = useT()
   return (
     <nav
-      aria-label="題目大綱"
+      aria-label={t('題目大綱')}
       className="m-enter -ml-2 mr-3 hidden w-[248px] shrink-0 space-y-6 self-start px-2 lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:max-h-[calc(100dvh-var(--bar)-1.5rem)] lg:overflow-y-auto lg:pb-4 [scrollbar-gutter:stable]"
     >
       <section>
         <p className="mb-2 flex items-center justify-between px-1 text-[11px] font-semibold tracking-[0.12em] text-muted">
-          考卷資訊
-          <button type="button" onClick={onClose} className="m-press grid h-6 w-6 place-items-center rounded-md hover:bg-ink/[0.05] hover:text-ink" aria-label="收起題目大綱" title="收起題目大綱">
+          {t('考卷資訊')}
+          <button type="button" onClick={onClose} className="m-press grid h-6 w-6 place-items-center rounded-md hover:bg-ink/[0.05] hover:text-ink" aria-label={t('收起題目大綱')} title={t('收起題目大綱')}>
             <IconX size={14} />
           </button>
         </p>
@@ -922,7 +926,7 @@ function Outline({
       </section>
       <section>
         <p className="mb-2 flex items-center justify-between px-1 text-[11px] font-semibold tracking-[0.12em] text-muted">
-          題目 <span className="num tracking-normal">{questions.length}</span>
+          {t('題目')} <span className="num tracking-normal">{questions.length}</span>
         </p>
         <DndContext id="review-outline" sensors={sensors} collisionDetection={underPointer} modifiers={[alongList]} measuring={listMeasuring} onDragEnd={onDragEnd}>
           <SortableContext items={visibleKeys} strategy={verticalListSortingStrategy}>
@@ -941,18 +945,18 @@ function Outline({
                           type="button"
                           {...handle}
                           onClick={() => onSelect(index)}
-                          title="點一下跳到這題，拖曳可以排序"
+                          title={t('點一下跳到這題，拖曳可以排序')}
                           data-glide
                           className={`relative flex w-full touch-manipulation items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13px] ${
                             dragging ? 'bg-surface text-ink shadow-[0_12px_28px_-10px_rgb(22_24_43/0.35),0_0_0_1px_rgb(22_24_43/0.08)]' : on ? 'bg-surface text-ink shadow-sheet' : 'text-muted hover:text-ink'
                           }`}
                         >
                           <span className={`num w-6 shrink-0 text-right text-[12px] ${on ? 'text-accent' : ''}`}>{q.number}</span>
-                          <span className="min-w-0 flex-1 truncate">{preview(q.stem) || TYPE_LABELS[q.type]}</span>
+                          <span className="min-w-0 flex-1 truncate">{preview(q.stem) || t(TYPE_LABELS[q.type])}</span>
                           {isFlagged(q) ? (
-                            <span className="h-2 w-2 shrink-0 rounded-full bg-hl" title="待確認" />
+                            <span className="h-2 w-2 shrink-0 rounded-full bg-hl" title={t('待確認')} />
                           ) : (
-                            <IconCheck size={13} strokeWidth={2.6} className="shrink-0 text-good/70" aria-label="已確認" />
+                            <IconCheck size={13} strokeWidth={2.6} className="shrink-0 text-good/70" aria-label={t('已確認')} />
                           )}
                         </button>
                       )}
@@ -965,7 +969,7 @@ function Outline({
           </SortableContext>
         </DndContext>
         <button type="button" onClick={onAdd} className="m-press mt-2 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-muted hover:bg-ink/[0.04] hover:text-accent">
-          <IconPlus size={14} className="ml-2.5" /> 新增題目
+          <IconPlus size={14} className="ml-2.5" /> {t('新增題目')}
         </button>
       </section>
     </nav>
@@ -991,6 +995,7 @@ function GroupCard({
   /** Sub-questions of one number can be joined back into one question. */
   onMerge: () => void
 }) {
+  const t = useT()
   const [editing, setEditing] = useState(false)
   const numbers = parts.map((p) => splitNumber(p.number))
   const main = numbers.length && numbers.every((n) => n.part !== null && n.main === numbers[0]!.main) ? numbers[0]!.main : null
@@ -998,27 +1003,27 @@ function GroupCard({
   return (
     <div data-group={group.id} onClick={() => !editing && onSelect()} className="relative mb-3 scroll-mt-40 rounded-2xl bg-surface/70 p-4 ring-1 ring-ink/[0.07]">
       <div className="mb-2 flex items-center gap-2">
-        {main !== null ? <span className="num text-xl leading-none">{main}.</span> : <span className="text-xs font-medium text-muted">題組共用內容</span>}
-        <Badge>{main !== null ? `${parts.length} 小題` : `${parts.length} 題`}</Badge>
-        {main !== null && points !== null && <Badge>{Math.round(points * 100) / 100} 分</Badge>}
+        {main !== null ? <span className="num text-xl leading-none">{main}.</span> : <span className="text-xs font-medium text-muted">{t('題組共用內容')}</span>}
+        <Badge>{main !== null ? t('{n} 小題', { n: parts.length }) : t('{n} 題', { n: parts.length })}</Badge>
+        {main !== null && points !== null && <Badge>{t('{points} 分', { points: Math.round(points * 100) / 100 })}</Badge>}
         <span className="ml-auto flex items-center gap-3">
           {main !== null && !editing && (
             <button
               type="button"
               onClick={(e) => (e.stopPropagation(), onMerge())}
               className="flex items-center gap-1 text-xs text-accent hover:underline"
-              title="把小題合回一題"
+              title={t('把小題合回一題')}
             >
               <IconMerge size={13} />
-              合併
+              {t('合併')}
             </button>
           )}
           <button type="button" onClick={(e) => (e.stopPropagation(), setEditing(!editing))} className="text-xs text-accent hover:underline">
-            {editing ? '完成' : '編輯'}
+            {editing ? t('完成') : t('編輯')}
           </button>
         </span>
       </div>
-      {editing ? <MathTextInput value={group.stem} onChange={onChange} /> : group.stem.trim() ? <Markdown>{group.stem}</Markdown> : <p className="text-sm text-muted">（沒有共用內容）</p>}
+      {editing ? <MathTextInput value={group.stem} onChange={onChange} /> : group.stem.trim() ? <Markdown>{group.stem}</Markdown> : <p className="text-sm text-muted">{t('（沒有共用內容）')}</p>}
       {group.figures.map((f, i) => (
         <FigureView key={i} figure={f} />
       ))}

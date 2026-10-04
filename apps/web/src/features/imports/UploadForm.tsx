@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { useRef, useState, useTransition } from 'react'
 import { IconFile, IconSparkles, IconUpload, IconX } from '@/shared/icons'
+import { useT } from '@/shared/i18n/client'
+import { rich } from '@/shared/i18n/rich'
 import type { ProviderOption } from '@/server/context'
 import { ProviderFields } from '@/features/settings/ModelPicker'
 import { Button } from '@/shared/ui'
@@ -12,6 +14,7 @@ import { shrinkPhoto } from './shrink'
 const ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.gif,.bmp'
 
 export function UploadForm({ providers, defaultProvider }: { providers: ProviderOption[]; defaultProvider: string }) {
+  const t = useT()
   const [files, setFiles] = useState<File[]>([])
   const [dragging, setDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -67,8 +70,8 @@ export function UploadForm({ providers, defaultProvider }: { providers: Provider
         >
           <IconUpload size={26} strokeWidth={2} />
         </div>
-        <p className="font-medium">拖曳考卷到這裡，或點一下選擇檔案</p>
-        <p className="mt-1 text-sm text-muted">PDF、掃描檔或手機照片都可以。多張照片會依選擇順序合成同一份考卷。</p>
+        <p className="font-medium">{t('拖曳考卷到這裡，或點一下選擇檔案')}</p>
+        <p className="mt-1 text-sm text-muted">{t('PDF、掃描檔或手機照片都可以。多張照片會依選擇順序合成同一份考卷。')}</p>
       </div>
 
       {files.length > 0 && (
@@ -82,7 +85,7 @@ export function UploadForm({ providers, defaultProvider }: { providers: Provider
               </span>
               <span className="flex shrink-0 items-center gap-3 text-muted">
                 {(f.size / 1024 / 1024).toFixed(1)} MB
-                <button type="button" className="m-press grid h-7 w-7 place-items-center rounded-md hover:bg-bad-soft hover:text-bad" onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label={`移除 ${f.name}`}>
+                <button type="button" className="m-press grid h-7 w-7 place-items-center rounded-md hover:bg-bad-soft hover:text-bad" onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label={t('移除 {name}', { name: f.name })}>
                   <IconX size={16} />
                 </button>
               </span>
@@ -94,18 +97,20 @@ export function UploadForm({ providers, defaultProvider }: { providers: Provider
       <div className="grid gap-4 sm:grid-cols-2">
         <ProviderFields providers={providers} provider={choice.provider} model={choice.model} onChange={setChoice} />
         <p className="text-xs text-muted sm:col-span-2">
-          API 金鑰、預設的辨識方式和模型在
-          <Link href="/settings" className="mx-0.5 text-accent hover:underline">
-            設定
-          </Link>
-          裡調整。
+          {rich(t('API 金鑰、預設的辨識方式和模型在<link>設定</link>裡調整。'), {
+            link: (c) => (
+              <Link href="/settings" className="mx-0.5 text-accent hover:underline">
+                {c}
+              </Link>
+            ),
+          })}
         </p>
       </div>
 
       {error && <p className="m-shake rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">{error}</p>}
 
       <Button type="submit" variant="primary" disabled={!files.length || pending} loading={pending} icon={<IconSparkles size={16} />}>
-        {shrinking ? '壓縮照片中…' : pending ? '上傳並轉換頁面中…' : '開始辨識'}
+        {shrinking ? t('壓縮照片中…') : pending ? t('上傳並轉換頁面中…') : t('開始辨識')}
       </Button>
     </form>
   )

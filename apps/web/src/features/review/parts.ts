@@ -1,5 +1,6 @@
 import type { DraftExam, DraftQuestion } from '@exam/core'
 
+import { msg } from '../../shared/i18n/format'
 import { splitNumber } from '../../shared/questionNumber'
 
 export { splitNumber }
@@ -95,7 +96,8 @@ function unlabel(text: string): string {
   return text.replace(/^(?:\s*[(（](?:[a-j]|\d{1,2}|[ivx]{1,4})[)）])+\s*/, '').trim()
 }
 
-const SPLIT_NOTE = '拆成小題時沒辦法把答案分到各小題，請檢查答案'
+// Kept in the question's issues as written (merging looks for it); shown with t(issue).
+const SPLIT_NOTE = msg('拆成小題時沒辦法把答案分到各小題，請檢查答案')
 const CONFIDENCE: DraftQuestion['confidence'][] = ['low', 'medium', 'high']
 
 /**

@@ -11,6 +11,8 @@ import { Scan } from '@/features/imports/Scan'
 import { ReviewEditor } from '@/features/review/ReviewEditor'
 import { availableProviders, services } from '@/server/context'
 import { ownedImport } from '@/server/owned'
+import type { T } from '@/shared/i18n/format'
+import { getT } from '@/shared/i18n/server'
 import { PencilProgress } from '@/shared/motion/PencilProgress'
 import { Card, PageHeader } from '@/shared/ui'
 
@@ -21,6 +23,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
   const { bank, importer } = services()
   const imp = await ownedImport(id)
   if (!imp) notFound()
+  const t = await getT()
   const providers = await availableProviders(imp.ownerId)
   const current = { provider: imp.provider, model: imp.model }
   const header = (
@@ -29,7 +32,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
       subtitle={
         <span className="inline-flex flex-wrap items-center gap-2">
           <StatusBadge status={imp.status} />
-          {imp.pageCount} 頁 · {providers.find((p) => p.id === imp.provider)?.label ?? imp.provider}
+          {t('{n} 頁 · {provider}', { n: imp.pageCount, provider: providers.find((p) => p.id === imp.provider)?.label ?? imp.provider })}
           {imp.model ? ` / ${imp.model}` : ''}
         </span>
       }
@@ -49,9 +52,9 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
           {reading > 0 && <Scan image={importer.pageImage(imp, reading)} pageNumber={reading} />}
           <div className="min-w-0 flex-1 space-y-3">
             {/* after the last page the draft is put together and its figures cut out and stored */}
-            <p className="font-medium">{total && done >= total ? '頁面都讀完了，正在整理題目、存圖片…' : '模型正在讀取頁面…'}</p>
-            <PencilProgress value={total ? done / total : 0} label={`已完成 ${done} / ${total} 頁`} />
-            <p className="text-sm text-muted">遇到免費額度限制時會自動等待後重試，可以先離開這個頁面。</p>
+            <p className="font-medium">{total && done >= total ? t('頁面都讀完了，正在整理題目、存圖片…') : t('模型正在讀取頁面…')}</p>
+            <PencilProgress value={total ? done / total : 0} label={t('已完成 {done} / {total} 頁', { done, total })} />
+            <p className="text-sm text-muted">{t('遇到免費額度限制時會自動等待後重試，可以先離開這個頁面。')}</p>
           </div>
         </Card>
       </div>
@@ -73,7 +76,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
       <div>
         {header}
         <Card className="space-y-4 p-6">
-          {imp.error ? <ImportError error={imp.error} /> : <p className="font-medium text-bad">辨識失敗</p>}
+          {imp.error ? <ImportError error={imp.error} /> : <p className="font-medium text-bad">{t('辨識失敗')}</p>}
           <RerunForm importId={id} providers={providers} current={current} />
         </Card>
       </div>
@@ -101,7 +104,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         strength={(await services().settings.get(imp.ownerId)).strength}
         heading={{
           title: imp.title ?? imp.fileName,
-          meta: imp.provider === BLANK ? '從零建立' : `${imp.pageCount} 頁 · ${readBy(imp, results)}`,
+          meta: imp.provider === BLANK ? t('從零建立') : t('{n} 頁 · {provider}', { n: imp.pageCount, provider: readBy(imp, results, t) }),
           menu: imp.provider === BLANK
             ? [<DeleteImportButton key="menu" importId={id} menu />]
             : [<OriginalFiles key="original" importId={id} state={original} />, <DeleteImportButton key="menu" importId={id} menu />],
@@ -110,11 +113,11 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
           failed.length > 0 && (
             <Card key="notice" className="space-y-3 p-4 ring-1 ring-bad/30">
               <p className="text-sm">
-                <span className="font-medium text-bad">第 {failed.join('、')} 頁沒有讀到。</span>
-                <span className="text-muted">重讀只處理這幾頁，但完成後草稿會重新產生，目前在這頁做的修改會被覆蓋。</span>
+                <span className="font-medium text-bad">{t('第 {pages} 頁沒有讀到。', { pages: failed.join('、') })}</span>
+                <span className="text-muted">{t('重讀只處理這幾頁，但完成後草稿會重新產生，目前在這頁做的修改會被覆蓋。')}</span>
               </p>
               {failedWhy && <ImportError error={failedWhy} />}
-              <RerunForm importId={id} providers={providers} current={current} pages={failed} label="重讀這幾頁" />
+              <RerunForm importId={id} providers={providers} current={current} pages={failed} label={t('重讀這幾頁')} />
             </Card>
           )
         }
@@ -123,8 +126,8 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
 }
 
 /** Who read the pages: manual mode, or the models that did, as automatic reading may use several. */
-function readBy(imp: { provider: string; model: string | null }, results: { model: string; page: unknown }[]): string {
-  if (imp.provider === 'manual') return '手動模式'
+function readBy(imp: { provider: string; model: string | null }, results: { model: string; page: unknown }[], t: T): string {
+  if (imp.provider === 'manual') return t('手動模式')
   const models = [...new Set(results.filter((r) => r.page).map((r) => r.model))]
   return models.length ? models.join('、') : `${imp.provider}${imp.model ? ` / ${imp.model}` : ''}`
 }

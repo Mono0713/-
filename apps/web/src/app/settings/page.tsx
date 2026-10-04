@@ -4,15 +4,20 @@ import { monthStart, spend } from '@exam/usage'
 import { SettingsForm } from '@/features/settings/SettingsForm'
 import { StorageCard } from '@/features/settings/StorageCard'
 import { authEnabled, availableProviders, currentOwner, keySource, localeOf, providersOf, services, storageOf, teacherChoice } from '@/server/context'
+import { getT } from '@/shared/i18n/server'
 import { PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: '設定' }
+export async function generateMetadata() {
+  const t = await getT()
+  return { title: t('設定') }
+}
 
 // Estimates learn from this much recent use.
 const ESTIMATE_WINDOW_DAYS = 90
 
 export default async function SettingsPage() {
+  const t = await getT()
   const owner = await currentOwner()
   const { settings: store, usage } = services()
   // Only the public view reaches the browser: API keys stay on the server.
@@ -31,7 +36,7 @@ export default async function SettingsPage() {
   const month = thisMonth.length ? spend(thisMonth, routing) : null
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title="設定" subtitle="語言、AI 強度、模型和 API 金鑰。" />
+      <PageHeader title={t('設定')} subtitle={t('語言、AI 強度、模型和 API 金鑰。')} />
       <SettingsForm
         locales={[...LOCALES]}
         locale={locale}

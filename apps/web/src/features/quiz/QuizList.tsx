@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useT } from '@/shared/i18n/client'
 import { IconTrash } from '@/shared/icons'
 import { useRemoval } from '@/shared/removal'
 import { Badge } from '@/shared/ui'
@@ -21,8 +22,9 @@ export interface QuizRow {
  * offers 復原 for a few seconds (see RemovalProvider).
  */
 export function QuizList({ rows }: { rows: QuizRow[] }) {
+  const t = useT()
   const { remove, isRemoved } = useRemoval()
-  const removeRow = (row: QuizRow) => remove({ id: row.id, note: row.score ? '已刪除測驗紀錄' : '已刪除測驗', commit: () => removeQuiz(row.id) })
+  const removeRow = (row: QuizRow) => remove({ id: row.id, note: row.score ? t('已刪除測驗紀錄') : t('已刪除測驗'), commit: () => removeQuiz(row.id) })
 
   const shown = rows.filter((r) => !isRemoved(r.id))
   if (!shown.length) return null
@@ -34,8 +36,8 @@ export function QuizList({ rows }: { rows: QuizRow[] }) {
             <div className="min-w-0 flex-1">
               <p className="line-clamp-2 font-medium sm:truncate">{a.title}</p>
               <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-                <Badge tone={a.exam ? 'accent' : 'neutral'}>{a.exam ? '考試' : '練習'}</Badge>
-                {a.count} 題 · {a.date}
+                <Badge tone={a.exam ? 'accent' : 'neutral'}>{a.exam ? t('考試') : t('練習')}</Badge>
+                {t('{n} 題 · {date}', { n: a.count, date: a.date })}
               </p>
             </div>
             {a.score ? (
@@ -44,15 +46,15 @@ export function QuizList({ rows }: { rows: QuizRow[] }) {
               </span>
             ) : (
               <span className="shrink-0">
-                <Badge tone="warn">進行中</Badge>
+                <Badge tone="warn">{t('進行中')}</Badge>
               </span>
             )}
           </Link>
           <button
             type="button"
             onClick={() => removeRow(a)}
-            aria-label={`刪除「${a.title}」`}
-            title="刪除"
+            aria-label={t('刪除「{title}」', { title: a.title })}
+            title={t('刪除')}
             className="m-press absolute right-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-muted transition-[opacity,color,background-color] hover:bg-bad-soft hover:text-bad focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0"
           >
             <IconTrash size={16} />

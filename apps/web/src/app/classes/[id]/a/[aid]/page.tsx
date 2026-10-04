@@ -7,51 +7,53 @@ import { LocalTime } from '@/features/classes/LocalTime'
 import { StartAssignment } from '@/features/classes/StartAssignment'
 import { inAssignment, resultsWithheld } from '@/server/classes'
 import { services } from '@/server/context'
+import { msg } from '@/shared/i18n/format'
+import { rich } from '@/shared/i18n/rich'
+import { getT } from '@/shared/i18n/server'
 import { Badge, Card, PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
 
-const ANSWER_RULES = { after_submit: '交卷後公布答案', after_close: '截止後公布答案', never: '不公布答案' } as const
+const ANSWER_RULES = { after_submit: msg('交卷後公布答案'), after_close: msg('截止後公布答案'), never: msg('不公布答案') } as const
 
 const percent = (share: number | null) => (share === null ? '—' : `${Math.round(share * 100)}%`)
 
 export default async function AssignmentPage({ params }: { params: Promise<{ id: string; aid: string }> }) {
   const { id, aid } = await params
+  const t = await getT()
   const found = await inAssignment(aid)
   if (!found || found.classroom.id !== id) notFound()
   const { assignment: a, classroom, me, teaches } = found
   const { classes, quizzes } = services()
   const s = a.settings
   const facts = [
-    s.mode === 'exam' ? '考試' : '練習',
-    `${a.sources.length} 題`,
-    s.timeLimitMinutes ? `限時 ${s.timeLimitMinutes} 分鐘` : null,
-    s.maxAttempts ? `可作答 ${s.maxAttempts} 次` : '次數不限',
-    ANSWER_RULES[s.answers],
+    s.mode === 'exam' ? t('考試') : t('練習'),
+    t('{n} 題', { n: a.sources.length }),
+    s.timeLimitMinutes ? t('限時 {n} 分鐘', { n: s.timeLimitMinutes }) : null,
+    s.maxAttempts ? t('可作答 {n} 次', { n: s.maxAttempts }) : t('次數不限'),
+    t(ANSWER_RULES[s.answers]),
   ].filter(Boolean)
   const times = (
     <p className="text-sm text-muted">
       {a.opensAt && (
         <>
-          開始 <LocalTime at={a.opensAt} />
+          {rich(t('開始 <time></time>'), { time: () => <LocalTime at={a.opensAt!} /> })}
           {' · '}
         </>
       )}
       {a.closesAt ? (
-        <>
-          截止 <LocalTime at={a.closesAt} />
-        </>
+        rich(t('截止 <time></time>'), { time: () => <LocalTime at={a.closesAt!} /> })
       ) : (
-        '沒有截止時間'
+        t('沒有截止時間')
       )}
     </p>
   )
 
   if (!teaches) {
-    const tries = (await Promise.all((await classes.attempts(a.id, me.userId)).map((t) => quizzes.get(t.attemptId)))).filter((x) => x !== null)
-    const handedIn = tries.find((t) => t.finishedAt && !t.assignment?.preview)
+    const tries = (await Promise.all((await classes.attempts(a.id, me.userId)).map((x) => quizzes.get(x.attemptId)))).filter((x) => x !== null)
+    const handedIn = tries.find((x) => x.finishedAt && !x.assignment?.preview)
     const withheld = handedIn ? await resultsWithheld(handedIn) : false
-    const running = tries.find((t) => !t.finishedAt && !isOver(t)) ?? null
+    const running = tries.find((x) => !x.finishedAt && !isOver(x)) ?? null
     const left = s.maxAttempts === null ? null : Math.max(0, s.maxAttempts - tries.length)
     const open = isOpen(a)
     return (
@@ -76,30 +78,30 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
           {running ? (
             <StartAssignment assignmentId={a.id} resume={running.id} label="" />
           ) : open && left !== 0 ? (
-            <StartAssignment assignmentId={a.id} resume={null} label={tries.length ? '再作答一次' : '開始作答'} />
+            <StartAssignment assignmentId={a.id} resume={null} label={tries.length ? t('再作答一次') : t('開始作答')} />
           ) : (
-            <p className="text-sm text-muted">{!open ? (a.opensAt && new Date() < new Date(a.opensAt) ? '作業還沒開始。' : '作業已經截止。') : '已經用完可以作答的次數。'}</p>
+            <p className="text-sm text-muted">{!open ? (a.opensAt && new Date() < new Date(a.opensAt) ? t('作業還沒開始。') : t('作業已經截止。')) : t('已經用完可以作答的次數。')}</p>
           )}
-          {left !== null && left > 0 && tries.length > 0 && !running && <p className="text-xs text-muted">還可以作答 {left} 次，老師看的是最後一次交的卷。</p>}
+          {left !== null && left > 0 && tries.length > 0 && !running && <p className="text-xs text-muted">{t('還可以作答 {n} 次，老師看的是最後一次交的卷。', { n: left })}</p>}
         </Card>
         {/* The score waits with the answers. */}
-        {tries.some((t) => t.finishedAt) && (
+        {tries.some((x) => x.finishedAt) && (
           <Card className="p-4">
-            <h2 className="mb-2 text-sm font-semibold">我交的卷</h2>
+            <h2 className="mb-2 text-sm font-semibold">{t('我交的卷')}</h2>
             <ul className="space-y-1">
               {tries
-                .filter((t) => t.finishedAt)
-                .map((t, i) => {
-                  const sum = summarize(t)
+                .filter((x) => x.finishedAt)
+                .map((x, i) => {
+                  const sum = summarize(x)
                   return (
-                    <li key={t.id}>
-                      <Link href={`/quiz/${t.id}`} className="flex items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-paper">
-                        <span className="text-muted">第 {i + 1} 次</span>
+                    <li key={x.id}>
+                      <Link href={`/quiz/${x.id}`} className="flex items-center gap-3 rounded-md px-2 py-1.5 text-sm hover:bg-paper">
+                        <span className="text-muted">{t('第 {n} 次', { n: i + 1 })}</span>
                         <span className="flex-1 text-muted">
-                          <LocalTime at={t.finishedAt!} />
+                          <LocalTime at={x.finishedAt!} />
                         </span>
-                        {sum.pending > 0 && !withheld && <Badge tone="accent">待批改 {sum.pending}</Badge>}
-                        <span className="num">{sum.max && !withheld ? `${sum.score} / ${sum.max}` : '已交'}</span>
+                        {sum.pending > 0 && !withheld && <Badge tone="accent">{t('待批改 {n}', { n: sum.pending })}</Badge>}
+                        <span className="num">{sum.max && !withheld ? `${sum.score} / ${sum.max}` : t('已交')}</span>
                       </Link>
                     </li>
                   )
@@ -112,7 +114,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
   }
 
   const [members, tries] = await Promise.all([classes.members(classroom.id), classes.attempts(a.id)])
-  const attempts = (await Promise.all(tries.filter((t) => !t.preview).map((t) => quizzes.get(t.attemptId)))).filter((x) => x !== null)
+  const attempts = (await Promise.all(tries.filter((x) => !x.preview).map((x) => quizzes.get(x.attemptId)))).filter((x) => x !== null)
   const stats = assignmentStats(a.sources, members, attempts)
   const missing = stats.students.filter((r) => !r.counted?.handedIn)
   const pending = stats.students.reduce((n, r) => n + (r.counted?.handedIn ? r.counted.pending : 0), 0)
@@ -131,25 +133,25 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
         <div className="min-w-0 space-y-4">
           <Card className="flex flex-wrap gap-x-10 gap-y-3 p-5">
             <div>
-              <p className="text-xs text-muted">已交</p>
+              <p className="text-xs text-muted">{t('已交')}</p>
               <p className="num text-3xl">
                 {stats.handedIn}
                 <span className="text-lg text-muted"> / {stats.students.length}</span>
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted">平均得分率</p>
+              <p className="text-xs text-muted">{t('平均得分率')}</p>
               <p className="num text-3xl">{percent(stats.average)}</p>
             </div>
             {pending > 0 && (
               <div>
-                <p className="text-xs text-muted">待批改</p>
+                <p className="text-xs text-muted">{t('待批改')}</p>
                 <p className="num text-3xl text-accent">{pending}</p>
               </div>
             )}
             {stats.aiMarked > 0 && (
               <div>
-                <p className="text-xs text-muted">AI 批改 / 老師改過</p>
+                <p className="text-xs text-muted">{t('AI 批改 / 老師改過')}</p>
                 <p className="num text-3xl">
                   {stats.aiMarked}
                   <span className="text-lg text-muted"> / {stats.overridden}</span>
@@ -162,11 +164,11 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
             <table className="w-full min-w-[30rem] text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted">
-                  <th className="px-3 py-2 font-medium">學生</th>
-                  <th className="px-3 py-2 font-medium">狀態</th>
-                  <th className="px-3 py-2 text-right font-medium">分數</th>
-                  <th className="px-3 py-2 text-right font-medium">次數</th>
-                  <th className="px-3 py-2 font-medium">交卷時間</th>
+                  <th className="px-3 py-2 font-medium">{t('學生')}</th>
+                  <th className="px-3 py-2 font-medium">{t('狀態')}</th>
+                  <th className="px-3 py-2 text-right font-medium">{t('分數')}</th>
+                  <th className="px-3 py-2 text-right font-medium">{t('次數')}</th>
+                  <th className="px-3 py-2 font-medium">{t('交卷時間')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -177,13 +179,13 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
                       <td className="px-3 py-2 font-medium">{r.name}</td>
                       <td className="px-3 py-2">
                         {!c ? (
-                          <Badge tone="warn">未交</Badge>
+                          <Badge tone="warn">{t('未交')}</Badge>
                         ) : !c.handedIn ? (
-                          <Badge tone="accent">作答中</Badge>
+                          <Badge tone="accent">{t('作答中')}</Badge>
                         ) : c.pending ? (
-                          <Badge tone="accent">待批改 {c.pending}</Badge>
+                          <Badge tone="accent">{t('待批改 {n}', { n: c.pending })}</Badge>
                         ) : (
-                          <Badge tone="good">已交</Badge>
+                          <Badge tone="good">{t('已交')}</Badge>
                         )}
                       </td>
                       <td className="num px-3 py-2 text-right">{c?.handedIn && c.max ? `${c.score} / ${c.max}` : '—'}</td>
@@ -196,7 +198,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
                       {row}
                       <td className="px-3 py-2 text-right">
                         <Link href={`/classes/${classroom.id}/a/${a.id}/r/${c.attemptId}`} className="text-accent hover:underline">
-                          批改
+                          {t('批改')}
                         </Link>
                       </td>
                     </tr>
@@ -210,19 +212,19 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
                 {stats.students.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-3 py-6 text-center text-muted">
-                      班上還沒有學生。把加入碼給學生，他們加入後會出現在這裡。
+                      {t('班上還沒有學生。把加入碼給學生，他們加入後會出現在這裡。')}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </Card>
-          {missing.length > 0 && stats.students.length > 0 && <p className="text-sm text-muted">還沒交：{missing.map((r) => r.name).join('、')}</p>}
+          {missing.length > 0 && stats.students.length > 0 && <p className="text-sm text-muted">{t('還沒交：{names}', { names: missing.map((r) => r.name).join(t('、')) })}</p>}
 
           <Card className="p-5">
-            <h2 className="mb-3 text-sm font-semibold">每題得分率</h2>
+            <h2 className="mb-3 text-sm font-semibold">{t('每題得分率')}</h2>
             {stats.handedIn === 0 ? (
-              <p className="text-sm text-muted">有人交卷後會出現。</p>
+              <p className="text-sm text-muted">{t('有人交卷後會出現。')}</p>
             ) : (
               <ul className="space-y-1.5">
                 {stats.questions.map((q) => (

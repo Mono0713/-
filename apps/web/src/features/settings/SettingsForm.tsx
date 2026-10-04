@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import type { ProviderOption } from '@/server/context'
+import { useT } from '@/shared/i18n/client'
 import { IconKey, IconRefresh } from '@/shared/icons'
 import { useRemoval } from '@/shared/removal'
 import { Badge, Button, Card, inputClass } from '@/shared/ui'
@@ -65,6 +66,7 @@ export function SettingsForm({
   /** Hosted with accounts: only public HTTPS services can be added. */
   hosted: boolean
 }) {
+  const t = useT()
   const [, start] = useTransition()
   const run = (action: () => Promise<unknown>) => start(async () => void (await action()))
   // every change saves on the spot; no "saved" note (the control itself already shows the new value)
@@ -73,8 +75,8 @@ export function SettingsForm({
 
   return (
     <div className="space-y-6">
-      <Section title="一般">
-        <Row label="介面語言" hint="AI 寫的校對備註（⚠ 提示）會用這個語言。網頁文字的翻譯會陸續加入。">
+      <Section title={t('一般')}>
+        <Row label={t('介面語言')} hint={t('AI 寫的校對備註（⚠ 提示）會用這個語言。網頁文字的翻譯會陸續加入。')}>
           <select defaultValue={locale} onChange={(e) => run(() => saveLocale(e.target.value))} className={inputClass}>
             {locales.map((l) => (
               <option key={l.id} value={l.id}>
@@ -83,18 +85,18 @@ export function SettingsForm({
             ))}
           </select>
         </Row>
-        <Row label="外觀" hint="淺色或深色。只記在這個瀏覽器裡。">
+        <Row label={t('外觀')} hint={t('淺色或深色。只記在這個瀏覽器裡。')}>
           <ThemePicker />
         </Row>
-        <Row plain label="做題時減少動畫" hint="換題、對答案時不播動畫，畫面直接切換，專心作答。只記在這個瀏覽器裡。">
+        <Row plain label={t('做題時減少動畫')} hint={t('換題、對答案時不播動畫，畫面直接切換，專心作答。只記在這個瀏覽器裡。')}>
           <CalmSwitch />
         </Row>
-        <Row label="預設辨識方式" hint="匯入考卷時先選好的方式，每次上傳仍可以改。">
+        <Row label={t('預設辨識方式')} hint={t('匯入考卷時先選好的方式，每次上傳仍可以改。')}>
           <select defaultValue={defaultProvider} onChange={(e) => run(() => saveDefaultProvider(e.target.value))} className={inputClass}>
             {providers.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.label}
-                {p.ready ? '' : '（還沒有 API 金鑰）'}
+                {p.ready ? '' : t('（還沒有 API 金鑰）')}
               </option>
             ))}
           </select>
@@ -102,33 +104,40 @@ export function SettingsForm({
       </Section>
 
       <Section
-        title="AI 強度"
-        note={`拉一次套用到所有工作。費用是依各家公開價格的粗估，用久了會改用你的實際用量計算。${month ? `本月已花約 ${month.usd}${month.unpriced ? '（不含沒填價格的模型）' : ''}。` : ''}`}
+        title={t('AI 強度')}
+        note={
+          t('拉一次套用到所有工作。費用是依各家公開價格的粗估，用久了會改用你的實際用量計算。') +
+          (month ? (month.unpriced ? t('本月已花約 {usd}（不含沒填價格的模型）。', { usd: month.usd }) : t('本月已花約 {usd}。', { usd: month.usd })) : '')
+        }
       >
         <StrengthSettings providers={routing} initial={strength} usage={usage} onSaved={flash} />
       </Section>
 
       <Section
-        title="AI 批改"
-        note="為了省 AI 用量：程式先自己比對答案（格式不同也算對，例如 1/2、0.5、½），比不出來的才交給 AI；交卷時一次批改全部；同一題同樣的答案只問一次。選擇題和是非題不會用到 AI。"
+        title={t('AI 批改')}
+        note={t('為了省 AI 用量：程式先自己比對答案（格式不同也算對，例如 1/2、0.5、½），比不出來的才交給 AI；交卷時一次批改全部；同一題同樣的答案只問一次。選擇題和是非題不會用到 AI。')}
       >
         <TeacherSettings initial={aiGrading} onSaved={flash} />
       </Section>
 
-      <Section title="翻譯" note="題目不是介面語言時，做題畫面會有翻譯按鈕，題目和選項一起翻。覺得免費翻譯不夠好，可以改用 AI 翻譯（用你的 API 金鑰）。">
+      <Section title={t('翻譯')} note={t('題目不是介面語言時，做題畫面會有翻譯按鈕，題目和選項一起翻。覺得免費翻譯不夠好，可以改用 AI 翻譯（用你的 API 金鑰）。')}>
         <TranslationSettings initial={{ engine: translationEngine, strength: strength.taskStrength.translation ?? null }} strength={strength.strength} providers={routing} override={strength.taskModels.translation ?? null} />
       </Section>
 
       <Section
-        title="模型與 API 金鑰"
-        note={`${keysInDatabase ? '金鑰加密後存在你的帳號裡，只有你能用' : '金鑰只存在這台電腦的資料夾裡（data/settings.json）'}，網頁上不會再顯示完整金鑰，也只會送到該家 AI 服務。`}
+        title={t('模型與 API 金鑰')}
+        note={
+          keysInDatabase
+            ? t('金鑰加密後存在你的帳號裡，只有你能用，網頁上不會再顯示完整金鑰，也只會送到該家 AI 服務。')
+            : t('金鑰只存在這台電腦的資料夾裡（data/settings.json），網頁上不會再顯示完整金鑰，也只會送到該家 AI 服務。')
+        }
       >
         {apis.map((p) => (
           <ProviderRow key={p.id} provider={p} info={keys[p.id]!} onSaved={flash} />
         ))}
       </Section>
 
-      <Section title="其他 AI 服務" note="OpenRouter、DeepSeek、Groq、本機的 Ollama 等支援 OpenAI 相容格式的服務都能接；接上後自動模式會把它們一起算進去，最便宜的先用。">
+      <Section title={t('其他 AI 服務')} note={t('OpenRouter、DeepSeek、Groq、本機的 Ollama 等支援 OpenAI 相容格式的服務都能接；接上後自動模式會把它們一起算進去，最便宜的先用。')}>
         <CustomProviders providers={custom} hosted={hosted} onSaved={flash} />
       </Section>
     </div>
@@ -136,6 +145,7 @@ export function SettingsForm({
 }
 
 function ProviderRow({ provider: p, info: saved, onSaved }: { provider: ProviderOption; info: KeyInfo; onSaved: () => void }) {
+  const t = useT()
   const { remove, isRemoved } = useRemoval()
   // while a removed key waits for 復原 the row already shows it gone
   const info: KeyInfo = isRemoved(`key:${p.id}`) ? { ...saved, source: null, hint: null } : saved
@@ -159,11 +169,11 @@ function ProviderRow({ provider: p, info: saved, onSaved }: { provider: Provider
     <div className="space-y-3 border-t border-line/70 px-5 py-4 first:border-t-0">
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium">{p.label}</span>
-        {info.source === 'settings' && <Badge tone="good">已設定金鑰{info.hint ? `（…${info.hint}）` : ''}</Badge>}
-        {info.source === 'env' && <Badge tone="accent">使用 .env 裡的金鑰</Badge>}
-        {info.source === null && <Badge>還沒有金鑰</Badge>}
+        {info.source === 'settings' && <Badge tone="good">{info.hint ? t('已設定金鑰（…{hint}）', { hint: info.hint }) : t('已設定金鑰')}</Badge>}
+        {info.source === 'env' && <Badge tone="accent">{t('使用 .env 裡的金鑰')}</Badge>}
+        {info.source === null && <Badge>{t('還沒有金鑰')}</Badge>}
         <a href={KEY_PAGES[p.id]} target="_blank" rel="noreferrer" className="ml-auto text-xs text-accent hover:underline">
-          取得金鑰 ↗
+          {t('取得金鑰 ↗')}
         </a>
       </div>
 
@@ -179,39 +189,39 @@ function ProviderRow({ provider: p, info: saved, onSaved }: { provider: Provider
             type="password"
             value={key}
             onChange={(e) => setKey(e.target.value)}
-            placeholder="貼上 API 金鑰"
+            placeholder={t('貼上 API 金鑰')}
             autoComplete="off"
             spellCheck={false}
             className={`${inputClass} min-w-0 flex-1 basis-56 font-mono`}
-            aria-label={`${p.label} 金鑰`}
+            aria-label={t('{name} 金鑰', { name: p.label })}
           />
           <Button type="submit" variant="primary" disabled={!key.trim() || pending} loading={pending} icon={<IconKey size={15} />}>
-            {pending ? '確認中…' : '確認並儲存'}
+            {pending ? t('確認中…') : t('確認並儲存')}
           </Button>
           {info.source !== null && (
             <Button variant="ghost" onClick={() => setEditing(false)}>
-              取消
+              {t('取消')}
             </Button>
           )}
         </form>
       ) : (
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => setEditing(true)} icon={<IconKey size={15} />}>
-            {info.source === 'settings' ? '更換金鑰' : '改用自己的金鑰'}
+            {info.source === 'settings' ? t('更換金鑰') : t('改用自己的金鑰')}
           </Button>
           {info.source === 'settings' && (
             <Button
               variant="danger"
-              onClick={() => remove({ id: `key:${p.id}`, note: `已移除 ${p.label} 的金鑰`, commit: async () => (await removeApiKey(p.id), onSaved()) })}
+              onClick={() => remove({ id: `key:${p.id}`, note: t('已移除 {name} 的金鑰', { name: p.label }), commit: async () => (await removeApiKey(p.id), onSaved()) })}
             >
-              移除
+              {t('移除')}
             </Button>
           )}
         </div>
       )}
 
       <div className="grid gap-2 sm:grid-cols-[8rem_minmax(0,1fr)] sm:items-start">
-        <span className="pt-2 text-sm text-muted">預設模型</span>
+        <span className="pt-2 text-sm text-muted">{t('預設模型')}</span>
         <div className="flex flex-wrap items-start gap-2">
           <div className="min-w-0 flex-1 basis-60">
             <ModelPicker
@@ -233,9 +243,9 @@ function ProviderRow({ provider: p, info: saved, onSaved }: { provider: Provider
                 })
               }
               icon={<IconRefresh size={15} />}
-              title="向服務查詢這把金鑰能用的模型，加到清單裡"
+              title={t('向服務查詢這把金鑰能用的模型，加到清單裡')}
             >
-              更新清單
+              {t('更新清單')}
             </Button>
           )}
         </div>
@@ -247,16 +257,17 @@ function ProviderRow({ provider: p, info: saved, onSaved }: { provider: Provider
 }
 
 function TeacherSettings({ initial, onSaved }: { initial: { enabled: boolean; active: { provider: string; model: string } | null }; onSaved: () => void }) {
+  const t = useT()
   const [enabled, setEnabled] = useState(initial.enabled)
   const [, start] = useTransition()
   return (
-    <Row plain label="用 AI 批改" hint="問答、計算、填空題，以及沒有標準答案的題目，交卷後由 AI 老師評分並寫評語；你隨時可以自己改分數。用哪個模型跟著上面的 AI 強度。">
+    <Row plain label={t('用 AI 批改')} hint={t('問答、計算、填空題，以及沒有標準答案的題目，交卷後由 AI 老師評分並寫評語；你隨時可以自己改分數。用哪個模型跟著上面的 AI 強度。')}>
       <span className="flex items-center gap-3">
         <button
           type="button"
           role="switch"
           aria-checked={enabled}
-          aria-label="用 AI 批改"
+          aria-label={t('用 AI 批改')}
           onClick={() => {
             setEnabled(!enabled)
             start(async () => (await saveAiGrading({ enabled: !enabled }), onSaved()))
@@ -266,7 +277,7 @@ function TeacherSettings({ initial, onSaved }: { initial: { enabled: boolean; ac
           <span className={`absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-300 [transition-timing-function:var(--m-spring)] ${enabled ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
         </button>
         <span className="text-sm text-muted">
-          {!enabled ? '關閉，問答題自己評分' : initial.active ? `目前使用 ${initial.active.model}` : '需要先在下面加上任一家的 API 金鑰'}
+          {!enabled ? t('關閉，問答題自己評分') : initial.active ? t('目前使用 {model}', { model: initial.active.model }) : t('需要先在下面加上任一家的 API 金鑰')}
         </span>
       </span>
     </Row>

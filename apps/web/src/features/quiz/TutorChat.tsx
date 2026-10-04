@@ -2,19 +2,24 @@
 
 import type { TutorTurn } from '@exam/quiz'
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { useT } from '@/shared/i18n/client'
+import { msg } from '@/shared/i18n/format'
 import { IconLoader, IconSend, IconSparkles } from '@/shared/icons'
 import { Markdown } from '@/shared/Markdown'
 import { Button, inputBase } from '@/shared/ui'
 import { askTutor } from './actions'
 
 // Sent for the button press; the conversation shows the reply as the question's worked solution.
-const FIRST = '請寫這題的詳解'
+// Never shown (the request stays out of the chat) and matched against stored turns, so not translated.
+const FIRST = '請寫這題的詳解' // i18n-ignore
 // what the button sent before it asked for a worked solution
-const OPENERS = [FIRST, '請講解這題']
-const FOLLOW_UPS = ['講簡單一點', '出一題類似的給我練習']
+const OPENERS = [FIRST, '請講解這題'] // i18n-ignore
+// Shown on buttons and sent in the reader's language.
+const FOLLOW_UPS = [msg('講簡單一點'), msg('出一題類似的給我練習')]
 
 /** 問 AI under a revealed question: a worked solution first, then a chat for follow-up questions. */
 export function TutorChat({ attemptId, index, turns: initial, onTurns }: { attemptId: string; index: number; turns: TutorTurn[]; onTurns?: (turns: TutorTurn[]) => void }) {
+  const t = useT()
   const [turns, setTurns] = useState(initial)
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -33,7 +38,7 @@ export function TutorChat({ attemptId, index, turns: initial, onTurns }: { attem
     setDraft('')
     setError(null)
     start(async () => {
-      const result = await askTutor(attemptId, index, message).catch(() => ({ error: 'AI 暫時沒有回應，請再試一次。' }))
+      const result = await askTutor(attemptId, index, message).catch(() => ({ error: t('AI 暫時沒有回應，請再試一次。') }))
       if ('error' in result) {
         setTurns(before)
         setDraft(message)
@@ -48,7 +53,7 @@ export function TutorChat({ attemptId, index, turns: initial, onTurns }: { attem
   if (!turns.length && !error)
     return (
       <Button className="px-3 py-1.5" icon={<IconSparkles size={15} />} onClick={() => send(FIRST)}>
-        問 AI
+        {t('問 AI')}
       </Button>
     )
 
@@ -62,19 +67,19 @@ export function TutorChat({ attemptId, index, turns: initial, onTurns }: { attem
     <div className="space-y-3 border-t border-line pt-3">
       <p className="flex items-center gap-1.5 font-medium">
         <IconSparkles size={15} className="text-accent" />
-        AI 詳解
+        {t('AI 詳解')}
       </p>
       {solution && <Markdown className="m-enter">{solution.text}</Markdown>}
       {chat.length > 0 && (
         <div className="space-y-2 border-t border-line/70 pt-3">
-          {chat.map((t, i) =>
-            t.from === 'student' ? (
+          {chat.map((turn, i) =>
+            turn.from === 'student' ? (
               <p key={i} className="m-enter ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-accent-soft px-3 py-2">
-                {t.text}
+                {turn.text}
               </p>
             ) : (
               <div key={i} className="m-enter w-fit max-w-[85%] rounded-2xl rounded-bl-md bg-ink/[0.05] px-3 py-2">
-                <Markdown>{t.text}</Markdown>
+                <Markdown>{turn.text}</Markdown>
               </div>
             ),
           )}
@@ -83,15 +88,15 @@ export function TutorChat({ attemptId, index, turns: initial, onTurns }: { attem
       {pending && (
         <p className={`flex items-center gap-2 text-muted ${solution ? 'w-fit rounded-2xl rounded-bl-md bg-ink/[0.05] px-3 py-2' : ''}`}>
           <IconLoader size={15} className="m-spin" aria-hidden />
-          {solution ? '思考中…' : '正在寫詳解…'}
+          {solution ? t('思考中…') : t('正在寫詳解…')}
         </p>
       )}
       {error && <p className="m-shake rounded-lg bg-bad-soft px-3 py-2 text-bad">{error}</p>}
       {!pending && last?.from === 'tutor' && (
         <div className="flex flex-wrap gap-2">
           {FOLLOW_UPS.map((f) => (
-            <button key={f} type="button" onClick={() => send(f)} className="m-press rounded-full border border-line bg-surface px-3 py-1 text-xs text-muted hover:border-accent/50 hover:text-ink">
-              {f}
+            <button key={f} type="button" onClick={() => send(t(f))} className="m-press rounded-full border border-line bg-surface px-3 py-1 text-xs text-muted hover:border-accent/50 hover:text-ink">
+              {t(f)}
             </button>
           ))}
         </div>
@@ -116,10 +121,10 @@ export function TutorChat({ attemptId, index, turns: initial, onTurns }: { attem
               send(draft)
             }
           }}
-          placeholder={turns.length ? '還有不懂的地方？例如：為什麼這一步要這樣做？' : '想問這題的什麼？'}
+          placeholder={turns.length ? t('還有不懂的地方？例如：為什麼這一步要這樣做？') : t('想問這題的什麼？')}
           className={`${inputBase} field-sizing-content max-h-40 min-w-0 flex-1 resize-none`}
         />
-        <Button type="submit" variant="primary" className="h-9 w-9 shrink-0 px-0" disabled={!draft.trim() || pending} aria-label="送出">
+        <Button type="submit" variant="primary" className="h-9 w-9 shrink-0 px-0" disabled={!draft.trim() || pending} aria-label={t('送出')}>
           <IconSend size={16} />
         </Button>
       </form>

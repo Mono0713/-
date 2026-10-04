@@ -1,6 +1,8 @@
 import { draftOf, type BankExam, type BankQuestion } from '@exam/bank'
 import { buildItems, type QuizAttempt, type QuizSettings, type QuizSource } from '@exam/quiz'
 import { services } from '@/server/context'
+import type { T } from '@/shared/i18n/format'
+import { getT } from '@/shared/i18n/server'
 
 /**
  * Makes a quiz attempt for `ownerId` from bank questions, which may belong to someone
@@ -26,7 +28,7 @@ export async function startQuiz(input: {
   const { sources, exams } = await sourcesOf(questions)
   return startFromSources({
     ownerId: input.ownerId,
-    title: titles(exams),
+    title: titles(exams, await getT()),
     // Someone else's exams are not linked: the person cannot open them in the bank.
     examIds: input.share ? [] : [...exams.keys()],
     sources,
@@ -47,9 +49,9 @@ export async function sourcesOf(questions: BankQuestion[]): Promise<{ sources: Q
   return { sources, exams }
 }
 
-function titles(exams: Map<string, { title: string | null } | null>): string {
-  const list = [...exams.values()].map((e) => e?.title ?? '未命名考卷')
-  return list.length === 1 ? list[0]! : `${list[0]} 等 ${list.length} 份考卷`
+function titles(exams: Map<string, { title: string | null } | null>, t: T): string {
+  const list = [...exams.values()].map((e) => e?.title ?? t('未命名考卷'))
+  return list.length === 1 ? list[0]! : t('{title} 等 {n} 份考卷', { title: list[0]!, n: list.length })
 }
 
 /**

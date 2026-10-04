@@ -7,13 +7,15 @@ import { redirect } from 'next/navigation'
 import { graderFor, keyRule, selfMarks } from '@/server/classes'
 import { currentOwner, localeOf, services, translatorFor, tutorFor } from '@/server/context'
 import { ownedAttempt } from '@/server/owned'
+import { getT } from '@/shared/i18n/server'
 import { startQuiz } from './start'
 import { readInk, startTeacher } from './teacher'
 import { keyShown, revealedItem } from './visible'
 
 async function owned(id: string): Promise<QuizAttempt> {
+  const t = await getT()
   const attempt = await ownedAttempt(id)
-  if (!attempt) throw new Error('找不到這次測驗')
+  if (!attempt) throw new Error(t('找不到這次測驗'))
   return attempt
 }
 
@@ -32,9 +34,10 @@ export interface NewQuiz {
 
 /** Starts a quiz and opens it; returns only when it cannot start. */
 export async function createQuiz(input: NewQuiz): Promise<{ error: string } | undefined> {
+  const t = await getT()
   const owner = await currentOwner()
   const questions = (await services().bank.getQuestions(input.questionIds)).filter((q) => q.ownerId === owner)
-  if (!questions.length) return { error: '請至少選一題' }
+  if (!questions.length) return { error: t('請至少選一題') }
   const attempt = await startQuiz({ ownerId: owner, questions, order: input.questionIds, settings: input.settings, limit: input.limit })
   revalidatePath('/quiz')
   redirect(`/quiz/${attempt.id}`)
@@ -61,8 +64,9 @@ function withAt<T>(list: T[], index: number, value: T): T[] {
 
 /** Practice mode: locks the answer and reveals the key, explanation and translation. */
 export async function checkAnswer(id: string, index: number, response: QuizResponse) {
+  const t = await getT()
   let attempt = await owned(id)
-  if (attempt.settings.mode !== 'practice') throw new Error('只有練習模式能逐題看答案')
+  if (attempt.settings.mode !== 'practice') throw new Error(t('只有練習模式能逐題看答案'))
   attempt =
     (await services().quizzes.update(id, (a) =>
       a.checked[index] || a.finishedAt ? null : { ...a, responses: withAt(a.responses, index, fromClient(response)), checked: withAt(a.checked, index, true) },
@@ -93,10 +97,11 @@ export async function checkAnswer(id: string, index: number, response: QuizRespo
 
 /** The person marks their own open answer against the model answer: credit 1 is right, 0 is wrong, null clears it. */
 export async function markAnswer(id: string, index: number, credit: number | null) {
+  const t = await getT()
   const attempt = await owned(id)
   const revealed = attempt.finishedAt !== null || attempt.checked[index]
-  if (!revealed) throw new Error('交卷後才能自評')
-  if (!selfMarks(attempt)) throw new Error('班級作業由老師批改')
+  if (!revealed) throw new Error(t('交卷後才能自評'))
+  if (!selfMarks(attempt)) throw new Error(t('班級作業由老師批改'))
   const marking = credit === null ? null : { credit: Math.min(1, Math.max(0, credit)), by: 'self' as const, feedback: null }
   await services().quizzes.update(id, (a) => ({ ...a, markings: withAt(a.markings, index, marking) }))
   revalidatePath(`/quiz/${id}`)
@@ -121,9 +126,10 @@ export async function finishQuiz(id: string) {
 
 /** Asks the AI teacher again for answers still waiting to be marked, e.g. after it failed or was turned on. */
 export async function askTeacher(id: string): Promise<{ error: string } | undefined> {
+  const t = await getT()
   const attempt = await owned(id)
-  if (!attempt.finishedAt) return { error: '交卷後才能批改' }
-  if (!(await graderFor(attempt))) return { error: attempt.assignment ? '這個班級的 AI 批改現在沒有開放，老師會批改。' : '沒有可用的 AI：請在設定裡開啟 AI 批改並加上 API 金鑰。' }
+  if (!attempt.finishedAt) return { error: t('交卷後才能批改') }
+  if (!(await graderFor(attempt))) return { error: attempt.assignment ? t('這個班級的 AI 批改現在沒有開放，老師會批改。') : t('沒有可用的 AI：請在設定裡開啟 AI 批改並加上 API 金鑰。') }
   await startTeacher(id)
   revalidatePath(`/quiz/${id}`)
 }
@@ -136,23 +142,24 @@ const MAX_TURNS = 40
  * then follow-up questions. The conversation is kept with the attempt. Paid with the student's own keys.
  */
 export async function askTutor(id: string, index: number, message: string): Promise<{ turns: TutorTurn[] } | { error: string }> {
+  const t = await getT()
   const attempt = await owned(id)
   const item = attempt.items[index]
-  if (!item) return { error: '找不到這一題' }
-  if (!attempt.finishedAt && !attempt.checked[index]) return { error: '看過答案後才能問 AI' }
+  if (!item) return { error: t('找不到這一題') }
+  if (!attempt.finishedAt && !attempt.checked[index]) return { error: t('看過答案後才能問 AI') }
   // The tutor would give the answer away.
-  if (!keyShown(await keyRule(attempt))) return { error: attempt.assignment ? '老師公開答案後才能問 AI。' : '這份考卷的答案沒有公開，不能問 AI。' }
+  if (!keyShown(await keyRule(attempt))) return { error: attempt.assignment ? t('老師公開答案後才能問 AI。') : t('這份考卷的答案沒有公開，不能問 AI。') }
   const text = message.trim().slice(0, MAX_MESSAGE)
-  if (!text) return { error: '請輸入問題' }
+  if (!text) return { error: t('請輸入問題') }
   const tutor = await tutorFor(attempt.ownerId)
-  if (!tutor) return { error: '還沒有可用的 AI：請到設定加上 API 金鑰。' }
+  if (!tutor) return { error: t('還沒有可用的 AI：請到設定加上 API 金鑰。') }
   const earlier = attempt.tutoring?.[index] ?? []
   const asked: TutorTurn = { from: 'student', text, at: new Date().toISOString() }
   let reply: string
   try {
     reply = await tutor.reply({ item, response: attempt.responses[index] ?? null, marking: attempt.markings[index] ?? null, turns: [...earlier, asked], language: await localeOf(attempt.ownerId) })
   } catch {
-    return { error: 'AI 暫時沒有回應，請再試一次。' }
+    return { error: t('AI 暫時沒有回應，請再試一次。') }
   }
   const answered: TutorTurn = { from: 'tutor', text: reply, at: new Date().toISOString() }
   const saved = await services().quizzes.update(id, (a) => {
@@ -169,10 +176,11 @@ export async function askTutor(id: string, index: number, message: string): Prom
  * Not while an exam is running.
  */
 export async function translateQuestion(id: string, index: number): Promise<{ stem: string; options: string[] } | { error: string }> {
+  const t = await getT()
   const attempt = await owned(id)
   const item = attempt.items[index]
-  if (!item) return { error: '找不到這一題' }
-  if (attempt.settings.mode === 'exam' && !attempt.finishedAt) return { error: '考試中不能翻譯。' }
+  if (!item) return { error: t('找不到這一題') }
+  if (attempt.settings.mode === 'exam' && !attempt.finishedAt) return { error: t('考試中不能翻譯。') }
   const q = item.question
   const printed = q.translation?.trim() || null
   if (printed && !q.options.some((o) => o.content.trim())) return { stem: printed, options: [] }
@@ -205,7 +213,7 @@ export async function translateQuestion(id: string, index: number): Promise<{ st
     made = await translator.translate(source, language)
   } catch {
     if (printed) return { stem: printed, options: [] }
-    return { error: engine === 'free' ? '免費翻譯暫時沒有回應，請再試一次，或到設定改用 AI 翻譯。' : '翻譯暫時沒有回應，請再試一次。' }
+    return { error: engine === 'free' ? t('免費翻譯暫時沒有回應，請再試一次，或到設定改用 AI 翻譯。') : t('翻譯暫時沒有回應，請再試一次。') }
   }
   const translation = inOrder(made)
   await Promise.all([keep(translation), translationCache.set(translationKey(source, language, engine), made).catch(() => {})])
@@ -214,9 +222,10 @@ export async function translateQuestion(id: string, index: number): Promise<{ st
 
 /** Removes a quiz for good; the list calls it once the 復原 note has run out. */
 export async function removeQuiz(id: string) {
+  const t = await getT()
   const attempt = await owned(id)
   // What was handed in to a class stays for the teacher.
-  if (!selfMarks(attempt)) throw new Error('班級作業的紀錄不能刪除')
+  if (!selfMarks(attempt)) throw new Error(t('班級作業的紀錄不能刪除'))
   await services().quizzes.delete(id)
   revalidatePath('/quiz')
 }

@@ -3,6 +3,7 @@
 import { untangleBoxes, type DraftQuestion } from '@exam/core'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { fileUrl } from '@/shared/files'
+import { useT } from '@/shared/i18n/client'
 import { IconChevronLeft, IconChevronRight, IconExternal, IconLoader, IconMinus, IconPlus } from '@/shared/icons'
 
 const ZOOMS = [1, 1.25, 1.5, 2, 2.5]
@@ -60,6 +61,7 @@ export function PageViewer({
   onBoxChange?: (index: number, location: number, bbox: Box, pageNumber?: number) => void
   className?: string
 }) {
+  const t = useT()
   const scroller = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState(0)
   const [current, setCurrent] = useState(pages[0]?.pageNumber ?? 1)
@@ -366,23 +368,23 @@ export function PageViewer({
                   if (img?.complete && img.naturalWidth) done(page.pageNumber, 'ok')
                 }}
                 src={fileUrl(page.image)}
-                alt={`第 ${page.pageNumber} 頁`}
+                alt={t('第 {n} 頁', { n: page.pageNumber })}
                 onLoad={() => done(page.pageNumber, 'ok')}
                 onError={() => done(page.pageNumber, 'error')}
                 className={`block h-auto w-full transition-opacity duration-300 ${loaded[page.pageNumber] === 'ok' ? 'opacity-100' : 'absolute inset-0 opacity-0'}`}
               />
               {!loaded[page.pageNumber] && (
                 // The spinner sits in the upper part of the page, where it is in view.
-                <div className="absolute inset-0 flex justify-center pt-[38%]" role="status" aria-label={`第 ${page.pageNumber} 頁載入中`}>
+                <div className="absolute inset-0 flex justify-center pt-[38%]" role="status" aria-label={t('第 {n} 頁載入中', { n: page.pageNumber })}>
                   <div className="flex flex-col items-center gap-2 text-muted">
                     <IconLoader size={26} className="m-spin text-accent" />
-                    <span className="text-xs">載入考卷中…</span>
+                    <span className="text-xs">{t('載入考卷中…')}</span>
                   </div>
                 </div>
               )}
               {loaded[page.pageNumber] === 'error' && (
                 <div className="absolute inset-0 grid place-items-center text-sm text-muted" role="alert">
-                  這一頁的圖片載入失敗
+                  {t('這一頁的圖片載入失敗')}
                 </div>
               )}
               {loaded[page.pageNumber] === 'ok' &&
@@ -411,7 +413,7 @@ export function PageViewer({
                         key={`${index}-${location}`}
                         role="button"
                         tabIndex={0}
-                        aria-label={`第 ${questions[index]!.number} 題`}
+                        aria-label={t('第 {n} 題', { n: questions[index]!.number })}
                         aria-pressed={index === selected}
                         data-q={index}
                         style={place}
@@ -462,30 +464,30 @@ export function PageViewer({
           <div className="flex items-center gap-0.5 rounded-full bg-night/85 px-1 py-1 text-xs text-white shadow-[0_10px_30px_-12px_rgb(22_24_43/0.6)] backdrop-blur-md">
             {pages.length > 1 && (
               <>
-                <button type="button" className={pill} onClick={() => goTo(pages[index - 1]!.pageNumber)} disabled={index === 0} aria-label="上一頁" title="上一頁">
+                <button type="button" className={pill} onClick={() => goTo(pages[index - 1]!.pageNumber)} disabled={index === 0} aria-label={t('上一頁')} title={t('上一頁')}>
                   <IconChevronLeft size={15} />
                 </button>
                 <span className="num min-w-10 text-center tabular-nums" aria-live="polite">
                   {current}
                   <span className="text-white/50">/{pages.length}</span>
                 </span>
-                <button type="button" className={pill} onClick={() => goTo(pages[index + 1]!.pageNumber)} disabled={index === pages.length - 1} aria-label="下一頁" title="下一頁">
+                <button type="button" className={pill} onClick={() => goTo(pages[index + 1]!.pageNumber)} disabled={index === pages.length - 1} aria-label={t('下一頁')} title={t('下一頁')}>
                   <IconChevronRight size={15} />
                 </button>
                 <span className="mx-0.5 h-4 w-px bg-white/20" />
               </>
             )}
-            <button type="button" className={pill} onClick={() => setZoom(Math.max(0, zoom - 1))} disabled={zoom === 0} aria-label="縮小" title="縮小">
+            <button type="button" className={pill} onClick={() => setZoom(Math.max(0, zoom - 1))} disabled={zoom === 0} aria-label={t('縮小')} title={t('縮小')}>
               <IconMinus size={14} />
             </button>
-            <button type="button" onClick={() => setZoom(0)} className="num min-w-11 rounded-full py-1.5 text-center tabular-nums hover:bg-white/15" title="符合寬度">
+            <button type="button" onClick={() => setZoom(0)} className="num min-w-11 rounded-full py-1.5 text-center tabular-nums hover:bg-white/15" title={t('符合寬度')}>
               {Math.round(scale * 100)}%
             </button>
-            <button type="button" className={pill} onClick={() => setZoom(Math.min(ZOOMS.length - 1, zoom + 1))} disabled={zoom === ZOOMS.length - 1} aria-label="放大" title="放大">
+            <button type="button" className={pill} onClick={() => setZoom(Math.min(ZOOMS.length - 1, zoom + 1))} disabled={zoom === ZOOMS.length - 1} aria-label={t('放大')} title={t('放大')}>
               <IconPlus size={14} />
             </button>
             <span className="mx-0.5 h-4 w-px bg-white/20" />
-            <a href={fileUrl(pages[index]!.image)} target="_blank" rel="noreferrer" className={pill} aria-label="在新分頁開啟這一頁" title="在新分頁開啟這一頁">
+            <a href={fileUrl(pages[index]!.image)} target="_blank" rel="noreferrer" className={pill} aria-label={t('在新分頁開啟這一頁')} title={t('在新分頁開啟這一頁')}>
               <IconExternal size={14} />
             </a>
           </div>

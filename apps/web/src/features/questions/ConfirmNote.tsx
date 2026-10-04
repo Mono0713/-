@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
+import { useT } from '@/shared/i18n/client'
 import { IconCheck } from '@/shared/icons'
 
 /**
@@ -8,6 +9,7 @@ import { IconCheck } from '@/shared/icons'
  * right to left and the note folds away before `onConfirm` removes it for good.
  */
 export function ConfirmNote({ children, onConfirm }: { children: ReactNode; onConfirm?: () => void }) {
+  const t = useT()
   const [erasing, setErasing] = useState(false)
   const confirm = () => {
     if (!onConfirm || erasing) return
@@ -23,7 +25,7 @@ export function ConfirmNote({ children, onConfirm }: { children: ReactNode; onCo
           type="button"
           onClick={confirm}
           className="m-press ml-auto flex h-8 shrink-0 items-center gap-1 rounded-lg bg-surface px-2.5 text-xs font-medium text-good shadow-sheet hover:bg-good-soft"
-          title="內容沒問題：移除這個提示"
+          title={t('內容沒問題：移除這個提示')}
         >
           {erasing ? (
             <svg aria-hidden width="14" height="14" viewBox="0 0 24 24">
@@ -32,7 +34,7 @@ export function ConfirmNote({ children, onConfirm }: { children: ReactNode; onCo
           ) : (
             <IconCheck size={14} strokeWidth={2.6} />
           )}
-          沒問題
+          {t('沒問題')}
         </button>
       )}
     </div>

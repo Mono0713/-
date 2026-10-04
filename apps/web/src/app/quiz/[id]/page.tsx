@@ -8,6 +8,8 @@ import { hiddenItem, revealedItem } from '@/features/quiz/visible'
 import { graderFor, keyRule, resultsWithheld, selfMarks } from '@/server/classes'
 import { localeOf, services } from '@/server/context'
 import { ownedAttempt } from '@/server/owned'
+import { getLocale, getT } from '@/shared/i18n/server'
+import { intlTag } from '@/shared/i18n/locales'
 import { HandedIn } from '@/features/classes/HandedIn'
 import { ButtonLink, PageHeader } from '@/shared/ui'
 
@@ -16,6 +18,7 @@ export const dynamic = 'force-dynamic'
 export default async function QuizPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { quizzes } = services()
+  const t = await getT()
   let attempt = await ownedAttempt(id)
   if (!attempt) notFound()
 
@@ -26,7 +29,7 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
     attempt = (await quizzes.get(id))!
   }
 
-  const mode = attempt.settings.mode === 'exam' ? '考試' : '單題練習'
+  const mode = attempt.settings.mode === 'exam' ? t('考試') : t('單題練習')
   const assignment = attempt.assignment ? `/classes/${attempt.assignment.classId}/a/${attempt.assignment.assignmentId}` : null
   const retry = assignment ?? (attempt.share ? `/s/${attempt.share}` : attempt.examIds.length === 1 ? `/quiz/new?exam=${attempt.examIds[0]}` : '/quiz/new')
   const key = await keyRule(attempt)
@@ -38,12 +41,12 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
       <div className="mx-auto max-w-4xl">
         <PageHeader
           title={attempt.title}
-          subtitle={`${mode} · ${attempt.items.length} 題 · ${new Date(attempt.startedAt).toLocaleString('zh-TW')}`}
+          subtitle={t('{mode} · {n} 題 · {date}', { mode, n: attempt.items.length, date: new Date(attempt.startedAt).toLocaleString(intlTag(await getLocale())) })}
           actions={
             <>
               {deletable && <DeleteQuizButton quizId={attempt.id} />}
               <ButtonLink href={retry} variant="primary">
-                {assignment ? '回到作業' : '再測一次'}
+                {assignment ? t('回到作業') : t('再測一次')}
               </ButtonLink>
             </>
           }
@@ -61,7 +64,7 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
   const visible = { ...attempt, items: attempt.items.map((item, i) => (attempt.checked[i] ? revealedItem(item, key) : hiddenItem(item))) }
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader title={attempt.title} subtitle={`${mode} · ${attempt.items.length} 題`} actions={deletable && <DeleteQuizButton quizId={attempt.id} label="不做了，刪除" note="已刪除測驗" iconOnly />} />
+      <PageHeader title={attempt.title} subtitle={t('{mode} · {n} 題', { mode, n: attempt.items.length })} actions={deletable && <DeleteQuizButton quizId={attempt.id} label={t('不做了，刪除')} note={t('已刪除測驗')} iconOnly />} />
       <QuizPlayer attempt={visible} locale={await localeOf(attempt.ownerId)} aiMarks={(await graderFor(attempt)) !== null} />
     </div>
   )

@@ -3,20 +3,25 @@ import { signInWithGoogle } from '@/features/auth/actions'
 import { authEnabled, currentUser } from '@/server/auth'
 import { BRAND, brandTagline } from '@/shared/brand/brand'
 import { LogoMark } from '@/shared/brand/LogoMark'
+import { getLocale, getT } from '@/shared/i18n/server'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: '登入' }
+export async function generateMetadata() {
+  const t = await getT()
+  return { title: t('登入') }
+}
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {
   if (!authEnabled() || (await currentUser())) redirect('/')
   const { next, error } = await searchParams
+  const t = await getT()
   return (
     // .auth-screen hides the app's navigation (see globals.css).
     <div className="auth-screen grid min-h-[calc(100vh-3rem)] place-items-center">
       <div className="m-enter w-full max-w-sm rounded-2xl bg-surface p-8 text-center shadow-sheet">
         <LogoMark size={48} className="mx-auto text-accent" />
         <h1 className="mt-4 font-display text-[28px] font-extrabold lowercase leading-none tracking-[-0.035em]">{BRAND.name}</h1>
-        <p className="mt-2 text-sm text-muted">{brandTagline()}</p>
+        <p className="mt-2 text-sm text-muted">{brandTagline(await getLocale())}</p>
         <form action={signInWithGoogle} className="mt-8">
           <input type="hidden" name="next" value={next ?? '/'} />
           <button
@@ -24,14 +29,14 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             className="m-press flex w-full items-center justify-center gap-3 rounded-lg bg-surface px-4 py-2.5 text-sm font-medium shadow-[0_0_0_1px_var(--color-line),0_1px_2px_rgb(22_24_43/0.05)] hover:shadow-[0_0_0_1px_var(--color-muted),0_1px_2px_rgb(22_24_43/0.05)]"
           >
             <GoogleMark />
-            使用 Google 帳號登入
+            {t('使用 Google 帳號登入')}
           </button>
         </form>
-        {error && <p className="mt-4 rounded-lg bg-bad-soft px-3 py-2 text-left text-sm text-bad">登入失敗：{error}</p>}
+        {error && <p className="mt-4 rounded-lg bg-bad-soft px-3 py-2 text-left text-sm text-bad">{t('登入失敗：{error}', { error })}</p>}
         <p className="mt-6 text-xs leading-relaxed text-muted">
-          登入後，你的題庫、測驗和 API 金鑰只屬於你的帳號。
+          {t('登入後，你的題庫、測驗和 API 金鑰只屬於你的帳號。')}
           <a href="/privacy" className="ml-1 text-accent hover:underline">
-            隱私權政策
+            {t('隱私權政策')}
           </a>
         </p>
       </div>

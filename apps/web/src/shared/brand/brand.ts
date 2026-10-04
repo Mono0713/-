@@ -5,9 +5,9 @@
 export const BRAND = {
   name: 'Sheetloop',
   /** Local names shown next to the wordmark, by UI locale. */
-  localNames: { 'zh-Hant': '卷環' } as Record<string, string>,
+  localNames: { 'zh-Hant': '卷環' } as Record<string, string>, // i18n-ignore
   taglines: {
-    'zh-Hant': '紙本考卷進來，反覆練習的題庫出去',
+    'zh-Hant': '紙本考卷進來，反覆練習的題庫出去', // i18n-ignore
     en: 'Paper in, practice loop out.',
   } as Record<string, string>,
 }

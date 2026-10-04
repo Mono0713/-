@@ -5,6 +5,7 @@ import type { Grade, QuizAttempt, QuizItem, QuizResponse } from '@exam/quiz'
 import { answerKind, gradeItem } from '@exam/quiz/logic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { useT } from '@/shared/i18n/client'
 import { IconChevronLeft, IconChevronRight, IconFinish, IconReveal, IconSparkles, IconTimer } from '@/shared/icons'
 import { quizIsCalm } from '@/shared/motion/preference'
 import { Button, Card } from '@/shared/ui'
@@ -24,6 +25,7 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
   /** An AI teacher marks open answers when they are checked. */
   aiMarks: boolean
 }) {
+  const t = useT()
   const router = useRouter()
   const practice = attempt.settings.mode === 'practice'
   const [items, setItems] = useState<QuizItem[]>(attempt.items)
@@ -51,8 +53,8 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
     })
 
   const flush = async (i: number) => {
-    const t = timers.current.get(i)
-    if (t) clearTimeout(t)
+    const waiting = timers.current.get(i)
+    if (waiting) clearTimeout(waiting)
     timers.current.delete(i)
     const r = responsesRef.current[i]
     if (r) await saveResponse(attempt.id, i, r)
@@ -63,8 +65,8 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
   const update = (i: number, r: QuizResponse) => {
     setResponses((all) => all.map((x, j) => (j === i ? r : x)))
     if (practice) return
-    const t = timers.current.get(i)
-    if (t) clearTimeout(t)
+    const waiting = timers.current.get(i)
+    if (waiting) clearTimeout(waiting)
     timers.current.set(
       i,
       setTimeout(() => {
@@ -116,7 +118,7 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
   // The sparkle means AI: only when an AI teacher will mark this answer (never for choice questions).
   const aiChecks = aiMarks && !['single', 'multiple', 'true_false'].includes(answerKind(item.question).kind)
   const last = current === total - 1
-  const progress = practice ? `已完成 ${checked.filter(Boolean).length} / ${total} 題` : `已作答 ${answeredCount} / ${total} 題`
+  const progress = practice ? t('已完成 {done} / {total} 題', { done: checked.filter(Boolean).length, total }) : t('已作答 {done} / {total} 題', { done: answeredCount, total })
   // No dialog: with questions left blank the first press only says how many, and a second press hands in.
   const unanswered = total - answeredCount
   const [armed, setArmed] = useState(false)
@@ -126,7 +128,7 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
     return () => clearTimeout(timer)
   }, [armed])
   const submit = () => (unanswered && !armed ? setArmed(true) : finish())
-  const submitLabel = pending ? '交卷中…' : armed && unanswered ? `還有 ${unanswered} 題沒寫，再按一次交卷` : '交卷'
+  const submitLabel = pending ? t('交卷中…') : armed && unanswered ? t('還有 {n} 題沒寫，再按一次交卷', { n: unanswered }) : t('交卷')
 
   const navGrid = (
     <div className="grid grid-cols-6 gap-1 sm:grid-cols-8 lg:grid-cols-6">
@@ -160,7 +162,7 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
       <div className="sticky top-14 z-20 -mx-4 border-b border-line bg-paper/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium tabular-nums">
-            第 {current + 1} / {total} 題
+            {t('第 {n} / {total} 題', { n: current + 1, total })}
           </span>
           {secondsLeft !== null && (
             <span className={`flex items-center gap-1 text-sm font-semibold tabular-nums ${secondsLeft <= 60 ? 'm-last-minute text-pen' : ''}`}>
@@ -169,7 +171,7 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
             </span>
           )}
           <button type="button" onClick={() => setNavOpen(!navOpen)} className="ml-auto rounded-md border border-line bg-surface px-3 py-1 text-sm" aria-expanded={navOpen}>
-            題號 {navOpen ? '▴' : '▾'}
+            {t('題號')} {navOpen ? '▴' : '▾'}
           </button>
         </div>
         {navOpen && (
@@ -219,30 +221,30 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
             grade={grades[current]!}
             marking={markings[current] ?? null}
             onMark={own ? (credit) => mark(current, credit) : undefined}
-            withheldNote={own ? undefined : '老師還沒有公開答案。'}
-            tutor={{ attemptId: attempt.id, index: current, turns: tutoring[current] ?? [], onTurns: (turns) => setTutoring((t) => ({ ...t, [current]: turns })) }}
+            withheldNote={own ? undefined : t('老師還沒有公開答案。')}
+            tutor={{ attemptId: attempt.id, index: current, turns: tutoring[current] ?? [], onTurns: (turns) => setTutoring((all) => ({ ...all, [current]: turns })) }}
           />
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Button onClick={() => go(current - 1)} disabled={current === 0} icon={<IconChevronLeft size={16} />}>
-            上一題
+            {t('上一題')}
           </Button>
           <div className="flex gap-2">
             {practice && !isChecked && (
               <Button variant="primary" onClick={check} disabled={pending} loading={pending} icon={aiChecks ? <IconSparkles size={16} /> : <IconReveal size={16} />}>
-                {pending ? '檢查中…' : '看答案'}
+                {pending ? t('檢查中…') : t('看答案')}
               </Button>
             )}
             {(!practice || isChecked) && !last && (
               <Button variant={practice ? 'primary' : 'secondary'} onClick={() => go(current + 1)}>
-                下一題
+                {t('下一題')}
                 <IconChevronRight size={16} />
               </Button>
             )}
             {last && (!practice || isChecked) && (
               <Button variant="primary" onClick={() => (practice ? finish() : submit())} disabled={pending} loading={pending} icon={<IconFinish size={16} />}>
-                {practice ? '完成練習' : armed && unanswered ? submitLabel : '交卷'}
+                {practice ? t('完成練習') : armed && unanswered ? submitLabel : t('交卷')}
               </Button>
             )}
           </div>
@@ -252,7 +254,7 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
       <aside className="hidden space-y-3 lg:sticky lg:top-20 lg:block lg:self-start">
         {secondsLeft !== null && (
           <Card className="p-3 text-center">
-            <p className="text-xs text-muted">剩餘時間</p>
+            <p className="text-xs text-muted">{t('剩餘時間')}</p>
             {/* the last minute turns red-pen, the colon blinks and the clock beats once a second */}
             <p className={`num text-3xl ${secondsLeft <= 60 ? 'm-last-minute text-pen' : ''}`}>
               <Clock seconds={secondsLeft} />
@@ -296,8 +298,9 @@ function useCountdown(deadline: string | null, onEnd: () => void): number | null
 }
 
 function Clock({ seconds }: { seconds: number }) {
+  const t = useT()
   return (
-    <span className="inline-flex" aria-label={`${Math.floor(seconds / 60)} 分 ${seconds % 60} 秒`}>
+    <span className="inline-flex" aria-label={t('{m} 分 {s} 秒', { m: Math.floor(seconds / 60), s: seconds % 60 })}>
       {Math.floor(seconds / 60)}
       <span className="m-colon">:</span>
       {String(seconds % 60).padStart(2, '0')}

@@ -5,6 +5,7 @@ import { QuestionView } from '@/features/questions/QuestionView'
 import { ShareMenu } from '@/features/sharing/ShareMenu'
 import { services } from '@/server/context'
 import { ownedExam } from '@/server/owned'
+import { getT } from '@/shared/i18n/server'
 import { Markdown } from '@/shared/Markdown'
 import { FigureView } from '@/shared/FigureView'
 import { Removable } from '@/shared/removal'
@@ -16,6 +17,7 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
   const { id } = await params
   const exam = await ownedExam(id)
   if (!exam) notFound()
+  const t = await getT()
   const [{ items: questions }, share] = await Promise.all([services().bank.listQuestions({ ownerId: exam.ownerId, examId: id, limit: 1000 }), services().shares.forExam(id)])
   const groups = new Map(exam.groups.map((g) => [g.id, g]))
   const points = questions.reduce((sum, q) => sum + (q.points ?? 0), 0)
@@ -23,14 +25,14 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader
-        title={exam.title ?? '未命名考卷'}
-        subtitle={[exam.subject, `${questions.length} 題`, points ? `共 ${points} 分` : null].filter(Boolean).join(' · ')}
+        title={exam.title ?? t('未命名考卷')}
+        subtitle={[exam.subject, t('{n} 題', { n: questions.length }), points ? t('共 {points} 分', { points }) : null].filter(Boolean).join(' · ')}
         actions={
           <>
-            {exam.importId && <ButtonLink href={`/imports/${exam.importId}`}>看原始考卷</ButtonLink>}
+            {exam.importId && <ButtonLink href={`/imports/${exam.importId}`}>{t('看原始考卷')}</ButtonLink>}
             <ShareMenu examId={exam.id} initial={share && { token: share.token, answers: share.answers, allowCopy: share.allowCopy }} />
             <ButtonLink href={`/quiz/new?exam=${exam.id}`} variant="primary">
-              用這份考卷測驗
+              {t('用這份考卷測驗')}
             </ButtonLink>
           </>
         }
@@ -58,7 +60,7 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
                   <QuestionView q={q} />
                   <div className="mt-3 flex justify-end border-t border-line pt-3">
                     <Link href={`/bank/${q.id}`} className="text-sm text-accent hover:underline">
-                      編輯這題
+                      {t('編輯這題')}
                     </Link>
                   </div>
                 </section>

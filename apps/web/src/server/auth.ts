@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
+import { msg } from '@/shared/i18n/format'
 
 /**
  * Sign-in with Supabase Auth (Google). It is on when the Supabase URL and anon key are set;
@@ -50,13 +51,13 @@ export const currentUser = cache(async (): Promise<SignedInUser | null> => {
 /**
  * A testing aid for `pnpm dev` only, never in a built app: people to switch between
  * without accounts, so one computer can try both sides of a class (the teacher, and
- * students joining it). "local" owns everything made before.
+ * students joining it). "local" owns everything made before. Names are translated where shown: t(p.name).
  */
 export const LOCAL_PEOPLE = [
-  { id: 'local', name: '本機使用者' },
-  { id: 'student-a', name: '學生 A' },
-  { id: 'student-b', name: '學生 B' },
-  { id: 'student-c', name: '學生 C' },
+  { id: 'local', name: msg('本機使用者') },
+  { id: 'student-a', name: msg('學生 A') },
+  { id: 'student-b', name: msg('學生 B') },
+  { id: 'student-c', name: msg('學生 C') },
 ] as const
 
 export const LOCAL_AS_COOKIE = 'exam-local-as'

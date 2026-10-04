@@ -95,10 +95,10 @@ export class Importer {
    * An exam written from scratch: no file and no pages, just an empty draft that opens
    * straight in the editor, where questions are added by hand.
    */
-  async createBlank(ownerId: string): Promise<ImportRecord> {
-    const record = await this.bank.createImport({ ownerId, fileName: '新考卷', pageCount: 0, provider: BLANK, model: null })
+  async createBlank(ownerId: string, fileName = '新考卷'): Promise<ImportRecord> {
+    const record = await this.bank.createImport({ ownerId, fileName, pageCount: 0, provider: BLANK, model: null })
     const draft: DraftExam = {
-      fileName: '新考卷',
+      fileName,
       meta: { title: null, subject: null, institution: null, term: null, language: null },
       groups: [],
       questions: [],

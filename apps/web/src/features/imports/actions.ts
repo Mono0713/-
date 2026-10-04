@@ -34,7 +34,8 @@ export async function createImport(formData: FormData): Promise<{ error: string 
 
 /** Opens an empty exam in the editor, to be written question by question. */
 export async function createBlankExam() {
-  const record = await services().importer.createBlank(await currentOwner())
+  const t = await getT()
+  const record = await services().importer.createBlank(await currentOwner(), t('新考卷'))
   revalidatePath('/imports')
   redirect(`/imports/${record.id}`)
 }
@@ -46,7 +47,8 @@ export async function submitManualReply(importId: string, target: number | 'batc
   try {
     JSON.parse(json ?? '')
   } catch {
-    return { error: (await getT())('貼上的內容不是完整的 JSON。請確認把聊天回覆從第一個 { 到最後一個 } 都複製到了。') }
+    const t = await getT()
+    return { error: t('貼上的內容不是完整的 JSON。請確認把聊天回覆從第一個 { 到最後一個 } 都複製到了。') }
   }
   await services().importer.submitManualReply(importId, target, json!)
   revalidatePath(`/imports/${importId}`)

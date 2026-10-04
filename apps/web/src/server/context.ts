@@ -15,6 +15,7 @@ import { PostgresShareStore, SqliteShareStore, type ShareStore } from '@exam/sha
 import { PostgresUsageStore, SqliteUsageStore, type UsageStore } from '@exam/usage'
 import { authEnabled } from './auth'
 import { checkServiceUrl } from './serviceUrl'
+import { fill, type T } from '@/shared/i18n/format'
 
 export { currentOwner, currentUser, authEnabled } from './auth'
 
@@ -113,7 +114,9 @@ const mb = (bytes: number) => (bytes / 1024 / 1024).toFixed(bytes < 10 * 1024 * 
 export async function noRoomFor(ownerId: string, bytes: number): Promise<string | null> {
   const { used, quota } = await storageOf(ownerId)
   if (quota === null || used + bytes <= quota) return null
-  return `空間不夠：已用 ${mb(used)} MB，上限 ${mb(quota)} MB。可以刪掉用不到的匯入或考卷，或取消「永久保留原檔」，再試一次。`
+  const { getT } = await import('@/shared/i18n/server')
+  const t = await getT()
+  return t('空間不夠：已用 {used} MB，上限 {quota} MB。可以刪掉用不到的匯入或考卷，或取消「永久保留原檔」，再試一次。', { used: mb(used), quota: mb(quota) })
 }
 
 /** Start of every file key of an owner when there are accounts, so a file link can be checked against the person asking. */
@@ -204,7 +207,11 @@ export function providersOf(s: Settings): ProviderInfo[] {
  */
 async function serviceUrlOf(s: Settings, providerId: string): Promise<string | undefined> {
   const custom = s.customProviders.find((c) => c.id === providerId)
-  return custom ? checkServiceUrl(custom.baseUrl, authEnabled()) : undefined
+  if (!custom) return undefined
+  // Outside a request (no cookies to read the language from) errors stay in Traditional Chinese.
+  const { getT } = await import('@/shared/i18n/server')
+  const t = await getT().catch(() => fill)
+  return checkServiceUrl(custom.baseUrl, authEnabled(), t)
 }
 
 /** The strength a task runs at for this user: its own, or the overall one. */
@@ -243,17 +250,19 @@ const CHAT_APPS = ['Claude', 'ChatGPT', 'Gemini'].map((id) => ({ id, label: id, 
 
 /** Recognition methods for this user: automatic, manual, then every service, with its models and whether it has a key. */
 export async function availableProviders(ownerId: string): Promise<ProviderOption[]> {
+  const { getT } = await import('@/shared/i18n/server')
+  const t = await getT()
   const s = await services().settings.get(ownerId)
   const providers = providersOf(s)
   const plan = route('recognition', strengthOf(s, 'recognition'), providers, { override: overrideOf(s, 'recognition') })
   const name = (c: ModelChoice) => providers.find((p) => p.id === c.provider)?.models.find((m) => m.id === c.model)?.label ?? c.model
   const auto: ProviderOption = {
     id: AUTO,
-    label: '自動（依 AI 強度）',
+    label: t('自動（依 AI 強度）'),
     ready: plan !== null,
     models: [],
     model: '',
-    note: plan ? `用 ${name(plan.primary)}${plan.escalate ? `，沒把握的頁再用 ${name(plan.escalate)} 讀一次` : ''}${plan.fallbacks.length ? `；讀不了時換 ${plan.fallbacks.map(name).join('、')}` : ''}` : undefined,
+    note: plan ? planNote(t, name(plan.primary), plan.escalate && name(plan.escalate), plan.fallbacks.map(name).join(t('、'))) : undefined,
   }
   const options = providers.map((p): ProviderOption => {
     const custom = !BUILTIN.includes(p.id)
@@ -262,7 +271,15 @@ export async function availableProviders(ownerId: string): Promise<ProviderOptio
     const fallback = custom ? (p.models[0]?.id ?? '') : process.env[`${p.id.toUpperCase()}_MODEL`] || DEFAULT_MODELS[p.id] || ''
     return { id: p.id, label: custom ? p.label : `${p.label} API`, ready: p.ready, models: [...catalog, ...known], model: s.models[p.id] || fallback }
   })
-  return [auto, { id: 'manual', label: '手動（貼上聊天 App 的回覆）', ready: true, models: CHAT_APPS, model: s.models.manual ?? '' }, ...options]
+  return [auto, { id: 'manual', label: t('手動（貼上聊天 App 的回覆）'), ready: true, models: CHAT_APPS, model: s.models.manual ?? '' }, ...options]
+}
+
+/** What automatic recognition does: the model it uses, the one it double-checks with, and the ones it falls back to. */
+function planNote(t: T, primary: string, escalate: string | null | undefined, fallbacks: string): string {
+  if (escalate && fallbacks) return t('用 {primary}，沒把握的頁再用 {escalate} 讀一次；讀不了時換 {fallbacks}', { primary, escalate, fallbacks })
+  if (escalate) return t('用 {primary}，沒把握的頁再用 {escalate} 讀一次', { primary, escalate })
+  if (fallbacks) return t('用 {primary}；讀不了時換 {fallbacks}', { primary, fallbacks })
+  return t('用 {primary}', { primary })
 }
 
 export type Teacher = { teacher: AiTeacher; reader: TextModel; provider: string; model: string }

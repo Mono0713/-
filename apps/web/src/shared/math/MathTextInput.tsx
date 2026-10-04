@@ -4,6 +4,7 @@ import katex from 'katex'
 import 'katex/contrib/mhchem'
 import type { MathfieldElement } from 'mathlive'
 import { useRef, useState, type ReactNode } from 'react'
+import { useT } from '@/shared/i18n/client'
 import { IconCode, IconFormula } from '@/shared/icons'
 import { splitMath, withMathDelimiters } from './delimiters'
 import { FormulaToolbar } from './FormulaToolbar'
@@ -37,6 +38,8 @@ export function MathTextInput({
   prefix?: ReactNode
   className?: string
 }) {
+  const t = useT()
+  const chipTitle = t('點一下編輯公式')
   const root = useRef<HTMLDivElement>(null)
   // The text the editor last produced; the DOM is rebuilt only when the value changes from outside.
   const shown = useRef<string | null>(null)
@@ -72,7 +75,7 @@ export function MathTextInput({
     delete chip.dataset.editing
     const el = root.current
     if (!latex) chip.remove()
-    else fillChip(chip, latex, chip.dataset.display === '1')
+    else fillChip(chip, latex, chip.dataset.display === '1', chipTitle)
     emit()
     if (!el || !place) return
     el.focus()
@@ -123,7 +126,7 @@ export function MathTextInput({
   const insert = () => {
     const el = root.current
     if (!el) return
-    const chip = makeChip('', false)
+    const chip = makeChip('', false, chipTitle)
     const r = range.current && el.contains(range.current.startContainer) ? range.current : null
     if (r) {
       r.deleteContents()
@@ -144,11 +147,11 @@ export function MathTextInput({
             insert()
           }}
           className="m-press flex h-6 items-center gap-0.5 rounded-md px-1.5 text-xs text-accent hover:bg-accent-soft"
-          title="插入公式"
-          aria-label="插入公式"
+          title={t('插入公式')}
+          aria-label={t('插入公式')}
         >
           <IconFormula size={13} strokeWidth={2.4} />
-          {header && '公式'}
+          {header && t('公式')}
         </button>
       )}
       <button
@@ -160,8 +163,8 @@ export function MathTextInput({
           setSource(!source)
         }}
         className={`m-press grid h-6 w-6 place-items-center rounded-md ${source ? 'bg-ink/[0.06] text-ink' : 'text-muted hover:bg-ink/[0.05] hover:text-ink'}`}
-        title={source ? '回到一般編輯' : '直接編輯文字與 LaTeX'}
-        aria-label={source ? '回到一般編輯' : '原始碼'}
+        title={source ? t('回到一般編輯') : t('直接編輯文字與 LaTeX')}
+        aria-label={source ? t('回到一般編輯') : t('原始碼')}
         aria-pressed={source}
       >
         <IconCode size={14} />
@@ -209,7 +212,7 @@ export function MathTextInput({
                       editingRef.current = null
                       setEditing(null)
                     }
-                    render(el, withMathDelimiters(value))
+                    render(el, withMathDelimiters(value), chipTitle)
                     shown.current = value
                   }
                 }}
@@ -275,10 +278,11 @@ export function MathTextInput({
   )
 }
 
-function render(el: HTMLElement, text: string) {
+/** `chipTitle` is the tooltip on each formula (translated by the caller). */
+function render(el: HTMLElement, text: string, chipTitle: string) {
   el.replaceChildren()
   for (const seg of splitMath(text)) {
-    if (seg.kind === 'math') el.append(makeChip(seg.latex, seg.display))
+    if (seg.kind === 'math') el.append(makeChip(seg.latex, seg.display, chipTitle))
     else
       seg.text.split('\n').forEach((line, i) => {
         if (i > 0) el.append(document.createElement('br'))
@@ -289,17 +293,17 @@ function render(el: HTMLElement, text: string) {
   if (text.endsWith('\n')) el.append(document.createElement('br'))
 }
 
-function makeChip(latex: string, display: boolean): HTMLElement {
+function makeChip(latex: string, display: boolean, title: string): HTMLElement {
   const chip = document.createElement('span')
   chip.contentEditable = 'false'
-  fillChip(chip, latex, display)
+  fillChip(chip, latex, display, title)
   return chip
 }
 
-function fillChip(chip: HTMLElement, latex: string, display: boolean) {
+function fillChip(chip: HTMLElement, latex: string, display: boolean, title: string) {
   chip.dataset.latex = latex
   chip.dataset.display = display ? '1' : '0'
-  chip.title = '點一下編輯公式'
+  chip.title = title
   chip.innerHTML = katex.renderToString(latex, { throwOnError: false, strict: false, displayMode: false })
 }
 

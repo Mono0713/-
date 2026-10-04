@@ -2,17 +2,19 @@
 
 import type { Grade, Marking, QuizItem, TutorTurn } from '@exam/quiz'
 import { answerKind, displayLabel, toQuizLabels } from '@exam/quiz/logic'
+import { useT } from '@/shared/i18n/client'
+import { msg } from '@/shared/i18n/format'
 import { Markdown } from '@/shared/Markdown'
 import { Badge, Button } from '@/shared/ui'
 import { TutorChat } from './TutorChat'
 
 export const GRADE_LABELS = {
-  correct: ['答對', 'good'],
-  partial: ['部分正確', 'warn'],
-  wrong: ['答錯', 'bad'],
-  unanswered: ['未作答', 'neutral'],
-  pending: ['待批改', 'accent'],
-  no_key: ['沒有標準答案', 'neutral'],
+  correct: [msg('答對'), 'good'],
+  partial: [msg('部分正確'), 'warn'],
+  wrong: [msg('答錯'), 'bad'],
+  unanswered: [msg('未作答'), 'neutral'],
+  pending: [msg('待批改'), 'accent'],
+  no_key: [msg('沒有標準答案'), 'neutral'],
 } as const
 
 /** The answer key and explanation shown after a question is answered; the translation is on the question's own 翻譯 button. */
@@ -21,7 +23,7 @@ export function Reveal({
   grade,
   marking,
   onMark,
-  withheldNote = '分享這份考卷的人沒有公開答案。',
+  withheldNote,
   tutor,
 }: {
   item: QuizItem
@@ -34,6 +36,7 @@ export function Reveal({
   /** Offers the AI tutor for this question, with the conversation so far. */
   tutor?: { attemptId: string; index: number; turns: TutorTurn[]; onTurns?: (turns: TutorTurn[]) => void }
 }) {
+  const t = useT()
   const q = item.question
   const kind = answerKind(q)
   const self = marking?.by === 'self' ? marking : null
@@ -46,27 +49,27 @@ export function Reveal({
     kind.kind === 'single' || kind.kind === 'multiple'
       ? key.map((l) => ({ label: displayLabel(item, l), content: q.options.find((o) => o.label === l)?.content ?? '' }))
       : null
-  const answer = kind.kind === 'true_false' ? (key[0] === 'true' ? '○ 是' : '╳ 非') : null
+  const answer = kind.kind === 'true_false' ? (key[0] === 'true' ? t('○ 是') : t('╳ 非')) : null
 
   return (
     <div className="m-expand space-y-3 rounded-lg border border-line bg-paper p-4 text-sm">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge tone={tone}>{label}</Badge>
-        {marking?.by === 'ai' && <Badge tone="accent">AI 批改</Badge>}
-        {marking?.by === 'teacher' && <Badge tone="accent">老師批改</Badge>}
+        <Badge tone={tone}>{t(label)}</Badge>
+        {marking?.by === 'ai' && <Badge tone="accent">{t('AI 批改')}</Badge>}
+        {marking?.by === 'teacher' && <Badge tone="accent">{t('老師批改')}</Badge>}
         {grade.max > 0 && (
           <span className="text-muted">
-            {grade.score} / {grade.max} 分
+            {t('{score} / {max} 分', { score: grade.score, max: grade.max })}
           </span>
         )}
       </div>
 
       {/* A shared exam whose owner keeps the key private sends empty answers. */}
-      {withheld && <p className="text-muted">{withheldNote}</p>}
+      {withheld && <p className="text-muted">{withheldNote ?? t('分享這份考卷的人沒有公開答案。')}</p>}
 
       {key.length > 0 && !withheld && (
         <div className={choices?.length === 1 ? 'flex items-baseline' : undefined}>
-          <span className="shrink-0 font-medium text-good">正確答案：</span>
+          <span className="shrink-0 font-medium text-good">{t('正確答案：')}</span>
           {choices ? (
             // one answer stays on the line, several go one per line below
             <ul className={choices.length === 1 ? 'min-w-0' : 'mt-1 space-y-1'}>
@@ -97,20 +100,20 @@ export function Reveal({
       {kind.kind !== 'single' && kind.kind !== 'multiple' && kind.kind !== 'true_false' && grade.status !== 'unanswered' && onMark && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-muted">
-            {marking?.by === 'ai' ? 'AI 老師批改的。不同意的話可以自己改：' : withheld ? '答案沒有公開，你的答案：' : key.length ? '對照參考答案，你的答案：' : '這題沒有標準答案，你的答案：'}
+            {marking?.by === 'ai' ? t('AI 老師批改的。不同意的話可以自己改：') : withheld ? t('答案沒有公開，你的答案：') : key.length ? t('對照參考答案，你的答案：') : t('這題沒有標準答案，你的答案：')}
           </span>
           <Button className="px-3 py-1.5" variant={self && self.credit >= 1 ? 'primary' : 'secondary'} onClick={() => onMark(self && self.credit >= 1 ? null : 1)}>
-            答對
+            {t('答對')}
           </Button>
           <Button className="px-3 py-1.5" variant={self && self.credit <= 0 ? 'danger' : 'secondary'} onClick={() => onMark(self && self.credit <= 0 ? null : 0)}>
-            答錯
+            {t('答錯')}
           </Button>
         </div>
       )}
 
       {marking?.feedback && (
         <div>
-          <span className="font-medium">{marking.by === 'ai' ? 'AI 老師評語：' : marking.by === 'teacher' ? '老師評語：' : '評語：'}</span>
+          <span className="font-medium">{marking.by === 'ai' ? t('AI 老師評語：') : marking.by === 'teacher' ? t('老師評語：') : t('評語：')}</span>
           {/* the teacher's comment is written in red pen */}
           <Markdown className="pen">{marking.feedback}</Markdown>
         </div>
@@ -118,7 +121,7 @@ export function Reveal({
 
       {q.explanation && (
         <div>
-          <span className="font-medium">詳解：</span>
+          <span className="font-medium">{t('詳解：')}</span>
           <Markdown>{q.explanation}</Markdown>
         </div>
       )}

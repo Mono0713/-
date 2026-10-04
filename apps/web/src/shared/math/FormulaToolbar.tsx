@@ -2,11 +2,13 @@
 
 import type { MathfieldElement } from 'mathlive'
 import { useState } from 'react'
+import { msg } from '@/shared/i18n/format'
+import { useT } from '@/shared/i18n/client'
 import { IconCheck, IconCode, IconTrash } from '@/shared/icons'
 
 /** Common structures, inserted at the cursor; #0 is the selection and #? an empty slot. */
 const TEMPLATES: { label: string; latex: string; insert: string }[] = [
-  { label: '分數', latex: '\\frac{a}{b}', insert: '\\frac{#0}{#?}' },
+  { label: msg('分數'), latex: '\\frac{a}{b}', insert: '\\frac{#0}{#?}' },
   { label: 'xⁿ', latex: 'x^{n}', insert: '#0^{#?}' },
   { label: 'xₙ', latex: 'x_{n}', insert: '#0_{#?}' },
   { label: '√', latex: '\\sqrt{x}', insert: '\\sqrt{#0}' },
@@ -33,6 +35,7 @@ const TEMPLATES: { label: string; latex: string; insert: string }[] = [
  * remove and done. It sits at the bottom of the text box; its buttons keep the focus in the formula.
  */
 export function FormulaToolbar({ field, onDone, onRemove, onSource }: { field: MathfieldElement; onDone: () => void; onRemove: () => void; onSource: (latex: string) => void }) {
+  const t = useT()
   const [source, setSource] = useState<string | null>(null)
   const keep = (e: React.MouseEvent) => e.preventDefault()
   const insert = (template: string) => {
@@ -43,10 +46,10 @@ export function FormulaToolbar({ field, onDone, onRemove, onSource }: { field: M
   return (
     <div className="m-expand border-t border-line/70 bg-paper/60 px-2 py-1.5" data-formula-toolbar>
       <div className="flex items-center gap-1">
-        <div className="flex min-w-0 flex-1 gap-0.5 overflow-x-auto" role="toolbar" aria-label="插入公式符號">
-          {TEMPLATES.map((t) => (
-            <button key={t.label} type="button" onMouseDown={keep} onClick={() => insert(t.insert)} className={tool} title={t.latex}>
-              {t.label}
+        <div className="flex min-w-0 flex-1 gap-0.5 overflow-x-auto" role="toolbar" aria-label={t('插入公式符號')}>
+          {TEMPLATES.map((template) => (
+            <button key={template.label} type="button" onMouseDown={keep} onClick={() => insert(template.insert)} className={tool} title={template.latex}>
+              {t(template.label)}
             </button>
           ))}
         </div>
@@ -56,15 +59,15 @@ export function FormulaToolbar({ field, onDone, onRemove, onSource }: { field: M
           onMouseDown={keep}
           onClick={() => setSource(source === null ? field.value : null)}
           className={`${tool} grid place-items-center ${source !== null ? 'bg-accent-soft text-accent' : ''}`}
-          aria-label="LaTeX 原始碼"
-          title="LaTeX 原始碼"
+          aria-label={t('LaTeX 原始碼')}
+          title={t('LaTeX 原始碼')}
         >
           <IconCode size={15} />
         </button>
-        <button type="button" onMouseDown={keep} onClick={onRemove} className={`${tool} grid place-items-center hover:bg-bad-soft hover:text-bad`} aria-label="刪除公式" title="刪除公式">
+        <button type="button" onMouseDown={keep} onClick={onRemove} className={`${tool} grid place-items-center hover:bg-bad-soft hover:text-bad`} aria-label={t('刪除公式')} title={t('刪除公式')}>
           <IconTrash size={14} />
         </button>
-        <button type="button" onMouseDown={keep} onClick={onDone} className="m-press grid h-7 w-7 shrink-0 place-items-center rounded-md bg-accent text-on-accent" aria-label="公式完成" title="公式完成（Enter）">
+        <button type="button" onMouseDown={keep} onClick={onDone} className="m-press grid h-7 w-7 shrink-0 place-items-center rounded-md bg-accent text-on-accent" aria-label={t('公式完成')} title={t('公式完成（Enter）')}>
           <IconCheck size={15} strokeWidth={2.6} />
         </button>
       </div>
@@ -78,11 +81,11 @@ export function FormulaToolbar({ field, onDone, onRemove, onSource }: { field: M
           }}
           onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), onDone())}
           className="mt-1.5 w-full rounded-md border border-line bg-surface px-2 py-1 font-mono text-[12px] outline-none focus:border-accent"
-          aria-label="LaTeX 原始碼"
+          aria-label={t('LaTeX 原始碼')}
           spellCheck={false}
         />
       )}
-      <p className="mt-1 px-0.5 text-[11px] text-muted">直接打字：/ 是分數、^ 是次方、sqrt 是根號，Enter 完成；平板會出現數學鍵盤。</p>
+      <p className="mt-1 px-0.5 text-[11px] text-muted">{t('直接打字：/ 是分數、^ 是次方、sqrt 是根號，Enter 完成；平板會出現數學鍵盤。')}</p>
     </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { useT } from '@/shared/i18n/client'
 import { IconCheck, IconChevronDown, IconSearch } from '@/shared/icons'
 
 export interface ListboxGroup {
@@ -22,6 +23,7 @@ const SEARCH_FROM = 8
  * move through what is left and Enter picks.
  */
 export function Listbox({ value, groups, onChange, className = '', label }: { value: string; groups: ListboxGroup[]; onChange: (value: string) => void; className?: string; label: string }) {
+  const t = useT()
   const id = useId()
   const button = useRef<HTMLButtonElement>(null)
   const list = useRef<HTMLUListElement>(null)
@@ -59,8 +61,8 @@ export function Listbox({ value, groups, onChange, className = '', label }: { va
   useEffect(() => {
     if (!open) return
     const close = (e: PointerEvent) => {
-      const t = e.target as Node
-      if (!popup.current?.contains(t) && !button.current?.contains(t)) setOpen(false)
+      const target = e.target as Node
+      if (!popup.current?.contains(target) && !button.current?.contains(target)) setOpen(false)
     }
     // the page scrolling under the list moves the button: follow it (the list's own scroll is not the page's)
     const follow = (e: Event) => {
@@ -177,8 +179,8 @@ export function Listbox({ value, groups, onChange, className = '', label }: { va
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={onKey}
-                  placeholder="搜尋"
-                  aria-label={`搜尋${label}`}
+                  placeholder={t('搜尋')}
+                  aria-label={t('搜尋{label}', { label })}
                   aria-controls={id}
                   aria-activedescendant={flat.some((o) => o.value === active) ? `${id}-${active}` : undefined}
                   className="min-w-0 flex-1 bg-transparent py-2.5 outline-none placeholder:text-muted"
@@ -212,7 +214,7 @@ export function Listbox({ value, groups, onChange, className = '', label }: { va
                   </ul>
                 </li>
               ))}
-              {!flat.length && <li className="px-2.5 py-3 text-center text-muted">找不到「{query.trim()}」</li>}
+              {!flat.length && <li className="px-2.5 py-3 text-center text-muted">{t('找不到「{query}」', { query: query.trim() })}</li>}
             </ul>
           </div>,
           document.body,

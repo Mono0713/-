@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
+import { useT } from '@/shared/i18n/client'
 import { IconPlus } from '@/shared/icons'
 
 export interface FabAction {
@@ -22,7 +23,8 @@ export interface FabAction {
  * with one hand); pressing an action, the scrim or Escape folds them back.
  * `badge` on the button itself counts something waiting (it also makes the button pulse).
  */
-export function Fab({ actions, badge, label = '更多動作' }: { actions: FabAction[]; badge?: number; label?: string }) {
+export function Fab({ actions, badge, label }: { actions: FabAction[]; badge?: number; label?: string }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
   useEffect(() => {
     if (!open) return
@@ -91,7 +93,7 @@ export function Fab({ actions, badge, label = '更多動作' }: { actions: FabAc
           type="button"
           onClick={() => setOpen(!open)}
           aria-expanded={open}
-          aria-label={label}
+          aria-label={label ?? t('更多動作')}
           className={`m-fab-main m-press pointer-events-auto relative isolate grid h-14 w-14 place-items-center rounded-full bg-brand text-on-accent shadow-[inset_0_1px_0_rgb(255_255_255/0.25),0_14px_30px_-12px_var(--color-accent)] ${badge ? 'm-ring' : ''}`}
         >
           <IconPlus size={26} strokeWidth={2.2} />

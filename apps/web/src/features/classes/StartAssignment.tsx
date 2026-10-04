@@ -1,17 +1,19 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useT } from '@/shared/i18n/client'
 import { Button, ButtonLink } from '@/shared/ui'
 import { startAssignment } from './actions'
 
 /** Start, or go back to the attempt under way. */
 export function StartAssignment({ assignmentId, resume, label }: { assignmentId: string; resume: string | null; label: string }) {
+  const t = useT()
   const [error, setError] = useState<string | null>(null)
   const [pending, start] = useTransition()
   if (resume) {
     return (
       <ButtonLink href={`/quiz/${resume}`} variant="primary">
-        繼續作答
+        {t('繼續作答')}
       </ButtonLink>
     )
   }

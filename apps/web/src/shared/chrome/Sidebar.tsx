@@ -1,8 +1,10 @@
 import { connection } from 'next/server'
-import { Suspense } from 'react'
+import { Suspense, type ReactNode } from 'react'
 import { localPerson } from '@/server/auth'
 import { authEnabled, currentUser, services } from '@/server/context'
 import { Logo } from '@/shared/brand/Logo'
+import { getT } from '@/shared/i18n/server'
+import { rich } from '@/shared/i18n/rich'
 import { Removable } from '@/shared/removal'
 import { Account } from './Account'
 import { RecentLink, SideNav } from './SideNav'
@@ -32,11 +34,13 @@ async function Recent() {
   const [all, exams] = await Promise.all([bank.listImports(owner), bank.listExams({ ownerId: owner })])
   const imports = all.slice(0, 6)
   const questions = exams.reduce((n, e) => n + e.questionCount, 0)
+  const t = await getT()
+  const count = (c: ReactNode) => <span className="num mr-1 text-lg text-white">{c}</span>
   return (
     <>
       {imports.length > 0 && (
         <div className="mt-8 min-h-0 flex-1 overflow-y-auto px-3 [scrollbar-gutter:stable]">
-          <p className="mb-1.5 px-2 text-[11px] font-semibold tracking-[0.12em] text-white/35">最近匯入</p>
+          <p className="mb-1.5 px-2 text-[11px] font-semibold tracking-[0.12em] text-white/35">{t('最近匯入')}</p>
           <ul className="space-y-px">
             {imports.map((imp) => (
               <Removable key={imp.id} id={imp.id}>
@@ -51,10 +55,10 @@ async function Recent() {
       <div className="mt-auto border-t border-white/[0.07] px-5 py-4">
         <div className="flex items-baseline gap-4 text-white/45">
           <p className="text-xs">
-            <span className="num mr-1 text-lg text-white">{exams.length}</span>份考卷
+            {rich(t('<n>{count}</n>份考卷', { count: exams.length }), { n: count })}
           </p>
           <p className="text-xs">
-            <span className="num mr-1 text-lg text-white">{questions}</span>題
+            {rich(t('<n>{count}</n>題', { count: questions }), { n: count })}
           </p>
         </div>
       </div>

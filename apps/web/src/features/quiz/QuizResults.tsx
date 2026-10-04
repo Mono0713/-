@@ -8,6 +8,8 @@ import { Odometer } from '@/shared/motion/Odometer'
 import { ProgressRing } from '@/shared/motion/ProgressRing'
 import { Segmented } from '@/shared/Segmented'
 import { AutoRefresh } from '@/features/imports/AutoRefresh'
+import { useT } from '@/shared/i18n/client'
+import { rich } from '@/shared/i18n/rich'
 import { IconLoader, IconSparkles } from '@/shared/icons'
 import { Button, Card } from '@/shared/ui'
 import { askTeacher, markAnswer, translateQuestion } from './actions'
@@ -18,6 +20,7 @@ type Filter = 'all' | 'missed' | 'pending'
 
 /** Score and every question with its answer, after the quiz is over. Open answers can be marked here. */
 export function QuizResults({ attempt, summary, teacher, locale }: { attempt: QuizAttempt; summary: QuizSummary; teacher: boolean; locale: string }) {
+  const t = useT()
   const router = useRouter()
   const [filter, setFilter] = useState<Filter>('all')
   const [, start] = useTransition()
@@ -32,7 +35,7 @@ export function QuizResults({ attempt, summary, teacher, locale }: { attempt: Qu
   const { grades } = summary
   // On a class assignment the teacher or AI marks; the student does not mark their own.
   const own = !attempt.assignment || Boolean(attempt.assignment.preview)
-  const withheldNote = own ? undefined : '老師還沒有公開答案。'
+  const withheldNote = own ? undefined : t('老師還沒有公開答案。')
   const mark = (i: number, credit: number | null) =>
     start(async () => {
       await markAnswer(attempt.id, i, credit)
@@ -55,8 +58,8 @@ export function QuizResults({ attempt, summary, teacher, locale }: { attempt: Qu
         {percent === 100 && (
           <>
             <Confetti className="inset-x-0 -top-40 bottom-0 z-10" />
-            <span aria-label="滿分" className="m-stamp absolute -top-6 right-2 max-sm:scale-75 sm:right-8 sm:top-1/2 sm:-translate-y-1/2">
-              滿分
+            <span aria-label={t('滿分')} className="m-stamp absolute -top-6 right-2 max-sm:scale-75 sm:right-8 sm:top-1/2 sm:-translate-y-1/2">
+              {t('滿分')}
             </span>
           </>
         )}
@@ -69,7 +72,7 @@ export function QuizResults({ attempt, summary, teacher, locale }: { attempt: Qu
           </div>
         )}
         <div>
-          <p className="text-xs text-muted">得分</p>
+          <p className="text-xs text-muted">{t('得分')}</p>
           <p className="num text-3xl">
             <Odometer value={Number.isInteger(summary.score) ? String(summary.score) : summary.score.toFixed(1)} />
             <span className="text-lg text-muted"> / {summary.max}</span>
@@ -77,42 +80,41 @@ export function QuizResults({ attempt, summary, teacher, locale }: { attempt: Qu
         </div>
         {minutes !== null && (
           <div>
-            <p className="text-xs text-muted">用時</p>
+            <p className="text-xs text-muted">{t('用時')}</p>
             <p className="text-3xl font-semibold tabular-nums">
-              {minutes}
-              <span className="text-lg text-muted"> 分鐘</span>
+              {rich(t('{n}<unit> 分鐘</unit>', { n: minutes }), { unit: (c) => <span className="text-lg text-muted">{c}</span> })}
             </p>
           </div>
         )}
         <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
           {counts.map(([status, n]) => (
             <li key={status}>
-              {GRADE_LABELS[status][0]} <span className="font-semibold tabular-nums">{n}</span>
+              {t(GRADE_LABELS[status][0])} <span className="font-semibold tabular-nums">{n}</span>
             </li>
           ))}
         </ul>
         {running ? (
           <p className="flex w-full items-center gap-2 text-sm text-accent">
             <AutoRefresh everyMs={2000} />
-            <IconLoader size={15} className="m-spin" /> AI 老師正在批改問答題和填空題，分數會自動更新。
+            <IconLoader size={15} className="m-spin" /> {t('AI 老師正在批改問答題和填空題，分數會自動更新。')}
           </p>
         ) : (
           summary.pending > 0 && (
             <div className="flex w-full flex-wrap items-center gap-3 text-sm">
               <p className="text-accent">
-                有 {summary.pending} 題等待批改。{attempt.teacher?.status === 'failed' ? 'AI 批改沒有完成，可以再試一次，' : ''}
-                {own ? `可以對照參考答案自己評分${teacher ? '，或請 AI 老師批改' : ''}。` : `老師會批改${teacher ? '，也可以先請 AI 老師批改' : ''}。`}
+                {t('有 {n} 題等待批改。', { n: summary.pending })}{attempt.teacher?.status === 'failed' ? t('AI 批改沒有完成，可以再試一次，') : ''}
+                {own ? (teacher ? t('可以對照參考答案自己評分，或請 AI 老師批改。') : t('可以對照參考答案自己評分。')) : teacher ? t('老師會批改，也可以先請 AI 老師批改。') : t('老師會批改。')}
               </p>
               {teacher && (
                 <Button onClick={ask} loading={asking} icon={<IconSparkles size={15} />}>
-                  請 AI 老師批改
+                  {t('請 AI 老師批改')}
                 </Button>
               )}
             </div>
           )
         )}
         {!running && attempt.teacher?.status === 'done' && attempt.teacher.model && (
-          <p className="w-full text-xs text-muted">標示「AI 批改」的題目由 {attempt.teacher.model} 批改；同一題同樣的答案只會問 AI 一次。</p>
+          <p className="w-full text-xs text-muted">{t('標示「AI 批改」的題目由 {model} 批改；同一題同樣的答案只會問 AI 一次。', { model: attempt.teacher.model })}</p>
         )}
         {error && <p className="w-full text-sm text-bad">{error}</p>}
       </Card>
@@ -121,9 +123,9 @@ export function QuizResults({ attempt, summary, teacher, locale }: { attempt: Qu
         value={filter}
         onChange={setFilter}
         options={[
-          ['all', `全部 ${attempt.items.length}`],
-          ['missed', `答錯與未作答 ${attempt.items.filter((_, i) => missed(i)).length}`],
-          ['pending', `待批改 ${summary.pending}`],
+          ['all', t('全部 {n}', { n: attempt.items.length })],
+          ['missed', t('答錯與未作答 {n}', { n: attempt.items.filter((_, i) => missed(i)).length })],
+          ['pending', t('待批改 {n}', { n: summary.pending })],
         ] as const}
       />
 
@@ -133,7 +135,7 @@ export function QuizResults({ attempt, summary, teacher, locale }: { attempt: Qu
           <Reveal item={attempt.items[i]!} grade={grades[i]!} marking={attempt.markings[i] ?? null} onMark={own ? (credit) => mark(i, credit) : undefined} withheldNote={withheldNote} tutor={{ attemptId: attempt.id, index: i, turns: attempt.tutoring?.[i] ?? [] }} />
         </Card>
       ))}
-      {!shown.length && <p className="text-sm text-muted">沒有符合的題目。</p>}
+      {!shown.length && <p className="text-sm text-muted">{t('沒有符合的題目。')}</p>}
     </div>
   )
 }

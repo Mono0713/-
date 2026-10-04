@@ -9,6 +9,7 @@ import { cookies } from 'next/headers'
 import { apiKeyOf, authEnabled, currentOwner, services } from '@/server/context'
 import { checkServiceUrl } from '@/server/serviceUrl'
 import { isLocale, LOCALE_COOKIE } from '@/shared/i18n/locales'
+import { getT } from '@/shared/i18n/server'
 
 type Result = { ok: true; note?: string } | { ok: false; error: string }
 
@@ -50,17 +51,18 @@ const message = (err: unknown) => (err instanceof Error ? err.message : String(e
 
 /** Checks the key against the provider, then keeps it (and the models it can use) on this computer. */
 export async function saveApiKey(provider: string, key: string): Promise<Result> {
+  const t = await getT()
   key = key.trim()
   const s = await mine()
   const custom = s.customProviders.find((c) => c.id === provider)
-  if ((!API_PROVIDERS.includes(provider) && !custom) || !key) return { ok: false, error: '請貼上 API 金鑰。' }
+  if ((!API_PROVIDERS.includes(provider) && !custom) || !key) return { ok: false, error: t('請貼上 API 金鑰。') }
   let known: string[] | null = null
   let note: string | undefined
   try {
-    known = await listModels(provider, key, custom ? await checkServiceUrl(custom.baseUrl, authEnabled()) : undefined)
+    known = await listModels(provider, key, custom ? await checkServiceUrl(custom.baseUrl, authEnabled(), t) : undefined)
   } catch (err) {
-    if (rejected(err)) return { ok: false, error: '這把金鑰無效或沒有權限，所以沒有儲存。請確認複製完整。' }
-    note = `已儲存，但暫時連不上服務，無法確認金鑰。（${message(err)}）`
+    if (rejected(err)) return { ok: false, error: t('這把金鑰無效或沒有權限，所以沒有儲存。請確認複製完整。') }
+    note = t('已儲存，但暫時連不上服務，無法確認金鑰。（{reason}）', { reason: message(err) })
   }
   await save({ apiKeys: { ...s.apiKeys, [provider]: key }, ...(known ? { knownModels: { ...s.knownModels, [provider]: known } } : {}) })
   return { ok: true, note }
@@ -75,16 +77,17 @@ export async function removeApiKey(provider: string) {
 
 /** Asks the provider which models the key can use now, so new ones show up in the lists. */
 export async function refreshModels(provider: string): Promise<Result> {
+  const t = await getT()
   const key = await apiKeyOf(await currentOwner(), provider)
   const custom = (await mine()).customProviders.find((c) => c.id === provider)
-  if (!key && !custom) return { ok: false, error: '先設定 API 金鑰。' }
+  if (!key && !custom) return { ok: false, error: t('先設定 API 金鑰。') }
   try {
-    const known = await listModels(provider, key ?? '', custom ? await checkServiceUrl(custom.baseUrl, authEnabled()) : undefined)
+    const known = await listModels(provider, key ?? '', custom ? await checkServiceUrl(custom.baseUrl, authEnabled(), t) : undefined)
     const s = await mine()
     await save({ knownModels: { ...s.knownModels, [provider]: known } })
-    return { ok: true, note: `找到 ${known.length} 個模型。` }
+    return { ok: true, note: t('找到 {n} 個模型。', { n: known.length }) }
   } catch (err) {
-    return { ok: false, error: `無法取得模型清單：${message(err)}` }
+    return { ok: false, error: t('無法取得模型清單：{reason}', { reason: message(err) }) }
   }
 }
 
@@ -128,11 +131,12 @@ export async function saveTaskModel(task: Task, choice: { provider: string; mode
  * be public HTTPS), then its model list is fetched with the key, when it answers.
  */
 export async function addCustomProvider(input: { name: string; baseUrl: string; apiKey: string }): Promise<Result & { id?: string }> {
+  const t = await getT()
   const name = input.name.trim().slice(0, 60)
-  if (!name) return { ok: false, error: '請替這個服務取個名字。' }
+  if (!name) return { ok: false, error: t('請替這個服務取個名字。') }
   let baseUrl: string
   try {
-    baseUrl = await checkServiceUrl(input.baseUrl, authEnabled())
+    baseUrl = await checkServiceUrl(input.baseUrl, authEnabled(), t)
   } catch (err) {
     return { ok: false, error: message(err) }
   }
@@ -142,8 +146,8 @@ export async function addCustomProvider(input: { name: string; baseUrl: string; 
   try {
     known = await listModels('custom', key, baseUrl)
   } catch (err) {
-    if (rejected(err)) return { ok: false, error: '服務拒絕了這把金鑰，所以沒有新增。請確認金鑰與網址。' }
-    note = `已新增，但暫時連不上服務，模型請自己輸入。（${message(err)}）`
+    if (rejected(err)) return { ok: false, error: t('服務拒絕了這把金鑰，所以沒有新增。請確認金鑰與網址。') }
+    note = t('已新增，但暫時連不上服務，模型請自己輸入。（{reason}）', { reason: message(err) })
   }
   const s = await mine()
   const id = `c-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'service'}-${randomBytes(2).toString('hex')}`
@@ -153,7 +157,7 @@ export async function addCustomProvider(input: { name: string; baseUrl: string; 
     apiKeys: key ? { ...s.apiKeys, [id]: key } : s.apiKeys,
     knownModels: { ...s.knownModels, [id]: known },
   })
-  return { ok: true, id, note: note ?? (known.length ? `找到 ${known.length} 個模型，請挑要用的加進來。` : undefined) }
+  return { ok: true, id, note: note ?? (known.length ? t('找到 {n} 個模型，請挑要用的加進來。', { n: known.length }) : undefined) }
 }
 
 /** Replaces the models listed for a service the person added (tier, image support, price). */

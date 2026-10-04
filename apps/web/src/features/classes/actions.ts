@@ -9,6 +9,7 @@ import { sourcesOf, startFromSources } from '@/features/quiz/start'
 import { displayName, freezeFigures, inAssignment, inClass, requireTeaching, taughtAttempt } from '@/server/classes'
 import { currentOwner, services } from '@/server/context'
 import { ownedExam } from '@/server/owned'
+import { getT } from '@/shared/i18n/server'
 
 const PAYERS: AiPayer[] = ['teacher', 'student', 'mixed', 'off']
 const ANSWERS: AssignmentAnswers[] = ['after_submit', 'after_close', 'never']
@@ -19,7 +20,8 @@ const clean = (text: string, max = 80) => text.trim().replace(/\s+/g, ' ').slice
 /** Makes a class with the person as its teacher and opens it. */
 export async function createClass(name: string): Promise<{ error: string } | undefined> {
   const title = clean(name)
-  if (!title) return { error: '請幫班級取個名字' }
+  const t = await getT()
+  if (!title) return { error: t('請幫班級取個名字') }
   const classroom = await services().classes.create(await currentOwner(), await displayName(), title)
   revalidatePath('/classes')
   redirect(`/classes/${classroom.id}`)
@@ -29,9 +31,10 @@ export async function createClass(name: string): Promise<{ error: string } | und
 export async function joinClass(code: string): Promise<{ error: string } | undefined> {
   const { classes } = services()
   const classroom = await classes.byCode(code)
-  if (!classroom) return { error: '找不到這個加入碼，請再確認一次。' }
+  const t = await getT()
+  if (!classroom) return { error: t('找不到這個加入碼，請再確認一次。') }
   const owner = await currentOwner()
-  if (!classroom.joinOpen && !(await classes.member(classroom.id, owner))) return { error: '這個班級現在不開放加入，請問老師。' }
+  if (!classroom.joinOpen && !(await classes.member(classroom.id, owner))) return { error: t('這個班級現在不開放加入，請問老師。') }
   await classes.join(classroom.id, owner, await displayName())
   revalidatePath('/classes')
   redirect(`/classes/${classroom.id}`)
@@ -40,7 +43,10 @@ export async function joinClass(code: string): Promise<{ error: string } | undef
 /** The class's own teacher: the only one who changes who pays, roles, or deletes it. */
 async function requireOwner(classId: string) {
   const found = await requireTeaching(classId)
-  if (found.me.role !== 'teacher') throw new Error('只有老師能改這個設定')
+  if (found.me.role !== 'teacher') {
+    const t = await getT()
+    throw new Error(t('只有老師能改這個設定'))
+  }
   return found
 }
 
@@ -68,7 +74,10 @@ export async function renewJoinCode(classId: string): Promise<{ code: string }> 
 /** Who pays for the class's AI marking, and the most the teacher spends in a month (null: no cap). */
 export async function setAiPayer(classId: string, payer: AiPayer, capUsd: number | null): Promise<void> {
   const { classroom } = await requireOwner(classId)
-  if (!PAYERS.includes(payer)) throw new Error('不明的付費方式')
+  if (!PAYERS.includes(payer)) {
+    const t = await getT()
+    throw new Error(t('不明的付費方式'))
+  }
   const cap = capUsd === null || !Number.isFinite(capUsd) || capUsd < 0 ? null : Math.round(capUsd * 100) / 100
   await services().classes.update(classroom.id, { aiPayer: payer, aiMonthlyCapUsd: cap })
   revalidatePath(`/classes/${classroom.id}`)
@@ -129,12 +138,13 @@ const count = (n: number | null): number | null => (n && Number.isFinite(n) && n
 export async function createAssignment(classId: string, input: NewAssignmentInput): Promise<{ error: string } | undefined> {
   const { classroom, me } = await requireTeaching(classId)
   const exam = await ownedExam(input.examId)
-  if (!exam) return { error: '請選一份自己題庫裡的考卷' }
+  const t = await getT()
+  if (!exam) return { error: t('請選一份自己題庫裡的考卷') }
   const { items } = await services().bank.listQuestions({ ownerId: exam.ownerId, examId: exam.id, limit: 1000 })
-  if (!items.length) return { error: '這份考卷還沒有題目' }
+  if (!items.length) return { error: t('這份考卷還沒有題目') }
   const opensAt = when(input.opensAt)
   const closesAt = when(input.closesAt)
-  if (opensAt && closesAt && closesAt <= opensAt) return { error: '截止時間要在開始時間之後' }
+  if (opensAt && closesAt && closesAt <= opensAt) return { error: t('截止時間要在開始時間之後') }
   const s = input.settings
   const settings: AssignmentSettings = {
     mode: s.mode === 'practice' ? 'practice' : 'exam',
@@ -148,7 +158,7 @@ export async function createAssignment(classId: string, input: NewAssignmentInpu
   const id = randomUUID()
   const { sources } = await sourcesOf(items)
   const frozen = await freezeFigures(sources, me.userId, id)
-  await services().classes.assign({ id, classId: classroom.id, examId: exam.id, title: clean(input.title) || exam.title || '未命名作業', settings, sources: frozen, opensAt, closesAt })
+  await services().classes.assign({ id, classId: classroom.id, examId: exam.id, title: clean(input.title) || exam.title || t('未命名作業'), settings, sources: frozen, opensAt, closesAt })
   revalidatePath(`/classes/${classroom.id}`)
   redirect(`/classes/${classroom.id}/a/${id}`)
 }
@@ -156,7 +166,10 @@ export async function createAssignment(classId: string, input: NewAssignmentInpu
 /** Changes when an assignment opens or closes, and when its answers show. Applies to attempts already made, too. */
 export async function updateAssignment(assignmentId: string, patch: { opensAt?: string | null; closesAt?: string | null; answers?: AssignmentAnswers; title?: string }): Promise<void> {
   const found = await inAssignment(assignmentId)
-  if (!found?.teaches) throw new Error('找不到這份作業')
+  if (!found?.teaches) {
+    const t = await getT()
+    throw new Error(t('找不到這份作業'))
+  }
   await services().classes.updateAssignment(found.assignment.id, {
     ...(patch.opensAt !== undefined && { opensAt: when(patch.opensAt) }),
     ...(patch.closesAt !== undefined && { closesAt: when(patch.closesAt) }),
@@ -179,13 +192,14 @@ export async function deleteAssignment(assignmentId: string): Promise<void> {
  */
 export async function startAssignment(assignmentId: string): Promise<{ error: string } | undefined> {
   const found = await inAssignment(assignmentId)
-  if (!found) return { error: '找不到這份作業' }
+  const t = await getT()
+  if (!found) return { error: t('找不到這份作業') }
   const { assignment, me, teaches } = found
   const { classes } = services()
   if (!teaches) {
-    if (!isOpen(assignment)) return { error: assignment.opensAt && new Date() < new Date(assignment.opensAt) ? '作業還沒開始' : '作業已經截止了' }
+    if (!isOpen(assignment)) return { error: assignment.opensAt && new Date() < new Date(assignment.opensAt) ? t('作業還沒開始') : t('作業已經截止了') }
     const tries = (await classes.attempts(assignment.id, me.userId)).filter((a) => !a.preview).length
-    if (assignment.settings.maxAttempts !== null && tries >= assignment.settings.maxAttempts) return { error: '已經用完可以作答的次數' }
+    if (assignment.settings.maxAttempts !== null && tries >= assignment.settings.maxAttempts) return { error: t('已經用完可以作答的次數') }
   }
   const { mode, shuffleQuestions, shuffleOptions, timeLimitMinutes } = assignment.settings
   const attempt = await startFromSources({
@@ -208,7 +222,10 @@ export async function startAssignment(assignmentId: string): Promise<{ error: st
  */
 export async function teacherMark(attemptId: string, index: number, credit: number | null, feedback: string): Promise<void> {
   const found = await taughtAttempt(attemptId)
-  if (!found?.attempt.finishedAt) throw new Error('交卷後才能批改')
+  if (!found?.attempt.finishedAt) {
+    const t = await getT()
+    throw new Error(t('交卷後才能批改'))
+  }
   await services().quizzes.update(attemptId, (a) => {
     if (index < 0 || index >= a.items.length) return null
     const before = a.markings[index] ?? null

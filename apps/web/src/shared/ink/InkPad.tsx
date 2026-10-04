@@ -2,14 +2,16 @@
 
 import { compactStroke, emptyInk, hitsStroke, strokePath, type InkDoc, type InkPoint, type Stroke } from '@exam/ink'
 import { useMemo, useRef, useState, type CSSProperties } from 'react'
+import { msg } from '@/shared/i18n/format'
+import { useT } from '@/shared/i18n/client'
 import { IconEraser, IconPen, IconRedo, IconTrash, IconUndo } from '@/shared/icons'
 
 /** Drawing units: paths are computed for a page this many pixels wide and scaled by the SVG. */
 const W = 1000
 const COLORS = [
-  ['#1b1d33', '黑'],
-  ['#2f55d4', '藍'],
-  ['#d23c3c', '紅'],
+  ['#1b1d33', msg('黑')],
+  ['#2f55d4', msg('藍')],
+  ['#d23c3c', msg('紅')],
 ] as const
 /** Pen width range (in page widths) for the size slider, and where it starts. */
 const SIZE_MIN = 0.002
@@ -40,6 +42,7 @@ export function InkPad({
   minHeight?: number
   label: string
 }) {
+  const t = useT()
   const doc = value ?? emptyInk(minHeight)
   // The latest page, also between renders (an eraser drag changes it many times per event).
   const latest = useRef(doc)
@@ -150,11 +153,11 @@ export function InkPad({
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-surface">
       {!readOnly && (
-        <div className="flex flex-wrap items-center gap-1 border-b border-line/70 px-2 py-1.5" role="toolbar" aria-label={`${label}工具`}>
-          <button type="button" className={button(tool === 'pen')} onClick={() => setTool('pen')} aria-label="筆" aria-pressed={tool === 'pen'} title="筆">
+        <div className="flex flex-wrap items-center gap-1 border-b border-line/70 px-2 py-1.5" role="toolbar" aria-label={t('{label}工具', { label })}>
+          <button type="button" className={button(tool === 'pen')} onClick={() => setTool('pen')} aria-label={t('筆')} aria-pressed={tool === 'pen'} title={t('筆')}>
             <IconPen size={16} />
           </button>
-          <button type="button" className={button(tool === 'eraser')} onClick={() => setTool('eraser')} aria-label="橡皮擦" aria-pressed={tool === 'eraser'} title="橡皮擦（擦掉整筆）">
+          <button type="button" className={button(tool === 'eraser')} onClick={() => setTool('eraser')} aria-label={t('橡皮擦')} aria-pressed={tool === 'eraser'} title={t('橡皮擦（擦掉整筆）')}>
             <IconEraser size={16} />
           </button>
           <span className="mx-1 h-5 w-px bg-line" />
@@ -167,7 +170,7 @@ export function InkPad({
                 setTool('pen')
               }}
               className={`m-press grid h-8 w-8 place-items-center rounded-lg ${color === c && tool === 'pen' ? 'bg-ink/[0.08]' : ''}`}
-              aria-label={`${name}色`}
+              aria-label={t('{color}色', { color: t(name) })}
               aria-pressed={color === c}
             >
               <span className="h-4 w-4 rounded-full ring-2 ring-surface" style={{ background: shown(c), boxShadow: color === c ? `0 0 0 2px ${shown(c)}` : undefined }} />
@@ -175,7 +178,7 @@ export function InkPad({
           ))}
           <span className="mx-1 h-5 w-px bg-line" />
           {/* pen width: a wedge that thickens to the right, with a dot showing the real width */}
-          <label className="flex items-center gap-2 pl-1 pr-2" title="筆的粗細">
+          <label className="flex items-center gap-2 pl-1 pr-2" title={t('筆的粗細')}>
             <span className="m-wedge" style={{ '--v': `${((size - SIZE_MIN) / (SIZE_MAX - SIZE_MIN)) * 100}%` } as CSSProperties}>
             <input
               type="range"
@@ -187,7 +190,7 @@ export function InkPad({
                 setSize(Number(e.target.value))
                 setTool('pen')
               }}
-              aria-label="筆的粗細"
+              aria-label={t('筆的粗細')}
               className="w-24"
             />
             </span>
@@ -196,13 +199,13 @@ export function InkPad({
             </span>
           </label>
           <span className="ml-auto flex items-center gap-1">
-            <button type="button" className={button(false)} onClick={undo} disabled={!history.current.undo.length} aria-label="復原" title="復原">
+            <button type="button" className={button(false)} onClick={undo} disabled={!history.current.undo.length} aria-label={t('復原')} title={t('復原')}>
               <IconUndo size={16} />
             </button>
-            <button type="button" className={button(false)} onClick={redo} disabled={!history.current.redo.length} aria-label="重做" title="重做">
+            <button type="button" className={button(false)} onClick={redo} disabled={!history.current.redo.length} aria-label={t('重做')} title={t('重做')}>
               <IconRedo size={16} />
             </button>
-            <button type="button" className={`${button(false)} hover:text-bad`} onClick={() => doc.strokes.length && commit({ ...doc, strokes: [] })} aria-label="清除" title="清除整頁（可以復原）">
+            <button type="button" className={`${button(false)} hover:text-bad`} onClick={() => doc.strokes.length && commit({ ...doc, strokes: [] })} aria-label={t('清除')} title={t('清除整頁（可以復原）')}>
               <IconTrash size={15} />
             </button>
           </span>
@@ -227,7 +230,7 @@ export function InkPad({
       </svg>
       {!readOnly && (
         <button type="button" onClick={() => change({ ...doc, height: doc.height + 0.3 })} className="w-full border-t border-line/70 py-1.5 text-xs text-muted hover:bg-paper hover:text-ink">
-          ＋ 加長頁面
+          {t('＋ 加長頁面')}
         </button>
       )}
     </div>
