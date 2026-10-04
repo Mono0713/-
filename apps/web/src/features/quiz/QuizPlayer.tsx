@@ -214,7 +214,18 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
           {turning !== null && items[turning] && (
             <div key={`leaf-${turning}`} aria-hidden inert data-back={direction < 0 || undefined} className="m-leaf-out absolute inset-x-0 top-0" onAnimationEnd={(e) => e.target === e.currentTarget && setTurning(null)}>
               <Card className="p-4 sm:min-h-[24rem] sm:p-5">
-                <QuizQuestion item={items[turning]!} index={turning} response={responses[turning] ?? null} reveal={practice && checked[turning]} />
+                {/* drawn exactly as it was on screen (answer-mode switch, draft and translate buttons included),
+                    so the whole sheet leaves together; it is inert, so the no-op handlers never run */}
+                <QuizQuestion
+                  item={items[turning]!}
+                  index={turning}
+                  response={responses[turning] ?? null}
+                  onChange={checked[turning] ? undefined : () => {}}
+                  reveal={practice && checked[turning]}
+                  locale={locale}
+                  onTranslate={practice ? () => translateQuestion(attempt.id, turning) : undefined}
+                  focus={items[turning]!.question.type === 'writing' || items[turning]!.question.type === 'composition'}
+                />
               </Card>
             </div>
           )}

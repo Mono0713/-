@@ -17,15 +17,17 @@ import { RecentLink, SideNav } from './SideNav'
 export function Sidebar() {
   return (
     <aside className="app-sidebar sticky top-0 hidden h-screen w-60 shrink-0 flex-col overflow-x-hidden bg-night text-white/70 transition-[width] duration-200 ease-out xl:flex rail:w-[4.5rem]">
-      <div className="px-5 pb-7 pt-6 rail:flex rail:justify-center rail:px-0">
+      {/* Nothing reflows while it folds: every row keeps the full width (the rail clips it), icons sit
+          at the same spot in both states, and text fades rather than disappearing. */}
+      <div className="w-60 shrink-0 px-[22px] pb-7 pt-6">
         <Logo tone="light" foldable />
       </div>
       <SideNav />
       <Suspense fallback={<div className="flex-1" />}>
         <Recent />
       </Suspense>
-      <div className="flex items-center gap-1 border-t border-white/[0.07] px-3 py-3 rail:flex-col rail:gap-2">
-        <div className="min-w-0 flex-1 rail:flex-none">
+      <div className="relative w-60 shrink-0 border-t border-white/[0.07] px-3 py-3 transition-[padding] duration-200 ease-out rail:pt-[3.25rem]">
+        <div className="w-[calc(100%-2.5rem)]">
           <Suspense>
             <Account tone="sidebar" />
           </Suspense>
@@ -50,7 +52,7 @@ async function Recent() {
   return (
     <>
       {imports.length > 0 && (
-        <div className="mt-8 min-h-0 flex-1 overflow-y-auto px-3 [scrollbar-gutter:stable] rail:invisible">
+        <div className="mt-8 min-h-0 w-60 flex-1 shrink-0 overflow-y-auto px-3 [scrollbar-gutter:stable] transition-opacity duration-200 rail:pointer-events-none rail:opacity-0">
           <p className="mb-1.5 px-2 text-[11px] font-semibold tracking-[0.12em] text-white/35">{t('最近匯入')}</p>
           <ul className="space-y-px">
             {imports.map((imp) => (
@@ -64,7 +66,7 @@ async function Recent() {
         </div>
       )}
       {imports.length === 0 && <div className="flex-1" />}
-      <div className="border-t border-white/[0.07] px-5 py-4 rail:hidden">
+      <div className="w-60 shrink-0 border-t border-white/[0.07] px-5 py-4 whitespace-nowrap transition-opacity duration-200 rail:pointer-events-none rail:opacity-0">
         <div className="flex items-baseline gap-4 text-white/45">
           <p className="text-xs">
             {rich(t('<n>{count}</n>份考卷', { count: exams.length }), { n: count })}

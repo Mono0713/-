@@ -46,10 +46,10 @@ export function SideNav() {
             }}
             aria-current={on ? 'page' : undefined}
             title={t(item.label)}
-            className={`m-press relative flex items-center gap-3 rounded-lg px-3 py-2.5 rail:justify-center rail:px-0 ${on ? 'font-medium text-white' : 'hover:text-white'} ${on && !bar ? 'bg-white/[0.08]' : ''}`}
+            className={`m-press relative flex items-center gap-3 rounded-lg px-[15px] py-2.5 ${on ? 'font-medium text-white' : 'hover:text-white'} ${on && !bar ? 'bg-white/[0.08]' : ''}`}
           >
             <I size={18} strokeWidth={1.9} className={`shrink-0 ${on ? 'text-night-accent' : 'opacity-70'}`} />
-            <span className="truncate rail:hidden">{t(item.label)}</span>
+            <span className="whitespace-nowrap transition-opacity duration-200 rail:opacity-0">{t(item.label)}</span>
           </Link>
         )
       })}

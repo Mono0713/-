@@ -26,7 +26,7 @@ export function LocalSwitcher({ current, people, tone }: { current: string; peop
       className={
         tone === 'header'
           ? 'm-press grid h-8 w-8 place-items-center rounded-full bg-accent text-xs font-semibold text-on-accent'
-          : 'm-press flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13px] text-white/85 hover:bg-white/[0.06] rail:justify-center rail:px-0'
+          : 'm-press flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-[13px] text-white/85 hover:bg-white/[0.06]'
       }
       button={
         tone === 'header' ? (
@@ -34,9 +34,9 @@ export function LocalSwitcher({ current, people, tone }: { current: string; peop
         ) : (
           <>
             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-night-accent text-xs font-semibold text-night">{initial}</span>
-            <span className="min-w-0 flex-1 rail:hidden">
+            <span className="min-w-0 flex-1 transition-opacity duration-200 rail:opacity-0">
               <span className="block truncate">{t(me.name)}</span>
-              <span className="block text-[11px] text-white/40">{t('測試用 · 點這裡切換身分')}</span>
+              <span className="block truncate text-[11px] text-white/40">{t('測試用 · 點這裡切換身分')}</span>
             </span>
           </>
         )

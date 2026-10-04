@@ -30,7 +30,7 @@ export function AccountMenu({ person, signOut, tone }: { person: AccountPerson; 
       className={
         tone === 'header'
           ? 'm-press grid place-items-center rounded-full p-0.5'
-          : 'm-press flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-white/[0.06] rail:justify-center rail:px-0'
+          : 'm-press flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left hover:bg-white/[0.06]'
       }
       button={
         tone === 'header' ? (
@@ -38,7 +38,7 @@ export function AccountMenu({ person, signOut, tone }: { person: AccountPerson; 
         ) : (
           <>
             <Avatar person={person} />
-            <span className="min-w-0 flex-1 rail:hidden">
+            <span className="min-w-0 flex-1 transition-opacity duration-200 rail:opacity-0">
               <span className="block truncate text-[13px] text-white/85">{label}</span>
               {person.name && person.email && <span className="block truncate text-[11px] text-white/40">{person.email}</span>}
             </span>
