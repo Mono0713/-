@@ -28,7 +28,8 @@ export function AccountMenu({ person, signOut, tone }: { person: AccountPerson; 
       side={tone === 'header' ? 'down' : 'up'}
       // the sidebar clips what overflows it (for folding), so its menu is placed against the window
       floating={tone === 'sidebar'}
-      width="w-60"
+      // as wide as the sidebar's rows, so it never reaches past the sidebar
+      width="w-[13.5rem]"
       className={
         tone === 'header'
           ? 'm-press grid place-items-center rounded-full p-0.5'

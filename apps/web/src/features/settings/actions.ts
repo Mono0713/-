@@ -10,6 +10,7 @@ import { apiKeyOf, authEnabled, currentOwner, services } from '@/server/context'
 import { checkServiceUrl } from '@/server/serviceUrl'
 import { isLocale, LOCALE_COOKIE } from '@/shared/i18n/locales'
 import { getT } from '@/shared/i18n/server'
+import { NAME_MAX } from './profile'
 
 type Result = { ok: true; note?: string } | { ok: false; error: string }
 
@@ -36,7 +37,7 @@ export async function saveLocale(locale: string) {
 export async function saveProfile(patch: { name?: string | null; avatar?: string | null }) {
   const { profile } = await mine()
   const next = { ...profile }
-  if (patch.name !== undefined) next.name = patch.name?.trim().slice(0, 40) || null
+  if (patch.name !== undefined) next.name = [...(patch.name?.trim() ?? '')].slice(0, NAME_MAX).join('') || null
   if (patch.avatar !== undefined) next.avatar = patch.avatar && /^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(patch.avatar) && patch.avatar.length <= 100_000 ? patch.avatar : null
   await save({ profile: next })
 }

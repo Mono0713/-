@@ -6,6 +6,7 @@ import { useT } from '@/shared/i18n/client'
 import { IconCamera } from '@/shared/icons'
 import { inputClass } from '@/shared/ui'
 import { saveProfile } from './actions'
+import { NAME_MAX } from './profile'
 
 /** The picture is kept small: it is drawn at most at 36 px, so 128 px covers sharp screens. */
 const AVATAR_PX = 128
@@ -78,17 +79,22 @@ export function ProfileEditor({
       </button>
       <input ref={file} type="file" accept="image/*" hidden onChange={(e) => void pick(e.target.files?.[0]).finally(() => (e.target.value = ''))} />
       <div className="min-w-0 flex-1 space-y-1">
+        <div className="relative max-w-xs">
         <input
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => setDraft([...e.target.value].slice(0, NAME_MAX).join(''))}
           onBlur={saveName}
           onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-          maxLength={40}
           autoComplete="off"
           placeholder={google.name ?? t('你的名字')}
           aria-label={t('名字')}
-          className={`${inputClass} max-w-xs font-medium`}
+          className={`${inputClass} pr-14 font-medium`}
         />
+        {/* how much room is left, in characters (an emoji counts as one) */}
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs tabular-nums text-muted">
+          {[...draft].length}/{NAME_MAX}
+        </span>
+        </div>
         {email && <p className="truncate text-sm text-muted">{email}</p>}
         {error ? (
           <p className="text-xs text-bad">{error}</p>
