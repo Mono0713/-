@@ -802,7 +802,11 @@
   "展開題目": "Frage einblenden",
   "個人資料": "Profil",
   "用 Google 帳號登入，名稱和頭像跟著 Google。": "Mit Google angemeldet; Name und Bild stammen aus deinem Google-Konto.",
-  "所有設定": "Alle Einstellungen",
   "收合側欄": "Seitenleiste einklappen",
-  "作文": "Aufsatz"
+  "作文": "Aufsatz",
+  "這張圖片讀不出來，換一張試試。": "Dieses Bild konnte nicht gelesen werden. Versuch ein anderes.",
+  "更換頭像": "Bild ändern",
+  "你的名字": "Dein Name",
+  "名字": "Name",
+  "改回 Google 頭像": "Google-Bild verwenden"
 }

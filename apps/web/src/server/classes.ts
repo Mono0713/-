@@ -2,8 +2,9 @@ import { canTeach, type Assignment, type Classroom, type ClassRole, type Member 
 import type { DraftFigure } from '@exam/core'
 import type { QuizAttempt, QuizSettings, QuizSource } from '@exam/quiz'
 import { monthStart, spend } from '@exam/usage'
-import { authEnabled, currentOwner, currentUser, localPerson } from './auth'
+import { authEnabled, currentOwner, localPerson } from './auth'
 import { keyPrefixOf, providersOf, services, teacherFor, type Teacher } from './context'
+import { currentProfile } from './profile'
 import { keyShown } from '@/features/quiz/visible'
 import { msg } from '@/shared/i18n/format'
 import { getT } from '@/shared/i18n/server'
@@ -46,7 +47,7 @@ export async function inAssignment(assignmentId: string): Promise<(InClass & { a
 export async function displayName(): Promise<string> {
   const t = await getT()
   if (!authEnabled()) return t((await localPerson()).name)
-  const user = await currentUser()
+  const user = await currentProfile()
   return user?.name ?? user?.email?.split('@')[0] ?? t('我')
 }
 

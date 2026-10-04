@@ -4,7 +4,8 @@ import { monthStart, spend } from '@exam/usage'
 import { SettingsForm } from '@/features/settings/SettingsForm'
 import { ProfileCard } from '@/features/settings/ProfileCard'
 import { StorageCard } from '@/features/settings/StorageCard'
-import { authEnabled, availableProviders, currentOwner, currentUser, keySource, providersOf, services, storageOf, teacherChoice } from '@/server/context'
+import { authEnabled, availableProviders, currentOwner, keySource, providersOf, services, storageOf, teacherChoice } from '@/server/context'
+import { currentProfile } from '@/server/profile'
 import { getLocale, getT } from '@/shared/i18n/server'
 import { PageHeader } from '@/shared/ui'
 
@@ -30,7 +31,7 @@ export default async function SettingsPage() {
     usage.summary(owner, new Date(Date.now() - ESTIMATE_WINDOW_DAYS * 86_400_000)),
     usage.summary(owner, monthStart()),
     storageOf(owner),
-    authEnabled() ? currentUser() : null,
+    authEnabled() ? currentProfile() : null,
   ])
   const settings = publicView(saved)
   const routing = providersOf(saved)

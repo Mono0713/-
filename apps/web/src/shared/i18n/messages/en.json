@@ -802,7 +802,11 @@
   "展開題目": "Show question",
   "個人資料": "Profile",
   "用 Google 帳號登入，名稱和頭像跟著 Google。": "Signed in with Google; your name and picture come from your Google account.",
-  "所有設定": "All settings",
   "收合側欄": "Collapse sidebar",
-  "作文": "Composition"
+  "作文": "Composition",
+  "這張圖片讀不出來，換一張試試。": "This picture couldn't be read. Try another one.",
+  "更換頭像": "Change picture",
+  "你的名字": "Your name",
+  "名字": "Name",
+  "改回 Google 頭像": "Use Google picture"
 }

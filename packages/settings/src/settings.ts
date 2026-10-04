@@ -26,6 +26,10 @@ export type CustomProvider = z.infer<typeof CustomProvider>
 
 /** One user's preferences. Every field has a default, so an old or partial file still loads. */
 export const Settings = z.object({
+  /** Name and picture the person chose; null keeps the ones from their Google account. The picture is a small data URL. */
+  profile: z
+    .object({ name: z.string().max(40).nullable().default(null), avatar: z.string().max(100_000).nullable().default(null) })
+    .default({ name: null, avatar: null }),
   /** Interface language; the model also writes its review notes in it. null: not chosen yet. */
   locale: z.string().nullable().default(null),
   /** Recognition method preselected when uploading ("auto", "manual", "claude", …). */

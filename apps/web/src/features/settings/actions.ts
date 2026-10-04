@@ -32,6 +32,15 @@ export async function saveLocale(locale: string) {
   revalidatePath('/', 'layout')
 }
 
+/** The name and picture shown in the app; null goes back to the Google account's. The picture is a small image as a data URL. */
+export async function saveProfile(patch: { name?: string | null; avatar?: string | null }) {
+  const { profile } = await mine()
+  const next = { ...profile }
+  if (patch.name !== undefined) next.name = patch.name?.trim().slice(0, 40) || null
+  if (patch.avatar !== undefined) next.avatar = patch.avatar && /^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(patch.avatar) && patch.avatar.length <= 100_000 ? patch.avatar : null
+  await save({ profile: next })
+}
+
 export async function saveDefaultProvider(provider: string) {
   await save({ defaultProvider: provider })
 }

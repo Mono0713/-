@@ -61,8 +61,8 @@ to an instant change under `prefers-reduced-motion`.
 
 | What | Borrowed from | Where | How |
 | --- | --- | --- | --- |
-| Highlighter sweep | Apple Notes | revealed answers | `.hl.m-sweep` / `.hl-md.m-sweep`, 520 ms ease-out |
-| Pen tick | Duolingo | right option | `PenTick` (draws in 560 ms). A wrong pick only gets its red tint and a nudge: no red-pen ring, it was too loud while answering |
+| Highlighter sweep | Apple Notes | revealed answers | `.hl.m-sweep` / `.hl-md.m-sweep`, 340 ms ease-out (sped up 2026-10-04: revealing felt slow) |
+| Pen tick | Duolingo | right option | `PenTick` (draws in 360 ms). A wrong pick only gets its red tint and a nudge: no red-pen ring, it was too loud while answering |
 | Pressable buttons | Duolingo | primary and secondary `Button` | `.m-push` / `.m-push-quiet`: a solid bottom edge that collapses while held |
 | Rolling digits | Stripe | quiz results | `Odometer`, 900 ms spring, 80 ms per column |
 | Gliding hover | Linear, Vercel | review outline | `Glide` + `data-glide` rows, 260 ms |

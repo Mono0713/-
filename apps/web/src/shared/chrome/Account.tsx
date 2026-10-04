@@ -1,5 +1,6 @@
 import { signOut } from '@/features/auth/actions'
-import { authEnabled, currentUser, LOCAL_PEOPLE, localPerson, localSwitching } from '@/server/auth'
+import { authEnabled, LOCAL_PEOPLE, localPerson, localSwitching } from '@/server/auth'
+import { currentProfile } from '@/server/profile'
 import { AccountMenu } from './AccountMenu'
 import { LocalSwitcher } from './LocalSwitcher'
 
@@ -10,7 +11,7 @@ export async function Account({ tone }: { tone: 'sidebar' | 'header' }) {
     const switcher = <LocalSwitcher current={(await localPerson()).id} people={LOCAL_PEOPLE} tone={tone} />
     return tone === 'header' ? <div className="ml-auto shrink-0">{switcher}</div> : switcher
   }
-  const user = await currentUser()
+  const user = await currentProfile()
   if (!user) return null
   const person = { name: user.name, email: user.email, avatar: user.avatar }
   return tone === 'header' ? (

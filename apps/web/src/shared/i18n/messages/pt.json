@@ -802,7 +802,11 @@
   "展開題目": "Expandir questão",
   "個人資料": "Perfil",
   "用 Google 帳號登入，名稱和頭像跟著 Google。": "Sessão iniciada com o Google; seu nome e foto vêm da sua conta Google.",
-  "所有設定": "Todas as configurações",
   "收合側欄": "Recolher barra lateral",
-  "作文": "Redação"
+  "作文": "Redação",
+  "這張圖片讀不出來，換一張試試。": "Não foi possível ler esta imagem. Tente outra.",
+  "更換頭像": "Trocar foto",
+  "你的名字": "Seu nome",
+  "名字": "Nome",
+  "改回 Google 頭像": "Usar a foto do Google"
 }

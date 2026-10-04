@@ -26,7 +26,7 @@ export function Sidebar() {
       <Suspense fallback={<div className="flex-1" />}>
         <Recent />
       </Suspense>
-      <div className="relative w-60 shrink-0 border-t border-white/[0.07] px-3 py-3 transition-[padding] duration-200 ease-out rail:pt-[3.25rem]">
+      <div className="relative w-60 shrink-0 border-t border-white/[0.07] px-3 py-3">
         <div className="w-[calc(100%-2.5rem)]">
           <Suspense>
             <Account tone="sidebar" />

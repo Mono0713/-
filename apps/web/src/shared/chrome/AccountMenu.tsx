@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { useT } from '@/shared/i18n/client'
-import { IconKey, IconSettings, IconSignOut, IconStorage, IconUser, type Icon } from '@/shared/icons'
+import { IconKey, IconSignOut, IconStorage, IconUser, type Icon } from '@/shared/icons'
 import { Menu, menuItem } from './Menu'
 
 export interface AccountPerson {
@@ -20,13 +20,15 @@ export function AccountMenu({ person, signOut, tone }: { person: AccountPerson; 
     { href: '/settings#profile', label: t('個人資料'), icon: IconUser },
     { href: '/settings#keys', label: t('API 金鑰'), icon: IconKey },
     { href: '/settings#storage', label: t('儲存空間'), icon: IconStorage },
-    { href: '/settings', label: t('所有設定'), icon: IconSettings },
   ]
   return (
     <Menu
       label={t('帳號')}
       align={tone === 'header' ? 'right' : 'left'}
       side={tone === 'header' ? 'down' : 'up'}
+      // the sidebar clips what overflows it (for folding), so its menu is placed against the window
+      floating={tone === 'sidebar'}
+      width="w-60"
       className={
         tone === 'header'
           ? 'm-press grid place-items-center rounded-full p-0.5'
@@ -75,8 +77,8 @@ export function AccountMenu({ person, signOut, tone }: { person: AccountPerson; 
   )
 }
 
-export function Avatar({ person, size = 'md' }: { person: AccountPerson; size?: 'md' | 'lg' }): ReactNode {
-  const box = size === 'lg' ? 'h-9 w-9 text-sm' : 'h-7 w-7 text-xs'
+export function Avatar({ person, size = 'md' }: { person: AccountPerson; size?: 'md' | 'lg' | 'xl' }): ReactNode {
+  const box = size === 'xl' ? 'h-14 w-14 text-lg' : size === 'lg' ? 'h-9 w-9 text-sm' : 'h-7 w-7 text-xs'
   const initial = (person.name ?? person.email ?? '?').trim().charAt(0).toUpperCase()
   return person.avatar ? (
     // Google's profile pictures; next/image would need their host allow-listed for little gain.

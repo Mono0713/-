@@ -6,12 +6,13 @@ import { toggleRail } from './rail'
 
 /**
  * Folds the sidebar into a rail of icons and back; the choice is kept in this browser.
- * Beside the account when open, above it in the rail; it glides between the two as the sidebar folds.
+ * Beside the account when open; in the rail it moves up into the space the faded totals leave, so the
+ * footer never changes height. It glides between the two spots as the sidebar folds.
  */
 export function RailToggle() {
   const t = useT()
   return (
-    <div className="absolute left-[196px] top-4 transition-[left,top] duration-200 ease-out rail:left-5 rail:top-3">
+    <div className="absolute left-[196px] top-4 transition-[left,top] duration-200 ease-out rail:-top-12 rail:left-5">
       <button
         type="button"
         onClick={toggleRail}

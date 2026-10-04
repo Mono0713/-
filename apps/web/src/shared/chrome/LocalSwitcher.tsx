@@ -23,6 +23,7 @@ export function LocalSwitcher({ current, people, tone }: { current: string; peop
       label={t('切換本機身分')}
       align={tone === 'header' ? 'right' : 'left'}
       side={tone === 'header' ? 'down' : 'up'}
+      floating={tone === 'sidebar'}
       className={
         tone === 'header'
           ? 'm-press grid h-8 w-8 place-items-center rounded-full bg-accent text-xs font-semibold text-on-accent'

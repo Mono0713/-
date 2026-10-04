@@ -38,7 +38,7 @@
 .m-page { animation: m-fade-up var(--m-slow) var(--m-ease-out) backwards; }
 .m-enter { animation: m-fade-up var(--m-slow) var(--m-ease-out) backwards; }
 .m-scale-in { animation: m-scale-in var(--m-base) var(--m-spring) backwards; }
-.m-expand { transform-origin: top; animation: m-expand var(--m-slow) var(--m-ease-out) backwards; }
+.m-expand { transform-origin: top; animation: m-expand var(--m-base) var(--m-ease-out) backwards; }
 .m-slide-next { animation: m-slide-next var(--m-slow) var(--m-ease-out) backwards; }
 .m-slide-prev { animation: m-slide-prev var(--m-slow) var(--m-ease-out) backwards; }
 
@@ -54,7 +54,7 @@
 .m-stagger > :nth-child(n + 9) { animation-delay: 320ms; }
 
 /* feedback */
-.m-pop { animation: m-pop var(--m-slow) var(--m-spring); }
+.m-pop { animation: m-pop var(--m-base) var(--m-spring); }
 .m-shake { animation: m-shake 420ms var(--m-ease-out); }
 .m-float { animation: m-float 3.2s ease-in-out infinite; }
 .m-spin { animation: m-spin 0.8s linear infinite; }
@@ -105,12 +105,12 @@
 :is(.hl, .hl-md > p).m-sweep,
 .m-sweep.hl-md > p {
   background-repeat: no-repeat;
-  animation: m-sweep 520ms var(--m-ease-out) 120ms backwards;
+  animation: m-sweep 340ms var(--m-ease-out) 60ms backwards;
 }
 
 /* pen strokes: an SVG path with pathLength="1" draws itself.
    The dash gap is twice the path and starts just past 1, so a round cap never peeks out before drawing. */
-.m-pen { stroke-dasharray: 1 2; animation: m-draw 560ms var(--m-ease-out) both; }
+.m-pen { stroke-dasharray: 1 2; animation: m-draw 360ms var(--m-ease-out) both; }
 .m-nudge { animation: m-nudge 360ms ease 60ms; }
 
 /* buttons that press down: the bottom edge is a solid "depth" that collapses while held */

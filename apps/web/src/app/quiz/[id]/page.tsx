@@ -1,6 +1,7 @@
 import { isOver, summarize } from '@exam/quiz'
 import { notFound } from 'next/navigation'
 import { DeleteQuizButton } from '@/features/quiz/DeleteQuizButton'
+import { Removable } from '@/shared/removal'
 import { QuizPlayer } from '@/features/quiz/QuizPlayer'
 import { QuizResults } from '@/features/quiz/QuizResults'
 import { startTeacher } from '@/features/quiz/teacher'
@@ -36,8 +37,10 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
   // Handed in to a class: it stays for the teacher, so it cannot be deleted.
   const deletable = selfMarks(attempt)
 
+  // Deleting it goes back to the list; the page empties at once rather than waiting for the list to load.
   if (attempt.finishedAt) {
     return (
+      <Removable id={attempt.id}>
       <div className="mx-auto max-w-4xl">
         <PageHeader
           title={attempt.title}
@@ -57,15 +60,18 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
           <QuizResults attempt={{ ...attempt, items: attempt.items.map((item) => revealedItem(item, key)) }} summary={summarize(attempt)} teacher={(await graderFor(attempt)) !== null} locale={await localeOf(attempt.ownerId)} />
         )}
       </div>
+      </Removable>
     )
   }
 
   // Answers stay on the server until a question is checked or the quiz is handed in.
   const visible = { ...attempt, items: attempt.items.map((item, i) => (attempt.checked[i] ? revealedItem(item, key) : hiddenItem(item))) }
   return (
+    <Removable id={attempt.id}>
     <div className="mx-auto max-w-6xl">
       <PageHeader title={attempt.title} subtitle={t('{mode} · {n} 題', { mode, n: attempt.items.length })} actions={deletable && <DeleteQuizButton quizId={attempt.id} label={t('不做了，刪除')} note={t('已刪除測驗')} iconOnly />} />
       <QuizPlayer attempt={visible} locale={await localeOf(attempt.ownerId)} aiMarks={(await graderFor(attempt)) !== null} />
     </div>
+    </Removable>
   )
 }

@@ -13,9 +13,11 @@ import { readInk, startTeacher } from './teacher'
 import { keyShown, revealedItem } from './visible'
 
 async function owned(id: string): Promise<QuizAttempt> {
-  const t = await getT()
   const attempt = await ownedAttempt(id)
-  if (!attempt) throw new Error(t('找不到這次測驗'))
+  if (!attempt) {
+    const t = await getT()
+    throw new Error(t('找不到這次測驗'))
+  }
   return attempt
 }
 
@@ -64,17 +66,21 @@ function withAt<T>(list: T[], index: number, value: T): T[] {
 
 /** Practice mode: locks the answer and reveals the key, explanation and translation. */
 export async function checkAnswer(id: string, index: number, response: QuizResponse) {
-  const t = await getT()
   let attempt = await owned(id)
-  if (attempt.settings.mode !== 'practice') throw new Error(t('只有練習模式能逐題看答案'))
+  if (attempt.settings.mode !== 'practice') {
+    const t = await getT()
+    throw new Error(t('只有練習模式能逐題看答案'))
+  }
   attempt =
     (await services().quizzes.update(id, (a) =>
       a.checked[index] || a.finishedAt ? null : { ...a, responses: withAt(a.responses, index, fromClient(response)), checked: withAt(a.checked, index, true) },
     )) ?? attempt
   const item = attempt.items[index]!
-  const teacher = await graderFor(attempt)
+  // Most answers are settled by the key alone; only look up the AI teacher when one is needed.
+  const unread = unreadHandwriting(attempt.responses[index]) && !attempt.markings[index]
+  const teacher = unread || needsTeacher(item, attempt.responses[index] ?? null, attempt.markings[index] ?? null) ? await graderFor(attempt) : null
   // A handwritten answer is read into text first, then checked like a typed one.
-  if (teacher && unreadHandwriting(attempt.responses[index]) && !attempt.markings[index]) {
+  if (teacher && unread) {
     try {
       attempt = await readInk(attempt, teacher, [index])
     } catch {

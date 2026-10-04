@@ -8,6 +8,7 @@ export {
   ArrowUp as IconArrowUp,
   ArrowUpToLine as IconTop,
   BookmarkCheck as IconSave,
+  Camera as IconCamera,
   Check as IconCheck,
   Cloud as IconCloud,
   CodeXml as IconCode,

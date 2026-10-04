@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import { useT } from '@/shared/i18n/client'
 import { IconTrash } from '@/shared/icons'
 import { useRemoval } from '@/shared/removal'
@@ -21,13 +22,13 @@ export interface QuizRow {
  * The list of quizzes. Deleting is one click with no question asked: the row goes at once and a note
  * offers 復原 for a few seconds (see RemovalProvider).
  */
-export function QuizList({ rows }: { rows: QuizRow[] }) {
+export function QuizList({ rows, empty }: { rows: QuizRow[]; /** Shown once every row is gone. */ empty: ReactNode }) {
   const t = useT()
   const { remove, isRemoved } = useRemoval()
   const removeRow = (row: QuizRow) => remove({ id: row.id, note: row.score ? t('已刪除測驗紀錄') : t('已刪除測驗'), commit: () => removeQuiz(row.id) })
 
   const shown = rows.filter((r) => !isRemoved(r.id))
-  if (!shown.length) return null
+  if (!shown.length) return empty
   return (
     <ul className="m-stagger divide-y divide-line overflow-hidden rounded-2xl bg-surface shadow-sheet">
       {shown.map((a) => (
@@ -63,4 +64,11 @@ export function QuizList({ rows }: { rows: QuizRow[] }) {
       ))}
     </ul>
   )
+}
+
+/** "N 次紀錄", counting a row deleted a moment ago as gone already. */
+export function QuizCount({ ids }: { ids: string[] }) {
+  const t = useT()
+  const { isRemoved } = useRemoval()
+  return t('{n} 次紀錄', { n: ids.filter((id) => !isRemoved(id)).length })
 }
