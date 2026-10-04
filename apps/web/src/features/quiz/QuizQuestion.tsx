@@ -2,7 +2,7 @@
 
 import { ESSAY_COLUMNS, isEmptyInk, practicePaper, type InkDoc, type Paper } from '@exam/ink'
 import type { QuizItem, QuizResponse } from '@exam/quiz'
-import { answerKind, matches, toPaperLabels } from '@exam/quiz/logic'
+import { answerKind, matches, toPaperLabels, toQuizLabels } from '@exam/quiz/logic'
 import { useState, type ReactNode } from 'react'
 import { FigureView } from '@/shared/FigureView'
 import { useT } from '@/shared/i18n/client'
@@ -13,6 +13,7 @@ import { Markdown } from '@/shared/Markdown'
 import { IconKeyboard, IconLanguages, IconLoader, IconPen, IconScratch } from '@/shared/icons'
 import { PenTick } from '@/shared/motion/PenMarks'
 import { Segmented } from '@/shared/Segmented'
+import { MatchingPicker } from './MatchingPicker'
 import { PracticeSheet } from './PracticeSheet'
 import { useQuestionTranslation } from './useQuestionTranslation'
 import { wordCount } from '@/shared/wordCount'
@@ -78,7 +79,9 @@ export function QuizQuestion({
   const key = q.answer.values
 
   // Open and fill-in answers can be handwritten; the AI reads them into text when checked.
-  const writable = kind.kind === 'text' || kind.kind === 'blanks'
+  // 配合題 is answered by picking labels, never by hand.
+  const pick = kind.kind === 'blanks' && kind.pick === true
+  const writable = kind.kind === 'text' || (kind.kind === 'blanks' && !pick)
   const typed = values.some((v) => v.trim())
   const inked = !isEmptyInk(response?.handwriting)
   const [mode, setMode] = useState<'type' | 'ink'>(() => (inked && (response?.transcribed || !typed) ? 'ink' : 'type'))
@@ -383,7 +386,18 @@ export function QuizQuestion({
         </div>
       )}
 
-      {!byHand && kind.kind === 'blanks' && kind.count > kind.figureBlanks && (
+      {pick && kind.kind === 'blanks' && (
+        <MatchingPicker
+          count={kind.count}
+          labels={item.displayLabels}
+          values={values}
+          answer={reveal ? key.map((v) => toQuizLabels(item, v)) : null}
+          locked={locked}
+          onPick={(slot, label) => setAt(slot, label, kind.count)}
+        />
+      )}
+
+      {!byHand && !pick && kind.kind === 'blanks' && kind.count > kind.figureBlanks && (
         <div className="grid gap-2 sm:grid-cols-2">
           {Array.from({ length: kind.count - kind.figureBlanks }, (_, k) => {
             const slot = kind.figureBlanks + k

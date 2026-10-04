@@ -85,6 +85,21 @@ describe('answerKind', () => {
     expect(answerKind(q({ type: 'calculation', options: [] }))).toEqual({ kind: 'text' })
     expect(answerKind(q({ type: 'single_choice', options: [] }))).toEqual({ kind: 'text' })
   })
+
+  it('answers matching by picking one label per item', () => {
+    expect(answerKind(q({ type: 'matching', answer: { values: ['C', 'A'], source: 'printed' } }))).toEqual({ kind: 'blanks', count: 2, figureBlanks: 0, pick: true })
+    // without a key, one item per numbered line of the stem
+    const stem = '配合下列各題：\n1. 光合作用\n(2) 呼吸作用\n3、發酵'
+    expect(answerKind(q({ type: 'matching', stem, answer: { values: [], source: 'none' } }))).toEqual({ kind: 'blanks', count: 3, figureBlanks: 0, pick: true })
+  })
+
+  it('marks picked matching items, also with shuffled labels', () => {
+    const match = q({ type: 'matching', points: 3, answer: { values: ['C', 'A', 'B'], source: 'printed' } })
+    expect(grade(match, { values: ['C', 'A', 'D'] })).toEqual({ status: 'partial', score: 2, max: 3 })
+    const [item] = buildItems([{ questionId: 'q', question: match, group: null }], { ...settings, shuffleOptions: true }, sequence(0))
+    const shown = match.answer.values.map((v) => toQuizLabels(item!, v))
+    expect(gradeItem(item!, { values: shown }).status).toBe('correct')
+  })
 })
 
 describe('buildItems', () => {

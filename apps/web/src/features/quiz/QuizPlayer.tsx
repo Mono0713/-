@@ -121,7 +121,8 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
   const focus = item.question.type === 'writing' || item.question.type === 'composition'
   const isChecked = checked[current]
   // The sparkle means AI: only when an AI teacher will mark this answer (never for choice questions).
-  const aiChecks = aiMarks && !['single', 'multiple', 'true_false'].includes(answerKind(item.question).kind)
+  const kind = answerKind(item.question)
+  const aiChecks = aiMarks && !['single', 'multiple', 'true_false'].includes(kind.kind) && !(kind.kind === 'blanks' && kind.pick)
   const last = current === total - 1
   const progress = practice ? t('已完成 {done} / {total} 題', { done: checked.filter(Boolean).length, total }) : t('已作答 {done} / {total} 題', { done: answeredCount, total })
   // No dialog: with questions left blank the first press only says how many, and a second press hands in.

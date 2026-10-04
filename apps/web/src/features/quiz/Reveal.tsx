@@ -98,7 +98,7 @@ export function Reveal({
       )}
 
       {/* Anything but a choice question can be marked by hand, also over the AI teacher's mark. */}
-      {kind.kind !== 'single' && kind.kind !== 'multiple' && kind.kind !== 'true_false' && grade.status !== 'unanswered' && onMark && (
+      {kind.kind !== 'single' && kind.kind !== 'multiple' && kind.kind !== 'true_false' && !(kind.kind === 'blanks' && kind.pick) && grade.status !== 'unanswered' && onMark && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-muted">
             {marking?.by === 'ai' ? t('AI 老師批改的。不同意的話可以自己改：') : withheld ? t('答案沒有公開，你的答案：') : key.length ? t('對照參考答案，你的答案：') : t('這題沒有標準答案，你的答案：')}

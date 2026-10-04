@@ -808,5 +808,7 @@
   "更換頭像": "Change picture",
   "你的名字": "Your name",
   "名字": "Name",
-  "改回 Google 頭像": "Use Google picture"
+  "改回 Google 頭像": "Use Google picture",
+  "加一項": "Add item",
+  "第 {n} 項": "Item {n}"
 }

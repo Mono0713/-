@@ -1,6 +1,6 @@
 'use client'
 
-import type { Answer, DraftQuestion } from '@exam/core'
+import { isPickMatching, matchingItemCount, type Answer, type DraftQuestion } from '@exam/core'
 import type { ReactNode } from 'react'
 import { IconPlus } from '@/shared/icons'
 import { msg } from '@/shared/i18n/format'
@@ -61,6 +61,34 @@ export function AnswerEditor({ q, setAnswer }: { q: DraftQuestion; setAnswer: (p
           </button>
         ))}
       </div>
+    )
+  } else if (isPickMatching(q) && !blanks.length) {
+    // 配合題: one row per item, each matched to one option label.
+    const count = matchingItemCount(q)
+    const values = Array.from({ length: count }, (_, i) => q.answer.values[i] ?? '')
+    const setAt = (i: number, label: string) => setAnswer({ values: values.map((v, j) => (j === i ? label : v)) })
+    body = (
+      <div className="grid gap-1.5">
+        {values.map((v, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <span className="num min-w-7 text-[13px] font-semibold text-muted">({i + 1})</span>
+            <div className="flex flex-1 flex-wrap gap-1.5">
+              {q.options.map((o, k) => (
+                <button key={`${o.label}-${k}`} type="button" className={`${pick(v === o.label)} num`} aria-pressed={v === o.label} onClick={() => setAt(i, v === o.label ? '' : o.label)}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            {count > 1 && <RemoveButton label={t('刪除第 {n} 個答案', { n: i + 1 })} onClick={() => setAnswer({ values: values.filter((_, j) => j !== i) })} />}
+          </div>
+        ))}
+      </div>
+    )
+    more = (
+      <button type="button" onClick={() => setAnswer({ values: [...values, ''] })} className="m-press flex h-7 items-center gap-1 rounded-md px-2 text-xs text-accent hover:bg-accent-soft">
+        <IconPlus size={13} strokeWidth={2.4} />
+        {t('加一項')}
+      </button>
     )
   } else if (blanks.length) {
     body = (
