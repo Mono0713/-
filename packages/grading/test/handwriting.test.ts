@@ -3,7 +3,7 @@ import type { InkDoc } from '@exam/ink'
 import { buildItems } from '@exam/quiz'
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
-import { inkToPng, readHandwriting, readHandwrittenAnswers, repairLatex, unreadHandwriting, type TextModel } from '../src/index.ts'
+import { inkToPng, practiceToPng, readHandwriting, readHandwrittenAnswers, repairLatex, unreadHandwriting, type TextModel } from '../src/index.ts'
 
 function q(overrides: Partial<DraftQuestion>): DraftQuestion {
   return {
@@ -72,5 +72,16 @@ describe('handwriting', () => {
 
     const failing = fakeModel([new Error('overloaded')])
     await expect(readHandwrittenAnswers(attempt, failing.model)).rejects.toThrow('overloaded')
+  })
+})
+
+describe('writing practice', () => {
+  it('sends the grid uncropped and returns one reading per row', async () => {
+    const [item] = items([q({ type: 'writing', answer: { values: ['永', '天'], source: 'printed' } })])
+    const { model, calls } = fakeModel(['{"values": ["永 永", "?天"]}'])
+    expect(await readHandwriting(model, item!, { ...ink, height: 0.25 })).toEqual(['永永', '?天'])
+    expect(calls[0]!.prompt).toContain('1. 永\n2. 天')
+    const png = await practiceToPng(['永', '天'], { ...ink, height: 0.25 }, 800)
+    expect((await sharp(png).metadata()).height).toBe(200)
   })
 })

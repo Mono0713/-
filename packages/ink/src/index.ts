@@ -1,5 +1,7 @@
 import { getStroke } from 'perfect-freehand'
 
+export * from './paper.ts'
+
 /**
  * Handwriting as data: strokes of points, measured in page widths so the same ink draws
  * at any size (x from 0 to 1, y from 0 to `height`). Pressure is 0 to 1; 0.5 when unknown.
@@ -60,11 +62,11 @@ export function strokePath(stroke: Stroke, width: number): string {
 
 const f = (n: number) => n.toFixed(1)
 
-/** The whole page as an SVG image, e.g. to send handwriting to a model or show it read-only. */
-export function inkToSvg(doc: InkDoc, width = 1000, background = '#ffffff'): string {
+/** The whole page as an SVG image, e.g. to send handwriting to a model or show it read-only; `underlay` (SVG) is drawn under the ink. */
+export function inkToSvg(doc: InkDoc, width = 1000, background = '#ffffff', underlay = ''): string {
   const height = Math.max(1, Math.round(doc.height * width))
   const paths = doc.strokes.map((s) => `<path d="${strokePath(s, width)}" fill="${escape(s.color)}"/>`).join('')
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="${escape(background)}"/>${paths}</svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="${escape(background)}"/>${underlay}${paths}</svg>`
 }
 
 const escape = (s: string) => s.replace(/[^#\w(),. ]/g, '')

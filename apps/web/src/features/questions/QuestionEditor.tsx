@@ -262,6 +262,17 @@ function AnswerEditor({ q, setAnswer }: { q: DraftQuestion; setAnswer: (patch: P
         ))}
       </div>
     )
+  } else if (q.type === 'writing') {
+    // The characters to practise; each one becomes a row of the practice grid.
+    body = (
+      <MathTextInput
+        value={q.answer.values.join(' ')}
+        // kept as typed (spaces too), so typing is never interrupted; spaces are skipped in the grid
+        onChange={(v) => setAnswer({ values: v.trim() ? [v] : [] })}
+        multiline={false}
+        placeholder={t('要練習的字，例如：永 春天')}
+      />
+    )
   } else if ((q.type === 'single_choice' || q.type === 'multiple_choice') && q.options.length) {
     body = (
       <div className="flex flex-wrap gap-1.5">

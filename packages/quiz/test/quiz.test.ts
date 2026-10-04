@@ -194,3 +194,19 @@ describe('inOtherLanguage', () => {
     expect(inOtherLanguage(q('$2x + 3 = 7$'), 'zh-Hant')).toBe(false)
   })
 })
+
+describe('writing practice', () => {
+  const writing = q({ type: 'writing', options: [], points: 3, answer: { values: ['永', '春天'], source: 'printed' } })
+
+  it('practises each character on its own row, written by hand only', () => {
+    expect(answerKind(writing)).toEqual({ kind: 'writing', rows: ['永', '春', '天'] })
+  })
+
+  it('waits for the handwriting to be read, then counts the rows written right', () => {
+    const ink = { strokes: [{ points: [[0.1, 0.1, 0.5]] as [number, number, number][], color: '#000', size: 0.004 }], height: 0.4 }
+    expect(grade(writing, { values: [], handwriting: ink }).status).toBe('pending')
+    expect(grade(writing, { values: ['永永永', '春春', '天'] })).toEqual({ status: 'correct', score: 3, max: 3 })
+    expect(grade(writing, { values: ['永?永', '春', ''] })).toEqual({ status: 'partial', score: 1, max: 3 })
+    expect(grade(writing, { values: ['?', '', '夫'] }).status).toBe('wrong')
+  })
+})

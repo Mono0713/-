@@ -67,7 +67,8 @@ export function Reveal({
       {/* A shared exam whose owner keeps the key private sends empty answers. */}
       {withheld && <p className="text-muted">{withheldNote ?? t('分享這份考卷的人沒有公開答案。')}</p>}
 
-      {key.length > 0 && !withheld && (
+      {/* a writing practice shows its characters in the grid already */}
+      {key.length > 0 && !withheld && kind.kind !== 'writing' && (
         <div className={choices?.length === 1 ? 'flex items-baseline' : undefined}>
           <span className="shrink-0 font-medium text-good">{t('正確答案：')}</span>
           {choices ? (

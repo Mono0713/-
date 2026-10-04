@@ -5,10 +5,12 @@ import type { QuizItem, QuizSettings } from '@exam/quiz'
  * without its answer key, explanation, translation or review notes.
  */
 export function hiddenItem(item: QuizItem): QuizItem {
+  // The characters of a writing practice are what the student copies, not a secret.
+  const values = item.question.type === 'writing' ? item.question.answer.values : item.question.answer.values.map(() => '')
   return {
     ...item,
     // Empty entries keep the number of blanks without giving the answers away.
-    question: { ...item.question, answer: { values: item.question.answer.values.map(() => ''), source: 'none' }, explanation: null, translation: null, issues: [] },
+    question: { ...item.question, answer: { values, source: 'none' }, explanation: null, translation: null, issues: [] },
   }
 }
 

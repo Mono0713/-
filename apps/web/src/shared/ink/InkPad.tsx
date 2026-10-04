@@ -1,6 +1,6 @@
 'use client'
 
-import { compactStroke, emptyInk, hitsStroke, strokePath, type InkDoc, type InkPoint, type Stroke } from '@exam/ink'
+import { compactStroke, emptyInk, hitsStroke, paperGuides, paperLines, practiceHeight, strokePath, type InkDoc, type InkPoint, type Paper, type Stroke } from '@exam/ink'
 import { useMemo, useRef, useState, type CSSProperties } from 'react'
 import { msg } from '@/shared/i18n/format'
 import { useT } from '@/shared/i18n/client'
@@ -20,6 +20,8 @@ const SIZE_START = 0.0035
 /** Black ink is stored as black (AI reads it on white) but drawn in the theme's ink color, so it shows in dark mode. */
 const shown = (c: string) => (c === COLORS[0][0] ? 'var(--color-ink)' : c)
 
+const DOTS: Paper = { kind: 'dots' }
+
 // Once a pen has touched any pad, fingers scroll instead of drawing (palm rejection).
 let penSeen = false
 
@@ -34,6 +36,8 @@ export function InkPad({
   readOnly = false,
   minHeight = 0.45,
   label,
+  paper = DOTS,
+  tools,
 }: {
   value: InkDoc | null | undefined
   onChange?: (doc: InkDoc) => void
@@ -41,9 +45,14 @@ export function InkPad({
   /** Starting height in page widths. */
   minHeight?: number
   label: string
+  /** What the page looks like underneath; a practice grid has a fixed size. */
+  paper?: Paper
+  /** Extra controls at the end of the toolbar (e.g. a paper picker). */
+  tools?: React.ReactNode
 }) {
   const t = useT()
-  const doc = value ?? emptyInk(minHeight)
+  const fixed = paper.kind === 'practice' ? practiceHeight(paper) : null
+  const doc = value ? (fixed ? { ...value, height: fixed } : value) : emptyInk(fixed ?? minHeight)
   // The latest page, also between renders (an eraser drag changes it many times per event).
   const latest = useRef(doc)
   latest.current = doc
@@ -142,12 +151,14 @@ export function InkPad({
     // Writing near the bottom makes room for more.
     const page = latest.current
     const lowest = Math.max(...stroke.points.map(([, y]) => y))
-    const height = lowest > page.height - 0.08 ? page.height + 0.25 : page.height
+    const height = !fixed && lowest > page.height - 0.08 ? page.height + 0.25 : page.height
     commit({ strokes: [...page.strokes, stroke], height })
   }
 
   const paths = useMemo(() => doc.strokes.map((s) => ({ d: strokePath(s, W), color: s.color })), [doc.strokes])
   const height = doc.height * W
+  const lines = useMemo(() => paperLines(paper, doc.height), [paper, doc.height])
+  const guides = useMemo(() => paperGuides(paper), [paper])
   const button = (on: boolean) => `m-press grid h-8 w-8 place-items-center rounded-lg ${on ? 'bg-ink text-paper' : 'text-muted hover:bg-ink/[0.06] hover:text-ink'}`
 
   return (
@@ -198,6 +209,7 @@ export function InkPad({
               <span className="rounded-full" style={{ width: Math.max(2, size * 2400), height: Math.max(2, size * 2400), background: shown(color) }} />
             </span>
           </label>
+          {tools}
           <span className="ml-auto flex items-center gap-1">
             <button type="button" className={button(false)} onClick={undo} disabled={!history.current.undo.length} aria-label={t('復原')} title={t('復原')}>
               <IconUndo size={16} />
@@ -220,15 +232,43 @@ export function InkPad({
         onPointerMove={move}
         onPointerUp={up}
         onPointerCancel={up}
-        className={`block w-full select-none bg-[radial-gradient(color-mix(in_srgb,var(--color-ink)_11%,transparent)_1px,transparent_1.2px)] bg-[length:22px_22px] ${readOnly ? '' : 'cursor-crosshair touch-none'}`}
+        className={`block w-full select-none ${paper.kind === 'dots' ? 'bg-[radial-gradient(color-mix(in_srgb,var(--color-ink)_11%,transparent)_1px,transparent_1.2px)] bg-[length:22px_22px]' : ''} ${readOnly ? '' : 'cursor-crosshair touch-none'}`}
         style={{ aspectRatio: `${W} / ${height}` }}
       >
+        {lines.map((l, i) => (
+          <line
+            key={i}
+            x1={l.x1 * W}
+            y1={l.y1 * W}
+            x2={l.x2 * W}
+            y2={l.y2 * W}
+            style={{ stroke: `color-mix(in srgb, var(--color-bad) ${l.style === 'guide' ? 30 : paper.kind === 'practice' ? 55 : 32}%, transparent)` }}
+            strokeWidth={l.style === 'guide' ? 1.2 : 1.6}
+            strokeDasharray={l.style === 'guide' ? '6 6' : undefined}
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+        {/* the model character to copy, then fainter ones to trace over (楷書, like a practice book) */}
+        {guides.map((g, i) => (
+          <text
+            key={i}
+            x={g.x * W}
+            y={g.y * W}
+            fontSize={g.size * W * 0.78}
+            textAnchor="middle"
+            dominantBaseline="central"
+            style={{ fontFamily: 'var(--font-hand)', fill: g.kind === 'model' ? 'var(--color-ink)' : 'color-mix(in srgb, var(--color-ink) 16%, transparent)' }}
+            aria-hidden
+          >
+            {g.char}
+          </text>
+        ))}
         {paths.map((p, i) => (
           <path key={i} d={p.d} fill={shown(p.color)} />
         ))}
         {live && <path d={strokePath(live, W)} fill={shown(live.color)} />}
       </svg>
-      {!readOnly && (
+      {!readOnly && !fixed && (
         <button type="button" onClick={() => change({ ...doc, height: doc.height + 0.3 })} className="w-full border-t border-line/70 py-1.5 text-xs text-muted hover:bg-paper hover:text-ink">
           {t('＋ 加長頁面')}
         </button>
