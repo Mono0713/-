@@ -2,11 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import type { ProviderOption } from '@/server/context'
-import { useT } from '@/shared/i18n/client'
-import { IconKey, IconRefresh } from '@/shared/icons'
+import { useLocale, useLocaleSwitch, useT } from '@/shared/i18n/client'
+import { IconKey, IconLoader, IconRefresh } from '@/shared/icons'
 import { useRemoval } from '@/shared/removal'
 import { Badge, Button, Card, inputClass } from '@/shared/ui'
-import { refreshModels, removeApiKey, saveAiGrading, saveApiKey, saveDefaultProvider, saveLocale, saveModel } from './actions'
+import { refreshModels, removeApiKey, saveAiGrading, saveApiKey, saveDefaultProvider, saveModel } from './actions'
 import { ModelPicker } from './ModelPicker'
 import { CustomProviders, type CustomProviderView } from './CustomProviders'
 import { StrengthSettings, type StrengthState } from './StrengthSettings'
@@ -67,6 +67,9 @@ export function SettingsForm({
   hosted: boolean
 }) {
   const t = useT()
+  const { switchTo, switching } = useLocaleSwitch()
+  // the picker follows the language on screen, which changes before the server's page does
+  const shownLocale = useLocale()
   const [, start] = useTransition()
   const run = (action: () => Promise<unknown>) => start(async () => void (await action()))
   // every change saves on the spot; no "saved" note (the control itself already shows the new value)
@@ -77,13 +80,16 @@ export function SettingsForm({
     <div className="space-y-6">
       <Section title={t('一般')}>
         <Row label={t('介面語言')} hint={t('介面和 AI 寫的校對備註（⚠ 提示）都會用這個語言。')}>
-          <select defaultValue={locale} onChange={(e) => run(() => saveLocale(e.target.value))} className={inputClass}>
-            {locales.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.label}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select value={shownLocale} onChange={(e) => switchTo(e.target.value)} className={inputClass}>
+              {locales.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+            {switching && <IconLoader size={16} className="m-spin shrink-0 text-muted" aria-label={t('切換中…')} />}
+          </div>
         </Row>
         <Row label={t('外觀')} hint={t('淺色或深色。只記在這個瀏覽器裡。')}>
           <ThemePicker />

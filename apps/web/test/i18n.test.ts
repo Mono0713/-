@@ -29,7 +29,8 @@ describe('t', () => {
   it('picks the interface language from the browser', () => {
     expect(fromAcceptLanguage('zh-CN,zh;q=0.9,en;q=0.8')).toBe('zh-Hans')
     expect(fromAcceptLanguage('zh-TW,zh;q=0.9')).toBe('zh-Hant')
-    expect(fromAcceptLanguage('fr-FR,ja;q=0.7,en;q=0.5')).toBe('ja')
-    expect(fromAcceptLanguage('fr-FR')).toBeNull()
+    expect(fromAcceptLanguage('pl-PL,ja;q=0.7,en;q=0.5')).toBe('ja')
+    expect(fromAcceptLanguage('es-MX,en;q=0.5')).toBe('es')
+    expect(fromAcceptLanguage('pl-PL')).toBeNull()
   })
 })

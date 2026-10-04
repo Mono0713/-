@@ -45,6 +45,13 @@ const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
   ja: 'Japanese (日本語)',
   ko: 'Korean (한국어)',
+  es: 'Spanish (Español)',
+  fr: 'French (Français)',
+  de: 'German (Deutsch)',
+  pt: 'Portuguese (Português)',
+  vi: 'Vietnamese (Tiếng Việt)',
+  th: 'Thai (ไทย)',
+  id: 'Indonesian (Bahasa Indonesia)',
 }
 
 /** Language review notes are written in when the caller does not say. */

@@ -6,6 +6,7 @@ import { Sidebar } from '@/shared/chrome/Sidebar'
 import { MOTION_SCRIPT } from '@/shared/motion/preference'
 import { ServiceWorker } from '@/shared/pwa/ServiceWorker'
 import { CATALOGS } from '@/shared/i18n/catalogs'
+import { saveLocale } from '@/features/settings/actions'
 import { I18nProvider } from '@/shared/i18n/client'
 import { getLocale } from '@/shared/i18n/server'
 import { RemovalProvider } from '@/shared/removal'
@@ -46,7 +47,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_SCRIPT + MOTION_SCRIPT }} />
       </head>
       <body className="min-h-screen font-sans antialiased">
-        <I18nProvider locale={locale} messages={CATALOGS[locale]}>
+        <I18nProvider locale={locale} messages={CATALOGS[locale]} save={saveLocale}>
         <RemovalProvider>
           <div className="xl:flex">
             <Sidebar />

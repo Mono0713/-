@@ -12,7 +12,7 @@ import ts from 'typescript'
 const ROOT = join(import.meta.dirname, '..')
 const SRC = join(ROOT, 'src')
 export const MESSAGES = join(SRC, 'shared/i18n/messages')
-export const TARGETS = ['zh-Hans', 'en', 'ja', 'ko'] as const
+export const TARGETS = ['zh-Hans', 'en', 'ja', 'ko', 'es', 'fr', 'de', 'pt', 'vi', 'th', 'id'] as const
 
 const CJK = /[㐀-鿿豈-﫿]/
 const MARKERS = new Set(['t', 'msg'])

@@ -42,7 +42,7 @@ Reply with JSON only: {"stem":"...","options":["...", "..."]} with one entry per
 }
 
 /** Reader languages as the free services name them. */
-const FREE_CODES: Record<string, string> = { 'zh-Hant': 'zh-TW', 'zh-Hans': 'zh-CN', en: 'en', ja: 'ja', ko: 'ko' }
+const FREE_CODES: Record<string, string> = { 'zh-Hant': 'zh-TW', 'zh-Hans': 'zh-CN', en: 'en', ja: 'ja', ko: 'ko', es: 'es', fr: 'fr', de: 'de', pt: 'pt', vi: 'vi', th: 'th', id: 'id' }
 
 type Fetch = (url: string, init?: { signal?: AbortSignal }) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>
 
