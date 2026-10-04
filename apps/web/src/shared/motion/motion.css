@@ -59,7 +59,8 @@
 .m-float { animation: m-float 3.2s ease-in-out infinite; }
 .m-spin { animation: m-spin 0.8s linear infinite; }
 /* a thin ballpoint-blue line running along the top while the page catches up (e.g. after a language switch) */
-@keyframes m-loading-bar { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+/* a 40%-wide sweep that enters past the left edge and leaves past the right one */
+@keyframes m-loading-bar { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
 .m-loading-bar { overflow: hidden; }
 .m-loading-bar::after { content: ''; position: absolute; inset: 0; width: 40%; background: var(--color-accent); border-radius: 1px; animation: m-loading-bar 0.9s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
 .m-draw { stroke-dasharray: 1 2; animation: m-draw var(--m-slow) var(--m-ease-out) 80ms both; }

@@ -1,19 +1,26 @@
 'use client'
 
-import { createContext, useContext, useEffect, useMemo, useState, useTransition, type ReactNode } from 'react'
+import { createContext, useContext, useMemo, useState, useTransition, type ReactNode } from 'react'
 import { makeT, type Messages, type T } from './format'
-import { LOADERS } from './loaders'
 import { DEFAULT_LOCALE, isLocale, type Locale } from './locales'
 
 interface I18n {
   locale: Locale
   messages: Messages
-  /** Switches the interface language: the screen changes at once, the server catches up behind a loading bar. */
+  /** The language being switched to while the server re-renders the page, else the current one. */
+  target: Locale
+  /** Switches the interface language; the whole page changes together once the server has re-rendered it. */
   switchTo: (locale: string) => void
   switching: boolean
 }
 
-const Context = createContext<I18n>({ locale: DEFAULT_LOCALE, messages: {}, switchTo: () => {}, switching: false })
+const Context = createContext<I18n>({
+  locale: DEFAULT_LOCALE,
+  messages: {},
+  target: DEFAULT_LOCALE,
+  switchTo: () => {},
+  switching: false,
+})
 
 /** Hands the request's language and its catalog to client components; the root layout renders it. */
 export function I18nProvider({
@@ -28,26 +35,23 @@ export function I18nProvider({
   save: (locale: string) => Promise<void>
   children: ReactNode
 }) {
-  const [shown, setShown] = useState({ locale, messages })
-  // the server's page has caught up (or another tab changed it)
-  useEffect(() => setShown({ locale, messages }), [locale, messages])
   const [switching, start] = useTransition()
+  const [target, setTarget] = useState<Locale>(locale)
 
   const value = useMemo<I18n>(
     () => ({
-      ...shown,
+      locale,
+      messages,
+      // client text keeps the server's language, so nothing on the page is half switched
+      target: switching ? target : locale,
       switching,
       switchTo: (next) => {
-        if (!isLocale(next)) return
-        // what the browser draws changes right away; text drawn by the server follows when the save returns
-        void LOADERS[next]().then((catalog) => {
-          setShown({ locale: next, messages: catalog })
-          document.documentElement.lang = next
-        })
+        if (!isLocale(next) || next === locale) return
+        setTarget(next)
         start(() => save(next))
       },
     }),
-    [shown, switching, save],
+    [locale, messages, target, switching, save],
   )
   return (
     <Context.Provider value={value}>
@@ -68,7 +72,7 @@ export function useLocale(): Locale {
 }
 
 /** Changing the interface language, for the language picker. */
-export function useLocaleSwitch(): { switchTo: (locale: string) => void; switching: boolean } {
-  const { switchTo, switching } = useContext(Context)
-  return { switchTo, switching }
+export function useLocaleSwitch(): { target: Locale; switchTo: (locale: string) => void } {
+  const { target, switchTo } = useContext(Context)
+  return { target, switchTo }
 }
