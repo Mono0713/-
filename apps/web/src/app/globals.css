@@ -274,3 +274,8 @@ math-field.inline-formula::part(menu-toggle),
 math-field.inline-formula::part(virtual-keyboard-toggle) {
   display: none;
 }
+
+/* Korean breaks lines between words, not inside them. */
+:lang(ko) {
+  word-break: keep-all;
+}

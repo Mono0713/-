@@ -245,7 +245,7 @@ function AddModel({ known, onAdd }: { known: string[]; onAdd: (id: string) => vo
       >
         <input autoComplete="off" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={t('或輸入模型名稱')} className={`${inputBase} w-48 font-mono`} aria-label={t('模型名稱')} spellCheck={false} />
         <Button type="submit" variant="ghost" disabled={!typed.trim()} icon={<IconPlus size={15} />}>
-          {t('加入')}
+          {t('新增')}
         </Button>
       </form>
     </div>

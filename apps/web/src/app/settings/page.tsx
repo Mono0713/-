@@ -3,8 +3,8 @@ import { LOCALES, publicView } from '@exam/settings'
 import { monthStart, spend } from '@exam/usage'
 import { SettingsForm } from '@/features/settings/SettingsForm'
 import { StorageCard } from '@/features/settings/StorageCard'
-import { authEnabled, availableProviders, currentOwner, keySource, localeOf, providersOf, services, storageOf, teacherChoice } from '@/server/context'
-import { getT } from '@/shared/i18n/server'
+import { authEnabled, availableProviders, currentOwner, keySource, providersOf, services, storageOf, teacherChoice } from '@/server/context'
+import { getLocale, getT } from '@/shared/i18n/server'
 import { PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -25,7 +25,7 @@ export default async function SettingsPage() {
     store.get(owner),
     availableProviders(owner),
     teacherChoice(owner),
-    localeOf(owner),
+    getLocale(),
     usage.summary(owner, new Date(Date.now() - ESTIMATE_WINDOW_DAYS * 86_400_000)),
     usage.summary(owner, monthStart()),
     storageOf(owner),

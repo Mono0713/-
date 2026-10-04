@@ -166,7 +166,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
                 <tr className="text-left text-xs text-muted">
                   <th className="px-3 py-2 font-medium">{t('學生')}</th>
                   <th className="px-3 py-2 font-medium">{t('狀態')}</th>
-                  <th className="px-3 py-2 text-right font-medium">{t('分數')}</th>
+                  <th className="px-3 py-2 text-right font-medium">{t('得分')}</th>
                   <th className="px-3 py-2 text-right font-medium">{t('次數')}</th>
                   <th className="px-3 py-2 font-medium">{t('交卷時間')}</th>
                 </tr>

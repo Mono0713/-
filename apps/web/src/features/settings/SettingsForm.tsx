@@ -76,7 +76,7 @@ export function SettingsForm({
   return (
     <div className="space-y-6">
       <Section title={t('一般')}>
-        <Row label={t('介面語言')} hint={t('AI 寫的校對備註（⚠ 提示）會用這個語言。網頁文字的翻譯會陸續加入。')}>
+        <Row label={t('介面語言')} hint={t('介面和 AI 寫的校對備註（⚠ 提示）都會用這個語言。')}>
           <select defaultValue={locale} onChange={(e) => run(() => saveLocale(e.target.value))} className={inputClass}>
             {locales.map((l) => (
               <option key={l.id} value={l.id}>
