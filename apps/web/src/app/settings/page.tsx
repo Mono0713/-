@@ -42,6 +42,7 @@ export default async function SettingsPage() {
         keys={Object.fromEntries(providers.map((p, i) => [p.id, { source: sources[i]!, hint: settings.apiKeys[p.id]?.hint ?? null }]))}
         routing={routing}
         strength={{ strength: saved.strength, taskStrength: saved.taskStrength, taskModels: saved.taskModels }}
+        translationEngine={saved.translationEngine}
         usage={recent}
         month={month && { usd: formatUsd(month.usd), unpriced: month.unpriced }}
         custom={saved.customProviders.map((c) => ({

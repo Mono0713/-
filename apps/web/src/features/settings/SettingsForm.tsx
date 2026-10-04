@@ -9,6 +9,7 @@ import { refreshModels, removeApiKey, saveAiGrading, saveApiKey, saveDefaultProv
 import { ModelPicker } from './ModelPicker'
 import { CustomProviders, type CustomProviderView } from './CustomProviders'
 import { StrengthSettings, type StrengthState } from './StrengthSettings'
+import { TranslationSettings } from './TranslationSettings'
 import type { ProviderInfo } from '@exam/models'
 import type { UsageRow } from '@exam/usage/estimates'
 import { CalmSwitch } from '@/shared/motion/CalmSwitch'
@@ -37,6 +38,7 @@ export function SettingsForm({
   keysInDatabase,
   routing,
   strength,
+  translationEngine,
   usage,
   month,
   custom,
@@ -54,6 +56,7 @@ export function SettingsForm({
   /** Every service with its models and prices, without keys, for the strength estimates. */
   routing: ProviderInfo[]
   strength: StrengthState
+  translationEngine: 'free' | 'ai'
   /** Recent AI calls, added up per task and model, so estimates follow real use. */
   usage: UsageRow[]
   /** Spend this calendar month; `unpriced` when some calls used a model without a known price. */
@@ -110,6 +113,10 @@ export function SettingsForm({
         note="為了省 AI 用量：程式先自己比對答案（格式不同也算對，例如 1/2、0.5、½），比不出來的才交給 AI；交卷時一次批改全部；同一題同樣的答案只問一次。選擇題和是非題不會用到 AI。"
       >
         <TeacherSettings initial={aiGrading} onSaved={flash} />
+      </Section>
+
+      <Section title="翻譯" note="題目不是介面語言時，做題畫面會有翻譯按鈕，題目和選項一起翻。覺得免費翻譯不夠好，可以改用 AI 翻譯（用你的 API 金鑰）。">
+        <TranslationSettings initial={{ engine: translationEngine, strength: strength.taskStrength.translation ?? null }} strength={strength.strength} providers={routing} override={strength.taskModels.translation ?? null} />
       </Section>
 
       <Section

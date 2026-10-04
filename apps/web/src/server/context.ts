@@ -7,7 +7,7 @@ import { connect } from '@exam/db'
 import { DEFAULT_MODELS, type ModelTier } from '@exam/extraction'
 import { DedupFileStore, fileStoreFromEnv, PostgresFileIndex, SqliteFileIndex, type FileIndex } from '@exam/files'
 import { AUTO, Importer } from '@exam/importer'
-import { AiTeacher, AiTranslator, AiTutor, createTextModel, PostgresGradingCache, SqliteGradingCache, type GradingCache, type TextModel } from '@exam/grading'
+import { AiTeacher, AiTranslator, FreeTranslator, AiTutor, createTextModel, PostgresGradingCache, SqliteGradingCache, type GradingCache, type TextModel } from '@exam/grading'
 import { BUILTIN_LABELS, BUILTIN_MODELS, route, type ModelChoice, type ProviderInfo, type Route, type Strength, type Task } from '@exam/models'
 import { PostgresQuizStore, SqliteQuizStore, type QuizStore } from '@exam/quiz'
 import { DEFAULT_LOCALE, FileSettingsStore, PostgresSettingsStore, type Settings, type SettingsStore } from '@exam/settings'
@@ -295,12 +295,15 @@ export async function tutorFor(ownerId: string): Promise<AiTutor | null> {
   return new AiTutor(await chain(s, ownerId, 'tutoring', [tutoring.primary, ...tutoring.fallbacks]))
 }
 
-/** Translates questions for this user, on their own keys and the translation route; null when no service has a key. */
-export async function translatorFor(ownerId: string): Promise<AiTranslator | null> {
+/**
+ * Translates questions for this user: free services by default, or the AI on their own keys and
+ * the translation route when they chose AI translation (free again while no service has a key).
+ */
+export async function translatorFor(ownerId: string): Promise<{ engine: 'free' | 'ai'; translator: Pick<AiTranslator, 'translate'> }> {
   const s = await services().settings.get(ownerId)
-  const translation = await routeFor(ownerId, 'translation')
-  if (!translation) return null
-  return new AiTranslator(await chain(s, ownerId, 'translation', [translation.primary, ...translation.fallbacks]))
+  const translation = s.translationEngine === 'ai' ? await routeFor(ownerId, 'translation') : null
+  if (!translation) return { engine: 'free', translator: new FreeTranslator() }
+  return { engine: 'ai', translator: new AiTranslator(await chain(s, ownerId, 'translation', [translation.primary, ...translation.fallbacks])) }
 }
 
 /** A text model that moves on to the next choice when one fails, logging what each call used. */

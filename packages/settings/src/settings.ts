@@ -38,6 +38,8 @@ export const Settings = z.object({
   aiGrading: z
     .object({ enabled: z.boolean().default(true), provider: z.string().nullable().default(null), model: z.string().nullable().default(null) })
     .default({ enabled: true, provider: null, model: null }),
+  /** How questions get translated: free services with no key, or the AI on the translation route. */
+  translationEngine: z.enum(['free', 'ai']).default('free'),
   /** How hard the AI tries, for every task: save money, balanced, or most accurate. */
   strength: Strength.default('balanced'),
   /** Per-task strength that differs from `strength` (advanced settings). */

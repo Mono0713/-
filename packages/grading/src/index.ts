@@ -4,4 +4,4 @@ export { createTextModel, registerTextModel, type TextModel, type TextModelConfi
 export { AiTeacher } from './teacher.ts'
 export { inkToPng, readHandwriting, readHandwrittenAnswers, repairLatex, unreadHandwriting } from './handwriting.ts'
 export { AiTutor, MAX_MESSAGE, parseReply, type TutorQuestion } from './tutor.ts'
-export { AiTranslator, parseTranslation, type Translation } from './translate.ts'
+export { AiTranslator, FreeTranslator, parseTranslation, type Translation } from './translate.ts'

@@ -115,8 +115,8 @@ export interface QuizAttempt {
   teacher?: TeacherState
   /** Conversations with the AI tutor, by question position. */
   tutoring?: Record<number, TutorTurn[]>
-  /** AI translations asked for, by question position: the stem and each option in its stored order. */
-  translations?: Record<number, { stem: string; options: string[] }>
+  /** Translations asked for, by question position: the stem and each option in its stored order, and which way made them. */
+  translations?: Record<number, { stem: string; options: string[]; engine?: 'free' | 'ai' }>
 }
 
 /** One message in a conversation with the AI tutor about a question. */

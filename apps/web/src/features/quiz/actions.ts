@@ -163,27 +163,29 @@ export async function askTutor(id: string, index: number, message: string): Prom
 }
 
 /**
- * A question in the reader's language: the translation printed on the paper when there is one,
- * else one the AI wrote earlier for this attempt, else a new one from the AI (kept for next time).
+ * A question in the reader's language, options included. The stem printed on the paper wins when there
+ * is one; the rest comes from the translation way chosen in settings (free by default, or the AI),
+ * kept on the attempt so the same question is not translated twice.
  */
 export async function translateQuestion(id: string, index: number): Promise<{ stem: string; options: string[] } | { error: string }> {
   const attempt = await owned(id)
   const item = attempt.items[index]
   if (!item) return { error: '找不到這一題' }
   const q = item.question
-  if (q.translation?.trim()) return { stem: q.translation, options: [] }
+  const printed = q.translation?.trim() || null
+  if (printed && !q.options.some((o) => o.content.trim())) return { stem: printed, options: [] }
+  const { engine, translator } = await translatorFor(attempt.ownerId)
   const kept = attempt.translations?.[index]
-  if (kept) return kept
-  const translator = await translatorFor(attempt.ownerId)
-  if (!translator) return { error: '翻譯要用 AI：請到設定加上 API 金鑰。' }
+  if (kept && (kept.engine ?? 'ai') === engine) return { stem: printed ?? kept.stem, options: kept.options }
   let translation: { stem: string; options: string[] }
   try {
     translation = await translator.translate({ stem: q.stem, options: q.options }, await localeOf(attempt.ownerId))
   } catch {
-    return { error: '翻譯暫時沒有回應，請再試一次。' }
+    if (printed) return { stem: printed, options: [] }
+    return { error: engine === 'free' ? '免費翻譯暫時沒有回應，請再試一次，或到設定改用 AI 翻譯。' : '翻譯暫時沒有回應，請再試一次。' }
   }
-  await services().quizzes.update(id, (a) => ({ ...a, translations: { ...a.translations, [index]: translation } }))
-  return translation
+  await services().quizzes.update(id, (a) => ({ ...a, translations: { ...a.translations, [index]: { ...translation, engine } } }))
+  return { stem: printed ?? translation.stem, options: translation.options }
 }
 
 /** Removes a quiz for good; the list calls it once the 復原 note has run out. */

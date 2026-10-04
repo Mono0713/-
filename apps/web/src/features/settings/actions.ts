@@ -92,6 +92,11 @@ export async function saveStrength(strength: Strength) {
   if (STRENGTHS.includes(strength)) await save({ strength })
 }
 
+/** How the 翻譯 button translates: free services, or the AI. */
+export async function saveTranslationEngine(engine: 'free' | 'ai') {
+  if (engine === 'free' || engine === 'ai') await save({ translationEngine: engine })
+}
+
 /** One task's own strength; null follows the overall one again. */
 export async function saveTaskStrength(task: Task, strength: Strength | null) {
   if (!TASKS.includes(task) || (strength && !STRENGTHS.includes(strength))) return
