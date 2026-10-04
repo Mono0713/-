@@ -1,6 +1,6 @@
 'use server'
 
-import { MAX_MESSAGE, markOpenAnswers, unreadHandwriting } from '@exam/grading'
+import { MAX_MESSAGE, markOpenAnswers, translationKey, unreadHandwriting } from '@exam/grading'
 import { gradeItem, isOver, needsTeacher, type QuizAttempt, type QuizResponse, type QuizSettings, type TutorTurn } from '@exam/quiz'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -164,28 +164,52 @@ export async function askTutor(id: string, index: number, message: string): Prom
 
 /**
  * A question in the reader's language, options included. The stem printed on the paper wins when there
- * is one; the rest comes from the translation way chosen in settings (free by default, or the AI),
- * kept on the attempt so the same question is not translated twice.
+ * is one; the rest comes from this attempt, else from the shared cache (anyone who read the same text in
+ * the same language), else from the translation way chosen in settings, which is then kept in both.
+ * Not while an exam is running.
  */
 export async function translateQuestion(id: string, index: number): Promise<{ stem: string; options: string[] } | { error: string }> {
   const attempt = await owned(id)
   const item = attempt.items[index]
   if (!item) return { error: '找不到這一題' }
+  if (attempt.settings.mode === 'exam' && !attempt.finishedAt) return { error: '考試中不能翻譯。' }
   const q = item.question
   const printed = q.translation?.trim() || null
   if (printed && !q.options.some((o) => o.content.trim())) return { stem: printed, options: [] }
+  const shown = (t: { stem: string; options: string[] }) => ({ stem: printed ?? t.stem, options: t.options })
   const { engine, translator } = await translatorFor(attempt.ownerId)
   const kept = attempt.translations?.[index]
-  if (kept && (kept.engine ?? 'ai') === engine) return { stem: printed ?? kept.stem, options: kept.options }
-  let translation: { stem: string; options: string[] }
+  if (kept && (kept.engine ?? 'ai') === engine) return shown(kept)
+  const language = await localeOf(attempt.ownerId)
+  const { quizzes, translationCache } = services()
+  const keep = (translation: { stem: string; options: string[] }) =>
+    quizzes.update(id, (a) => ({ ...a, translations: { ...a.translations, [index]: { ...translation, engine } } }))
+  // the shared cache holds options in text order, so a shuffled attempt finds the same entry
+  const sorted = [...q.options].sort((x, y) => (x.content < y.content ? -1 : x.content > y.content ? 1 : 0))
+  const source = { stem: q.stem, options: sorted }
+  const inOrder = (t: { stem: string; options: string[] }) => {
+    const byText = new Map(sorted.map((o, i) => [o.content, t.options[i] ?? '']))
+    return { stem: t.stem, options: q.options.map((o) => byText.get(o.content) ?? '') }
+  }
+  // an AI translation someone already paid for is better than a free one, so the free way takes it too
+  for (const way of engine === 'free' ? (['ai', 'free'] as const) : (['ai'] as const)) {
+    const cached = await translationCache.get(translationKey(source, language, way)).catch(() => null)
+    if (cached) {
+      const translation = inOrder(cached)
+      await keep(translation)
+      return shown(translation)
+    }
+  }
+  let made: { stem: string; options: string[] }
   try {
-    translation = await translator.translate({ stem: q.stem, options: q.options }, await localeOf(attempt.ownerId))
+    made = await translator.translate(source, language)
   } catch {
     if (printed) return { stem: printed, options: [] }
     return { error: engine === 'free' ? '免費翻譯暫時沒有回應，請再試一次，或到設定改用 AI 翻譯。' : '翻譯暫時沒有回應，請再試一次。' }
   }
-  await services().quizzes.update(id, (a) => ({ ...a, translations: { ...a.translations, [index]: { ...translation, engine } } }))
-  return { stem: printed ?? translation.stem, options: translation.options }
+  const translation = inOrder(made)
+  await Promise.all([keep(translation), translationCache.set(translationKey(source, language, engine), made).catch(() => {})])
+  return shown(translation)
 }
 
 /** Removes a quiz for good; the list calls it once the 復原 note has run out. */

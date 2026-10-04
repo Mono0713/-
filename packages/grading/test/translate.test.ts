@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { AiTranslator, FreeTranslator, parseTranslation, type TextModel } from '../src/index.ts'
+import { AiTranslator, FreeTranslator, parseTranslation, SqliteTranslationCache, translationKey, type TextModel } from '../src/index.ts'
 import { protect, restore } from '../src/translate.ts'
 
 describe('AiTranslator', () => {
@@ -63,5 +63,17 @@ describe('protect / restore', () => {
     const { masked, kept } = protect('Let $a$ be `n` and $$b$$ ____')
     expect(masked).toBe('Let {0} be {1} and {2} {3}')
     expect(restore('令 { 0 } 為 {1}，{2} {3}', kept)).toBe('令 $a$ 為 `n`，$$b$$ ____')
+  })
+})
+
+describe('translation cache', () => {
+  it('keeps a translation under the text, language and way it was made', async () => {
+    const cache = new SqliteTranslationCache(':memory:')
+    const q = { stem: 'Hello', options: [{ content: 'Yes' }] }
+    await cache.set(translationKey(q, 'zh-Hant', 'free'), { stem: '你好', options: ['是'] })
+    expect(await cache.get(translationKey(q, 'zh-Hant', 'free'))).toEqual({ stem: '你好', options: ['是'] })
+    expect(await cache.get(translationKey(q, 'zh-Hant', 'ai'))).toBeNull()
+    expect(await cache.get(translationKey(q, 'ja', 'free'))).toBeNull()
+    expect(await cache.get(translationKey({ ...q, stem: 'Hello!' }, 'zh-Hant', 'free'))).toBeNull()
   })
 })

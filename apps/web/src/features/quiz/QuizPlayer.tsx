@@ -199,7 +199,8 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
                 reveal={practice && isChecked}
                 celebrate={practice && isChecked}
                 locale={locale}
-                onTranslate={() => translateQuestion(attempt.id, current)}
+                // no translating during an exam
+                onTranslate={practice ? () => translateQuestion(attempt.id, current) : undefined}
               />
             </Card>
           </div>

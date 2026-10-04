@@ -7,7 +7,7 @@ import { connect } from '@exam/db'
 import { DEFAULT_MODELS, type ModelTier } from '@exam/extraction'
 import { DedupFileStore, fileStoreFromEnv, PostgresFileIndex, SqliteFileIndex, type FileIndex } from '@exam/files'
 import { AUTO, Importer } from '@exam/importer'
-import { AiTeacher, AiTranslator, FreeTranslator, AiTutor, createTextModel, PostgresGradingCache, SqliteGradingCache, type GradingCache, type TextModel } from '@exam/grading'
+import { AiTeacher, AiTranslator, FreeTranslator, AiTutor, createTextModel, PostgresGradingCache, PostgresTranslationCache, SqliteGradingCache, SqliteTranslationCache, type GradingCache, type TranslationCache, type TextModel } from '@exam/grading'
 import { BUILTIN_LABELS, BUILTIN_MODELS, route, type ModelChoice, type ProviderInfo, type Route, type Strength, type Task } from '@exam/models'
 import { PostgresQuizStore, SqliteQuizStore, type QuizStore } from '@exam/quiz'
 import { DEFAULT_LOCALE, FileSettingsStore, PostgresSettingsStore, type Settings, type SettingsStore } from '@exam/settings'
@@ -34,6 +34,8 @@ interface Services {
   quizzes: QuizStore
   settings: SettingsStore
   gradingCache: GradingCache
+  /** Translated questions, shared by everyone who reads them in the same language. */
+  translationCache: TranslationCache
   usage: UsageStore
   shares: ShareStore
   classes: ClassStore
@@ -119,7 +121,7 @@ export function keyPrefixOf(ownerId: string): string {
   return authEnabled() ? `u/${ownerId}/` : ''
 }
 
-type Stores = Pick<Services, 'bank' | 'quizzes' | 'settings' | 'gradingCache' | 'usage' | 'shares' | 'classes'> & { fileIndex: FileIndex }
+type Stores = Pick<Services, 'bank' | 'quizzes' | 'settings' | 'gradingCache' | 'translationCache' | 'usage' | 'shares' | 'classes'> & { fileIndex: FileIndex }
 
 function sqliteStores(): Stores {
   const dbFile = join(dataDir, 'bank.sqlite')
@@ -128,6 +130,7 @@ function sqliteStores(): Stores {
     quizzes: new SqliteQuizStore(dbFile),
     settings: new FileSettingsStore(join(dataDir, 'settings.json')),
     gradingCache: new SqliteGradingCache(dbFile),
+    translationCache: new SqliteTranslationCache(dbFile),
     usage: new SqliteUsageStore(dbFile),
     shares: new SqliteShareStore(dbFile),
     classes: new SqliteClassStore(dbFile),
@@ -139,7 +142,7 @@ function postgresStores(url: string): Stores {
   const secret = process.env.SETTINGS_SECRET
   if (!secret) throw new Error('SETTINGS_SECRET is required with DATABASE_URL: it encrypts the API keys people save.')
   const sql = connect(url)
-  return { bank: new PostgresBank(sql), quizzes: new PostgresQuizStore(sql), settings: new PostgresSettingsStore(sql, secret), gradingCache: new PostgresGradingCache(sql), usage: new PostgresUsageStore(sql), shares: new PostgresShareStore(sql), classes: new PostgresClassStore(sql), fileIndex: new PostgresFileIndex(sql) }
+  return { bank: new PostgresBank(sql), quizzes: new PostgresQuizStore(sql), settings: new PostgresSettingsStore(sql, secret), gradingCache: new PostgresGradingCache(sql), translationCache: new PostgresTranslationCache(sql), usage: new PostgresUsageStore(sql), shares: new PostgresShareStore(sql), classes: new PostgresClassStore(sql), fileIndex: new PostgresFileIndex(sql) }
 }
 
 /**
