@@ -2,10 +2,18 @@
  * Checks the interface text: every t('…') / msg('…') key in the source, which catalogs lack
  * translations, and Chinese text left outside t() (it would not be translated).
  *
- *   npx tsx scripts/i18n.ts            report
- *   npx tsx scripts/i18n.ts missing en  print the keys en.json lacks, as JSON
+ *   pnpm i18n                 report (from the repo root)
+ *   pnpm i18n missing         every key some catalog lacks, as a fill-in template:
+ *                             { "中文": { "en": "", "ja": "", … } } with only the languages that lack it
+ *   pnpm i18n missing en      the keys en.json lacks, as a JSON list
+ *   pnpm i18n add <file>      merge a filled-in template into every catalog (checks {placeholders} and <tags>)
+ *   pnpm i18n prune           drop translations the code no longer uses
+ *
+ * Adding interface text: write t('中文') in the code, run `pnpm i18n missing > /tmp/new.json`,
+ * fill in the translations, then `pnpm i18n add /tmp/new.json`. No need to open the catalogs.
  */
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { join, relative } from 'node:path'
 import ts from 'typescript'
 
@@ -73,6 +81,7 @@ export function scan(dir = SRC): Scan {
 }
 
 export const catalog = (locale: string): Record<string, string> => JSON.parse(readFileSync(join(MESSAGES, `${locale}.json`), 'utf8'))
+const save = (locale: string, messages: Record<string, string>) => writeFileSync(join(MESSAGES, `${locale}.json`), JSON.stringify(messages, null, 2) + '\n')
 
 const names = (text: string) => [...text.matchAll(/\{(\w+)\}|<(\w+)>/g)].map((m) => m[1] ?? `<${m[2]}>`).sort().join(',')
 
@@ -88,8 +97,41 @@ export function compare(keys: Iterable<string>, messages: Record<string, string>
 
 if (process.argv[1] && import.meta.filename === process.argv[1]) {
   const result = scan()
-  if (process.argv[2] === 'missing') {
-    console.log(JSON.stringify(compare(result.keys.keys(), catalog(process.argv[3]!)).missing, null, 2))
+  const [command, arg] = process.argv.slice(2)
+  if (command === 'missing' && arg) {
+    console.log(JSON.stringify(compare(result.keys.keys(), catalog(arg)).missing, null, 2))
+  } else if (command === 'missing') {
+    const template: Record<string, Record<string, string>> = {}
+    for (const l of TARGETS) for (const k of compare(result.keys.keys(), catalog(l)).missing) (template[k] ??= {})[l] = ''
+    console.log(JSON.stringify(template, null, 2))
+  } else if (command === 'add') {
+    if (!arg) throw new Error('usage: pnpm i18n add <file.json>')
+    const filled: Record<string, Record<string, string>> = JSON.parse(readFileSync(resolve(process.env.INIT_CWD ?? process.cwd(), arg), 'utf8'))
+    const errors: string[] = []
+    for (const l of TARGETS) {
+      const messages = catalog(l)
+      let added = 0
+      for (const [key, byLocale] of Object.entries(filled)) {
+        const text = byLocale[l]
+        if (!text) continue
+        if (names(key) !== names(text)) errors.push(`${l}: "${key}" → "${text}" has different {placeholders} or <tags>`)
+        else (messages[key] = text), added++
+      }
+      if (added) save(l, messages)
+      console.log(`${l}: ${added} added`)
+    }
+    if (errors.length) {
+      console.error(errors.join('\n'))
+      process.exitCode = 1
+    }
+  } else if (command === 'prune') {
+    for (const l of TARGETS) {
+      const messages = catalog(l)
+      const { unused } = compare(result.keys.keys(), messages)
+      for (const k of unused) delete messages[k]
+      if (unused.length) save(l, messages)
+      console.log(`${l}: ${unused.length} removed`)
+    }
   } else {
     console.log(`${result.keys.size} keys`)
     for (const l of TARGETS) {

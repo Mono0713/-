@@ -14,7 +14,8 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
-    "db:migrate": "tsx packages/db/src/cli.ts"
+    "db:migrate": "tsx packages/db/src/cli.ts",
+    "i18n": "pnpm --silent --filter @exam/web i18n"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
