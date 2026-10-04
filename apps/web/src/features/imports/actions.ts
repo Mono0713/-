@@ -3,7 +3,8 @@
 import { extractJson } from '@exam/extraction'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { currentOwner, noRoomFor, services } from '@/server/context'
+import { currentOwner, services } from '@/server/context'
+import { noRoomFor } from '@/server/storage'
 import { requireImport } from '@/server/owned'
 import { getT } from '@/shared/i18n/server'
 

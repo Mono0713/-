@@ -1,7 +1,8 @@
 import { markOpenAnswers, readHandwrittenAnswers, unreadHandwriting } from '@exam/grading'
 import { needsTeacher, type QuizAttempt } from '@exam/quiz'
 import { graderFor } from '@/server/classes'
-import { localeOf, services, type Teacher } from '@/server/context'
+import { localeOf, services } from '@/server/context'
+import { type Teacher } from '@/server/ai'
 
 /**
  * Reads handwritten answers into text and saves them, so they can be checked like typing.

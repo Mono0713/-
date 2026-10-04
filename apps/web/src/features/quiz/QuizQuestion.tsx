@@ -2,7 +2,7 @@
 
 import { ESSAY_COLUMNS, isEmptyInk, practicePaper, type InkDoc, type Paper } from '@exam/ink'
 import type { QuizItem, QuizResponse } from '@exam/quiz'
-import { answerKind, inOtherLanguage, matches, toPaperLabels } from '@exam/quiz/logic'
+import { answerKind, matches, toPaperLabels } from '@exam/quiz/logic'
 import { useState, type ReactNode } from 'react'
 import { FigureView } from '@/shared/FigureView'
 import { useT } from '@/shared/i18n/client'
@@ -14,6 +14,7 @@ import { IconKeyboard, IconLanguages, IconLoader, IconPen, IconScratch } from '@
 import { PenTick } from '@/shared/motion/PenMarks'
 import { Segmented } from '@/shared/Segmented'
 import { PracticeSheet } from './PracticeSheet'
+import { useQuestionTranslation } from './useQuestionTranslation'
 import { wordCount } from '@/shared/wordCount'
 import { Badge, inputBase, inputClass } from '@/shared/ui'
 
@@ -103,24 +104,7 @@ export function QuizQuestion({
   const [scratchOpen, setScratchOpen] = useState(() => !reveal && hasScratch)
 
   // Translation: only on request, so the question is read in its own language first.
-  const translatable = !!onTranslate && !!locale && (!!q.translation || inOtherLanguage(q, locale))
-  const [translation, setTranslation] = useState<{ stem: string; options: string[] } | null>(null)
-  const [translationShown, setTranslationShown] = useState(false)
-  const [translating, setTranslating] = useState(false)
-  const [translateError, setTranslateError] = useState<string | null>(null)
-  const toggleTranslation = async () => {
-    if (translationShown || translation) return setTranslationShown(!translationShown)
-    if (!onTranslate || translating) return
-    setTranslating(true)
-    setTranslateError(null)
-    const result = await onTranslate().catch(() => ({ error: t('翻譯暫時沒有回應，請再試一次。') }))
-    setTranslating(false)
-    if ('error' in result) return setTranslateError(result.error)
-    setTranslation(result)
-    setTranslationShown(true)
-  }
-  const shownTranslation = translationShown ? translation : null
-  const optionTranslation = (label: string) => shownTranslation?.options[q.options.findIndex((o) => o.label === label)] || null
+  const { translatable, translationShown, translating, translateError, toggleTranslation, shownTranslation, optionTranslation } = useQuestionTranslation(q, locale, onTranslate)
 
   let figureOffset = 0
   const figures = q.figures.map((f, i) => {

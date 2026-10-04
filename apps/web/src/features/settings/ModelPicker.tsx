@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { ProviderOption } from '@/server/context'
+import type { ProviderOption } from '@/server/ai'
 import { msg } from '@/shared/i18n/format'
 import { useT } from '@/shared/i18n/client'
 import { Listbox } from '@/shared/Listbox'

@@ -1,75 +1,40 @@
 'use client'
 
-import { DndContext, type DragEndEvent } from '@dnd-kit/core'
-import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { DndContext } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { DraftExam, DraftQuestion } from '@exam/core'
 import type { Strength } from '@exam/models'
-import Link from 'next/link'
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useState } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
 import { QuestionView } from '@/features/questions/QuestionView'
-import { Glide } from '@/shared/motion/Glide'
+import { STRENGTH_LABELS } from '@/features/settings/strengths'
 import { Fab, type FabAction } from '@/shared/chrome/Fab'
-import { FigureView } from '@/shared/FigureView'
-import { Menu, menuItem } from '@/shared/chrome/Menu'
-import {
-  IconAlert,
-  IconBack,
-  IconCheck,
-  IconChevronDown,
-  IconCopy,
-  IconCloud,
-  IconCloudCheck,
-  IconEdit,
-  IconGrip,
-  IconLoader,
-  IconIndent,
-  IconMerge,
-  IconOutdent,
-  IconOutline,
-  IconPlus,
-  IconSave,
-  IconSplit,
-  IconStrength,
-  IconTrash,
-  IconUndo,
-  IconX,
-} from '@/shared/icons'
+import { IconAlert, IconCheck, IconChevronDown, IconCopy, IconEdit, IconGrip, IconIndent, IconMerge, IconOutdent, IconPlus, IconSplit, IconStrength, IconTrash, IconUndo } from '@/shared/icons'
 import { msg } from '@/shared/i18n/format'
 import { useT } from '@/shared/i18n/client'
-import { TYPE_LABELS } from '@/shared/labels'
-import { Markdown } from '@/shared/Markdown'
 import { Toast } from '@/shared/Toast'
-import { MathTextInput } from '@/shared/math/MathTextInput'
-import { Badge, Button, inputClass } from '@/shared/ui'
-import { publishDraft, saveDraft } from './actions'
+import { Button, inputClass } from '@/shared/ui'
+import { DragPreview } from './DragPreview'
+import { GroupCard } from './GroupCard'
+import { NumberBar } from './NumberBar'
+import { Outline } from './Outline'
 import { PageViewer } from './PageViewer'
-import { STRENGTH_LABELS } from '@/features/settings/strengths'
-import { attachToPrevious, detachPart, groupLooseParts, mergeParts, nextPart, splitNumber, splitParts } from './parts'
-import { StrengthPanel } from './StrengthPanel'
+import { attachToPrevious, mergeParts, splitNumber, splitParts } from './parts'
+import { iconButton, ReviewToolbar } from './ReviewToolbar'
 import { ActiveOverlay, alongList, EdgeScroll, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
-
-type SaveState = 'saved' | 'dirty' | 'saving'
-
-// Questions have no ids of their own while in review; these keep each one's identity while it is dragged around.
-let lastKey = 0
-const newKey = () => `q${++lastKey}`
-
-/** How the wide-screen workspace is laid out, remembered on this device. */
-interface Layout {
-  outline: boolean
-  /** Share of the width (outline aside) that the exam pages take. */
-  split: number
-}
-const LAYOUT_KEY = 'review-layout'
-const DEFAULT_LAYOUT: Layout = { outline: false, split: 0.55 }
-const clampSplit = (n: number) => Math.min(0.72, Math.max(0.3, n))
+import { StrengthPanel } from './StrengthPanel'
+import { useDraftSaving } from './useDraftSaving'
+import { isFlagged, useReviewDraft } from './useReviewDraft'
+import { clampSplit, DEFAULT_LAYOUT, OUTLINE_SPACE, SPLITTER, useWorkspaceLayout } from './useWorkspaceLayout'
 
 /**
  * Review workspace, full screen: an optional question outline, every source page one under the other
  * (the divider next to them sets how wide they are) and the extracted questions, which can be dragged
  * into order. One slim toolbar on top and a floating action button for the common moves.
  * Every edit is saved as a draft automatically; "存入題庫" puts the questions in the bank.
+ *
+ * The pieces live next to this file: edits and undo in useReviewDraft, saving in useDraftSaving,
+ * layout in useWorkspaceLayout, the bar in ReviewToolbar/NumberBar, and Outline, GroupCard, PageViewer.
  */
 export function ReviewEditor({
   importId,
@@ -92,271 +57,43 @@ export function ReviewEditor({
   strength?: Strength
 }) {
   const t = useT()
-  // Sub-questions read as separate questions (1(1), 1(2)) start out grouped, so they merge like split ones.
-  const [start] = useState(() => groupLooseParts(initial, (n) => `parts-${Date.now().toString(36)}-${n}`))
-  const [draft, setDraft] = useState(start)
-  const [selected, setSelected] = useState<number | null>(null)
-  const [editing, setEditing] = useState<number | null>(null)
-  const [layout, setLayoutState] = useState(DEFAULT_LAYOUT)
-  const [saveState, setSaveState] = useState<SaveState>('saved')
-  const [published, setPublished] = useState(savedExam ? { count: savedExam.questionCount, examId: savedExam.id } : null)
-  // The draft as it was last put in the bank: until it changes, there is nothing to update.
-  const [inBank, setInBank] = useState<DraftExam | null>(savedExam ? start : null)
-  const inSync = inBank === draft
-  const [flaggedOnly, setFlaggedOnly] = useState(false)
-  const [publishing, startPublish] = useTransition()
   // Phones show one side at a time.
   const [mobileView, setMobileView] = useState<'questions' | 'page'>('questions')
-  const cards = useRef(new Map<number, HTMLElement>())
-  const keys = useRef<string[]>([])
-  if (keys.current.length !== draft.questions.length) keys.current = draft.questions.map((_, i) => keys.current[i] ?? newKey())
+  const {
+    start,
+    draft,
+    keys,
+    cards,
+    selected,
+    select,
+    selectGroup,
+    editing,
+    setEditing,
+    updateQuestion,
+    confirmQuestion,
+    splitQuestion,
+    mergeGroup,
+    attachPart,
+    detachQuestion,
+    removeQuestion,
+    moveBox,
+    undo,
+    canUndo,
+    deletedNote,
+    onDragEnd,
+    addQuestion,
+    duplicateQuestion,
+    setMeta,
+    setGroupStem,
+  } = useReviewDraft(initial, () => setMobileView('questions'))
+  const { saveState, published, inSync, publish, publishing } = useDraftSaving(importId, draft, initial, start, savedExam)
+  const { layout, setLayout, row, viewer, bar, barHeight, startResize } = useWorkspaceLayout()
+  const [flaggedOnly, setFlaggedOnly] = useState(false)
   const cardSensors = useDragSensors(true, true)
   const outlineSensors = useDragSensors(false)
-  const row = useRef<HTMLDivElement>(null)
-  const viewer = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(LAYOUT_KEY) ?? 'null') as Partial<Layout> | null
-      if (saved) setLayoutState({ outline: saved.outline === true, split: clampSplit(Number(saved.split) || DEFAULT_LAYOUT.split) })
-    } catch {}
-  }, [])
-  const setLayout = (patch: Partial<Layout>) =>
-    setLayoutState((l) => {
-      const next = { ...l, ...patch }
-      try {
-        localStorage.setItem(LAYOUT_KEY, JSON.stringify(next))
-      } catch {}
-      return next
-    })
-  // The toolbar wraps to more lines on narrow screens; the page viewer and outline stick just below it.
-  const bar = useRef<HTMLDivElement>(null)
-  const [barHeight, setBarHeight] = useState(120)
-  useEffect(() => {
-    const el = bar.current
-    if (!el) return
-    const observer = new ResizeObserver(() => setBarHeight(el.offsetHeight))
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-  // The number bar has no scrollbar: the wheel scrolls it sideways, and the chosen number stays in view.
-  const numberBar = useRef<HTMLElement>(null)
-  useEffect(() => {
-    const el = numberBar.current
-    if (!el) return
-    const wheel = (e: WheelEvent) => {
-      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
-      e.preventDefault()
-      el.scrollBy({ left: e.deltaY, behavior: 'instant' })
-    }
-    el.addEventListener('wheel', wheel, { passive: false })
-    return () => el.removeEventListener('wheel', wheel)
-  }, [])
-  useEffect(() => {
-    const el = numberBar.current
-    const chip = el?.querySelector<HTMLElement>('[aria-current="true"]')
-    if (!el || !chip) return
-    const box = el.getBoundingClientRect()
-    const c = chip.getBoundingClientRect()
-    el.scrollTo({ left: el.scrollLeft + c.left - box.left - el.clientWidth / 2 + c.width / 2, behavior: 'smooth' })
-  }, [selected])
-  // Autosave shortly after the last edit.
-  useEffect(() => {
-    if (draft === initial) return
-    setSaveState('dirty')
-    const timer = setTimeout(async () => {
-      setSaveState('saving')
-      await saveDraft(importId, draft)
-      setSaveState('saved')
-    }, 800)
-    return () => clearTimeout(timer)
-  }, [draft, importId, initial])
 
-  const select = (index: number, scroll: boolean) => {
-    setSelected(index)
-    if (!scroll) return
-    setMobileView('questions')
-    // Wait a frame so the question list is visible again on phones before scrolling to it.
-    requestAnimationFrame(() => cards.current.get(index)?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
-  }
-
-  const updateQuestion = (index: number, q: DraftQuestion) => setDraft((d) => ({ ...d, questions: d.questions.map((x, i) => (i === index ? q : x)) }))
-  const confirmQuestion = (index: number) => updateQuestion(index, { ...draft.questions[index]!, confidence: 'high', issues: [] })
-  // "(a) … (b) …" in one question becomes one question per part under a shared group.
-  const splitQuestion = (index: number) => {
-    const result = splitParts(draft.questions[index]!, `split-${Date.now().toString(36)}`)
-    if (!result) return
-    keys.current = [...keys.current.slice(0, index), ...result.parts.map(() => newKey()), ...keys.current.slice(index + 1)]
-    setDraft((d) => ({
-      ...d,
-      groups: [...d.groups, result.group],
-      questions: [...d.questions.slice(0, index), ...result.parts, ...d.questions.slice(index + 1)],
-    }))
-    setEditing(null)
-    setSelected(index)
-  }
-  // The sub-questions of one number go back to being one question (undoes splitQuestion).
-  const mergeGroup = (groupId: string) => {
-    const indices = draft.questions.flatMap((q, i) => (q.groupId === groupId ? [i] : []))
-    const group = draft.groups.find((g) => g.id === groupId)
-    const merged = group && mergeParts(group, indices.map((i) => draft.questions[i]!))
-    if (!merged || !indices.length) return
-    const at = indices[0]!
-    const key = keys.current[at]!
-    keys.current = [...keys.current.slice(0, at), key, ...keys.current.slice(at + 1).filter((_, j) => !indices.includes(at + 1 + j))]
-    setDraft((d) => ({
-      ...d,
-      groups: d.groups.filter((g) => g.id !== groupId),
-      questions: [...d.questions.slice(0, at), merged, ...d.questions.slice(at + 1).filter((q) => q.groupId !== groupId)],
-    }))
-    setEditing(null)
-    setSelected(at)
-  }
-  // By hand: a question becomes a sub-question of the one before it, or leaves its group again.
-  const attachPart = (index: number) => {
-    const next = attachToPrevious(draft, index, `parts-${Date.now().toString(36)}`)
-    if (!next) return
-    setDraft(next)
-    setSelected(index)
-  }
-  const detachQuestion = (index: number) => {
-    const result = detachPart(draft, index)
-    if (!result) return
-    keys.current = arrayMove(keys.current, index, result.at)
-    setDraft(result.draft)
-    setEditing(null)
-    setSelected(result.at)
-  }
-  // A number whose sub-questions are split heads them with its group card: picking the number shows that card.
-  const selectGroup = (groupId: string, first: number) => {
-    setSelected(first)
-    setMobileView('questions')
-    requestAnimationFrame(() => document.querySelector(`[data-group="${CSS.escape(groupId)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
-  }
-  // Deleting asks nothing; Ctrl+Z (or 復原 on the note) puts questions back, last deleted first.
-  // A box moved on the original page goes on the same stack, so Ctrl+Z also puts it back.
-  type Undo = { kind: 'delete'; index: number; question: DraftQuestion; key: string } | { kind: 'box'; key: string; locations: DraftQuestion['locations'] }
-  const trash = useRef<Undo[]>([])
-  const [deletedNote, setDeletedNote] = useState<string | null>(null)
-  const noteTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const showDeleted = (number: string | null) => {
-    clearTimeout(noteTimer.current)
-    setDeletedNote(number)
-    if (number !== null) noteTimer.current = setTimeout(() => setDeletedNote(null), 5000)
-  }
-  const removeQuestion = (index: number) => {
-    const question = draft.questions[index]!
-    trash.current.push({ kind: 'delete', index, question, key: keys.current[index]! })
-    keys.current = keys.current.filter((_, i) => i !== index)
-    setDraft((d) => ({ ...d, questions: d.questions.filter((_, i) => i !== index) }))
-    setEditing(null)
-    setSelected(null)
-    showDeleted(question.number)
-  }
-  const moveBox = (index: number, location: number, bbox: DraftQuestion['locations'][number]['bbox'], pageNumber?: number) => {
-    const q = draft.questions[index]!
-    trash.current.push({ kind: 'box', key: keys.current[index]!, locations: q.locations })
-    updateQuestion(index, { ...q, locations: q.locations.map((l, i) => (i === location ? { ...l, bbox, manual: true, ...(pageNumber !== undefined && { pageNumber }) } : l)) })
-  }
-  const undoDelete = () => {
-    const last = trash.current.pop()
-    if (!last) return
-    if (last.kind === 'box') {
-      const index = keys.current.indexOf(last.key)
-      if (index >= 0) {
-        setDraft((d) => ({ ...d, questions: d.questions.map((q, i) => (i === index ? { ...q, locations: last.locations } : q)) }))
-        setSelected(index)
-      }
-      return
-    }
-    const at = Math.min(last.index, keys.current.length)
-    keys.current = [...keys.current.slice(0, at), last.key, ...keys.current.slice(at)]
-    setDraft((d) => ({ ...d, questions: [...d.questions.slice(0, at), last.question, ...d.questions.slice(at)] }))
-    setSelected(at)
-    showDeleted(null)
-  }
-  const undoRef = useRef(undoDelete)
-  undoRef.current = undoDelete
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'z' || !trash.current.length) return
-      // typing fields keep their own undo
-      const target = e.target as HTMLElement | null
-      if (target?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"], math-field')) return
-      e.preventDefault()
-      undoRef.current()
-    }
-    addEventListener('keydown', onKey)
-    return () => {
-      removeEventListener('keydown', onKey)
-      clearTimeout(noteTimer.current)
-    }
-  }, [])
-  const moveQuestion = (from: number, to: number) => {
-    // Selection and editing follow the question that moved.
-    const follow = (i: number | null) =>
-      i === null ? null : i === from ? to : from < to && i > from && i <= to ? i - 1 : from > to && i >= to && i < from ? i + 1 : i
-    keys.current = arrayMove(keys.current, from, to)
-    setDraft((d) => ({ ...d, questions: arrayMove(d.questions, from, to) }))
-    setSelected(follow)
-    setEditing(follow)
-  }
-  const onDragEnd = ({ active, over }: DragEndEvent) => {
-    if (!over || active.id === over.id) return
-    moveQuestion(keys.current.indexOf(String(active.id)), keys.current.indexOf(String(over.id)))
-  }
-  // A blank question at the end, or right after `after` with the next number.
-  const addQuestion = (after?: number) => {
-    const at = after ?? draft.questions.length - 1
-    const ref = draft.questions[at]
-    const next = ref && /^\d+$/.test(splitNumber(ref.number).main) ? String(Number(splitNumber(ref.number).main) + 1) : String(draft.questions.length + 1)
-    // added after a sub-question, it is the next sub-question of the same number
-    const group = after !== undefined && ref?.groupId && draft.groups.some((g) => g.id === ref.groupId) ? ref.groupId : null
-    const { main, part } = splitNumber(ref?.number ?? '')
-    const q: DraftQuestion = {
-      number: after === undefined ? String(draft.questions.length + 1) : group ? `${main}(${nextPart(part)})` : next,
-      section: ref?.section ?? null,
-      groupId: group,
-      type: 'single_choice',
-      stem: '',
-      translation: null,
-      options: [],
-      answer: { values: [], source: 'none' },
-      explanation: null,
-      points: ref?.points ?? null,
-      figures: [],
-      confidence: 'high',
-      issues: [],
-      locations: [],
-    }
-    insertAt(at + 1, q)
-  }
-  // A copy right after the question, for one that differs only a little.
-  const duplicateQuestion = (index: number) => {
-    const q = draft.questions[index]!
-    insertAt(index + 1, { ...structuredClone(q), groupId: q.groupId })
-  }
-  const insertAt = (at: number, q: DraftQuestion) => {
-    keys.current = [...keys.current.slice(0, at), newKey(), ...keys.current.slice(at)]
-    setDraft((d) => ({ ...d, questions: [...d.questions.slice(0, at), q, ...d.questions.slice(at)] }))
-    setSelected(at)
-    setEditing(at)
-    requestAnimationFrame(() => cards.current.get(at)?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
-  }
-
-  const publish = () =>
-    startPublish(async () => {
-      const snapshot = draft
-      if (saveState !== 'saved') await saveDraft(importId, snapshot)
-      setPublished(await publishDraft(importId, snapshot))
-      setInBank(snapshot)
-      setSaveState('saved')
-    })
-
-  const isFlagged = (q: DraftQuestion) => q.confidence !== 'high' || q.issues.length > 0
   const flagged = draft.questions.filter(isFlagged).length
   const meta = draft.meta
-  const setMeta = (key: keyof typeof meta, value: string) => setDraft((d) => ({ ...d, meta: { ...d.meta, [key]: value.trim() ? value : null } }))
-  const setGroupStem = (id: string, stem: string) => setDraft((d) => ({ ...d, groups: d.groups.map((g) => (g.id === id ? { ...g, stem } : g)) }))
 
   const nextFlagged = () => {
     const n = draft.questions.length
@@ -392,7 +129,7 @@ export function ReviewEditor({
     ...(strength
       ? [{ id: 'strength', label: t('AI 強度：{strength}', { strength: t(STRENGTH_LABELS.find(([v]) => v === shownStrength)![1]) }), icon: <IconStrength size={19} />, onClick: () => setStrengthOpen(true) }]
       : []),
-    { id: 'undo', label: t('復原上一步'), icon: <IconUndo size={19} />, onClick: undoDelete, disabled: !trash.current.length },
+    { id: 'undo', label: t('復原上一步'), icon: <IconUndo size={19} />, onClick: undo, disabled: !canUndo },
   ]
 
   const metaFields = (compact: boolean) =>
@@ -412,29 +149,6 @@ export function ReviewEditor({
 
   const visibleKeys = keys.current.filter((_, i) => !flaggedOnly || isFlagged(draft.questions[i]!))
 
-  // Dragging the divider between the pages and the questions sets how much room the pages get.
-  const startResize = (e: React.PointerEvent) => {
-    const r = row.current
-    const v = viewer.current
-    if (!r || !v || e.button !== 0) return
-    e.preventDefault()
-    const left = v.getBoundingClientRect().left
-    const room = r.clientWidth - (layout.outline ? OUTLINE_SPACE : 0) - SPLITTER
-    const move = (ev: PointerEvent) => setLayoutState((l) => ({ ...l, split: clampSplit((ev.clientX - left) / room) }))
-    const up = () => {
-      removeEventListener('pointermove', move)
-      removeEventListener('pointerup', up)
-      document.body.style.removeProperty('cursor')
-      document.body.style.removeProperty('user-select')
-      setLayout({})
-    }
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-    addEventListener('pointermove', move)
-    addEventListener('pointerup', up)
-  }
-
-  const iconButton = 'm-press grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-ink/[0.05] hover:text-ink'
   // A card's buttons when it is not being edited; the dragged copy draws the same row (inert) so it lines up.
   const viewActions = (q: DraftQuestion, index: number, handle: DragHandle | null) => (
     <>
@@ -470,179 +184,38 @@ export function ReviewEditor({
     </button>
   )
 
+
   return (
     <div className="workspace">
-      {/* One slim bar: the way back and the exam's menu, the question numbers, then review state and saving. */}
-      <div ref={bar} className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur-md">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-3 py-2 sm:px-5">
-          <div className="flex min-w-0 flex-1 items-center gap-1 lg:max-w-[22rem] lg:flex-none">
-            <Link href="/imports" className={iconButton} aria-label={t('回到匯入列表')} title={t('回到匯入列表')}>
-              <IconBack size={18} />
-            </Link>
-            <button
-              type="button"
-              onClick={() => setLayout({ outline: !layout.outline })}
-              aria-pressed={layout.outline}
-              className={`${iconButton} hidden lg:grid ${layout.outline ? 'bg-ink/[0.06] text-ink' : ''}`}
-              aria-label={layout.outline ? t('收起題目大綱') : t('顯示題目大綱')}
-              title={layout.outline ? t('收起題目大綱') : t('顯示題目大綱')}
-            >
-              <IconOutline size={17} />
-            </button>
-            <h1 className="sr-only">{heading.title}</h1>
-            <Menu
-              label={t('考卷選單')}
-              className="m-press flex max-w-full min-w-0 items-center gap-1 rounded-lg px-2 py-1 hover:bg-ink/[0.05]"
-              button={
-                <>
-                  <span className="truncate text-[15px] font-semibold tracking-[-0.01em]">{heading.title}</span>
-                  <IconChevronDown size={15} className="shrink-0 text-muted" />
-                </>
-              }
-            >
-              {(close) => (
-                <>
-                  <div className="px-2.5 pb-2 pt-1.5">
-                    <p className="font-medium leading-snug">{heading.title}</p>
-                    {heading.meta && <p className="mt-0.5 text-xs text-muted">{heading.meta}</p>}
-                  </div>
-                  {published !== null && (
-                    <Link href={`/bank/exams/${published.examId}`} role="menuitem" className={menuItem} onClick={close}>
-                      <IconSave size={15} className="text-good" />
-                      <span className="flex-1">{t('在題庫查看')}</span>
-                      <span className="num text-xs text-muted">{t('{n} 題', { n: published.count })}</span>
-                    </Link>
-                  )}
-                  <button type="button" role="menuitem" className={`${menuItem} hidden lg:flex`} onClick={() => (setLayout({ outline: !layout.outline }), close())}>
-                    <IconOutline size={15} className="text-muted" />
-                    {layout.outline ? t('收起題目大綱') : t('題目大綱與考卷資訊')}
-                  </button>
-                  {heading.menu && <div className="mt-1 border-t border-line/70 pt-1">{heading.menu}</div>}
-                </>
-              )}
-            </Menu>
-          </div>
-
-          {/* Question numbers: sub-questions sit together under their number. Below lg they get a row of their own. */}
-          <div className="order-last flex min-w-0 basis-full items-center gap-2 lg:order-none lg:flex-1 lg:basis-0">
-            <div className={`flex shrink-0 rounded-lg bg-ink/[0.06] p-0.5 text-sm lg:hidden ${pages.length ? '' : 'hidden'}`}>
-              {(
-                [
-                  ['questions', t('題目')],
-                  ['page', t('原卷')],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setMobileView(value)}
-                  className={`rounded-md px-2.5 py-1 transition-colors ${mobileView === value ? 'bg-surface font-medium shadow-sm' : 'text-muted'}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <nav ref={numberBar} className="scroll-strip flex min-w-0 flex-1 overflow-x-auto" aria-label={t('題號')}>
-              {/* centred while the numbers fit; once they overflow, the strip scrolls from the start */}
-              <div className="mx-auto flex w-max items-center gap-1 py-0.5">
-                {numberClusters(draft.questions).map((cluster) => {
-                  const shown = cluster.items.filter((i) => !flaggedOnly || isFlagged(draft.questions[i]!))
-                  if (!shown.length) return null
-                  const tone = (i: number) =>
-                    selected === i ? 'bg-accent text-on-accent' : isFlagged(draft.questions[i]!) ? 'bg-warn-soft text-warn hover:bg-hl/40' : 'text-muted hover:bg-ink/[0.05] hover:text-ink'
-                  if (cluster.part === null)
-                    return (
-                      <button
-                        key={keys.current[shown[0]!]}
-                        type="button"
-                        onClick={() => select(shown[0]!, true)}
-                        aria-current={selected === shown[0] || undefined}
-                        title={isFlagged(draft.questions[shown[0]!]!) ? t('待確認') : undefined}
-                        className={`num h-7 min-w-7 shrink-0 rounded-md px-1.5 text-xs transition-colors ${
-                          selected === shown[0]
-                            ? 'bg-accent text-on-accent'
-                            : isFlagged(draft.questions[shown[0]!]!)
-                              ? 'bg-warn-soft text-warn hover:bg-hl/40'
-                              : 'bg-surface text-muted shadow-sheet hover:text-ink'
-                        }`}
-                      >
-                        {cluster.main}
-                      </button>
-                    )
-                  return (
-                    <span key={keys.current[shown[0]!]} className="flex h-7 shrink-0 items-center gap-px rounded-md bg-surface pr-0.5 shadow-sheet" title={t('第 {n} 題的小題', { n: cluster.main })}>
-                      {/* the number itself opens the question's shared card; a hairline sets the parts apart */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const groupId = draft.questions[shown[0]!]!.groupId
-                          if (groupId) selectGroup(groupId, shown[0]!)
-                          else select(shown[0]!, true)
-                        }}
-                        className="num h-full rounded-l-md pl-2 pr-1.5 text-xs text-ink/70 transition-colors hover:bg-ink/[0.05] hover:text-ink"
-                      >
-                        {cluster.main}
-                      </button>
-                      <span aria-hidden className="mr-1 h-3.5 w-px bg-line" />
-                      {shown.map((i) => (
-                        <button key={keys.current[i]} type="button" onClick={() => select(i, true)} aria-current={selected === i || undefined} className={`num h-6 min-w-6 rounded px-1 text-[11px] transition-colors ${tone(i)}`}>
-                          {splitNumber(draft.questions[i]!.number).part}
-                        </button>
-                      ))}
-                    </span>
-                  )
-                })}
-              </div>
-            </nav>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-1.5">
-            {flagged > 0 && (
-              <button
-                type="button"
-                onClick={() => setFlaggedOnly(!flaggedOnly)}
-                aria-pressed={flaggedOnly}
-                aria-label={t('{n} 題待確認', { n: flagged })}
-                title={flaggedOnly ? t('顯示全部題目') : t('{n} 題待確認：點一下只看這些', { n: flagged })}
-                className={`m-press flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-semibold ${flaggedOnly ? 'bg-hl text-night' : 'bg-warn-soft text-warn hover:bg-hl/40'}`}
-              >
-                <IconAlert size={14} strokeWidth={2.4} />
-                <span className="num">{flagged}</span>
-              </button>
-            )}
-            <span
-              className={`grid h-8 w-8 place-items-center ${saveState === 'saved' ? 'text-muted/70' : 'text-accent'}`}
-              title={t(SAVE_LABELS[saveState])}
-              aria-label={t(SAVE_LABELS[saveState])}
-              role="status"
-            >
-              {saveState === 'saved' ? <IconCloudCheck size={17} /> : saveState === 'saving' ? <IconLoader size={16} className="m-spin" /> : <IconCloud size={17} />}
-            </span>
-            {published !== null && inSync ? (
-              <Link
-                href={`/bank/exams/${published.examId}`}
-                className="m-press flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-good hover:bg-good-soft max-sm:px-2"
-                title={t('{n} 題已存入題庫，點一下查看', { n: published.count })}
-              >
-                <IconCheck size={15} strokeWidth={2.6} />
-                <span className="max-sm:hidden">{t('已存入')}</span>
-              </Link>
-            ) : (
-              <Button
-                variant="primary"
-                className="h-8 px-3 py-0 max-sm:px-2"
-                onClick={publish}
-                disabled={publishing || !draft.questions.length}
-                loading={publishing}
-                icon={<IconSave size={16} />}
-                aria-label={published !== null ? t('更新題庫') : t('存入題庫')}
-              >
-                <span className="max-sm:hidden">{publishing ? t('存入中…') : published !== null ? t('更新題庫') : t('存入題庫')}</span>
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
+      <ReviewToolbar
+        barRef={bar}
+        heading={heading}
+        published={published}
+        inSync={inSync}
+        outline={layout.outline}
+        onToggleOutline={() => setLayout({ outline: !layout.outline })}
+        hasPages={pages.length > 0}
+        mobileView={mobileView}
+        onMobileView={setMobileView}
+        numbers={
+          <NumberBar
+            questions={draft.questions}
+            keys={keys.current}
+            selected={selected}
+            flaggedOnly={flaggedOnly}
+            isFlagged={isFlagged}
+            onSelect={(i) => select(i, true)}
+            onSelectGroup={selectGroup}
+          />
+        }
+        flagged={flagged}
+        flaggedOnly={flaggedOnly}
+        onToggleFlagged={() => setFlaggedOnly(!flaggedOnly)}
+        saveState={saveState}
+        onPublish={publish}
+        publishing={publishing}
+        canPublish={draft.questions.length > 0}
+      />
 
       <div className="px-3 py-4 sm:px-5">
         <div
@@ -826,207 +399,12 @@ export function ReviewEditor({
         </div>
       </div>
 
-      <Toast show={deletedNote !== null} action={t('復原')} onAction={undoDelete}>
+      <Toast show={deletedNote !== null} action={t('復原')} onAction={undo}>
         {t('已刪除第 {n} 題', { n: deletedNote ?? '' })}
       </Toast>
 
       <Fab actions={fabActions} badge={flagged || undefined} />
       {strength && <StrengthPanel open={strengthOpen} initial={shownStrength} onChange={setShownStrength} onClose={() => setStrengthOpen(false)} />}
-    </div>
-  )
-}
-
-/** Consecutive sub-questions of one number (11(a), 11(b)) form one cluster in the number bar. */
-function numberClusters(questions: DraftQuestion[]): { main: string; part: string | null; items: number[] }[] {
-  const out: { main: string; part: string | null; items: number[] }[] = []
-  questions.forEach((q, i) => {
-    const { main, part } = splitNumber(q.number)
-    const last = out.at(-1)
-    if (part !== null && last?.part !== null && last?.main === main) last.items.push(i)
-    else out.push({ main: part === null ? q.number : main, part, items: [i] })
-  })
-  return out
-}
-
-/** Width the open outline takes (232px column and its gap), and the divider's. */
-const OUTLINE_SPACE = 252
-const SPLITTER = 20
-
-const SAVE_LABELS: Record<SaveState, string> = { saved: msg('草稿已自動儲存'), saving: msg('儲存中…'), dirty: msg('有未儲存的修改') }
-
-/** Short plain-text preview of a question stem for the outline. */
-/**
- * The copy of a card that follows the pointer while it is dragged: the whole card as it looks,
- * same size and same buttons, lifted by its shadow only (`.m-lifted`). `offset` skips a section
- * heading or group text above the card; the drag measures from those.
- */
-function DragPreview({ q, inGroup, offset, flagged, actions }: { q: DraftQuestion; inGroup: boolean; offset: number; flagged: boolean; actions: React.ReactNode }) {
-  return (
-    <div style={{ paddingTop: offset }} className={inGroup ? 'ml-4 sm:ml-7' : ''}>
-      <div data-drag-overlay inert className="m-lifted relative cursor-grabbing rounded-2xl bg-surface p-4 sm:p-5">
-        {flagged && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-hl" />}
-        <QuestionView q={q} onConfirm={() => {}} actions={actions} />
-      </div>
-    </div>
-  )
-}
-
-function preview(stem: string) {
-  return stem
-    .replace(/\$\$?[^$]*\$\$?/g, '…')
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-    .replace(/-{3,}/g, '')
-    .replace(/[#*_`>|]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-/** Left column when opened: the exam's details and every question with its review state; rows can be dragged. */
-function Outline({
-  questions,
-  keys,
-  visibleKeys,
-  sensors,
-  onDragEnd,
-  selected,
-  flaggedOnly,
-  isFlagged,
-  onSelect,
-  onAdd,
-  onClose,
-  meta,
-}: {
-  questions: DraftQuestion[]
-  keys: string[]
-  visibleKeys: string[]
-  sensors: ReturnType<typeof useDragSensors>
-  onDragEnd: (e: DragEndEvent) => void
-  selected: number | null
-  flaggedOnly: boolean
-  isFlagged: (q: DraftQuestion) => boolean
-  onSelect: (index: number) => void
-  onAdd: () => void
-  onClose: () => void
-  meta: React.ReactNode
-}) {
-  const t = useT()
-  return (
-    <nav
-      aria-label={t('題目大綱')}
-      className="m-enter -ml-2 mr-3 hidden w-[248px] shrink-0 space-y-6 self-start px-2 lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:max-h-[calc(100dvh-var(--bar)-1.5rem)] lg:overflow-y-auto lg:pb-4 [scrollbar-gutter:stable]"
-    >
-      <section>
-        <p className="mb-2 flex items-center justify-between px-1 text-[11px] font-semibold tracking-[0.12em] text-muted">
-          {t('考卷資訊')}
-          <button type="button" onClick={onClose} className="m-press grid h-6 w-6 place-items-center rounded-md hover:bg-ink/[0.05] hover:text-ink" aria-label={t('收起題目大綱')} title={t('收起題目大綱')}>
-            <IconX size={14} />
-          </button>
-        </p>
-        <div className="space-y-2.5 rounded-2xl bg-surface p-3 shadow-sheet">{meta}</div>
-      </section>
-      <section>
-        <p className="mb-2 flex items-center justify-between px-1 text-[11px] font-semibold tracking-[0.12em] text-muted">
-          {t('題目')} <span className="num tracking-normal">{questions.length}</span>
-        </p>
-        <DndContext id="review-outline" sensors={sensors} collisionDetection={underPointer} modifiers={[alongList]} measuring={listMeasuring} onDragEnd={onDragEnd}>
-          <SortableContext items={visibleKeys} strategy={verticalListSortingStrategy}>
-            <Glide>
-            <ol className="space-y-px">
-              {questions.map((q, index) => {
-                if (flaggedOnly && !isFlagged(q)) return null
-                const on = selected === index
-                const section = q.section && q.section !== questions[index - 1]?.section ? q.section : null
-                return (
-                  <li key={keys[index]}>
-                    {section && <p className="mb-1 mt-3 truncate px-2 text-[11px] text-muted/80">{section}</p>}
-                    <Sortable id={keys[index]!}>
-                      {(handle, dragging) => (
-                        <button
-                          type="button"
-                          {...handle}
-                          onClick={() => onSelect(index)}
-                          title={t('點一下跳到這題，拖曳可以排序')}
-                          data-glide
-                          className={`relative flex w-full touch-manipulation items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13px] ${
-                            dragging ? 'bg-surface text-ink shadow-[0_12px_28px_-10px_rgb(22_24_43/0.35),0_0_0_1px_rgb(22_24_43/0.08)]' : on ? 'bg-surface text-ink shadow-sheet' : 'text-muted hover:text-ink'
-                          }`}
-                        >
-                          <span className={`num w-6 shrink-0 text-right text-[12px] ${on ? 'text-accent' : ''}`}>{q.number}</span>
-                          <span className="min-w-0 flex-1 truncate">{preview(q.stem) || t(TYPE_LABELS[q.type])}</span>
-                          {isFlagged(q) ? (
-                            <span className="h-2 w-2 shrink-0 rounded-full bg-hl" title={t('待確認')} />
-                          ) : (
-                            <IconCheck size={13} strokeWidth={2.6} className="shrink-0 text-good/70" aria-label={t('已確認')} />
-                          )}
-                        </button>
-                      )}
-                    </Sortable>
-                  </li>
-                )
-              })}
-            </ol>
-            </Glide>
-          </SortableContext>
-        </DndContext>
-        <button type="button" onClick={onAdd} className="m-press mt-2 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-muted hover:bg-ink/[0.04] hover:text-accent">
-          <IconPlus size={14} className="ml-2.5" /> {t('新增題目')}
-        </button>
-      </section>
-    </nav>
-  )
-}
-
-/**
- * A passage, figure or instruction shared by the questions after it, which hang under it. When they are
- * the sub-questions of one number, e.g. 11(a) and 11(b), it heads them as that question. Its text can be edited in place.
- */
-function GroupCard({
-  group,
-  parts,
-  onChange,
-  onSelect,
-  onMerge,
-}: {
-  group: DraftExam['groups'][number]
-  parts: DraftQuestion[]
-  onChange: (stem: string) => void
-  /** Clicking the card picks its first question, so its box shows on the page. */
-  onSelect: () => void
-  /** Sub-questions of one number can be joined back into one question. */
-  onMerge: () => void
-}) {
-  const t = useT()
-  const [editing, setEditing] = useState(false)
-  const numbers = parts.map((p) => splitNumber(p.number))
-  const main = numbers.length && numbers.every((n) => n.part !== null && n.main === numbers[0]!.main) ? numbers[0]!.main : null
-  const points = parts.every((p) => p.points !== null) ? parts.reduce((sum, p) => sum + p.points!, 0) : null
-  return (
-    <div data-group={group.id} onClick={() => !editing && onSelect()} className="relative mb-3 scroll-mt-40 rounded-2xl bg-surface/70 p-4 ring-1 ring-ink/[0.07]">
-      <div className="mb-2 flex items-center gap-2">
-        {main !== null ? <span className="num text-xl leading-none">{main}.</span> : <span className="text-xs font-medium text-muted">{t('題組共用內容')}</span>}
-        <Badge>{main !== null ? t('{n} 小題', { n: parts.length }) : t('{n} 題', { n: parts.length })}</Badge>
-        {main !== null && points !== null && <Badge>{t('{points} 分', { points: Math.round(points * 100) / 100 })}</Badge>}
-        <span className="ml-auto flex items-center gap-3">
-          {main !== null && !editing && (
-            <button
-              type="button"
-              onClick={(e) => (e.stopPropagation(), onMerge())}
-              className="flex items-center gap-1 text-xs text-accent hover:underline"
-              title={t('把小題合回一題')}
-            >
-              <IconMerge size={13} />
-              {t('合併')}
-            </button>
-          )}
-          <button type="button" onClick={(e) => (e.stopPropagation(), setEditing(!editing))} className="text-xs text-accent hover:underline">
-            {editing ? t('完成') : t('編輯')}
-          </button>
-        </span>
-      </div>
-      {editing ? <MathTextInput value={group.stem} onChange={onChange} /> : group.stem.trim() ? <Markdown>{group.stem}</Markdown> : <p className="text-sm text-muted">{t('（沒有共用內容）')}</p>}
-      {group.figures.map((f, i) => (
-        <FigureView key={i} figure={f} />
-      ))}
     </div>
   )
 }

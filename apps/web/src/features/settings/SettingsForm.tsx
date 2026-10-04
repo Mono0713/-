@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import type { ProviderOption } from '@/server/context'
+import type { ProviderOption } from '@/server/ai'
 import { useLocaleSwitch, useT } from '@/shared/i18n/client'
 import { IconKey, IconRefresh } from '@/shared/icons'
 import { useRemoval } from '@/shared/removal'

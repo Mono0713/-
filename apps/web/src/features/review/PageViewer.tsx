@@ -5,39 +5,10 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerE
 import { fileUrl } from '@/shared/files'
 import { useT } from '@/shared/i18n/client'
 import { IconChevronLeft, IconChevronRight, IconExternal, IconLoader, IconMinus, IconPlus } from '@/shared/icons'
+import { GRIPS, type Box } from './boxGeometry'
+import { useBoxEditing } from './useBoxEditing'
 
 const ZOOMS = [1, 1.25, 1.5, 2, 2.5]
-
-type Box = DraftQuestion['locations'][number]['bbox']
-/** What a press on the selected box changes: the whole box, or the edges named (n s e w). */
-type Grip = 'move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
-const GRIPS: { grip: Grip; className: string }[] = [
-  // edges: a 12px band centred on the outline, so a press meant to resize never moves the box
-  { grip: 'n', className: '-top-1.5 inset-x-2 h-3 cursor-ns-resize' },
-  { grip: 's', className: '-bottom-1.5 inset-x-2 h-3 cursor-ns-resize' },
-  { grip: 'w', className: '-left-1.5 inset-y-2 w-3 cursor-ew-resize' },
-  { grip: 'e', className: '-right-1.5 inset-y-2 w-3 cursor-ew-resize' },
-  // corners: an invisible 14px target
-  { grip: 'nw', className: '-left-[7px] -top-[7px] cursor-nwse-resize' },
-  { grip: 'ne', className: '-right-[7px] -top-[7px] cursor-nesw-resize' },
-  { grip: 'sw', className: '-bottom-[7px] -left-[7px] cursor-nesw-resize' },
-  { grip: 'se', className: '-bottom-[7px] -right-[7px] cursor-nwse-resize' },
-]
-const MIN = 0.012
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
-
-/** The box after a grip moved by (dx, dy), as fractions of the page; it never leaves the page or turns inside out. */
-function dragged(b: Box, grip: Grip, dx: number, dy: number): Box {
-  if (grip === 'move') return { ...b, x: clamp(b.x + dx, 0, 1 - b.width), y: clamp(b.y + dy, 0, 1 - b.height) }
-  let { x, y } = b
-  let right = b.x + b.width
-  let bottom = b.y + b.height
-  if (grip.includes('n')) y = clamp(y + dy, 0, bottom - MIN)
-  if (grip.includes('s')) bottom = clamp(bottom + dy, y + MIN, 1)
-  if (grip.includes('w')) x = clamp(x + dx, 0, right - MIN)
-  if (grip.includes('e')) right = clamp(right + dx, x + MIN, 1)
-  return { x, y, width: right - x, height: bottom - y }
-}
 
 /**
  * Every source page, one under the other, with a box around each question: the selected one is
@@ -198,141 +169,7 @@ export function PageViewer({
     setPanning(false)
   }
 
-  // The selected box: dragged by its body to move (onto another page too), by its edges and corners to resize.
-  // Moves follow the pointer over whichever page it is on, and the viewer scrolls when the pointer
-  // nears its top or bottom edge, so a box can be carried to a page that is out of view.
-  const [live, setLive] = useState<{ index: number; location: number; bbox: Box; pageNumber: number } | null>(null)
-  // Boxes carried to another page remount there; they skip the reveal animation from then on.
-  const carried = useRef(new Set<string>())
-  const edit = useRef<{
-    index: number
-    location: number
-    grip: Grip
-    start: Box
-    pageNumber: number
-    // the page the pointer was last over, kept while it crosses the gap between two pages
-    over: number
-    // where on the box it was grabbed, as fractions of the page
-    grabX: number
-    grabY: number
-    // where it was grabbed, as fractions of the page
-    fx: number
-    fy: number
-    x: number
-    y: number
-    w: number
-    h: number
-    last: { x: number; y: number }
-    end: () => void
-  } | null>(null)
-  const edgeSpeed = useRef(0)
-  const edgeFrame = useRef(0)
-
-  const figureAt = (x: number, y: number) =>
-    document.elementsFromPoint(x, y).map((el) => el.closest<HTMLElement>('figure[data-page]')).find((f) => f !== null) ?? null
-  const placed = (x: number, y: number) => {
-    const d = edit.current!
-    if (d.grip !== 'move') {
-      // measured against where the page is now, so a page that scrolls meanwhile does not pull the edge along
-      const r = scroller.current?.querySelector<HTMLElement>(`figure[data-page="${d.pageNumber}"]`)?.getBoundingClientRect()
-      const dx = r ? (x - r.left) / r.width - d.fx : (x - d.x) / d.w
-      const dy = r ? (y - r.top) / r.height - d.fy : (y - d.y) / d.h
-      return { bbox: dragged(d.start, d.grip, dx, dy), pageNumber: d.pageNumber }
-    }
-    const figure = figureAt(x, y) ?? scroller.current?.querySelector<HTMLElement>(`figure[data-page="${d.over}"]`)
-    if (!figure) return { bbox: d.start, pageNumber: d.pageNumber }
-    d.over = Number(figure.dataset.page)
-    const r = figure.getBoundingClientRect()
-    const b = d.start
-    return {
-      bbox: { ...b, x: clamp((x - r.left) / r.width - d.grabX, 0, 1 - b.width), y: clamp((y - r.top) / r.height - d.grabY, 0, 1 - b.height) },
-      pageNumber: Number(figure.dataset.page),
-    }
-  }
-  const follow = (x: number, y: number) => {
-    const d = edit.current
-    if (!d) return
-    d.last = { x, y }
-    setLive({ index: d.index, location: d.location, ...placed(x, y) })
-  }
-  // near the top or bottom of the view the pages scroll, faster the closer the pointer gets
-  const edgeScroll = (y: number) => {
-    const el = scroller.current
-    const view = el && scrolls() ? el.getBoundingClientRect() : { top: 0, bottom: innerHeight }
-    const zone = 56
-    edgeSpeed.current = y < view.top + zone ? -Math.min(1, (view.top + zone - y) / zone) * 16 : y > view.bottom - zone ? Math.min(1, (y - view.bottom + zone) / zone) * 16 : 0
-    if (!edgeSpeed.current || edgeFrame.current) return
-    const step = () => {
-      const d = edit.current
-      if (!d || !edgeSpeed.current) return void (edgeFrame.current = 0)
-      if (el && scrolls()) el.scrollBy({ top: edgeSpeed.current, behavior: 'instant' })
-      else window.scrollBy({ top: edgeSpeed.current, behavior: 'instant' })
-      follow(d.last.x, d.last.y)
-      edgeFrame.current = requestAnimationFrame(step)
-    }
-    edgeFrame.current = requestAnimationFrame(step)
-  }
-  const startEdit = (e: ReactPointerEvent, index: number, location: number, bbox: Box, grip: Grip) => {
-    if (!onBoxChange || e.button !== 0) return
-    const figure = (e.currentTarget as HTMLElement).closest<HTMLElement>('figure[data-page]')
-    if (!figure) return
-    const page = figure.getBoundingClientRect()
-    e.stopPropagation() // not a pan
-    e.preventDefault()
-    // Listened to on the window: a box carried onto another page is a new element there.
-    const move = (ev: PointerEvent) => {
-      follow(ev.clientX, ev.clientY)
-      if (edit.current?.grip === 'move') edgeScroll(ev.clientY)
-    }
-    const up = (ev: PointerEvent) => endEdit(ev)
-    const end = () => {
-      removeEventListener('pointermove', move)
-      removeEventListener('pointerup', up)
-      removeEventListener('pointercancel', up)
-    }
-    addEventListener('pointermove', move)
-    addEventListener('pointerup', up)
-    addEventListener('pointercancel', up)
-    edit.current = {
-      index,
-      location,
-      grip,
-      start: bbox,
-      pageNumber: Number(figure.dataset.page),
-      over: Number(figure.dataset.page),
-      grabX: (e.clientX - page.left) / page.width - bbox.x,
-      grabY: (e.clientY - page.top) / page.height - bbox.y,
-      fx: (e.clientX - page.left) / page.width,
-      fy: (e.clientY - page.top) / page.height,
-      x: e.clientX,
-      y: e.clientY,
-      w: page.width,
-      h: page.height,
-      last: { x: e.clientX, y: e.clientY },
-      end,
-    }
-  }
-  const endEdit = (e: PointerEvent) => {
-    const d = edit.current
-    if (!d) return
-    d.end()
-    edgeSpeed.current = 0
-    cancelAnimationFrame(edgeFrame.current)
-    edgeFrame.current = 0
-    const { bbox, pageNumber } = placed(e.clientX, e.clientY)
-    edit.current = null
-    setLive(null)
-    if (pageNumber !== d.pageNumber) {
-      carried.current.add(`${d.index}-${d.location}`)
-      onBoxChange?.(d.index, d.location, bbox, pageNumber)
-    } else if (Math.abs(bbox.x - d.start.x) + Math.abs(bbox.y - d.start.y) + Math.abs(bbox.width - d.start.width) + Math.abs(bbox.height - d.start.height) > 0.001) {
-      onBoxChange?.(d.index, d.location, bbox)
-    }
-  }
-  useEffect(() => () => {
-    edit.current?.end()
-    cancelAnimationFrame(edgeFrame.current)
-  }, [])
+  const { live, carried, startEdit } = useBoxEditing({ scroller, scrolls, onBoxChange })
 
   if (!pages.length) return null
   const scale = ZOOMS[zoom]!

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import type { ProviderOption } from '@/server/context'
+import type { ProviderOption } from '@/server/ai'
 import { ProviderFields } from '@/features/settings/ModelPicker'
 import { useT } from '@/shared/i18n/client'
 import { Button } from '@/shared/ui'
