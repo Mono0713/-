@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE, LOCALES, type Locale } from '@exam/settings'
+import { DEFAULT_LOCALE, LOCALES, type Locale } from '@exam/settings/locales'
 
 export { DEFAULT_LOCALE, LOCALES, type Locale }
 
