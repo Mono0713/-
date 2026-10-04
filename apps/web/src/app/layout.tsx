@@ -1,9 +1,10 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
 import { BRAND, brandTagline } from '@/shared/brand/brand'
 import { Header } from '@/shared/chrome/Header'
 import { Sidebar } from '@/shared/chrome/Sidebar'
 import { MOTION_SCRIPT } from '@/shared/motion/preference'
+import { ServiceWorker } from '@/shared/pwa/ServiceWorker'
 import { CATALOGS } from '@/shared/i18n/catalogs'
 import { I18nProvider } from '@/shared/i18n/client'
 import { getLocale } from '@/shared/i18n/server'
@@ -22,6 +23,17 @@ const mono = localFont({ src: './fonts/jetbrains-mono-latin-500-normal.woff2', v
 export const metadata: Metadata = {
   title: { default: BRAND.name, template: `%s · ${BRAND.name}` },
   description: brandTagline(),
+  // Installed on a phone's home screen it opens like an app, without the browser bar.
+  appleWebApp: { capable: true, title: BRAND.name, statusBarStyle: 'default' },
+  icons: { apple: '/icons/apple-touch-icon.png' },
+}
+
+export const viewport: Viewport = {
+  // Colors the phone's status bar to match the page.
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#fcfcfa' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f1528' },
+  ],
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -48,6 +60,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </RemovalProvider>
         </I18nProvider>
+        <ServiceWorker />
       </body>
     </html>
   )
