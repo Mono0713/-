@@ -84,7 +84,7 @@ Packages never import from apps.
 | `extraction` | AI recognition of pages: prompt (`prompt.ts`), providers, merging pages (`merge.ts`) |
 | `importer` | Upload → pages → recognition → draft pipeline, background runs, original-file expiry |
 | `ingest` | PDF and image → page images |
-| `figures` | Cropping figures, cleaning handwriting out of blanks |
+| `figures` | Cropping figures, cleaning handwriting out of blanks, moving AI question boxes onto their text lines (`snap.ts`) |
 | `bank` | Question bank storage (`sqlite.ts`, `postgres.ts`), drafts |
 | `quiz` | Attempts storage, marking rules (`logic.ts`), answer equivalence (`equivalence.ts`) |
 | `grading` | AI teacher, handwriting reader, tutor, translation, their caches |

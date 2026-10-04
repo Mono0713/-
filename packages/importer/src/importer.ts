@@ -3,7 +3,7 @@ import type { Bank, ImportRecord } from '@exam/bank'
 import type { DraftExam, DraftFigure, ExtractedPage, IngestedDocument, PageImage } from '@exam/core'
 import { createProvider, extractDocument, keepEdits, ManualProvider, mergePages, type PageResult, type ProviderConfig, type TextFiles } from '@exam/extraction'
 import type { FileStore } from '@exam/files'
-import { cleanFigure, cropExamFigures } from '@exam/figures'
+import { cleanFigure, cropExamFigures, snapBoxesToText } from '@exam/figures'
 import { ingestBuffer, storedPage } from '@exam/ingest'
 
 export interface UploadFile {
@@ -317,6 +317,8 @@ export class Importer {
     // Reading more pages must not undo what the person already changed on the others.
     const previous = await this.bank.getDraft(id)
     const exam = previous ? keepEdits(previous, mergePages(imp.fileName, results), new Set(selected)) : mergePages(imp.fileName, results)
+    // Boxes the model drew are moved onto the text lines they belong to (only on the pages just read).
+    await snapBoxesToText(exam, doc.pages.filter((p) => selected.includes(p.pageNumber))).catch(() => {})
     // Figures already in the draft keep their images; new crops get names that cannot overwrite them.
     const stamp = previous ? `-${Date.now().toString(36)}` : ''
     await cropExamFigures(exam, doc.pages, async (name, png) => {

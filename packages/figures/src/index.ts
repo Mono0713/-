@@ -246,3 +246,4 @@ class Page {
     return samples.map((s) => (s.length ? s.sort((a, b) => a - b)[s.length >> 1]! : 255))
   }
 }
+export { snapBoxesToText, lineShift } from './snap.ts'
