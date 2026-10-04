@@ -792,5 +792,15 @@
   "寫字練習": "Writing practice",
   "這題還沒有要練習的字，請到題庫編輯答案。": "This question has no characters to practise yet. Add them to its answer in the question bank.",
   "AI 讀到的字（? 是寫錯或認不出的字）": "What the AI read (? marks a wrong or unreadable character)",
-  "{n} 字": "{n} words"
+  "{n} 字": "{n} words",
+  "上一步": "Back",
+  "自己寫": "Write on your own",
+  "看範字、描寫": "Copy and trace",
+  "第 {n} / {total} 字": "Character {n} of {total}",
+  "下一步": "Next",
+  "回到一般畫面": "Back to the normal view",
+  "一般畫面": "Normal view",
+  "書寫模式": "Writing mode",
+  "收合題目": "Hide question",
+  "展開題目": "Show question"
 }

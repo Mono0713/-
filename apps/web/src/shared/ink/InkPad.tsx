@@ -38,6 +38,7 @@ export function InkPad({
   label,
   paper = DOTS,
   tools,
+  view,
 }: {
   value: InkDoc | null | undefined
   onChange?: (doc: InkDoc) => void
@@ -49,6 +50,8 @@ export function InkPad({
   paper?: Paper
   /** Extra controls at the end of the toolbar (e.g. a paper picker). */
   tools?: React.ReactNode
+  /** Shows only this part of the page, enlarged to the pad's width (in page widths), e.g. one practice cell group on a phone. */
+  view?: { x: number; y: number; w: number; h: number }
 }) {
   const t = useT()
   const fixed = paper.kind === 'practice' ? practiceHeight(paper) : null
@@ -90,7 +93,8 @@ export function InkPad({
     const r = svg.current!.getBoundingClientRect()
     // Mice report 0.5 while pressed; a pen reports real pressure.
     const p = e.pointerType === 'pen' ? Math.max(0.05, e.pressure) : 0.5
-    return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.width, p]
+    const scale = view?.w ?? 1
+    return [(view?.x ?? 0) + ((e.clientX - r.left) / r.width) * scale, (view?.y ?? 0) + ((e.clientY - r.top) / r.width) * scale, p]
   }
 
   const erase = (x: number, y: number) => {
@@ -225,7 +229,7 @@ export function InkPad({
       )}
       <svg
         ref={svg}
-        viewBox={`0 0 ${W} ${height}`}
+        viewBox={view ? `${view.x * W} ${view.y * W} ${view.w * W} ${view.h * W}` : `0 0 ${W} ${height}`}
         role="img"
         aria-label={label}
         onPointerDown={down}
@@ -233,7 +237,7 @@ export function InkPad({
         onPointerUp={up}
         onPointerCancel={up}
         className={`block w-full select-none ${paper.kind === 'dots' ? 'bg-[radial-gradient(color-mix(in_srgb,var(--color-ink)_11%,transparent)_1px,transparent_1.2px)] bg-[length:22px_22px]' : ''} ${readOnly ? '' : 'cursor-crosshair touch-none'}`}
-        style={{ aspectRatio: `${W} / ${height}` }}
+        style={{ aspectRatio: view ? `${view.w} / ${view.h}` : `${W} / ${height}` }}
       >
         {lines.map((l, i) => (
           <line

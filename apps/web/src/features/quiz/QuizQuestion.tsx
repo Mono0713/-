@@ -13,6 +13,7 @@ import { Markdown } from '@/shared/Markdown'
 import { IconKeyboard, IconLanguages, IconLoader, IconPen, IconScratch } from '@/shared/icons'
 import { PenTick } from '@/shared/motion/PenMarks'
 import { Segmented } from '@/shared/Segmented'
+import { PracticeSheet } from './PracticeSheet'
 import { wordCount } from '@/shared/wordCount'
 import { Badge, inputBase, inputClass } from '@/shared/ui'
 
@@ -49,6 +50,7 @@ export function QuizQuestion({
   celebrate = false,
   locale,
   onTranslate,
+  focus = false,
 }: {
   item: QuizItem
   index: number
@@ -61,6 +63,8 @@ export function QuizQuestion({
   locale?: string
   /** Fetches the question in the reader's language (stem, then each option in stored order). */
   onTranslate?: () => Promise<{ stem: string; options: string[] } | { error: string }>
+  /** 書寫模式: the writing area gets the room (a taller essay page, an enlarged practice grid on phones). */
+  focus?: boolean
 }) {
   const t = useT()
   const q = item.question
@@ -85,6 +89,9 @@ export function QuizQuestion({
     q.type === 'essay' ? (/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(q.stem) ? 'squares' : 'lines') : 'dots',
   )
   const practice = kind.kind === 'writing' ? practicePaper(key) : null
+  // 書寫模式 can fold the question away so the page has the room
+  const [stemFolded, setStemFolded] = useState(false)
+  const stemShown = !focus || !stemFolded
   const hasScratch = !isEmptyInk(response?.scratch)
   const [scratchOpen, setScratchOpen] = useState(() => !reveal && hasScratch)
 
@@ -191,7 +198,20 @@ export function QuizQuestion({
         </div>
       )}
 
-      <Markdown>{q.stem}</Markdown>
+      {stemShown ? (
+        <div className={focus ? 'flex items-start gap-2' : undefined}>
+          <Markdown className={focus ? 'min-w-0 flex-1' : undefined}>{q.stem}</Markdown>
+          {focus && (
+            <button type="button" onClick={() => setStemFolded(true)} className="m-press shrink-0 rounded-md px-2 py-1 text-xs text-muted hover:bg-ink/[0.06] hover:text-ink">
+              {t('收合題目')}
+            </button>
+          )}
+        </div>
+      ) : (
+        <button type="button" onClick={() => setStemFolded(false)} className="m-press w-full truncate rounded-lg border border-dashed border-line px-3 py-1.5 text-left text-sm text-muted hover:text-ink">
+          {t('展開題目')}
+        </button>
+      )}
       {translateError && <p className="m-shake rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">{translateError}</p>}
       {shownTranslation && (
         <div className="m-expand border-l-2 border-line pl-3 text-muted">
@@ -295,7 +315,7 @@ export function QuizQuestion({
               value={response?.handwriting}
               onChange={locked ? undefined : setInk}
               readOnly={locked}
-              minHeight={kind.kind === 'blanks' ? 0.3 : 0.4}
+              minHeight={kind.kind === 'blanks' ? 0.3 : focus ? 1 : 0.4}
               paper={paperOf(paperKind)}
               tools={
                 kind.kind === 'text' && (
@@ -344,7 +364,7 @@ export function QuizQuestion({
         <div className="space-y-2">
           {!locked && <p className="text-sm text-muted">{t('每一行先看第一格的字，描過淡色的字，再自己寫滿整行。')}</p>}
           {practice.rows.length ? (
-            (!locked || inked) && <InkPad label={t('寫字練習')} value={response?.handwriting} onChange={locked ? undefined : setInk} readOnly={locked} paper={practice} />
+            (!locked || inked) && <PracticeSheet paper={practice} value={response?.handwriting} onChange={locked ? undefined : setInk} readOnly={locked} focus={focus} />
           ) : (
             <p className="text-sm text-muted">{t('這題還沒有要練習的字，請到題庫編輯答案。')}</p>
           )}
@@ -392,7 +412,7 @@ export function QuizQuestion({
           value={values[0] ?? ''}
           disabled={locked}
           onChange={(e) => set([e.target.value])}
-          rows={5}
+          rows={focus ? 16 : 5}
           placeholder={t('寫下你的答案')}
           className={`${inputBase} w-full`}
         />

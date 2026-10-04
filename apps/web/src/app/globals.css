@@ -249,6 +249,11 @@ body:has(.workspace) :is(.app-sidebar, .app-header) {
   display: none;
 }
 
+/* 書寫模式 (writing practice, essays): the page is for writing; the quiz's own bar navigates. */
+body:has(.writing-focus) :is(.app-sidebar, .app-header) {
+  display: none;
+}
+
 /* The sign-in page stands alone: nothing to navigate to before signing in. */
 body:has(.auth-screen) :is(.app-sidebar, .app-header) {
   display: none;
