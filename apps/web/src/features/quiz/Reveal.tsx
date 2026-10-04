@@ -15,7 +15,7 @@ export const GRADE_LABELS = {
   no_key: ['沒有標準答案', 'neutral'],
 } as const
 
-/** The answer key, explanation and translation shown after a question is answered. */
+/** The answer key and explanation shown after a question is answered; the translation is on the question's own 翻譯 button. */
 export function Reveal({
   item,
   grade,
@@ -120,12 +120,6 @@ export function Reveal({
         <div>
           <span className="font-medium">詳解：</span>
           <Markdown>{q.explanation}</Markdown>
-        </div>
-      )}
-      {q.translation && (
-        <div>
-          <span className="font-medium">翻譯：</span>
-          <Markdown className="text-muted">{q.translation}</Markdown>
         </div>
       )}
 

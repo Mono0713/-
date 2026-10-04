@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest'
 import type { DraftQuestion } from '@exam/core'
-import { answerKind, buildItems, displayLabel, grade, gradeItem, isOver, matches, PostgresQuizStore, SqliteQuizStore, summarize, toQuizLabels, type QuizSettings, type QuizStore } from '../src/index.ts'
+import { answerKind, buildItems, displayLabel, grade, gradeItem, inOtherLanguage, isOver, matches, PostgresQuizStore, SqliteQuizStore, summarize, toQuizLabels, type QuizSettings, type QuizStore } from '../src/index.ts'
 import { testDatabase } from '@exam/db'
 
 function q(overrides: Partial<DraftQuestion> = {}): DraftQuestion {
@@ -178,5 +178,19 @@ describe.each(stores)('%s', (_name, open) => {
     expect((await store.get(attempt.id))!.responses).toEqual([{ values: ['0'] }, { values: ['1'] }, { values: ['2'] }])
     expect(await store.update(attempt.id, () => null)).toMatchObject({ id: attempt.id })
     expect(await store.update('missing', (a) => a)).toBeNull()
+  })
+})
+
+describe('inOtherLanguage', () => {
+  const q = (stem: string, options: string[] = []) => ({ stem, options: options.map((content, i) => ({ label: String(i + 1), content })) })
+  it('offers a translation for English to a Chinese reader, and the other way round', () => {
+    expect(inOtherLanguage(q('What are euchromatin and heterochromatin?'), 'zh-Hant')).toBe(true)
+    expect(inOtherLanguage(q('什麼是表觀遺傳？'), 'zh-Hant')).toBe(false)
+    expect(inOtherLanguage(q('什麼是表觀遺傳？'), 'en')).toBe(true)
+    expect(inOtherLanguage(q('What is DNA?'), 'en')).toBe(false)
+  })
+  it('ignores formulas and single letters', () => {
+    expect(inOtherLanguage(q('計算 $\\sin x + \\cos x$', ['$x = 1$', '$x = 2$']), 'zh-Hant')).toBe(false)
+    expect(inOtherLanguage(q('$2x + 3 = 7$'), 'zh-Hant')).toBe(false)
   })
 })

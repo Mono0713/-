@@ -6,7 +6,7 @@ import { QuizResults } from '@/features/quiz/QuizResults'
 import { startTeacher } from '@/features/quiz/teacher'
 import { hiddenItem, revealedItem } from '@/features/quiz/visible'
 import { graderFor, keyRule, resultsWithheld, selfMarks } from '@/server/classes'
-import { services } from '@/server/context'
+import { localeOf, services } from '@/server/context'
 import { ownedAttempt } from '@/server/owned'
 import { HandedIn } from '@/features/classes/HandedIn'
 import { ButtonLink, PageHeader } from '@/shared/ui'
@@ -51,7 +51,7 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
         {(await resultsWithheld(attempt)) ? (
           <HandedIn finishedAt={attempt.finishedAt} opensAt={key.keyHidden ? null : (key.keyUntil ?? null)} />
         ) : (
-          <QuizResults attempt={{ ...attempt, items: attempt.items.map((item) => revealedItem(item, key)) }} summary={summarize(attempt)} teacher={(await graderFor(attempt)) !== null} />
+          <QuizResults attempt={{ ...attempt, items: attempt.items.map((item) => revealedItem(item, key)) }} summary={summarize(attempt)} teacher={(await graderFor(attempt)) !== null} locale={await localeOf(attempt.ownerId)} />
         )}
       </div>
     )
@@ -62,7 +62,7 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader title={attempt.title} subtitle={`${mode} · ${attempt.items.length} 題`} actions={deletable && <DeleteQuizButton quizId={attempt.id} label="不做了，刪除" note="已刪除測驗" iconOnly />} />
-      <QuizPlayer attempt={visible} />
+      <QuizPlayer attempt={visible} locale={await localeOf(attempt.ownerId)} aiMarks={(await graderFor(attempt)) !== null} />
     </div>
   )
 }

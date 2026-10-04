@@ -10,14 +10,14 @@ import { Segmented } from '@/shared/Segmented'
 import { AutoRefresh } from '@/features/imports/AutoRefresh'
 import { IconLoader, IconSparkles } from '@/shared/icons'
 import { Button, Card } from '@/shared/ui'
-import { askTeacher, markAnswer } from './actions'
+import { askTeacher, markAnswer, translateQuestion } from './actions'
 import { QuizQuestion } from './QuizQuestion'
 import { GRADE_LABELS, Reveal } from './Reveal'
 
 type Filter = 'all' | 'missed' | 'pending'
 
 /** Score and every question with its answer, after the quiz is over. Open answers can be marked here. */
-export function QuizResults({ attempt, summary, teacher }: { attempt: QuizAttempt; summary: QuizSummary; teacher: boolean }) {
+export function QuizResults({ attempt, summary, teacher, locale }: { attempt: QuizAttempt; summary: QuizSummary; teacher: boolean; locale: string }) {
   const router = useRouter()
   const [filter, setFilter] = useState<Filter>('all')
   const [, start] = useTransition()
@@ -129,7 +129,7 @@ export function QuizResults({ attempt, summary, teacher }: { attempt: QuizAttemp
 
       {shown.map((i) => (
         <Card key={i} className="m-enter space-y-4 p-5">
-          <QuizQuestion item={attempt.items[i]!} index={i} response={attempt.responses[i] ?? null} reveal />
+          <QuizQuestion item={attempt.items[i]!} index={i} response={attempt.responses[i] ?? null} reveal locale={locale} onTranslate={() => translateQuestion(attempt.id, i)} />
           <Reveal item={attempt.items[i]!} grade={grades[i]!} marking={attempt.markings[i] ?? null} onMark={own ? (credit) => mark(i, credit) : undefined} withheldNote={withheldNote} tutor={{ attemptId: attempt.id, index: i, turns: attempt.tutoring?.[i] ?? [] }} />
         </Card>
       ))}

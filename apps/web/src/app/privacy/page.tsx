@@ -31,7 +31,7 @@ export default function PrivacyPage() {
         </Section>
         <Section title="資料怎麼使用">
           <p>
-            資料只用來提供 {BRAND.name} 的功能。辨識、批改和 AI 家教時，相關的頁面圖片、題目和作答會用你自己的金鑰送到你選的 AI 服務（例如 Anthropic、OpenAI、Google），並受該服務的條款約束。我們不販售資料，也不拿來投放廣告。
+            資料只用來提供 {BRAND.name} 的功能。辨識、批改、翻譯和問 AI 時，相關的頁面圖片、題目和作答會用你自己的金鑰送到你選的 AI 服務（例如 Anthropic、OpenAI、Google），並受該服務的條款約束。我們不販售資料，也不拿來投放廣告。
           </p>
         </Section>
         <Section title="誰看得到">

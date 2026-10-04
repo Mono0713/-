@@ -5,7 +5,7 @@ import { gradeItem, isOver, needsTeacher, type QuizAttempt, type QuizResponse, t
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { graderFor, keyRule, selfMarks } from '@/server/classes'
-import { currentOwner, localeOf, services, tutorFor } from '@/server/context'
+import { currentOwner, localeOf, services, translatorFor, tutorFor } from '@/server/context'
 import { ownedAttempt } from '@/server/owned'
 import { startQuiz } from './start'
 import { readInk, startTeacher } from './teacher'
@@ -139,9 +139,9 @@ export async function askTutor(id: string, index: number, message: string): Prom
   const attempt = await owned(id)
   const item = attempt.items[index]
   if (!item) return { error: '找不到這一題' }
-  if (!attempt.finishedAt && !attempt.checked[index]) return { error: '看過答案後才能問 AI 家教' }
+  if (!attempt.finishedAt && !attempt.checked[index]) return { error: '看過答案後才能問 AI' }
   // The tutor would give the answer away.
-  if (!keyShown(await keyRule(attempt))) return { error: attempt.assignment ? '老師公開答案後才能問 AI 家教。' : '這份考卷的答案沒有公開，不能問 AI 家教。' }
+  if (!keyShown(await keyRule(attempt))) return { error: attempt.assignment ? '老師公開答案後才能問 AI。' : '這份考卷的答案沒有公開，不能問 AI。' }
   const text = message.trim().slice(0, MAX_MESSAGE)
   if (!text) return { error: '請輸入問題' }
   const tutor = await tutorFor(attempt.ownerId)
@@ -152,7 +152,7 @@ export async function askTutor(id: string, index: number, message: string): Prom
   try {
     reply = await tutor.reply({ item, response: attempt.responses[index] ?? null, marking: attempt.markings[index] ?? null, turns: [...earlier, asked], language: await localeOf(attempt.ownerId) })
   } catch {
-    return { error: 'AI 家教暫時沒有回應，請再試一次。' }
+    return { error: 'AI 暫時沒有回應，請再試一次。' }
   }
   const answered: TutorTurn = { from: 'tutor', text: reply, at: new Date().toISOString() }
   const saved = await services().quizzes.update(id, (a) => {
@@ -160,6 +160,30 @@ export async function askTutor(id: string, index: number, message: string): Prom
     return { ...a, tutoring: { ...a.tutoring, [index]: turns } }
   })
   return { turns: saved?.tutoring?.[index] ?? [...earlier, asked, answered] }
+}
+
+/**
+ * A question in the reader's language: the translation printed on the paper when there is one,
+ * else one the AI wrote earlier for this attempt, else a new one from the AI (kept for next time).
+ */
+export async function translateQuestion(id: string, index: number): Promise<{ stem: string; options: string[] } | { error: string }> {
+  const attempt = await owned(id)
+  const item = attempt.items[index]
+  if (!item) return { error: '找不到這一題' }
+  const q = item.question
+  if (q.translation?.trim()) return { stem: q.translation, options: [] }
+  const kept = attempt.translations?.[index]
+  if (kept) return kept
+  const translator = await translatorFor(attempt.ownerId)
+  if (!translator) return { error: '翻譯要用 AI：請到設定加上 API 金鑰。' }
+  let translation: { stem: string; options: string[] }
+  try {
+    translation = await translator.translate({ stem: q.stem, options: q.options }, await localeOf(attempt.ownerId))
+  } catch {
+    return { error: '翻譯暫時沒有回應，請再試一次。' }
+  }
+  await services().quizzes.update(id, (a) => ({ ...a, translations: { ...a.translations, [index]: translation } }))
+  return translation
 }
 
 /** Removes a quiz for good; the list calls it once the 復原 note has run out. */

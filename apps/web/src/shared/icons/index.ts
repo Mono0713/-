@@ -32,6 +32,8 @@ export {
   ListIndentIncrease as IconIndent,
   ListIndentDecrease as IconOutdent,
   Keyboard as IconKeyboard,
+  Languages as IconLanguages,
+  Eye as IconReveal,
   KeyRound as IconKey,
   Library as IconBank,
   List as IconList,

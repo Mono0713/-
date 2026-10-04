@@ -2,13 +2,13 @@
 
 import { isEmptyInk, type InkDoc } from '@exam/ink'
 import type { QuizItem, QuizResponse } from '@exam/quiz'
-import { answerKind, matches, toPaperLabels } from '@exam/quiz/logic'
+import { answerKind, inOtherLanguage, matches, toPaperLabels } from '@exam/quiz/logic'
 import { useState } from 'react'
 import { FigureView } from '@/shared/FigureView'
 import { InkPad } from '@/shared/ink/InkPad'
 import { TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
-import { IconKeyboard, IconPen, IconScratch } from '@/shared/icons'
+import { IconKeyboard, IconLanguages, IconLoader, IconPen, IconScratch } from '@/shared/icons'
 import { PenTick } from '@/shared/motion/PenMarks'
 import { Segmented } from '@/shared/Segmented'
 import { Badge, inputBase, inputClass } from '@/shared/ui'
@@ -31,6 +31,8 @@ export function QuizQuestion({
   onChange,
   reveal = false,
   celebrate = false,
+  locale,
+  onTranslate,
 }: {
   item: QuizItem
   index: number
@@ -39,6 +41,10 @@ export function QuizQuestion({
   reveal?: boolean
   /** Play the right / wrong feedback animation (when the answer has just been checked). */
   celebrate?: boolean
+  /** The reader's language: a question in another language gets a 翻譯 button. */
+  locale?: string
+  /** Fetches the question in the reader's language (stem, then each option in stored order). */
+  onTranslate?: () => Promise<{ stem: string; options: string[] } | { error: string }>
 }) {
   const q = item.question
   const kind = answerKind(q)
@@ -59,6 +65,26 @@ export function QuizQuestion({
   const setInk = (handwriting: InkDoc) => patch({ handwriting, values: [] })
   const hasScratch = !isEmptyInk(response?.scratch)
   const [scratchOpen, setScratchOpen] = useState(() => !reveal && hasScratch)
+
+  // Translation: only on request, so the question is read in its own language first.
+  const translatable = !!onTranslate && !!locale && (!!q.translation || inOtherLanguage(q, locale))
+  const [translation, setTranslation] = useState<{ stem: string; options: string[] } | null>(null)
+  const [translationShown, setTranslationShown] = useState(false)
+  const [translating, setTranslating] = useState(false)
+  const [translateError, setTranslateError] = useState<string | null>(null)
+  const toggleTranslation = async () => {
+    if (translationShown || translation) return setTranslationShown(!translationShown)
+    if (!onTranslate || translating) return
+    setTranslating(true)
+    setTranslateError(null)
+    const result = await onTranslate().catch(() => ({ error: '翻譯暫時沒有回應，請再試一次。' }))
+    setTranslating(false)
+    if ('error' in result) return setTranslateError(result.error)
+    setTranslation(result)
+    setTranslationShown(true)
+  }
+  const shownTranslation = translationShown ? translation : null
+  const optionTranslation = (label: string) => shownTranslation?.options[q.options.findIndex((o) => o.label === label)] || null
 
   let figureOffset = 0
   const figures = q.figures.map((f, i) => {
@@ -101,12 +127,24 @@ export function QuizQuestion({
         <Badge>{TYPE_LABELS[q.type]}</Badge>
         {kind.kind === 'multiple' && <Badge tone="accent">可複選</Badge>}
         {q.points !== null && <Badge>{q.points} 分</Badge>}
+        <span className="ml-auto" />
+        {translatable && (
+          <button
+            type="button"
+            onClick={toggleTranslation}
+            aria-pressed={translationShown}
+            className={`m-press flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm ${translationShown ? 'bg-ink text-paper' : 'text-muted hover:bg-ink/[0.06] hover:text-ink'}`}
+          >
+            {translating ? <IconLoader size={16} className="m-spin" aria-hidden /> : <IconLanguages size={16} />}
+            翻譯
+          </button>
+        )}
         {(!locked || hasScratch) && (
           <button
             type="button"
             onClick={() => setScratchOpen(!scratchOpen)}
             aria-expanded={scratchOpen}
-            className={`m-press ml-auto flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm ${scratchOpen ? 'bg-ink text-paper' : 'text-muted hover:bg-ink/[0.06] hover:text-ink'}`}
+            className={`m-press flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm ${scratchOpen ? 'bg-ink text-paper' : 'text-muted hover:bg-ink/[0.06] hover:text-ink'}`}
           >
             <IconScratch size={16} />
             {locked ? '看草稿' : '草稿'}
@@ -132,6 +170,12 @@ export function QuizQuestion({
       )}
 
       <Markdown>{q.stem}</Markdown>
+      {translateError && <p className="m-shake rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">{translateError}</p>}
+      {shownTranslation && (
+        <div className="m-expand border-l-2 border-line pl-3 text-muted">
+          <Markdown>{shownTranslation.stem}</Markdown>
+        </div>
+      )}
       {figures}
 
       {choice ? (
@@ -149,7 +193,10 @@ export function QuizQuestion({
               <li key={label}>
                 <button type="button" disabled={locked} onClick={() => toggle(label)} className={`m-press relative flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left text-sm ${tone} ${feedback}`}>
                   <span className={`num shrink-0 font-semibold leading-relaxed ${picked ? 'text-accent' : 'text-muted'}`}>({item.displayLabels[i]})</span>
-                  <Markdown className="min-w-0 flex-1">{option?.content ?? ''}</Markdown>
+                  <span className="min-w-0 flex-1">
+                    <Markdown>{option?.content ?? ''}</Markdown>
+                    {optionTranslation(label) && <Markdown className="m-expand text-muted">{optionTranslation(label)!}</Markdown>}
+                  </span>
                   {/* Marks sit one line high, centred on the option's first line. */}
                   {correct && (
                     <span className="flex h-[1.625em] shrink-0 items-center">
@@ -166,7 +213,10 @@ export function QuizQuestion({
           {item.optionOrder.map((label, i) => (
             <li key={`${label}-${i}`} className="flex gap-2 rounded-lg bg-paper px-2.5 py-1.5 text-sm">
               <span className="num shrink-0 font-semibold leading-relaxed text-muted">({item.displayLabels[i]})</span>
-              <Markdown className="min-w-0 flex-1">{q.options.find((o) => o.label === label)?.content ?? ''}</Markdown>
+              <span className="min-w-0 flex-1">
+                <Markdown>{q.options.find((o) => o.label === label)?.content ?? ''}</Markdown>
+                {optionTranslation(label) && <Markdown className="m-expand text-muted">{optionTranslation(label)!}</Markdown>}
+              </span>
             </li>
           ))}
         </ul>

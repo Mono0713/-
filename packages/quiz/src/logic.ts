@@ -230,3 +230,15 @@ export function displayLabel(item: QuizItem, label: string): string {
   const i = item.optionOrder.indexOf(label)
   return i >= 0 ? item.displayLabels[i]! : label
 }
+
+/**
+ * Whether a question is written in another language than the reader's, judged by its script:
+ * a Chinese, Japanese or Korean reader gets a translation for Latin text, others for CJK text.
+ */
+export function inOtherLanguage(q: Pick<DraftQuestion, 'stem' | 'options'>, locale: string): boolean {
+  // formulas and code read the same in any language
+  const text = [q.stem, ...q.options.map((o) => o.content)].join('\n').replace(/\$\$[\s\S]*?\$\$|\$[^$\n]*\$|`[^`]*`/g, ' ')
+  const cjk = /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(text)
+  const words = (text.match(/[A-Za-z]{3,}/g) ?? []).length
+  return /^(zh|ja|ko)/.test(locale) ? !cjk && words >= 2 : cjk
+}

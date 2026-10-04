@@ -2,13 +2,13 @@
 
 import { isEmptyInk } from '@exam/ink'
 import type { Grade, QuizAttempt, QuizItem, QuizResponse } from '@exam/quiz'
-import { gradeItem } from '@exam/quiz/logic'
+import { answerKind, gradeItem } from '@exam/quiz/logic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { IconChevronLeft, IconChevronRight, IconFinish, IconSparkles, IconTimer } from '@/shared/icons'
+import { IconChevronLeft, IconChevronRight, IconFinish, IconReveal, IconSparkles, IconTimer } from '@/shared/icons'
 import { quizIsCalm } from '@/shared/motion/preference'
 import { Button, Card } from '@/shared/ui'
-import { checkAnswer, finishQuiz, markAnswer, saveResponse } from './actions'
+import { checkAnswer, finishQuiz, markAnswer, saveResponse, translateQuestion } from './actions'
 import { QuizQuestion } from './QuizQuestion'
 import { Reveal } from './Reveal'
 
@@ -17,7 +17,13 @@ import { Reveal } from './Reveal'
  * you go, submit at the end (or when time runs out). Practice mode: one
  * question at a time, with the answer shown after each.
  */
-export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
+export function QuizPlayer({ attempt, locale, aiMarks }: {
+  attempt: QuizAttempt
+  /** The reader's language, for the 翻譯 button on questions written in another one. */
+  locale: string
+  /** An AI teacher marks open answers when they are checked. */
+  aiMarks: boolean
+}) {
   const router = useRouter()
   const practice = attempt.settings.mode === 'practice'
   const [items, setItems] = useState<QuizItem[]>(attempt.items)
@@ -107,6 +113,8 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
 
   const item = items[current]!
   const isChecked = checked[current]
+  // The sparkle means AI: only when an AI teacher will mark this answer (never for choice questions).
+  const aiChecks = aiMarks && !['single', 'multiple', 'true_false'].includes(answerKind(item.question).kind)
   const last = current === total - 1
   const progress = practice ? `已完成 ${checked.filter(Boolean).length} / ${total} 題` : `已作答 ${answeredCount} / ${total} 題`
   // No dialog: with questions left blank the first press only says how many, and a second press hands in.
@@ -190,6 +198,8 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
                 onChange={isChecked ? undefined : (r) => update(current, r)}
                 reveal={practice && isChecked}
                 celebrate={practice && isChecked}
+                locale={locale}
+                onTranslate={() => translateQuestion(attempt.id, current)}
               />
             </Card>
           </div>
@@ -219,7 +229,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
           </Button>
           <div className="flex gap-2">
             {practice && !isChecked && (
-              <Button variant="primary" onClick={check} disabled={pending} loading={pending} icon={<IconSparkles size={16} />}>
+              <Button variant="primary" onClick={check} disabled={pending} loading={pending} icon={aiChecks ? <IconSparkles size={16} /> : <IconReveal size={16} />}>
                 {pending ? '檢查中…' : '看答案'}
               </Button>
             )}
