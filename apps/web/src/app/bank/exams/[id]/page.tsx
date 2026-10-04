@@ -45,9 +45,9 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
             <Removable key={q.id} id={q.id}>
               <div>
                 {showSection && <h3 className="mb-2 mt-6 text-sm font-semibold text-muted">{q.section}</h3>}
-                {group && (
+                {group && (group.stem.trim() || group.figures.length > 0) && (
                   <div className="mb-3 rounded-xl border border-line bg-paper p-4">
-                    <Markdown>{group.stem}</Markdown>
+                    {group.stem.trim() && <Markdown>{group.stem}</Markdown>}
                     {group.figures.map((f, k) => (
                       <FigureView key={k} figure={f} />
                     ))}

@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "pnpm --filter @exam/web dev",
+    "start": "pnpm --filter @exam/web start",
+    "preview": "pnpm --filter @exam/web build && pnpm --filter @exam/web start",
     "extract": "pnpm --filter @exam/cli start",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",

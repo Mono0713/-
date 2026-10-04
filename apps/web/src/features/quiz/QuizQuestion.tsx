@@ -121,9 +121,10 @@ export function QuizQuestion({
         </div>
       )}
 
-      {item.group && (
+      {/* sub-questions grouped without shared text (1(1), 1(2)) have nothing to show above them */}
+      {item.group && (item.group.stem.trim() || item.group.figures.length > 0) && (
         <div className="rounded-lg border border-line bg-paper p-3">
-          <Markdown>{item.group.stem}</Markdown>
+          {item.group.stem.trim() && <Markdown>{item.group.stem}</Markdown>}
           {item.group.figures.map((f, i) => (
             <FigureView key={i} figure={f} />
           ))}
