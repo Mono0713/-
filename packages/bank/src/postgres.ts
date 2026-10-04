@@ -103,7 +103,7 @@ export class PostgresBank implements Bank {
   }
 
   async createExam(ownerId: string, exam: NewExam): Promise<BankExam> {
-    const id = randomUUID()
+    const id = exam.id ?? randomUUID()
     await this.sql.begin(async (tx) => {
       await tx`insert into exams (id, owner_id, import_id) values (${id}, ${ownerId}, null)`
       await this.setColumns(tx, 'exams', id, { ...metaColumns(exam.meta), groups: tx.json(exam.groups as never) })

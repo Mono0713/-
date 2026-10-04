@@ -157,7 +157,7 @@ class SqliteBankSync {
 
   createExam(ownerId: string, exam: NewExam): BankExam {
     const now = new Date().toISOString()
-    const id = randomUUID()
+    const id = exam.id ?? randomUUID()
     this.db.exec('BEGIN')
     try {
       this.db.prepare('INSERT INTO exams (id, owner_id, import_id, groups, created_at, updated_at) VALUES (?, ?, NULL, ?, ?, ?)').run(id, ownerId, JSON.stringify(exam.groups), now, now)

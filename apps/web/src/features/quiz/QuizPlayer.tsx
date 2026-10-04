@@ -79,6 +79,8 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
   const check = () =>
     start(async () => {
       const result = await checkAnswer(attempt.id, current, responses[current] ?? { values: [] })
+      // past the deadline: the page shows the attempt as it now stands
+      if ('closed' in result) return router.refresh()
       setItems((all) => all.map((x, j) => (j === current ? result.item : x)))
       // Handwriting comes back with what the AI read.
       setResponses((all) => all.map((x, j) => (j === current ? result.response : x)))

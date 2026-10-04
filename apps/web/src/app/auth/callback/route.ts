@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { supabaseServer } from '@/server/auth'
 import { getT } from '@/shared/i18n/server'
+import { safeNext } from '@/shared/safeNext'
 
 /** Google sends the person back here with a one-time code, which becomes their session cookie. */
 export async function GET(request: NextRequest) {
@@ -8,8 +9,7 @@ export async function GET(request: NextRequest) {
   // Behind a proxy the request's own origin can be an internal address.
   const origin = process.env.SITE_URL?.replace(/\/+$/, '') || url.origin
   const code = url.searchParams.get('code')
-  const next = url.searchParams.get('next') ?? '/'
-  const target = next.startsWith('/') && !next.startsWith('//') ? next : '/'
+  const target = safeNext(url.searchParams.get('next'))
   if (code) {
     const { error } = await (await supabaseServer()).auth.exchangeCodeForSession(code)
     if (!error) return NextResponse.redirect(new URL(target, origin))

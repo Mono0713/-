@@ -76,7 +76,9 @@ export async function copyShared(token: string): Promise<{ error: string } | und
   const figureCount = opened.questions.reduce((n, q) => n + q.figures.length, 0) + opened.exam.groups.reduce((n, g) => n + g.figures.length, 0)
   const full = await noRoomFor(owner, figureCount * 50_000)
   if (full) return { error: full }
-  const folder = `${keyPrefixOf(owner)}copies/${randomUUID()}`
+  // The folder is named after the copy, so a link to the copy can open its figures (see server/shared.ts).
+  const examId = randomUUID()
+  const folder = `${keyPrefixOf(owner)}copies/${examId}`
   let n = 0
   const copyFigure = async (f: DraftFigure): Promise<DraftFigure> => {
     if (!f.image) return f
@@ -101,7 +103,7 @@ export async function copyShared(token: string): Promise<{ error: string } | und
   }
   const groups = await Promise.all(opened.exam.groups.map(async (g) => ({ ...g, figures: await Promise.all(g.figures.map(copyFigure)) })))
   const { title, subject, institution, term, language } = opened.exam
-  const exam = await bank.createExam(owner, { meta: { title, subject, institution, term, language }, groups, questions })
+  const exam = await bank.createExam(owner, { id: examId, meta: { title, subject, institution, term, language }, groups, questions })
   await shares.recordCopy(token, owner, exam.id)
   revalidatePath('/bank')
   redirect(`/bank/exams/${exam.id}`)

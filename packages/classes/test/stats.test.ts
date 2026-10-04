@@ -77,8 +77,17 @@ describe('assignmentStats', () => {
 
   it('lists students who have not started', () => {
     const stats = assignmentStats(sources, [member('amy')], [])
-    expect(stats.students).toEqual([{ userId: 'amy', name: 'AMY', tries: 0, counted: null }])
+    expect(stats.students).toEqual([{ userId: 'amy', name: 'AMY', left: false, tries: 0, counted: null }])
     expect(stats.average).toBeNull()
     expect(stats.questions[0]!.rate).toBeNull()
+  })
+
+  it('keeps the work of students who left the class', () => {
+    const stats = assignmentStats(sources, [member('amy')], [attempt('dee', '2026-10-02T01:00:00Z', [['A'], ['sugar']], true)])
+    expect(stats.students.map((s) => [s.userId, s.name, s.left, s.counted?.handedIn])).toEqual([
+      ['amy', 'AMY', false, undefined],
+      ['dee', '', true, true],
+    ])
+    expect(stats.handedIn).toBe(1)
   })
 })

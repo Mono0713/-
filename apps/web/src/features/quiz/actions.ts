@@ -72,10 +72,18 @@ export async function checkAnswer(id: string, index: number, response: QuizRespo
     const t = await getT()
     throw new Error(t('只有練習模式能逐題看答案'))
   }
+  // Once the attempt is over (handed in, or past its deadline) no new answer is taken or revealed.
+  let closed = false
   attempt =
-    (await services().quizzes.update(id, (a) =>
-      a.checked[index] || a.finishedAt ? null : { ...a, responses: withAt(a.responses, index, fromClient(response)), checked: withAt(a.checked, index, true) },
-    )) ?? attempt
+    (await services().quizzes.update(id, (a) => {
+      if (a.checked[index]) return null
+      if (isOver(a)) {
+        closed = true
+        return null
+      }
+      return { ...a, responses: withAt(a.responses, index, fromClient(response)), checked: withAt(a.checked, index, true) }
+    })) ?? attempt
+  if (closed) return { closed: true as const }
   const item = attempt.items[index]!
   // Most answers are settled by the key alone; only look up the AI teacher when one is needed.
   const unread = unreadHandwriting(attempt.responses[index]) && !attempt.markings[index]

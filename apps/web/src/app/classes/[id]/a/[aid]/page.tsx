@@ -116,7 +116,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
   const [members, tries] = await Promise.all([classes.members(classroom.id), classes.attempts(a.id)])
   const attempts = (await Promise.all(tries.filter((x) => !x.preview).map((x) => quizzes.get(x.attemptId)))).filter((x) => x !== null)
   const stats = assignmentStats(a.sources, members, attempts)
-  const missing = stats.students.filter((r) => !r.counted?.handedIn)
+  const missing = stats.students.filter((r) => !r.left && !r.counted?.handedIn)
   const pending = stats.students.reduce((n, r) => n + (r.counted?.handedIn ? r.counted.pending : 0), 0)
 
   return (
@@ -176,7 +176,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
                   const c = r.counted
                   const row = (
                     <>
-                      <td className="px-3 py-2 font-medium">{r.name}</td>
+                      <td className={`px-3 py-2 font-medium ${r.left ? 'text-muted' : ''}`}>{r.left ? t('已退出的學生') : r.name}</td>
                       <td className="px-3 py-2">
                         {!c ? (
                           <Badge tone="warn">{t('未交')}</Badge>

@@ -35,6 +35,8 @@ export interface ImportRecord {
 }
 
 export interface NewExam {
+  /** Id to create the exam under, e.g. when its files are named after it first. A new one when left out. */
+  id?: string
   meta: Partial<ExamMeta>
   groups: DraftExam['groups']
   questions: DraftQuestion[]
