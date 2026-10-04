@@ -26,6 +26,7 @@ export function QuizSetup({ exams, preselected }: { exams: SetupExam[]; preselec
   const [mode, setMode] = useState<QuizMode>('practice')
   const [shuffleQuestions, setShuffleQuestions] = useState(true)
   const [shuffleOptions, setShuffleOptions] = useState(true)
+  const [multiplePartial, setMultiplePartial] = useState(true)
   const [timeLimit, setTimeLimit] = useState('')
   const [limit, setLimit] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -60,7 +61,7 @@ export function QuizSetup({ exams, preselected }: { exams: SetupExam[]; preselec
       const result = await createQuiz({
         questionIds,
         limit: limit ? drawn : null,
-        settings: { mode, shuffleQuestions, shuffleOptions, timeLimitMinutes: mode === 'exam' && timeLimit ? Number(timeLimit) : null },
+        settings: { mode, shuffleQuestions, shuffleOptions, multiplePartial, timeLimitMinutes: mode === 'exam' && timeLimit ? Number(timeLimit) : null },
       })
       if (result?.error) setError(result.error)
     })
@@ -168,6 +169,10 @@ export function QuizSetup({ exams, preselected }: { exams: SetupExam[]; preselec
             <label className="flex items-center gap-2">
               <input type="checkbox" className="m-check" checked={shuffleOptions} onChange={(e) => setShuffleOptions(e.target.checked)} />
               {t('選項順序隨機')}
+            </label>
+            <label className="flex items-center gap-2" title={t('每錯一個選項扣 2/n 的分數，扣完為止（學測規則）')}>
+              <input type="checkbox" className="m-check" checked={multiplePartial} onChange={(e) => setMultiplePartial(e.target.checked)} />
+              {t('多選題部分給分')}
             </label>
           </div>
 

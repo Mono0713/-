@@ -40,6 +40,8 @@ export interface AssignmentSettings {
   shuffleQuestions: boolean
   shuffleOptions: boolean
   timeLimitMinutes: number | null
+  /** Multiple-choice questions earn part of their points when partly right. */
+  multiplePartial?: boolean
   /** How many times each student may start it; null is no limit. */
   maxAttempts: number | null
   answers: AssignmentAnswers

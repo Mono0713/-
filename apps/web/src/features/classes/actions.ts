@@ -151,6 +151,7 @@ export async function createAssignment(classId: string, input: NewAssignmentInpu
     shuffleQuestions: Boolean(s.shuffleQuestions),
     shuffleOptions: Boolean(s.shuffleOptions),
     timeLimitMinutes: s.mode === 'exam' ? count(s.timeLimitMinutes) : null,
+    multiplePartial: Boolean(s.multiplePartial),
     maxAttempts: count(s.maxAttempts),
     // Practice shows each answer once it is written, so its answers cannot wait.
     answers: s.mode !== 'practice' && ANSWERS.includes(s.answers) ? s.answers : 'after_submit',
@@ -201,13 +202,13 @@ export async function startAssignment(assignmentId: string): Promise<{ error: st
     const tries = (await classes.attempts(assignment.id, me.userId)).filter((a) => !a.preview).length
     if (assignment.settings.maxAttempts !== null && tries >= assignment.settings.maxAttempts) return { error: t('已經用完可以作答的次數') }
   }
-  const { mode, shuffleQuestions, shuffleOptions, timeLimitMinutes } = assignment.settings
+  const { mode, shuffleQuestions, shuffleOptions, timeLimitMinutes, multiplePartial } = assignment.settings
   const attempt = await startFromSources({
     ownerId: me.userId,
     title: assignment.title,
     examIds: [],
     sources: assignment.sources,
-    settings: { mode, shuffleQuestions, shuffleOptions, timeLimitMinutes },
+    settings: { mode, shuffleQuestions, shuffleOptions, timeLimitMinutes, multiplePartial },
     assignment: { classId: assignment.classId, assignmentId: assignment.id, ...(teaches && { preview: true }) },
     endsBy: teaches ? null : assignment.closesAt,
   })

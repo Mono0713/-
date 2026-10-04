@@ -813,5 +813,7 @@
   "第 {n} 項": "Eintrag {n}",
   "第 {from}–{to} 題共用": "Gilt für Fragen {from}–{to}",
   "展開文章": "Text anzeigen",
-  "收合文章": "Text ausblenden"
+  "收合文章": "Text ausblenden",
+  "每錯一個選項扣 2/n 的分數，扣完為止（學測規則）": "Jede falsch gewählte oder fehlende Option kostet 2/n der Punkte, bis null",
+  "多選題部分給分": "Teilpunkte bei Mehrfachauswahl"
 }

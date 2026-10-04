@@ -813,5 +813,7 @@
   "第 {n} 項": "Item {n}",
   "第 {from}–{to} 題共用": "Untuk soal {from}–{to}",
   "展開文章": "Tampilkan bacaan",
-  "收合文章": "Sembunyikan bacaan"
+  "收合文章": "Sembunyikan bacaan",
+  "每錯一個選項扣 2/n 的分數，扣完為止（學測規則）": "Setiap pilihan salah atau terlewat mengurangi 2/n poin, sampai nol",
+  "多選題部分給分": "Nilai parsial untuk pilihan ganda kompleks"
 }

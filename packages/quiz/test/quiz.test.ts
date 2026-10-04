@@ -248,3 +248,22 @@ describe('reading passages', () => {
     expect(groupRange(sources, 0)).toBeNull()
   })
 })
+
+describe('multiple choice partial credit', () => {
+  const multi = q({ type: 'multiple_choice', points: 5, options: ['A', 'B', 'C', 'D', 'E'].map((label) => ({ label, content: label })), answer: { values: ['A', 'C'], source: 'printed' } })
+
+  it('takes 2/n of the points for each option picked wrongly or missed', () => {
+    expect(grade(multi, { values: ['A', 'C'] }, null, true)).toEqual({ status: 'correct', score: 5, max: 5 })
+    expect(grade(multi, { values: ['A'] }, null, true)).toEqual({ status: 'partial', score: 3, max: 5 })
+    expect(grade(multi, { values: ['A', 'B'] }, null, true)).toEqual({ status: 'partial', score: 1, max: 5 })
+    expect(grade(multi, { values: ['B', 'D', 'E'] }, null, true)).toEqual({ status: 'wrong', score: 0, max: 5 })
+    expect(grade(multi, { values: ['A'] })).toEqual({ status: 'wrong', score: 0, max: 5 })
+  })
+
+  it('applies only when the quiz asks for it', () => {
+    const [on] = buildItems([{ questionId: 'm', question: multi, group: null }], { ...settings, multiplePartial: true })
+    const [off] = buildItems([{ questionId: 'm', question: multi, group: null }], settings)
+    expect(gradeItem(on!, { values: ['A'] }).score).toBe(3)
+    expect(gradeItem(off!, { values: ['A'] }).score).toBe(0)
+  })
+})

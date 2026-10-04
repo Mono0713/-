@@ -46,9 +46,10 @@ export function buildItems(sources: QuizSource[], settings: QuizSettings, random
   const ordered = settings.shuffleQuestions ? shuffle(groupRuns(sources), random).flat() : sources
   return ordered.map(({ questionId, question, group }) => {
     const labels = question.options.map((o) => o.label)
-    if (labels.length < 2 || !settings.shuffleOptions) return { questionId, question, group, optionOrder: labels, displayLabels: labels }
+    const partial = settings.multiplePartial && question.type === 'multiple_choice' ? { partial: true } : {}
+    if (labels.length < 2 || !settings.shuffleOptions) return { questionId, question, group, optionOrder: labels, displayLabels: labels, ...partial }
     const optionOrder = shuffle(labels, random)
-    return { questionId, question, group, optionOrder, displayLabels: relabel(labels) }
+    return { questionId, question, group, optionOrder, displayLabels: relabel(labels), ...partial }
   })
 }
 
@@ -98,7 +99,7 @@ function shuffle<T>(items: T[], random: () => number): T[] {
 
 /** Marks an answer in a quiz, translating option labels typed in blanks back to the paper's labels. */
 export function gradeItem(item: QuizItem, response: QuizResponse | null, marking: Marking | null = null): Grade {
-  if (answerKind(item.question).kind !== 'blanks' || !response) return grade(item.question, response, marking)
+  if (answerKind(item.question).kind !== 'blanks' || !response) return grade(item.question, response, marking, item.partial)
   return grade(item.question, { values: response.values.map((v) => toPaperLabels(item, v)) }, marking)
 }
 
@@ -129,8 +130,9 @@ function mapLabels(value: string, from: string[], to: string[]): string {
  * Marks one answer. Choice and true/false questions are checked against the key. Blanks and
  * short answers are checked too, forgiving format ("1/2" = "0.5"); what that cannot settle,
  * and every open answer, waits for a marking by the person or an AI teacher, which then decides.
+ * With `partial`, a multiple-choice answer earns part of its points (see multipleScore).
  */
-export function grade(q: DraftQuestion, response: QuizResponse | null, marking: Marking | null = null): Grade {
+export function grade(q: DraftQuestion, response: QuizResponse | null, marking: Marking | null = null, partial = false): Grade {
   const key = q.answer.values.filter((v) => v.trim())
   const worth = q.points ?? 1
   const given = response?.values ?? []
@@ -144,6 +146,8 @@ export function grade(q: DraftQuestion, response: QuizResponse | null, marking: 
   if (!key.length) return { status: 'no_key', score: 0, max: 0 }
   // Handwriting nobody has read yet waits to be marked.
   if (!typed) return { status: 'pending', score: 0, max: worth }
+
+  if (kind.kind === 'multiple' && partial) return multipleScore(q, key.map(normalize), given.map(normalize), worth)
 
   if (choice) {
     const same = sameSet(key.map(normalize), given.map(normalize))
@@ -162,6 +166,19 @@ export function grade(q: DraftQuestion, response: QuizResponse | null, marking: 
   const score = Math.round((worth * right * 100) / key.length) / 100
   const status = right === key.length ? 'correct' : right > 0 ? 'partial' : 'wrong'
   return { status, score, max: worth }
+}
+
+/**
+ * The 學測 rule for multiple choice: every option is one decision, and each option picked
+ * wrongly or missed takes 2/n of the points (n options), down to nothing.
+ */
+function multipleScore(q: DraftQuestion, key: string[], given: string[], worth: number): Grade {
+  const n = q.options.length
+  const options = q.options.map((o) => normalize(o.label))
+  const wrong = options.filter((l) => key.includes(l) !== given.includes(l)).length
+  const share = Math.max(0, (n - 2 * wrong) / n)
+  const score = Math.round(worth * share * 100) / 100
+  return { status: wrong === 0 ? 'correct' : score > 0 ? 'partial' : 'wrong', score, max: worth }
 }
 
 /**

@@ -813,5 +813,7 @@
   "第 {n} 項": "Item {n}",
   "第 {from}–{to} 題共用": "Shared by questions {from}–{to}",
   "展開文章": "Show passage",
-  "收合文章": "Hide passage"
+  "收合文章": "Hide passage",
+  "每錯一個選項扣 2/n 的分數，扣完為止（學測規則）": "Each option picked wrongly or missed costs 2/n of the points, down to zero",
+  "多選題部分給分": "Partial credit for multiple choice"
 }

@@ -42,6 +42,7 @@ export function AssignForm({ classId, exams, preselected }: { classId: string; e
   const [mode, setMode] = useState<QuizMode>('exam')
   const [shuffleQuestions, setShuffleQuestions] = useState(true)
   const [shuffleOptions, setShuffleOptions] = useState(true)
+  const [multiplePartial, setMultiplePartial] = useState(true)
   const [timeLimit, setTimeLimit] = useState('')
   const [maxAttempts, setMaxAttempts] = useState('1')
   const [opensAt, setOpensAt] = useState('')
@@ -57,7 +58,7 @@ export function AssignForm({ classId, exams, preselected }: { classId: string; e
       const result = await createAssignment(classId, {
         examId,
         title: title || exam?.title || '',
-        settings: { mode, shuffleQuestions, shuffleOptions, timeLimitMinutes: timeLimit ? Number(timeLimit) : null, maxAttempts: maxAttempts ? Number(maxAttempts) : null, answers },
+        settings: { mode, shuffleQuestions, shuffleOptions, multiplePartial, timeLimitMinutes: timeLimit ? Number(timeLimit) : null, maxAttempts: maxAttempts ? Number(maxAttempts) : null, answers },
         opensAt: toIso(opensAt),
         closesAt: toIso(closesAt),
       })
@@ -129,6 +130,10 @@ export function AssignForm({ classId, exams, preselected }: { classId: string; e
         <label className="flex items-center gap-2">
           <input type="checkbox" className="m-check" checked={shuffleOptions} onChange={(e) => setShuffleOptions(e.target.checked)} />
           {t('每個人的選項順序不同')}
+        </label>
+        <label className="flex items-center gap-2" title={t('每錯一個選項扣 2/n 的分數，扣完為止（學測規則）')}>
+          <input type="checkbox" className="m-check" checked={multiplePartial} onChange={(e) => setMultiplePartial(e.target.checked)} />
+          {t('多選題部分給分')}
         </label>
       </div>
 

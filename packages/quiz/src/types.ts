@@ -11,6 +11,8 @@ export interface QuizSettings {
   shuffleOptions: boolean
   /** Exam mode only; null means no limit. */
   timeLimitMinutes: number | null
+  /** Multiple-choice questions earn part of their points when partly right (see grade). */
+  multiplePartial?: boolean
   /** The answer key and explanations are never shown, e.g. a shared exam whose owner keeps them private. */
   keyHidden?: boolean
   /** The answer key stays hidden until this moment, e.g. a class assignment that shows answers once it closes. */
@@ -27,6 +29,8 @@ export interface QuizItem {
   optionOrder: string[]
   /** Label shown for each entry of optionOrder. */
   displayLabels: string[]
+  /** A multiple-choice question that earns part of its points when partly right. */
+  partial?: boolean
 }
 
 /**

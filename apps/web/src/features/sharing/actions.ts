@@ -53,7 +53,7 @@ export async function startShared(token: string, mode: QuizMode, shuffle: { ques
   const attempt = await startQuiz({
     ownerId: await currentOwner(),
     questions: opened.questions,
-    settings: { mode, shuffleQuestions: shuffle.questions, shuffleOptions: shuffle.options, timeLimitMinutes: null, keyHidden: opened.share.answers === 'never' },
+    settings: { mode, shuffleQuestions: shuffle.questions, shuffleOptions: shuffle.options, timeLimitMinutes: null, multiplePartial: true, keyHidden: opened.share.answers === 'never' },
     share: token,
   })
   revalidatePath('/quiz')

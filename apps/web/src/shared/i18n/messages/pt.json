@@ -813,5 +813,7 @@
   "第 {n} 項": "Item {n}",
   "第 {from}–{to} 題共用": "Comum às questões {from}–{to}",
   "展開文章": "Mostrar texto",
-  "收合文章": "Ocultar texto"
+  "收合文章": "Ocultar texto",
+  "每錯一個選項扣 2/n 的分數，扣完為止（學測規則）": "Cada opção errada ou omitida tira 2/n dos pontos, até zero",
+  "多選題部分給分": "Pontuação parcial em múltipla escolha"
 }
