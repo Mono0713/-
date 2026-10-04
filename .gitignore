@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+out/
+*.log
+.DS_Store
+data/
+.next/
+*.tsbuildinfo
+apps/web/next-env.d.ts
+
+# Copied from node_modules by apps/web/scripts/copy-assets.mjs
+apps/web/public/mathlive/

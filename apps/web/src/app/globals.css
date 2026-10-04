@@ -1,0 +1,283 @@
+@import 'tailwindcss';
+@import '../shared/motion/motion.css';
+
+/*
+ * Sheetloop design base: 自修桌 (study desk). See apps/web/DESIGN.md.
+ * Graph paper, ballpoint blue, highlighter and a teacher's red pen.
+ * Every color is a token; dark mode redefines the tokens only.
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+/* The sidebar folded into a rail of icons (shared/chrome/rail.ts). */
+@custom-variant rail (&:where([data-sidebar='rail'], [data-sidebar='rail'] *));
+
+@theme {
+  --font-sans: var(--font-body), 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-body), 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  --font-hand: 'LXGW WenKai TC', 'Kaiti TC', 'STKaiti', 'DFKai-SB', serif;
+  --font-mono: var(--font-jbmono), ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  /* paper and ink */
+  --color-paper: #fcfcfa;
+  --color-grid: #e9edf5;
+  --color-surface: #ffffff;
+  --color-ink: #1b2340;
+  --color-muted: #5f6782;
+  --color-line: #dfe4ee;
+  /* ballpoint blue: the one accent */
+  --color-accent: #2f4bff;
+  --color-accent-soft: #eef1ff;
+  --color-accent-deep: #1d33c9;
+  --color-on-accent: #ffffff;
+  /* highlighter (answers, things to check) and the teacher's red pen (AI comments) */
+  --color-hl: #f4ff5c;
+  /* the highlighter stroke behind text; see-through in dark mode so the text keeps its color */
+  --color-hl-mark: #f4ff5c;
+  --color-pen: #d63a2f;
+  /* the navy desk: sidebar, toasts, overlays; the same in both themes */
+  --color-night: #141b33;
+  --color-night-soft: #222b4a;
+  --color-night-accent: #8fa2ff;
+  --color-good: #1d7a4c;
+  --color-good-soft: #e4f4eb;
+  --color-warn: #8a5a00;
+  --color-warn-soft: #fbf3d6;
+  --color-bad: #c8352b;
+  --color-bad-soft: #fde9e6;
+  --shadow-sheet: 0 0 0 1px rgb(27 35 64 / 0.07), 0 1px 2px rgb(27 35 64 / 0.04), 0 10px 28px -22px rgb(27 35 64 / 0.3);
+}
+
+/* Night desk: navy paper, lighter ink. The same values serve the system setting and an explicit choice. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-paper: #0f1528;
+    --color-grid: #172039;
+    --color-surface: #151d34;
+    --color-ink: #e6eaf7;
+    --color-muted: #97a0bd;
+    --color-line: #263155;
+    --color-accent: #7d93ff;
+    --color-accent-soft: #1c2650;
+    --color-accent-deep: #4c62d6;
+    --color-on-accent: #0f1528;
+    --color-hl: #d7f04a;
+    --color-hl-mark: rgb(215 240 74 / 0.3);
+    --color-pen: #ff8b7e;
+    --color-night: #0a0f1f;
+    --color-night-soft: #1a2240;
+    --color-good: #5fd39a;
+    --color-good-soft: #10291e;
+    --color-warn: #f2be55;
+    --color-warn-soft: #2c2410;
+    --color-bad: #ff8b7e;
+    --color-bad-soft: #351b1d;
+    --shadow-sheet: 0 0 0 1px rgb(255 255 255 / 0.06), 0 12px 28px -20px rgb(0 0 0 / 0.6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --color-paper: #0f1528;
+  --color-grid: #172039;
+  --color-surface: #151d34;
+  --color-ink: #e6eaf7;
+  --color-muted: #97a0bd;
+  --color-line: #263155;
+  --color-accent: #7d93ff;
+  --color-accent-soft: #1c2650;
+  --color-accent-deep: #4c62d6;
+  --color-on-accent: #0f1528;
+  --color-hl: #d7f04a;
+  --color-hl-mark: rgb(215 240 74 / 0.3);
+  --color-pen: #ff8b7e;
+  --color-night: #0a0f1f;
+  --color-night-soft: #1a2240;
+  --color-good: #5fd39a;
+  --color-good-soft: #10291e;
+  --color-warn: #f2be55;
+  --color-warn-soft: #2c2410;
+  --color-bad: #ff8b7e;
+  --color-bad-soft: #351b1d;
+  --shadow-sheet: 0 0 0 1px rgb(255 255 255 / 0.06), 0 12px 28px -20px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+
+/* While the theme switches (shared/theme/theme.ts), nothing eases its colors, so the whole page
+   changes in one frame; the theme picker's own sliding pill keeps moving. */
+:root[data-theme-switching] *:not([data-keep-motion]),
+:root[data-theme-switching] *::before,
+:root[data-theme-switching] *::after {
+  transition: none !important;
+}
+
+html {
+  color-scheme: light;
+  /* scrollbars: a thin pencil-grey thumb, no track or arrows, in both themes */
+  scrollbar-color: color-mix(in srgb, var(--color-ink) 22%, transparent) transparent;
+  /* the bar's room is kept even when nothing scrolls, so a page never shifts sideways when it appears */
+  scrollbar-gutter: stable;
+}
+* {
+  scrollbar-width: thin;
+}
+/* a row that scrolls sideways without a bar: the ends fade out instead (the editor's number bar) */
+.scroll-strip {
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, transparent, #000 18px, #000 calc(100% - 18px), transparent);
+}
+
+body {
+  background-color: var(--color-paper);
+  /* 5 mm graph paper */
+  background-image: linear-gradient(var(--color-grid) 1px, transparent 1px), linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+  background-size: 18px 18px;
+  background-position: -1px -1px;
+  background-attachment: fixed;
+  color: var(--color-ink);
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
+}
+
+/* numbers set in the display face: question numbers, counts, scores */
+.num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Every delete button (any button or link carrying the trash icon) turns red on hover, wherever it
+   is and however it is styled; plain CSS outside the layers, so it wins over a feature's own hover. */
+:is(button, a):has(svg.lucide-trash):not(:disabled):hover {
+  color: var(--color-bad);
+  background-color: var(--color-bad-soft);
+  border-color: color-mix(in srgb, var(--color-bad) 35%, transparent);
+}
+
+/* primary actions: solid ballpoint blue (the old gradient is gone) */
+.bg-brand {
+  background-color: var(--color-accent);
+}
+
+/* A highlighter stroke behind text: answers and what the reader should look at.
+   .hl-md does the same for rendered Markdown (its paragraphs run inline). */
+.hl-md > p {
+  display: inline;
+}
+.hl,
+.hl-md > p {
+  padding: 0 0.15em;
+  border-radius: 0.2em;
+  background: linear-gradient(transparent 30%, var(--color-hl-mark) 30%, var(--color-hl-mark) 90%, transparent 90%);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+/* The teacher's red pen: AI comments and marks. Only for short notes, never for running UI text. */
+.pen {
+  font-family: var(--font-hand);
+  color: var(--color-pen);
+  font-size: 1.08em;
+  line-height: 1.6;
+}
+
+/* Rendered question text */
+.prose-q p {
+  margin: 0.25rem 0;
+}
+.prose-q ol,
+.prose-q ul {
+  margin: 0.25rem 0;
+  padding-left: 1.4rem;
+}
+.prose-q ol {
+  list-style: decimal;
+}
+.prose-q ul {
+  list-style: disc;
+}
+.prose-q li + li {
+  margin-top: 0.15rem;
+}
+/* The first and last lines sit flush, so text lines up with labels and icons beside it. */
+.prose-q > :first-child {
+  margin-top: 0;
+}
+.prose-q > :last-child {
+  margin-bottom: 0;
+}
+.prose-q table {
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  font-size: 0.9em;
+}
+/* tables printed one after another sit side by side, wrapping when the column is too narrow */
+.prose-q .table-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem 1rem;
+  margin: 0.5rem 0;
+}
+.prose-q .table-row > table {
+  margin: 0;
+}
+.prose-q th,
+.prose-q td {
+  border: 1px solid var(--color-line);
+  padding: 0.25rem 0.6rem;
+}
+.prose-q th {
+  background: var(--color-paper);
+}
+.prose-q code {
+  font-size: 0.9em;
+  background: var(--color-paper);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+}
+.prose-q ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.prose-q .katex-display {
+  margin: 0.4rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* The review workspace needs the whole screen for the exam and its questions;
+   its own toolbar links back to the rest of the app. */
+body:has(.workspace) :is(.app-sidebar, .app-header) {
+  display: none;
+}
+
+/* The sign-in page stands alone: nothing to navigate to before signing in. */
+body:has(.auth-screen) :is(.app-sidebar, .app-header) {
+  display: none;
+}
+
+/* A formula being edited inside a text box: sits in the line like the rendered formula did. */
+math-field.inline-formula {
+  display: inline-block;
+  min-width: 2.5em;
+  max-width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 1.05em;
+  vertical-align: middle;
+  padding: 0 2px;
+  outline: none;
+  --caret-color: var(--color-accent);
+  --selection-background-color: var(--color-accent-soft);
+  --contains-highlight-background-color: transparent;
+}
+/* The tools under the box replace MathLive's menu; tablets bring up its keyboard on their own. */
+math-field.inline-formula::part(menu-toggle),
+math-field.inline-formula::part(virtual-keyboard-toggle) {
+  display: none;
+}
+
+/* Korean breaks lines between words, not inside them. */
+:lang(ko) {
+  word-break: keep-all;
+}
