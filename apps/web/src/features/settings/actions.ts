@@ -5,8 +5,10 @@ import { listModels } from '@exam/extraction'
 import type { Strength, Task, Tier } from '@exam/models'
 import type { CustomProvider } from '@exam/settings'
 import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 import { apiKeyOf, authEnabled, currentOwner, services } from '@/server/context'
 import { checkServiceUrl } from '@/server/serviceUrl'
+import { isLocale, LOCALE_COOKIE } from '@/shared/i18n/locales'
 
 type Result = { ok: true; note?: string } | { ok: false; error: string }
 
@@ -22,7 +24,11 @@ async function save(patch: Parameters<ReturnType<typeof services>['settings']['u
 const mine = async () => services().settings.get(await currentOwner())
 
 export async function saveLocale(locale: string) {
+  if (!isLocale(locale)) return
   await save({ locale })
+  // Remembered in the browser too, so the sign-in page and other accounts on it follow.
+  ;(await cookies()).set(LOCALE_COOKIE, locale, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' })
+  revalidatePath('/', 'layout')
 }
 
 export async function saveDefaultProvider(provider: string) {

@@ -5,10 +5,12 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { currentOwner, noRoomFor, services } from '@/server/context'
 import { requireImport } from '@/server/owned'
+import { getT } from '@/shared/i18n/server'
 
 export async function createImport(formData: FormData): Promise<{ error: string } | void> {
+  const t = await getT()
   const files = formData.getAll('files').filter((f): f is File => f instanceof File && f.size > 0)
-  if (!files.length) return { error: '請選擇至少一個 PDF 或圖片檔。' }
+  if (!files.length) return { error: t('請選擇至少一個 PDF 或圖片檔。') }
   const provider = String(formData.get('provider') ?? 'manual')
   const model = String(formData.get('model') ?? '').trim() || null
   const owner = await currentOwner()
@@ -24,7 +26,7 @@ export async function createImport(formData: FormData): Promise<{ error: string 
     })
     id = record.id
   } catch (err) {
-    return { error: `無法讀取檔案：${err instanceof Error ? err.message : String(err)}` }
+    return { error: t('無法讀取檔案：{reason}', { reason: err instanceof Error ? err.message : String(err) }) }
   }
   revalidatePath('/imports')
   redirect(`/imports/${id}`)
@@ -44,7 +46,7 @@ export async function submitManualReply(importId: string, target: number | 'batc
   try {
     JSON.parse(json ?? '')
   } catch {
-    return { error: '貼上的內容不是完整的 JSON。請確認把聊天回覆從第一個 { 到最後一個 } 都複製到了。' }
+    return { error: (await getT())('貼上的內容不是完整的 JSON。請確認把聊天回覆從第一個 { 到最後一個 } 都複製到了。') }
   }
   await services().importer.submitManualReply(importId, target, json!)
   revalidatePath(`/imports/${importId}`)
