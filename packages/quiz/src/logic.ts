@@ -1,5 +1,5 @@
 import type { DraftFigure, DraftQuestion } from '@exam/core'
-import { isEmptyInk } from '@exam/ink'
+import { isEmptyInk, practiceRows } from '@exam/ink'
 import { numberValue, sameMath } from './equivalence.ts'
 import type { Grade, QuizAttempt, QuizItem, QuizResponse, QuizSettings, Marking } from './types.ts'
 
@@ -11,12 +11,15 @@ export type AnswerKind =
   /** One input per blank; figure blanks come first, drawn on the figure. */
   | { kind: 'blanks'; count: number; figureBlanks: number }
   | { kind: 'text' }
+  /** Writing practice: one row of the practice grid per character, written by hand only. */
+  | { kind: 'writing'; rows: string[] }
 
 export function answerKind(q: DraftQuestion): AnswerKind {
   const figureBlanks = q.figures.reduce((n, f) => n + (f.image?.blanks.length ?? f.blanks.length), 0)
   if (q.type === 'single_choice' && q.options.length) return { kind: 'single' }
   if (q.type === 'multiple_choice' && q.options.length) return { kind: 'multiple' }
   if (q.type === 'true_false') return { kind: 'true_false' }
+  if (q.type === 'writing') return { kind: 'writing', rows: practiceRows(q.answer.values) }
   if (q.type === 'fill_in_blank' || q.type === 'matching') {
     return { kind: 'blanks', count: Math.max(1, figureBlanks, q.answer.values.length), figureBlanks }
   }
@@ -117,6 +120,8 @@ export function grade(q: DraftQuestion, response: QuizResponse | null, marking: 
     return { status: same ? 'correct' : 'wrong', score: same ? worth : 0, max: worth }
   }
 
+  if (kind.kind === 'writing') return gradeWriting(kind.rows, given, worth)
+
   if (kind.kind === 'text') {
     // A short final answer ("8×10^6", "x = 1/2") can be matched; anything else needs marking.
     const text = given.join('\n')
@@ -127,6 +132,20 @@ export function grade(q: DraftQuestion, response: QuizResponse | null, marking: 
   const score = Math.round((worth * right * 100) / key.length) / 100
   const status = right === key.length ? 'correct' : right > 0 ? 'partial' : 'wrong'
   return { status, score, max: worth }
+}
+
+/**
+ * A practice row counts when what the AI read in it is that character, written at least once
+ * and nothing else ("?" stands for a character it could not recognise).
+ */
+function gradeWriting(rows: string[], read: string[], worth: number): Grade {
+  if (!rows.length) return { status: 'no_key', score: 0, max: 0 }
+  const right = rows.filter((char, i) => {
+    const seen = Array.from((read[i] ?? '').normalize('NFKC').replace(/\s+/g, ''))
+    return seen.length > 0 && seen.every((c) => c === char.normalize('NFKC'))
+  }).length
+  const score = Math.round((worth * right * 100) / rows.length) / 100
+  return { status: right === rows.length ? 'correct' : right > 0 ? 'partial' : 'wrong', score, max: worth }
 }
 
 function byMarking(marking: Marking, worth: number): Grade {
@@ -142,7 +161,8 @@ export function needsTeacher(item: QuizItem, response: QuizResponse | null, mark
   // Handwriting is read into values first (see @exam/grading), then judged like typing.
   if (marking || !response?.values.some((v) => v.trim())) return false
   const kind = answerKind(item.question).kind
-  if (kind === 'single' || kind === 'multiple' || kind === 'true_false') return false
+  // Writing practice is judged from what was read (see gradeWriting); a teacher can still mark it by hand.
+  if (kind === 'single' || kind === 'multiple' || kind === 'true_false' || kind === 'writing') return false
   const status = gradeItem(item, response, null).status
   if (status === 'correct' || status === 'unanswered') return false
   if (status === 'no_key' || (kind === 'text' && item.question.answer.values.filter((v) => v.trim()).length !== 1)) return true

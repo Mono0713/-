@@ -782,5 +782,15 @@
   "原始碼": "Source",
   "跟隨裝置": "Match device",
   "淺色": "Light",
-  "深色": "Dark"
+  "深色": "Dark",
+  "要練習的字，例如：永 春天": "Characters to practise, e.g. 永 春天",
+  "點格": "Dots",
+  "橫線": "Lines",
+  "稿紙": "Squares",
+  "紙張": "Paper",
+  "每一行先看第一格的字，描過淡色的字，再自己寫滿整行。": "In each row, look at the first character, trace the faint ones, then fill the row on your own.",
+  "寫字練習": "Writing practice",
+  "這題還沒有要練習的字，請到題庫編輯答案。": "This question has no characters to practise yet. Add them to its answer in the question bank.",
+  "AI 讀到的字（? 是寫錯或認不出的字）": "What the AI read (? marks a wrong or unreadable character)",
+  "{n} 字": "{n} words"
 }

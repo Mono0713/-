@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { compactStroke, hitsStroke, inkToSvg, isEmptyInk, strokePath, type Stroke } from '../src/index.ts'
+import { compactStroke, hitsStroke, inkToSvg, isEmptyInk, LINE_GAP, paperGuides, paperLines, paperSvg, PRACTICE_COLUMNS, practiceHeight, practicePaper, strokePath, type Stroke } from '../src/index.ts'
 
 const line: Stroke = { points: [[0.1, 0.1, 0.5], [0.2, 0.1, 0.5], [0.3, 0.1, 0.5]], color: '#1b1d33', size: 0.004 }
 
@@ -25,5 +25,29 @@ describe('ink', () => {
   it('knows empty ink', () => {
     expect(isEmptyInk(null)).toBe(true)
     expect(isEmptyInk({ strokes: [line], height: 0.5 })).toBe(false)
+  })
+})
+
+describe('paper', () => {
+  it('lays out one practice row per character with a model and traced copies', () => {
+    const paper = practicePaper(['永', '春 天'])
+    expect(paper.rows).toEqual(['永', '春', '天'])
+    expect(practiceHeight(paper)).toBeCloseTo(3 / PRACTICE_COLUMNS)
+    const guides = paperGuides(paper)
+    expect(guides.filter((g) => g.kind === 'model').map((g) => g.char)).toEqual(['永', '春', '天'])
+    expect(guides.filter((g) => g.kind === 'trace')).toHaveLength(3 * paper.traced)
+    // borders plus the dashed cross through each cell
+    const lines = paperLines(paper, practiceHeight(paper))
+    expect(lines.filter((l) => l.style === 'border')).toHaveLength(4 + PRACTICE_COLUMNS + 1)
+    expect(lines.filter((l) => l.style === 'guide')).toHaveLength(3 + PRACTICE_COLUMNS)
+    expect(paperSvg(paper, practiceHeight(paper), 800)).toContain('stroke-dasharray')
+  })
+
+  it('rules lines and squares down the whole page', () => {
+    expect(paperLines({ kind: 'lines' }, 0.5)).toHaveLength(Math.ceil(0.5 / LINE_GAP) - 1)
+    expect(paperLines({ kind: 'dots' }, 0.5)).toEqual([])
+    const squares = paperLines({ kind: 'squares', columns: 10 }, 0.5)
+    expect(squares.filter((l) => l.x1 === l.x2)).toHaveLength(11)
+    expect(squares.filter((l) => l.y1 === l.y2)).toHaveLength(6)
   })
 })

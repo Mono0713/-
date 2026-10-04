@@ -92,7 +92,8 @@ export async function copyShared(token: string): Promise<{ error: string } | und
     questions.push({
       ...draft,
       figures: await Promise.all(draft.figures.map(copyFigure)),
-      ...(!keepKey && { answer: { values: [], source: 'none' as const }, explanation: null }),
+      // a writing practice keeps its characters: they are the question, not the answer
+      ...(!keepKey && { answer: draft.type === 'writing' ? { ...draft.answer, source: 'none' as const } : { values: [], source: 'none' as const }, explanation: null }),
       // The copy has no pages to point at.
       locations: [],
     })

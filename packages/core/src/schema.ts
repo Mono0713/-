@@ -21,6 +21,8 @@ export const QuestionType = z.enum([
   'essay',
   'calculation',
   'matching',
+  /** Character or letter writing practice (生字練習): the answer holds the characters to write. */
+  'writing',
   'other',
 ])
 export type QuestionType = z.infer<typeof QuestionType>

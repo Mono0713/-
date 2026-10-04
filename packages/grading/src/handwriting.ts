@@ -1,4 +1,4 @@
-import { inkToSvg, isEmptyInk, type InkDoc } from '@exam/ink'
+import { inkToSvg, isEmptyInk, paperSvg, practicePaper, type InkDoc } from '@exam/ink'
 import { answerKind, type QuizAttempt, type QuizItem, type QuizResponse } from '@exam/quiz'
 import sharp from 'sharp'
 import { z } from 'zod'
@@ -19,6 +19,7 @@ const Reply = z.object({ values: z.array(z.string()) })
  */
 export async function readHandwriting(model: TextModel, item: QuizItem, ink: InkDoc): Promise<string[]> {
   const kind = answerKind(item.question)
+  if (kind.kind === 'writing') return readPractice(model, kind.rows, ink)
   const count = kind.kind === 'blanks' ? kind.count : 1
   const system = `You transcribe a student's handwritten exam answer exactly as written, without correcting it.
 - Write mathematics in LaTeX between $...$ (for example $\\frac{1}{2}$, $x^{2}$), chemistry with \\ce{...}.
@@ -33,6 +34,35 @@ Reply with JSON only: {"values": [${count > 1 ? '"…", "…"' : '"…"'}]}. Esc
       const text = await model.complete(system, prompt, [image])
       const { values } = Reply.parse(JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)))
       return Array.from({ length: count }, (_, i) => repairLatex(count === 1 ? values.join('\n') : (values[i] ?? '')).trim())
+    } catch (err) {
+      lastError = err
+    }
+  }
+  throw lastError
+}
+
+/** The practice grid with the ink on it, uncropped so the rows stay where they were drawn. */
+export async function practiceToPng(rows: string[], ink: InkDoc, width = 1200): Promise<Buffer> {
+  const paper = practicePaper(rows)
+  return sharp(Buffer.from(inkToSvg(ink, width, '#ffffff', paperSvg(paper, ink.height, width)))).flatten({ background: '#ffffff' }).png().toBuffer()
+}
+
+/**
+ * Reads a writing-practice grid: for every row, the characters the student wrote, with "?" for
+ * one that is malformed or wrong, so the program can tell whether the character was learnt.
+ */
+async function readPractice(model: TextModel, rows: string[], ink: InkDoc): Promise<string[]> {
+  const system = `You check a student's character-writing practice. The image is a grid with ${rows.length} row(s) of square cells. In row n the student practises one character, given below; the printed model and tracing guides are not in the image, only the student's own strokes.
+For every row, list the characters the student wrote in that row, left to right, with no spaces. Write "?" for a character that is malformed, missing strokes, has extra strokes or is a different character; be as strict as a primary-school teacher about stroke structure, not about beauty. Return "" for a row left empty.
+Reply with JSON only: {"values": ["…", …]} with exactly ${rows.length} entries, one per row in order.`
+  const prompt = `Characters practised, one per row:\n${rows.map((c, i) => `${i + 1}. ${c}`).join('\n')}`
+  const image = await practiceToPng(rows, ink)
+  let lastError: unknown
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const text = await model.complete(system, prompt, [image])
+      const { values } = Reply.parse(JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)))
+      return rows.map((_, i) => (values[i] ?? '').replace(/\s+/g, ''))
     } catch (err) {
       lastError = err
     }

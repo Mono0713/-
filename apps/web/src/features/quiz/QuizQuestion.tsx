@@ -1,6 +1,6 @@
 'use client'
 
-import { isEmptyInk, type InkDoc } from '@exam/ink'
+import { ESSAY_COLUMNS, isEmptyInk, practicePaper, type InkDoc, type Paper } from '@exam/ink'
 import type { QuizItem, QuizResponse } from '@exam/quiz'
 import { answerKind, inOtherLanguage, matches, toPaperLabels } from '@exam/quiz/logic'
 import { useState, type ReactNode } from 'react'
@@ -13,12 +13,21 @@ import { Markdown } from '@/shared/Markdown'
 import { IconKeyboard, IconLanguages, IconLoader, IconPen, IconScratch } from '@/shared/icons'
 import { PenTick } from '@/shared/motion/PenMarks'
 import { Segmented } from '@/shared/Segmented'
+import { wordCount } from '@/shared/wordCount'
 import { Badge, inputBase, inputClass } from '@/shared/ui'
 
 function ModeLabel({ icon, text }: { icon: ReactNode; text: string }) {
   const t = useT()
   return <span className="flex items-center gap-1.5">{icon}{t(text)}</span>
 }
+
+const PAPERS = [
+  ['dots', msg('點格')],
+  ['lines', msg('橫線')],
+  ['squares', msg('稿紙')],
+] as const
+type PaperKind = (typeof PAPERS)[number][0]
+const paperOf = (kind: PaperKind): Paper => (kind === 'squares' ? { kind, columns: ESSAY_COLUMNS } : { kind })
 
 // Kept outside the component: Segmented re-measures when its options change.
 const ANSWER_MODES = [
@@ -71,6 +80,11 @@ export function QuizQuestion({
   const byHand = writable && mode === 'ink'
   // Writing replaces anything typed, so there is one answer to mark.
   const setInk = (handwriting: InkDoc) => patch({ handwriting, values: [] })
+  // Essays default to manuscript squares in Chinese, Japanese or Korean and ruled lines otherwise.
+  const [paperKind, setPaperKind] = useState<PaperKind>(() =>
+    q.type === 'essay' ? (/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(q.stem) ? 'squares' : 'lines') : 'dots',
+  )
+  const practice = kind.kind === 'writing' ? practicePaper(key) : null
   const hasScratch = !isEmptyInk(response?.scratch)
   const [scratchOpen, setScratchOpen] = useState(() => !reveal && hasScratch)
 
@@ -276,7 +290,34 @@ export function QuizQuestion({
         <div className="space-y-2">
           {kind.kind === 'blanks' && !locked && <p className="text-sm text-muted">{t('依序寫下每一格的答案，前面標上 (1)、(2)…')}</p>}
           {(!locked || inked) && (
-            <InkPad label={t('手寫答案')} value={response?.handwriting} onChange={locked ? undefined : setInk} readOnly={locked} minHeight={kind.kind === 'blanks' ? 0.3 : 0.4} />
+            <InkPad
+              label={t('手寫答案')}
+              value={response?.handwriting}
+              onChange={locked ? undefined : setInk}
+              readOnly={locked}
+              minHeight={kind.kind === 'blanks' ? 0.3 : 0.4}
+              paper={paperOf(paperKind)}
+              tools={
+                kind.kind === 'text' && (
+                  <>
+                    <span className="mx-1 h-5 w-px bg-line" />
+                    <span className="flex items-center gap-0.5" role="group" aria-label={t('紙張')}>
+                      {PAPERS.map(([v, name]) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setPaperKind(v)}
+                          aria-pressed={paperKind === v}
+                          className={`m-press h-8 rounded-lg px-2 text-xs ${paperKind === v ? 'bg-ink/[0.08] font-medium text-ink' : 'text-muted hover:bg-ink/[0.06] hover:text-ink'}`}
+                        >
+                          {t(name)}
+                        </button>
+                      ))}
+                    </span>
+                  </>
+                )
+              }
+            />
           )}
           {reveal &&
             inked &&
@@ -292,6 +333,38 @@ export function QuizQuestion({
                 ) : (
                   <Markdown>{values[0] ?? ''}</Markdown>
                 )}
+              </div>
+            ) : (
+              <p className="text-xs text-muted">{t('這份手寫答案還沒讀成文字。開啟 AI 批改後會自動讀取，也可以對照答案自己評分。')}</p>
+            ))}
+        </div>
+      )}
+
+      {practice && (
+        <div className="space-y-2">
+          {!locked && <p className="text-sm text-muted">{t('每一行先看第一格的字，描過淡色的字，再自己寫滿整行。')}</p>}
+          {practice.rows.length ? (
+            (!locked || inked) && <InkPad label={t('寫字練習')} value={response?.handwriting} onChange={locked ? undefined : setInk} readOnly={locked} paper={practice} />
+          ) : (
+            <p className="text-sm text-muted">{t('這題還沒有要練習的字，請到題庫編輯答案。')}</p>
+          )}
+          {reveal &&
+            inked &&
+            (response?.transcribed ? (
+              <div className="rounded-lg border border-line bg-paper px-3 py-2 text-sm">
+                <p className="mb-1 text-xs text-muted">{t('AI 讀到的字（? 是寫錯或認不出的字）')}</p>
+                <ul className="flex flex-wrap gap-x-4 gap-y-1">
+                  {practice.rows.map((char, i) => {
+                    const read = values[i] ?? ''
+                    const ok = read.length > 0 && Array.from(read).every((c) => c === char)
+                    return (
+                      <li key={i} className="flex items-baseline gap-1.5">
+                        <span className="font-hand text-base">{char}</span>
+                        <span className={ok ? 'text-good' : 'text-bad'}>{read || t('（空白）')}</span>
+                      </li>
+                    )
+                  })}
+                </ul>
               </div>
             ) : (
               <p className="text-xs text-muted">{t('這份手寫答案還沒讀成文字。開啟 AI 批改後會自動讀取，也可以對照答案自己評分。')}</p>
@@ -323,6 +396,9 @@ export function QuizQuestion({
           placeholder={t('寫下你的答案')}
           className={`${inputBase} w-full`}
         />
+      )}
+      {!byHand && kind.kind === 'text' && q.type === 'essay' && (
+        <p className="-mt-2 text-right text-xs tabular-nums text-muted">{t('{n} 字', { n: wordCount(values[0] ?? '') })}</p>
       )}
     </div>
   )
