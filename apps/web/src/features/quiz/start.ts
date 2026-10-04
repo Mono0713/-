@@ -22,7 +22,7 @@ export async function startQuiz(input: {
   let questions = input.questions
   if (input.limit && input.limit < questions.length) {
     const order = input.order ?? questions.map((q) => q.id)
-    questions = [...questions].sort(() => Math.random() - 0.5).slice(0, input.limit)
+    questions = draw(questions, input.limit)
     questions.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
   }
   const { sources, exams } = await sourcesOf(questions)
@@ -35,6 +35,24 @@ export async function startQuiz(input: {
     settings: input.settings,
     ...(input.share && { share: input.share }),
   })
+}
+
+/**
+ * About `limit` questions at random. A reading passage's questions are drawn as a whole, never
+ * split, so the count can go a little over when the last pick is a passage.
+ */
+function draw(questions: BankQuestion[], limit: number): BankQuestion[] {
+  const units = new Map<string, BankQuestion[]>()
+  for (const q of questions) {
+    const key = q.groupId ? `${q.examId}:${q.groupId}` : q.id
+    units.set(key, [...(units.get(key) ?? []), q])
+  }
+  const picked: BankQuestion[] = []
+  for (const unit of [...units.values()].sort(() => Math.random() - 0.5)) {
+    if (picked.length >= limit) break
+    picked.push(...unit)
+  }
+  return picked
 }
 
 /** Bank questions as a quiz takes them, each with its group's passage and figures, and the exams they come from. */

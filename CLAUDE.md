@@ -45,7 +45,7 @@ Packages never import from apps.
 | 題庫、考卷卡、篩選 | `app/bank/page.tsx`, `bank/exams/[id]`, `bank/[id]` | `features/bank/*` (`ExamCard`, `BankFilters`, `ExamMetaForm`, `BankQuestionEditor`) |
 | 開始測驗、選題 | `app/quiz/new` | `features/quiz/QuizSetup.tsx`, `start.ts` |
 | 作答頁（考試/單題練習、計時） | `app/quiz/[id]` | `features/quiz/QuizPlayer.tsx` |
-| 一題的作答區（選項、填空、手寫、書寫模式） | | `features/quiz/QuizQuestion.tsx`, `PracticeSheet.tsx` (寫字練習 田字格), `MatchingPicker.tsx` (配合題 點選) |
+| 一題的作答區（選項、填空、手寫、書寫模式） | | `features/quiz/QuizQuestion.tsx`, `PracticeSheet.tsx` (寫字練習 田字格), `MatchingPicker.tsx` (配合題 點選), `Passage.tsx` (閱讀題組 文章) |
 | 看答案 | | `features/quiz/Reveal.tsx`, `visible.ts` (what may show before reveal) |
 | 翻譯 | | `features/quiz/useQuestionTranslation.ts`, `packages/grading/src/translate.ts` |
 | 問 AI | | `features/quiz/TutorChat.tsx`, `packages/grading/src/tutor.ts` |

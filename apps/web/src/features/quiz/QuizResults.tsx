@@ -1,6 +1,7 @@
 'use client'
 
 import type { QuizAttempt, QuizSummary } from '@exam/quiz'
+import { groupRange } from '@exam/quiz/logic'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { Confetti } from '@/shared/motion/Confetti'
@@ -131,7 +132,7 @@ export function QuizResults({ attempt, summary, teacher, locale }: { attempt: Qu
 
       {shown.map((i) => (
         <Card key={i} className="m-enter space-y-4 p-5">
-          <QuizQuestion item={attempt.items[i]!} index={i} response={attempt.responses[i] ?? null} reveal locale={locale} onTranslate={() => translateQuestion(attempt.id, i)} />
+          <QuizQuestion item={attempt.items[i]!} index={i} response={attempt.responses[i] ?? null} groupRange={groupRange(attempt.items, i)} reveal locale={locale} onTranslate={() => translateQuestion(attempt.id, i)} />
           <Reveal item={attempt.items[i]!} grade={grades[i]!} marking={attempt.markings[i] ?? null} onMark={own ? (credit) => mark(i, credit) : undefined} withheldNote={withheldNote} tutor={{ attemptId: attempt.id, index: i, turns: attempt.tutoring?.[i] ?? [] }} />
         </Card>
       ))}

@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest'
 import type { DraftQuestion } from '@exam/core'
-import { answerKind, buildItems, displayLabel, grade, gradeItem, inOtherLanguage, isOver, matches, PostgresQuizStore, SqliteQuizStore, summarize, toQuizLabels, type QuizSettings, type QuizStore } from '../src/index.ts'
+import { answerKind, buildItems, displayLabel, grade, gradeItem, groupRange, inOtherLanguage, isOver, matches, PostgresQuizStore, SqliteQuizStore, summarize, toQuizLabels, type QuizSettings, type QuizStore } from '../src/index.ts'
 import { testDatabase } from '@exam/db'
 
 function q(overrides: Partial<DraftQuestion> = {}): DraftQuestion {
@@ -223,5 +223,28 @@ describe('writing practice', () => {
     expect(grade(writing, { values: ['永永永', '春春', '天'] })).toEqual({ status: 'correct', score: 3, max: 3 })
     expect(grade(writing, { values: ['永?永', '春', ''] })).toEqual({ status: 'partial', score: 1, max: 3 })
     expect(grade(writing, { values: ['?', '', '夫'] }).status).toBe('wrong')
+  })
+})
+
+describe('reading passages', () => {
+  const passage = { stem: 'A long passage', figures: [] }
+  const sources = [
+    { questionId: 'a', question: q({ number: '1' }), group: null },
+    { questionId: 'b', question: q({ number: '2', groupId: 'g1' }), group: passage },
+    { questionId: 'c', question: q({ number: '3', groupId: 'g1' }), group: passage },
+    { questionId: 'd', question: q({ number: '4', groupId: 'g1' }), group: passage },
+    { questionId: 'e', question: q({ number: '5' }), group: null },
+  ]
+
+  it('keeps a passage and its questions together when shuffling', () => {
+    for (const r of [0, 0.3, 0.6, 0.9]) {
+      const ids = buildItems(sources, { ...settings, shuffleQuestions: true }, sequence(r, 0.1, 0.7)).map((i) => i.questionId).join('')
+      expect(ids).toContain('bcd')
+    }
+  })
+
+  it('finds the questions sharing a passage', () => {
+    expect(groupRange(sources, 2)).toEqual([1, 3])
+    expect(groupRange(sources, 0)).toBeNull()
   })
 })

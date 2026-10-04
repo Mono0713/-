@@ -810,5 +810,8 @@
   "名字": "Nama",
   "改回 Google 頭像": "Pakai foto Google",
   "加一項": "Tambah item",
-  "第 {n} 項": "Item {n}"
+  "第 {n} 項": "Item {n}",
+  "第 {from}–{to} 題共用": "Untuk soal {from}–{to}",
+  "展開文章": "Tampilkan bacaan",
+  "收合文章": "Sembunyikan bacaan"
 }

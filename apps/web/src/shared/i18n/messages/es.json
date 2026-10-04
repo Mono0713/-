@@ -810,5 +810,8 @@
   "名字": "Nombre",
   "改回 Google 頭像": "Usar la foto de Google",
   "加一項": "Añadir elemento",
-  "第 {n} 項": "Elemento {n}"
+  "第 {n} 項": "Elemento {n}",
+  "第 {from}–{to} 題共用": "Común a las preguntas {from}–{to}",
+  "展開文章": "Mostrar texto",
+  "收合文章": "Ocultar texto"
 }

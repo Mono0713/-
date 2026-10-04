@@ -810,5 +810,8 @@
   "名字": "Name",
   "改回 Google 頭像": "Use Google picture",
   "加一項": "Add item",
-  "第 {n} 項": "Item {n}"
+  "第 {n} 項": "Item {n}",
+  "第 {from}–{to} 題共用": "Shared by questions {from}–{to}",
+  "展開文章": "Show passage",
+  "收合文章": "Hide passage"
 }

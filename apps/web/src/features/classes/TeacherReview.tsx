@@ -1,7 +1,7 @@
 'use client'
 
 import type { Marking, QuizAttempt, QuizSummary } from '@exam/quiz'
-import { answerKind } from '@exam/quiz/logic'
+import { answerKind, groupRange } from '@exam/quiz/logic'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { AutoRefresh } from '@/features/imports/AutoRefresh'
@@ -55,7 +55,7 @@ export function TeacherReview({ attempt, summary }: { attempt: QuizAttempt; summ
       />
       {shown.map((i) => (
         <Card key={i} className="m-enter space-y-4 p-5">
-          <QuizQuestion item={attempt.items[i]!} index={i} response={attempt.responses[i] ?? null} reveal />
+          <QuizQuestion item={attempt.items[i]!} index={i} response={attempt.responses[i] ?? null} groupRange={groupRange(attempt.items, i)} reveal />
           <Reveal item={attempt.items[i]!} grade={summary.grades[i]!} marking={attempt.markings[i] ?? null} />
           {markable(i) && <MarkBox attemptId={attempt.id} index={i} marking={attempt.markings[i] ?? null} />}
         </Card>

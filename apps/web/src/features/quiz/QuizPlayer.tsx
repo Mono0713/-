@@ -2,7 +2,7 @@
 
 import { isEmptyInk } from '@exam/ink'
 import type { Grade, QuizAttempt, QuizItem, QuizResponse } from '@exam/quiz'
-import { answerKind, gradeItem } from '@exam/quiz/logic'
+import { answerKind, gradeItem, groupRange } from '@exam/quiz/logic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useT } from '@/shared/i18n/client'
@@ -211,6 +211,7 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
                 // no translating during an exam
                 onTranslate={practice ? () => translateQuestion(attempt.id, current) : undefined}
                 focus={focus}
+                groupRange={groupRange(items, current)}
               />
             </Card>
           </div>
@@ -228,6 +229,7 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
                   locale={locale}
                   onTranslate={practice ? () => translateQuestion(attempt.id, turning) : undefined}
                   focus={items[turning]!.question.type === 'writing' || items[turning]!.question.type === 'composition'}
+                  groupRange={groupRange(items, turning)}
                 />
               </Card>
             </div>

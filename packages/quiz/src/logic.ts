@@ -42,13 +42,39 @@ export interface QuizSource {
  * with the new labels are translated back when graded (see gradeItem).
  */
 export function buildItems(sources: QuizSource[], settings: QuizSettings, random: () => number = Math.random): QuizItem[] {
-  const ordered = settings.shuffleQuestions ? shuffle(sources, random) : sources
+  // A reading passage's questions move as one block, so they stay together and in order.
+  const ordered = settings.shuffleQuestions ? shuffle(groupRuns(sources), random).flat() : sources
   return ordered.map(({ questionId, question, group }) => {
     const labels = question.options.map((o) => o.label)
     if (labels.length < 2 || !settings.shuffleOptions) return { questionId, question, group, optionOrder: labels, displayLabels: labels }
     const optionOrder = shuffle(labels, random)
     return { questionId, question, group, optionOrder, displayLabels: relabel(labels) }
   })
+}
+
+/** Splits questions into runs that share a passage or group (one run per question outside any group). */
+export function groupRuns<T extends Pick<QuizSource, 'question' | 'group'>>(sources: T[]): T[][] {
+  const runs: T[][] = []
+  for (const s of sources) {
+    const last = runs.at(-1)?.at(-1)
+    if (last && sameGroup(last, s)) runs.at(-1)!.push(s)
+    else runs.push([s])
+  }
+  return runs
+}
+
+/** Whether two questions next to each other belong to the same passage or group. */
+export function sameGroup(a: Pick<QuizSource, 'question' | 'group'>, b: Pick<QuizSource, 'question' | 'group'>): boolean {
+  return a.group !== null && b.group !== null && a.question.groupId !== null && a.question.groupId === b.question.groupId && a.group.stem === b.group.stem
+}
+
+/** First and last position of the passage questions around `index`, or null when it shares its passage with none. */
+export function groupRange(items: Pick<QuizSource, 'question' | 'group'>[], index: number): [number, number] | null {
+  let first = index
+  let last = index
+  while (first > 0 && sameGroup(items[first - 1]!, items[first]!)) first--
+  while (last < items.length - 1 && sameGroup(items[last]!, items[last + 1]!)) last++
+  return first === last ? null : [first, last]
 }
 
 /** Labels in the same style as the originals (A, a, 1, 甲…), in plain order. */

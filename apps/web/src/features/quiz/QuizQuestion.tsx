@@ -14,6 +14,7 @@ import { IconKeyboard, IconLanguages, IconLoader, IconPen, IconScratch } from '@
 import { PenTick } from '@/shared/motion/PenMarks'
 import { Segmented } from '@/shared/Segmented'
 import { MatchingPicker } from './MatchingPicker'
+import { Passage } from './Passage'
 import { PracticeSheet } from './PracticeSheet'
 import { useQuestionTranslation } from './useQuestionTranslation'
 import { wordCount } from '@/shared/wordCount'
@@ -53,6 +54,7 @@ export function QuizQuestion({
   locale,
   onTranslate,
   focus = false,
+  groupRange,
 }: {
   item: QuizItem
   index: number
@@ -67,6 +69,8 @@ export function QuizQuestion({
   onTranslate?: () => Promise<{ stem: string; options: string[] } | { error: string }>
   /** 書寫模式: the writing area gets the room (a taller essay page, an enlarged practice grid on phones). */
   focus?: boolean
+  /** First and last position of the questions sharing this question's passage. */
+  groupRange?: [number, number] | null
 }) {
   const t = useT()
   const q = item.question
@@ -182,15 +186,7 @@ export function QuizQuestion({
         </div>
       )}
 
-      {/* sub-questions grouped without shared text (1(1), 1(2)) have nothing to show above them */}
-      {item.group && (item.group.stem.trim() || item.group.figures.length > 0) && (
-        <div className="rounded-lg border border-line bg-paper p-3">
-          {item.group.stem.trim() && <Markdown>{item.group.stem}</Markdown>}
-          {item.group.figures.map((f, i) => (
-            <FigureView key={i} figure={f} />
-          ))}
-        </div>
-      )}
+      {item.group && <Passage group={item.group} range={groupRange ?? null} />}
 
       {stemShown ? (
         <div className={focus ? 'flex items-start gap-2' : undefined}>
