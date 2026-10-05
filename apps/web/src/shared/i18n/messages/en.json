@@ -818,5 +818,6 @@
   "多選題部分給分": "Partial credit for multiple choice",
   "這張圖是": "This picture is",
   "題目的圖": "Part of the question",
-  "選項 ({label})": "Option ({label})"
+  "選項 ({label})": "Option ({label})",
+  "數字答案可以寫範圍，例如 98 ± 2 或 96 ~ 100，範圍內都算對。": "A number can be a range, e.g. 98 ± 2 or 96 ~ 100; anything inside it counts as right."
 }

@@ -31,6 +31,38 @@ export function numberValue(text: string): number | null {
   return Number.isFinite(v) ? v : null
 }
 
+/**
+ * Whether a number read off a graph or a measurement lands in the key's range: "45 ± 2" (also
+ * "+-", "\\pm") or "43 ~ 47" (also "～", "到", "to"). A unit after the numbers ("%", "mmHg") may be
+ * left out or kept. False when the key is not such a range.
+ */
+export function withinTolerance(expected: string, given: string): boolean {
+  const range = toleranceRange(expected)
+  if (!range) return false
+  const value = numberValue(withoutUnit(given))
+  return value !== null && value >= range[0] - 1e-9 && value <= range[1] + 1e-9
+}
+
+function toleranceRange(expected: string): [number, number] | null {
+  const s = withoutUnit(expected.replace(/^\$+|\$+$/g, '').trim())
+  const pm = s.match(/^(.+?)\s*(?:±|\+\s*-|\+\/-|\\pm)\s*(.+)$/)
+  if (pm) {
+    const [a, t] = [numberValue(withoutUnit(pm[1]!)), numberValue(pm[2]!)]
+    return a === null || t === null ? null : [a - Math.abs(t), a + Math.abs(t)]
+  }
+  const span = s.match(/^(.+?)\s*(?:~|～|〜|到|to)\s*(.+)$/i)
+  if (span) {
+    const [a, b] = [numberValue(withoutUnit(span[1]!)), numberValue(span[2]!)]
+    return a === null || b === null ? null : [Math.min(a, b), Math.max(a, b)]
+  }
+  return null
+}
+
+/** "98 %" and "760 mmHg" without their unit. */
+function withoutUnit(s: string): string {
+  return s.trim().replace(/\s*(?:%|[a-zA-Zμ°/]+(?:\s*[a-zA-Zμ°/]+)*)$/, '')
+}
+
 const POINTS = [0.731, 1.618, 2.414, -1.257, 3.1]
 
 function close(a: number, b: number): boolean {

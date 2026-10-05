@@ -818,5 +818,6 @@
   "多選題部分給分": "Points partiels aux QCM à réponses multiples",
   "這張圖是": "Cette image est",
   "題目的圖": "Partie de la question",
-  "選項 ({label})": "Option ({label})"
+  "選項 ({label})": "Option ({label})",
+  "數字答案可以寫範圍，例如 98 ± 2 或 96 ~ 100，範圍內都算對。": "Un nombre peut être un intervalle, p. ex. 98 ± 2 ou 96 ~ 100 ; toute valeur dedans est juste."
 }

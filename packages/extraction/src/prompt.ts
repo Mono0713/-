@@ -31,6 +31,7 @@ Answers and handwriting
 - Printed questions are the priority. Handwriting, stamps, scores and grading marks are not part of the question text.
 - When a correct answer is visible, put it in "answer.values": option labels without brackets for choice questions, "true"/"false" for true/false (O means true, X means false), one entry per blank for fill-in, or the full text for open questions. Set answer.source to "printed" or "handwritten". When no answer is visible, use an empty list and "none".
 - Handwritten student work may be wrong. Record a handwritten answer, but if grading marks show it was marked wrong, leave values empty and add an issue.
+- A printed key that allows a range for a number (read off a graph, measured) is written "98 ± 2" or "96 ~ 100".
 - For open questions, a model answer written on the page is the answer; put it in answer.values only. Use "explanation" only for a separate worked solution or rationale, never for a copy of the answer.
 
 Quality

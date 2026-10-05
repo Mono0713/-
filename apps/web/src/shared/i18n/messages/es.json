@@ -818,5 +818,6 @@
   "多選題部分給分": "Puntuación parcial en opción múltiple",
   "這張圖是": "Esta imagen es",
   "題目的圖": "Parte de la pregunta",
-  "選項 ({label})": "Opción ({label})"
+  "選項 ({label})": "Opción ({label})",
+  "數字答案可以寫範圍，例如 98 ± 2 或 96 ~ 100，範圍內都算對。": "Un número puede ser un rango, p. ej. 98 ± 2 o 96 ~ 100; todo lo que esté dentro cuenta como correcto."
 }

@@ -152,6 +152,7 @@ export function AnswerEditor({ q, setAnswer }: { q: DraftQuestion; setAnswer: (p
         </div>
       </SectionHead>
       {body}
+      {q.type === 'fill_in_blank' && !isPickAnswer(q) && <p className="mt-1 px-1 text-[11px] text-muted">{t('數字答案可以寫範圍，例如 98 ± 2 或 96 ~ 100，範圍內都算對。')}</p>}
     </div>
   )
 }

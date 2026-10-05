@@ -818,5 +818,6 @@
   "多選題部分給分": "Nilai parsial untuk pilihan ganda kompleks",
   "這張圖是": "Gambar ini",
   "題目的圖": "Bagian soal",
-  "選項 ({label})": "Pilihan ({label})"
+  "選項 ({label})": "Pilihan ({label})",
+  "數字答案可以寫範圍，例如 98 ± 2 或 96 ~ 100，範圍內都算對。": "Jawaban angka bisa berupa rentang, mis. 98 ± 2 atau 96 ~ 100; nilai di dalamnya dianggap benar."
 }

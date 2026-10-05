@@ -1,6 +1,6 @@
 import { isPickAnswer, matchingItemCount, questionFigures, type DraftFigure, type DraftQuestion } from '@exam/core'
 import { isEmptyInk, practiceRows } from '@exam/ink'
-import { numberValue, sameMath } from './equivalence.ts'
+import { numberValue, sameMath, withinTolerance } from './equivalence.ts'
 import type { Grade, QuizAttempt, QuizItem, QuizResponse, QuizSettings, Marking } from './types.ts'
 
 /** How a question is answered in a quiz. */
@@ -238,7 +238,7 @@ export function matches(expected: string, given: string): boolean {
     if (e === g) return true
     const el = labelList(e), gl = labelList(g)
     if (el !== null && gl !== null && sameSet(el, gl)) return true
-    return sameMath(alt, given)
+    return withinTolerance(alt, given) || sameMath(alt, given)
   })
 }
 
