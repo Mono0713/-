@@ -10,7 +10,7 @@ import { useT } from '@/shared/i18n/client'
 import { msg } from '@/shared/i18n/format'
 import { InkPad } from '@/shared/ink/InkPad'
 import { TYPE_LABELS } from '@/shared/labels'
-import { Markdown } from '@/shared/Markdown'
+import { blankCount, Markdown } from '@/shared/Markdown'
 import { IconKeyboard, IconLanguages, IconLoader, IconPen, IconScratch } from '@/shared/icons'
 import { PenTick } from '@/shared/motion/PenMarks'
 import { Segmented } from '@/shared/Segmented'
@@ -115,45 +115,47 @@ export function QuizQuestion({
   // Translation: only on request, so the question is read in its own language first.
   const { translatable, translationShown, translating, translateError, toggleTranslation, shownTranslation, optionTranslation } = useQuestionTranslation(q, locale, onTranslate)
 
+  // One blank's control: a label list for blanks filled from a list, otherwise a box to type in.
+  // Figure blanks fill their box on the figure; blanks in the text (___, also in tables) sit in the line.
+  const blankControl = (slot: number, label: string, inline = false) => {
+    if (kind.kind !== 'blanks') return null
+    const control = pick ? (
+      <BlankPick
+        label={label}
+        labels={item.displayLabels}
+        value={values[slot] ?? ''}
+        answer={reveal ? toQuizLabels(item, key[slot] ?? '') : null}
+        locked={locked}
+        onPick={(l) => setAt(slot, l, kind.count)}
+      />
+    ) : (
+      <input
+        autoComplete="off"
+        // A handwritten answer is shown as written, with what the AI read below it.
+        value={byHand ? '' : (values[slot] ?? '')}
+        disabled={locked || byHand}
+        onChange={(e) => setAt(slot, e.target.value, kind.count)}
+        aria-label={t('空格 {label}', { label })}
+        className={`h-full w-full rounded-sm border-2 bg-surface/90 px-1 text-center text-sm font-semibold text-accent outline-none focus:border-accent ${
+          reveal ? (matches(key[slot] ?? '', toPaperLabels(item, values[slot] ?? '')) ? 'border-good' : 'border-bad/60') : 'border-accent/40'
+        }`}
+      />
+    )
+    return inline ? <span className={`relative mx-0.5 inline-block h-7 align-middle ${pick ? 'w-12' : 'w-28'}`}>{control}</span> : control
+  }
+
   let figureOffset = 0
   const figures = questionFigures(q).map((f, i) => {
     const count = f.image?.blanks.length ?? 0
     const offset = figureOffset
     figureOffset += count
-    const renderBlank =
-      kind.kind === 'blanks' && count
-        ? (_label: string, k: number) => {
-            const slot = offset + k
-            if (pick) {
-              return (
-                <BlankPick
-                  label={_label}
-                  labels={item.displayLabels}
-                  value={values[slot] ?? ''}
-                  answer={reveal ? toQuizLabels(item, key[slot] ?? '') : null}
-                  locked={locked}
-                  onPick={(label) => setAt(slot, label, kind.count)}
-                />
-              )
-            }
-            const right = reveal && matches(key[slot] ?? '', toPaperLabels(item, values[slot] ?? ''))
-            return (
-              <input
-                autoComplete="off"
-                // A handwritten answer is shown as written, with what the AI read below it.
-                value={byHand ? '' : (values[slot] ?? '')}
-                disabled={locked || byHand}
-                onChange={(e) => kind.kind === 'blanks' && setAt(slot, e.target.value, kind.count)}
-                aria-label={t('空格 {label}', { label: _label })}
-                className={`h-full w-full rounded-sm border-2 bg-surface/90 px-1 text-center text-sm font-semibold text-accent outline-none focus:border-accent ${
-                  reveal ? (right ? 'border-good' : 'border-bad/60') : 'border-accent/40'
-                }`}
-              />
-            )
-          }
-        : undefined
+    const renderBlank = kind.kind === 'blanks' && count ? (label: string, k: number) => blankControl(offset + k, label) : undefined
     return <FigureView key={i} figure={f} renderBlank={renderBlank} />
   })
+  // Blanks written in the text (___, in a sentence or a table cell) are answered where they stand
+  // when there is one per remaining answer.
+  const inline = kind.kind === 'blanks' && kind.count > kind.figureBlanks && blankCount(q.stem) === kind.count - kind.figureBlanks
+  const stemBlank = inline && kind.kind === 'blanks' ? (k: number) => blankControl(kind.figureBlanks + k, String(kind.figureBlanks + k + 1), true) : undefined
 
   const choice = kind.kind === 'single' || kind.kind === 'multiple'
   // Options that are all pictures sit two to a row, so graphs can be compared side by side.
@@ -206,7 +208,7 @@ export function QuizQuestion({
 
       {stemShown ? (
         <div className={focus ? 'flex items-start gap-2' : undefined}>
-          <Markdown className={focus ? 'min-w-0 flex-1' : undefined}>{q.stem}</Markdown>
+          <Markdown className={focus ? 'min-w-0 flex-1' : undefined} renderBlank={stemBlank}>{q.stem}</Markdown>
           {focus && (
             <button type="button" onClick={() => setStemFolded(true)} className="m-press shrink-0 rounded-md px-2 py-1 text-xs text-muted hover:bg-ink/[0.06] hover:text-ink">
               {t('收合題目')}
@@ -400,7 +402,7 @@ export function QuizQuestion({
         </div>
       )}
 
-      {pick && kind.kind === 'blanks' && kind.count > kind.figureBlanks && (
+      {pick && !inline && kind.kind === 'blanks' && kind.count > kind.figureBlanks && (
         <MatchingPicker
           count={kind.count}
           start={kind.figureBlanks}
@@ -412,7 +414,7 @@ export function QuizQuestion({
         />
       )}
 
-      {!byHand && !pick && kind.kind === 'blanks' && kind.count > kind.figureBlanks && (
+      {!byHand && !pick && !inline && kind.kind === 'blanks' && kind.count > kind.figureBlanks && (
         <div className="grid gap-2 sm:grid-cols-2">
           {Array.from({ length: kind.count - kind.figureBlanks }, (_, k) => {
             const slot = kind.figureBlanks + k
