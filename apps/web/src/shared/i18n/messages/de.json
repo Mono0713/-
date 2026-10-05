@@ -815,5 +815,8 @@
   "展開文章": "Text anzeigen",
   "收合文章": "Text ausblenden",
   "每錯一個選項扣 2/n 的分數，扣完為止（學測規則）": "Jede falsch gewählte oder fehlende Option kostet 2/n der Punkte, bis null",
-  "多選題部分給分": "Teilpunkte bei Mehrfachauswahl"
+  "多選題部分給分": "Teilpunkte bei Mehrfachauswahl",
+  "這張圖是": "Dieses Bild ist",
+  "題目的圖": "Teil der Frage",
+  "選項 ({label})": "Option ({label})"
 }

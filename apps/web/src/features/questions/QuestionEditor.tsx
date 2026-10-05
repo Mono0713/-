@@ -7,6 +7,7 @@ import { useT } from '@/shared/i18n/client'
 import { FigureBlanksEditor } from './FigureBlanksEditor'
 import { IconAlert, IconChevronDown, IconX } from '@/shared/icons'
 import { TYPE_LABELS } from '@/shared/labels'
+import { Listbox } from '@/shared/Listbox'
 import { Markdown } from '@/shared/Markdown'
 import { MathTextInput } from '@/shared/math/MathTextInput'
 import { AnswerEditor } from './AnswerEditor'
@@ -84,6 +85,19 @@ export function QuestionEditor({
       {q.figures.map((f, i) => (
         <div key={i} className="rounded-xl border border-line p-2">
           <FigureView figure={f} />
+          {q.options.length > 0 && (
+            // A picture can be one of the options instead of part of the question.
+            <div className="mt-2 flex items-center gap-2 px-1 text-xs text-muted">
+              <span>{t('這張圖是')}</span>
+              <Listbox
+                label={t('這張圖是')}
+                className={`${chip} min-w-32 px-3 text-ink`}
+                value={f.option && q.options.some((o) => o.label === f.option) ? f.option : ''}
+                groups={[{ options: [{ value: '', label: t('題目的圖') }, ...q.options.map((o) => ({ value: o.label, label: t('選項 ({label})', { label: o.label }) }))] }]}
+                onChange={(v) => set('figures', q.figures.map((g, j) => (j === i ? { ...g, option: v || null } : g)))}
+              />
+            </div>
+          )}
           <MathTextInput
             multiline={false}
             prefix={<span className="pl-1.5 text-[11px] font-medium text-muted">{t('說明')}</span>}

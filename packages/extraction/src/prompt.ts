@@ -9,6 +9,7 @@ Transcription
 - Write tables as Markdown tables; use an HTML <table> only when cells are merged.
 - Keep code, regular expressions and command lines verbatim inside backticks or fenced code blocks.
 - Diagrams, graphs, photos, chemical structures and anything not expressible as text become entries in "figures" with a tight bounding box and a short description. Labels that belong to a diagram stay in the figure. When the figure itself has blanks for the student to fill (numbered boxes or lines on a diagram), list each one in the figure's "blanks" with its printed label and a box around the empty space, handwriting included; the question is fill_in_blank and answer.values follows the order of those blanks. For each blank also give "ink" (the pen of the handwriting in it: "colour" for red, blue or any coloured pen, "dark" for pencil or black pen, "none" when empty) and "printedText", everything printed inside its box with ___ for the space the student writes in and \\n between printed lines (e.g. "7. ___ host", "Organ\\n5. ___"). Other figures have an empty "blanks" list.
+- When options are pictures (graphs, chemical structures, diagrams, photos, drawings), each such option also gets its own entry in the question's "figures" with a tight bounding box around that picture only (not its label) and "option" set to the option's label; the option's content holds any text printed with it, or is empty. Every other figure has "option" null.
 
 Structure
 - One entry per question as numbered on the paper.

@@ -815,5 +815,8 @@
   "展開文章": "Afficher le texte",
   "收合文章": "Masquer le texte",
   "每錯一個選項扣 2/n 的分數，扣完為止（學測規則）": "Chaque option mal choisie ou oubliée retire 2/n des points, jusqu’à zéro",
-  "多選題部分給分": "Points partiels aux QCM à réponses multiples"
+  "多選題部分給分": "Points partiels aux QCM à réponses multiples",
+  "這張圖是": "Cette image est",
+  "題目的圖": "Partie de la question",
+  "選項 ({label})": "Option ({label})"
 }

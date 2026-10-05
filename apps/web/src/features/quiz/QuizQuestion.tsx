@@ -1,10 +1,11 @@
 'use client'
 
+import { optionFigures, questionFigures } from '@exam/core'
 import { ESSAY_COLUMNS, isEmptyInk, practicePaper, type InkDoc, type Paper } from '@exam/ink'
 import type { QuizItem, QuizResponse } from '@exam/quiz'
 import { answerKind, matches, toPaperLabels, toQuizLabels } from '@exam/quiz/logic'
 import { useState, type ReactNode } from 'react'
-import { FigureView } from '@/shared/FigureView'
+import { FigureView, OptionPictures } from '@/shared/FigureView'
 import { useT } from '@/shared/i18n/client'
 import { msg } from '@/shared/i18n/format'
 import { InkPad } from '@/shared/ink/InkPad'
@@ -114,7 +115,7 @@ export function QuizQuestion({
   const { translatable, translationShown, translating, translateError, toggleTranslation, shownTranslation, optionTranslation } = useQuestionTranslation(q, locale, onTranslate)
 
   let figureOffset = 0
-  const figures = q.figures.map((f, i) => {
+  const figures = questionFigures(q).map((f, i) => {
     const count = f.image?.blanks.length ?? 0
     const offset = figureOffset
     figureOffset += count
@@ -142,6 +143,8 @@ export function QuizQuestion({
   })
 
   const choice = kind.kind === 'single' || kind.kind === 'multiple'
+  // Options that are all pictures sit two to a row, so graphs can be compared side by side.
+  const pictureOptions = q.options.length > 0 && q.options.every((o) => optionFigures(q, o.label).length > 0)
   const toggle = (label: string) => {
     if (kind.kind === 'single') return set(values[0] === label ? [] : [label])
     set(values.includes(label) ? values.filter((v) => v !== label) : [...values, label])
@@ -211,7 +214,7 @@ export function QuizQuestion({
       {figures}
 
       {choice ? (
-        <ul className="grid gap-2">
+        <ul className={`grid gap-2 ${pictureOptions ? 'sm:grid-cols-2' : ''}`}>
           {item.optionOrder.map((label, i) => {
             const option = q.options.find((o) => o.label === label)
             const picked = values.includes(label)
@@ -227,6 +230,7 @@ export function QuizQuestion({
                   <span className={`num shrink-0 font-semibold leading-relaxed ${picked ? 'text-accent' : 'text-muted'}`}>({item.displayLabels[i]})</span>
                   <span className="min-w-0 flex-1">
                     <Markdown>{option?.content ?? ''}</Markdown>
+                    <OptionPictures figures={optionFigures(q, label)} />
                     {optionTranslation(label) && <Markdown className="m-expand text-muted">{optionTranslation(label)!}</Markdown>}
                   </span>
                   {/* Marks sit one line high, centred on the option's first line. */}
@@ -247,6 +251,7 @@ export function QuizQuestion({
               <span className="num shrink-0 font-semibold leading-relaxed text-muted">({item.displayLabels[i]})</span>
               <span className="min-w-0 flex-1">
                 <Markdown>{q.options.find((o) => o.label === label)?.content ?? ''}</Markdown>
+                <OptionPictures figures={optionFigures(q, label)} />
                 {optionTranslation(label) && <Markdown className="m-expand text-muted">{optionTranslation(label)!}</Markdown>}
               </span>
             </li>

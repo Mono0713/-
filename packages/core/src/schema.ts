@@ -73,8 +73,14 @@ export const Figure = z.object({
   description: z.string().describe('What the figure shows, in the language of the exam'),
   bbox: BoundingBox,
   blanks: z.array(FigureBlank).describe('Blanks drawn on the figure for the student to fill in; empty for most figures'),
+  option: z
+    .string()
+    .nullable()
+    .default(null)
+    .describe('Label of the option this figure is, when an option is a picture (graph, structure, diagram, photo); null for figures in the question itself'),
 })
-export type Figure = z.infer<typeof Figure>
+/** `option` is missing on figures saved before picture options existed. */
+export type Figure = Omit<z.infer<typeof Figure>, 'option'> & { option?: string | null }
 
 export const Option = z.object({
   label: z.string().describe('Label as printed, without brackets or punctuation, e.g. "A", "1", "甲"'),

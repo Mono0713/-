@@ -1,7 +1,7 @@
 'use client'
 
-import type { DraftQuestion } from '@exam/core'
-import { FigureView } from '@/shared/FigureView'
+import { optionFigures, questionFigures, type DraftQuestion } from '@exam/core'
+import { FigureView, OptionPictures } from '@/shared/FigureView'
 import { msg, type T } from '@/shared/i18n/format'
 import { useT } from '@/shared/i18n/client'
 import { IconAlert } from '@/shared/icons'
@@ -19,7 +19,7 @@ const SOURCE_LABELS = { printed: msg('印刷'), handwritten: msg('手寫'), none
  */
 export function QuestionView({ q, compact = false, actions, onConfirm }: { q: DraftQuestion; compact?: boolean; actions?: React.ReactNode; onConfirm?: () => void }) {
   const t = useT()
-  const blanks = q.figures.flatMap((f) => f.image?.blanks ?? [])
+  const blanks = questionFigures(q).flatMap((f) => f.image?.blanks ?? [])
   const answerByBlank = blanks.length > 0 && blanks.length === q.answer.values.length
   const isChoice = q.type === 'single_choice' || q.type === 'multiple_choice'
   let blankOffset = 0
@@ -31,7 +31,7 @@ export function QuestionView({ q, compact = false, actions, onConfirm }: { q: Dr
       <Markdown>{q.stem}</Markdown>
       {q.translation && <Markdown className="border-l-2 border-line pl-3 text-sm text-muted">{q.translation}</Markdown>}
 
-      {q.figures.map((f, i) => {
+      {questionFigures(q).map((f, i) => {
         const count = f.image?.blanks.length ?? 0
         const answers = answerByBlank ? q.answer.values.slice(blankOffset, blankOffset + count) : undefined
         blankOffset += count
@@ -45,7 +45,10 @@ export function QuestionView({ q, compact = false, actions, onConfirm }: { q: Dr
             return (
               <li key={`${o.label}-${i}`} className={`flex gap-2 rounded-lg px-2.5 py-1.5 text-sm ${correct ? 'bg-good-soft' : 'bg-paper'}`}>
                 <span className={`num shrink-0 font-semibold leading-relaxed ${correct ? 'text-good' : 'text-muted'}`}>({o.label})</span>
-                <Markdown className="min-w-0 flex-1">{o.content}</Markdown>
+                <span className="min-w-0 flex-1">
+                  <Markdown>{o.content}</Markdown>
+                  <OptionPictures figures={optionFigures(q, o.label)} />
+                </span>
               </li>
             )
           })}

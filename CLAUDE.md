@@ -42,6 +42,7 @@ Packages never import from apps.
 | ↳ 懸浮球 AI 強度 | | `review/StrengthPanel.tsx` |
 | 題目卡（看）/ 題目編輯表單 | | `features/questions/QuestionView.tsx`, `QuestionEditor.tsx` → `OptionsEditor.tsx`, `AnswerEditor.tsx`, `editorParts.tsx` |
 | 圖片空格清理 | | `features/questions/FigureBlanksEditor.tsx`, `packages/figures` |
+| 圖片選項（選項是圖） | | figure `option` field in `packages/core/src/schema.ts`, `questionFigures`/`optionFigures` in `core/src/figures.ts`; shown by `shared/FigureView.tsx` (`OptionPictures`); assigned in `QuestionEditor.tsx` (這張圖是) |
 | 題庫、考卷卡、篩選 | `app/bank/page.tsx`, `bank/exams/[id]`, `bank/[id]` | `features/bank/*` (`ExamCard`, `BankFilters`, `ExamMetaForm`, `BankQuestionEditor`) |
 | 開始測驗、選題 | `app/quiz/new` | `features/quiz/QuizSetup.tsx`, `start.ts` |
 | 作答頁（考試/單題練習、計時） | `app/quiz/[id]` | `features/quiz/QuizPlayer.tsx` |

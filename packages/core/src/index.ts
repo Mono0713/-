@@ -1,6 +1,6 @@
 export * from './schema.ts'
 export * from './types.ts'
 export { toStrictJsonSchema } from './json-schema.ts'
-export { defaultPrintedText } from './figures.ts'
+export { defaultPrintedText, optionFigures, questionFigures } from './figures.ts'
 export { untangleBoxes } from './boxes.ts'
 export { isPickMatching, matchingItemCount } from './matching.ts'

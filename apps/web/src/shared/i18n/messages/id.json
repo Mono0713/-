@@ -815,5 +815,8 @@
   "展開文章": "Tampilkan bacaan",
   "收合文章": "Sembunyikan bacaan",
   "每錯一個選項扣 2/n 的分數，扣完為止（學測規則）": "Setiap pilihan salah atau terlewat mengurangi 2/n poin, sampai nol",
-  "多選題部分給分": "Nilai parsial untuk pilihan ganda kompleks"
+  "多選題部分給分": "Nilai parsial untuk pilihan ganda kompleks",
+  "這張圖是": "Gambar ini",
+  "題目的圖": "Bagian soal",
+  "選項 ({label})": "Pilihan ({label})"
 }

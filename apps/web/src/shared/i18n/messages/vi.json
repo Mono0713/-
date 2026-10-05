@@ -815,5 +815,8 @@
   "展開文章": "Mở bài đọc",
   "收合文章": "Thu gọn bài đọc",
   "每錯一個選項扣 2/n 的分數，扣完為止（學測規則）": "Mỗi lựa chọn sai hoặc bỏ sót trừ 2/n số điểm, đến khi hết",
-  "多選題部分給分": "Cho điểm từng phần câu nhiều đáp án"
+  "多選題部分給分": "Cho điểm từng phần câu nhiều đáp án",
+  "這張圖是": "Hình này là",
+  "題目的圖": "Hình của câu hỏi",
+  "選項 ({label})": "Lựa chọn ({label})"
 }

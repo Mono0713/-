@@ -1,4 +1,4 @@
-import { isPickMatching, matchingItemCount, type DraftFigure, type DraftQuestion } from '@exam/core'
+import { isPickMatching, matchingItemCount, questionFigures, type DraftFigure, type DraftQuestion } from '@exam/core'
 import { isEmptyInk, practiceRows } from '@exam/ink'
 import { numberValue, sameMath } from './equivalence.ts'
 import type { Grade, QuizAttempt, QuizItem, QuizResponse, QuizSettings, Marking } from './types.ts'
@@ -18,7 +18,7 @@ export type AnswerKind =
   | { kind: 'writing'; rows: string[] }
 
 export function answerKind(q: DraftQuestion): AnswerKind {
-  const figureBlanks = q.figures.reduce((n, f) => n + (f.image?.blanks.length ?? f.blanks.length), 0)
+  const figureBlanks = questionFigures(q).reduce((n, f) => n + (f.image?.blanks.length ?? f.blanks.length), 0)
   if (q.type === 'single_choice' && q.options.length) return { kind: 'single' }
   if (q.type === 'multiple_choice' && q.options.length) return { kind: 'multiple' }
   if (q.type === 'true_false') return { kind: 'true_false' }

@@ -815,5 +815,8 @@
   "展開文章": "Mostrar texto",
   "收合文章": "Ocultar texto",
   "每錯一個選項扣 2/n 的分數，扣完為止（學測規則）": "Cada opción errada u omitida resta 2/n de los puntos, hasta cero",
-  "多選題部分給分": "Puntuación parcial en opción múltiple"
+  "多選題部分給分": "Puntuación parcial en opción múltiple",
+  "這張圖是": "Esta imagen es",
+  "題目的圖": "Parte de la pregunta",
+  "選項 ({label})": "Opción ({label})"
 }
