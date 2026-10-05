@@ -17,9 +17,10 @@ const Reply = z.object({ values: z.array(z.string()) })
  * Reads a handwritten answer into text: one entry per blank, or one for an open answer.
  * Maths comes back in LaTeX between $…$, so the usual checks (1/2 = 0.5) apply.
  */
-export async function readHandwriting(model: TextModel, item: QuizItem, ink: InkDoc): Promise<string[]> {
+export async function readHandwriting(model: TextModel, item: QuizItem, ink: InkDoc, figure: Buffer | null = null): Promise<string[]> {
   const kind = answerKind(item.question)
   if (kind.kind === 'writing') return readPractice(model, kind.rows, ink)
+  if (item.question.type === 'drawing') return readDrawing(model, item, ink, figure)
   const count = kind.kind === 'blanks' ? kind.count : 1
   const system = `You transcribe a student's handwritten exam answer exactly as written, without correcting it.
 - Write mathematics in LaTeX between $...$ (for example $\\frac{1}{2}$, $x^{2}$), chemistry with \\ce{...}.
@@ -34,6 +35,37 @@ Reply with JSON only: {"values": [${count > 1 ? '"…", "…"' : '"…"'}]}. Esc
       const text = await model.complete(system, prompt, [image])
       const { values } = Reply.parse(JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)))
       return Array.from({ length: count }, (_, i) => repairLatex(count === 1 ? values.join('\n') : (values[i] ?? '')).trim())
+    } catch (err) {
+      lastError = err
+    }
+  }
+  throw lastError
+}
+
+/** The figure with the student's strokes on top, as drawn on it in the quiz. */
+export async function drawingToPng(ink: InkDoc, figure: Buffer | null, width = 1200): Promise<Buffer> {
+  const underlay = figure
+    ? `<image href="data:image/png;base64,${(await sharp(figure).png().toBuffer()).toString('base64')}" x="0" y="0" width="${width}" height="${Math.round(ink.height * width)}" preserveAspectRatio="none"/>`
+    : ''
+  return sharp(Buffer.from(inkToSvg(ink, width, '#ffffff', underlay))).flatten({ background: '#ffffff' }).png().toBuffer()
+}
+
+/**
+ * Describes a 作圖題 answer in words for the teacher to mark: what the student drew and where,
+ * read against the printed figure underneath.
+ */
+async function readDrawing(model: TextModel, item: QuizItem, ink: InkDoc, figure: Buffer | null): Promise<string[]> {
+  const system = `You look at a student's answer to a drawing question in an exam. The image shows the printed figure (a number line, axes, a grid or a diagram)${figure ? '' : ' (not available here, only the strokes)'} with the student's own pen strokes on top.
+Describe exactly what the student drew, read against the figure: each point, mark, label, line or shape, and where it is (for example "point A at about -0.3 on the number line", "a line from (0, 1) to (2, 5)"). Keep the student's labels and mistakes. Do not judge or correct the answer.
+Reply with JSON only: {"values": ["…"]} with the whole description as one string.`
+  const prompt = `The question, for context only (do not answer it):\n${item.question.stem}`
+  const image = await drawingToPng(ink, figure)
+  let lastError: unknown
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const text = await model.complete(system, prompt, [image])
+      const { values } = Reply.parse(JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)))
+      return [repairLatex(values.join('\n')).trim()]
     } catch (err) {
       lastError = err
     }
@@ -92,13 +124,19 @@ export function unreadHandwriting(response: QuizResponse | null | undefined): bo
  * Returns the responses with `values` filled in and `transcribed` set. `only` limits it to some questions.
  * Answers that fail to be read stay unread; it throws only when every read failed.
  */
-export async function readHandwrittenAnswers(attempt: Pick<QuizAttempt, 'items' | 'responses'>, model: TextModel, only?: number[]): Promise<QuizAttempt['responses']> {
+export async function readHandwrittenAnswers(
+  attempt: Pick<QuizAttempt, 'items' | 'responses'>,
+  model: TextModel,
+  only?: number[],
+  /** The figure a 作圖題 is drawn on, as an image file. */
+  figureOf?: (item: QuizItem) => Promise<Buffer | null>,
+): Promise<QuizAttempt['responses']> {
   const responses = [...attempt.responses]
   const results = await Promise.allSettled(
     attempt.items.map(async (item, i) => {
       const r = responses[i]
       if (!r || (only && !only.includes(i)) || !unreadHandwriting(r)) return false
-      responses[i] = { ...r, values: await readHandwriting(model, item, r.handwriting!), transcribed: true }
+      responses[i] = { ...r, values: await readHandwriting(model, item, r.handwriting!, item.question.type === 'drawing' ? ((await figureOf?.(item)) ?? null) : null), transcribed: true }
       return true
     }),
   )

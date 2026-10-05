@@ -14,6 +14,7 @@ export const TYPE_LABELS: Record<QuestionType, string> = {
   calculation: msg('計算'),
   matching: msg('配合'),
   writing: msg('寫字練習'),
+  drawing: msg('作圖'),
   other: msg('其他'),
 }
 

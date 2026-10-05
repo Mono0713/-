@@ -2,7 +2,7 @@ export { cacheKey, PostgresGradingCache, SqliteGradingCache, type GradingCache }
 export { markOpenAnswers, type MarkResult } from './mark.ts'
 export { createTextModel, registerTextModel, type TextModel, type TextModelConfig } from './model.ts'
 export { AiTeacher } from './teacher.ts'
-export { inkToPng, practiceToPng, readHandwriting, readHandwrittenAnswers, repairLatex, unreadHandwriting } from './handwriting.ts'
+export { drawingToPng, inkToPng, practiceToPng, readHandwriting, readHandwrittenAnswers, repairLatex, unreadHandwriting } from './handwriting.ts'
 export { AiTutor, MAX_MESSAGE, parseReply, type TutorQuestion } from './tutor.ts'
 export { AiTranslator, FreeTranslator, parseTranslation, type Translation } from './translate.ts'
 export { PostgresTranslationCache, SqliteTranslationCache, translationKey, type TranslationCache, type TranslationEngine } from './translationCache.ts'

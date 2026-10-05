@@ -828,5 +828,7 @@
   "移除評分規則": "Xóa quy tắc chấm",
   "評分規則：": "Quy tắc chấm: ",
   "限 {n} 字": "Tối đa {n} chữ",
-  "{n} / {max} 字": "{n} / {max} chữ"
+  "{n} / {max} 字": "{n} / {max} chữ",
+  "直接在圖上畫出答案。看答案或交卷時，AI 會看你畫的圖來批改。": "Vẽ câu trả lời ngay trên hình. Khi xem đáp án hoặc nộp bài, AI sẽ xem hình bạn vẽ để chấm.",
+  "作圖": "Vẽ hình"
 }

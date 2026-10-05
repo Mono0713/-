@@ -828,5 +828,7 @@
   "移除評分規則": "Remove marking rule",
   "評分規則：": "Marking rule: ",
   "限 {n} 字": "Max {n} chars",
-  "{n} / {max} 字": "{n} / {max} chars"
+  "{n} / {max} 字": "{n} / {max} chars",
+  "直接在圖上畫出答案。看答案或交卷時，AI 會看你畫的圖來批改。": "Draw your answer right on the figure. When you check or hand in, the AI looks at your drawing to mark it.",
+  "作圖": "Drawing"
 }

@@ -828,5 +828,7 @@
   "移除評分規則": "Hapus aturan penilaian",
   "評分規則：": "Aturan penilaian: ",
   "限 {n} 字": "Maks {n} karakter",
-  "{n} / {max} 字": "{n} / {max} karakter"
+  "{n} / {max} 字": "{n} / {max} karakter",
+  "直接在圖上畫出答案。看答案或交卷時，AI 會看你畫的圖來批改。": "Gambar jawabanmu langsung di atas gambar. Saat memeriksa atau mengumpulkan, AI melihat gambarmu untuk menilai.",
+  "作圖": "Menggambar"
 }

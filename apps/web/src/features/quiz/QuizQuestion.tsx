@@ -8,6 +8,7 @@ import { useState, type ReactNode } from 'react'
 import { FigureView, OptionPictures } from '@/shared/FigureView'
 import { useT } from '@/shared/i18n/client'
 import { msg } from '@/shared/i18n/format'
+import { fileUrl } from '@/shared/files'
 import { InkPad } from '@/shared/ink/InkPad'
 import { TYPE_LABELS } from '@/shared/labels'
 import { blankCount, Markdown } from '@/shared/Markdown'
@@ -91,7 +92,9 @@ export function QuizQuestion({
   const typed = values.some((v) => v.trim())
   const inked = !isEmptyInk(response?.handwriting)
   const [mode, setMode] = useState<'type' | 'ink'>(() => (inked && (response?.transcribed || !typed) ? 'ink' : 'type'))
-  const byHand = writable && mode === 'ink'
+  // 作圖題 is drawn on its figure, so it is always answered by hand.
+  const drawOn = q.type === 'drawing' ? questionFigures(q).find((f) => f.image) : undefined
+  const byHand = writable && (mode === 'ink' || q.type === 'drawing')
   // Writing replaces anything typed, so there is one answer to mark.
   const setInk = (handwriting: InkDoc) => patch({ handwriting, values: [] })
   // Compositions default to manuscript squares in Chinese, Japanese or Korean and ruled lines otherwise;
@@ -145,7 +148,7 @@ export function QuizQuestion({
   }
 
   let figureOffset = 0
-  const figures = questionFigures(q).map((f, i) => {
+  const figures = questionFigures(q).filter((f) => f !== drawOn).map((f, i) => {
     const count = f.image?.blanks.length ?? 0
     const offset = figureOffset
     figureOffset += count
@@ -303,7 +306,8 @@ export function QuizQuestion({
         </div>
       )}
 
-      {writable && !locked && (
+      {q.type === 'drawing' && !locked && <p className="text-sm text-muted">{t('直接在圖上畫出答案。看答案或交卷時，AI 會看你畫的圖來批改。')}</p>}
+      {writable && !locked && q.type !== 'drawing' && (
         <div className="flex flex-wrap items-center gap-3">
           <Segmented value={mode} options={ANSWER_MODES} onChange={setMode} />
           <span className="text-xs text-muted">
@@ -329,8 +333,9 @@ export function QuizQuestion({
               readOnly={locked}
               minHeight={kind.kind === 'blanks' ? 0.3 : focus ? 1 : 0.4}
               paper={paperOf(paperKind)}
+              backdrop={drawOn?.image ? { src: fileUrl(drawOn.image.file), aspect: drawOn.image.height / drawOn.image.width } : undefined}
               tools={
-                kind.kind === 'text' && (
+                kind.kind === 'text' && !drawOn && (
                   <>
                     <span className="mx-1 h-5 w-px bg-line" />
                     <span className="flex items-center gap-0.5" role="group" aria-label={t('紙張')}>

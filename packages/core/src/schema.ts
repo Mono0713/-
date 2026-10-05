@@ -25,6 +25,8 @@ export const QuestionType = z.enum([
   'matching',
   /** Character or letter writing practice (生字練習): the answer holds the characters to write. */
   'writing',
+  /** A drawing question (作圖題): marks drawn on the question's figure (a number line, axes, a diagram); the answer says what a right drawing shows. */
+  'drawing',
   'other',
 ])
 export type QuestionType = z.infer<typeof QuestionType>

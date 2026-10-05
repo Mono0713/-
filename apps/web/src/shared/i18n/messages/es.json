@@ -828,5 +828,7 @@
   "移除評分規則": "Quitar regla de calificación",
   "評分規則：": "Regla de calificación: ",
   "限 {n} 字": "Máx. {n} car.",
-  "{n} / {max} 字": "{n} / {max} car."
+  "{n} / {max} 字": "{n} / {max} car.",
+  "直接在圖上畫出答案。看答案或交卷時，AI 會看你畫的圖來批改。": "Dibuja tu respuesta sobre la figura. Al revisar o entregar, la IA mira tu dibujo para calificarlo.",
+  "作圖": "Dibujo"
 }

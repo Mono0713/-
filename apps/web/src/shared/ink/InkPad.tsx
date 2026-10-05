@@ -39,6 +39,7 @@ export function InkPad({
   paper = DOTS,
   tools,
   view,
+  backdrop,
 }: {
   value: InkDoc | null | undefined
   onChange?: (doc: InkDoc) => void
@@ -52,9 +53,11 @@ export function InkPad({
   tools?: React.ReactNode
   /** Shows only this part of the page, enlarged to the pad's width (in page widths), e.g. one practice cell group on a phone. */
   view?: { x: number; y: number; w: number; h: number }
+  /** A picture to draw on (作圖題: a number line, axes, a diagram); the page takes its shape. `aspect` is height / width. */
+  backdrop?: { src: string; aspect: number }
 }) {
   const t = useT()
-  const fixed = paper.kind === 'practice' ? practiceHeight(paper) : null
+  const fixed = backdrop ? backdrop.aspect : paper.kind === 'practice' ? practiceHeight(paper) : null
   const doc = value ? (fixed ? { ...value, height: fixed } : value) : emptyInk(fixed ?? minHeight)
   // The latest page, also between renders (an eraser drag changes it many times per event).
   const latest = useRef(doc)
@@ -239,6 +242,7 @@ export function InkPad({
         className={`block w-full select-none ${paper.kind === 'dots' ? 'bg-[radial-gradient(color-mix(in_srgb,var(--color-ink)_11%,transparent)_1px,transparent_1.2px)] bg-[length:22px_22px]' : ''} ${readOnly ? '' : 'cursor-crosshair touch-none'}`}
         style={{ aspectRatio: view ? `${view.w} / ${view.h}` : `${W} / ${height}` }}
       >
+        {backdrop && <image href={backdrop.src} x={0} y={0} width={W} height={W * backdrop.aspect} preserveAspectRatio="none" style={{ pointerEvents: 'none' }} />}
         {lines.map((l, i) => (
           <line
             key={i}

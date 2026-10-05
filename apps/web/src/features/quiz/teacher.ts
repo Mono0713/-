@@ -1,5 +1,6 @@
 import { markOpenAnswers, readHandwrittenAnswers, unreadHandwriting } from '@exam/grading'
-import { needsTeacher, type QuizAttempt } from '@exam/quiz'
+import { questionFigures } from '@exam/core'
+import { needsTeacher, type QuizAttempt, type QuizItem } from '@exam/quiz'
 import { graderFor } from '@/server/classes'
 import { localeOf, services } from '@/server/context'
 import { type Teacher } from '@/server/ai'
@@ -9,7 +10,13 @@ import { type Teacher } from '@/server/ai'
  * `only` limits it to some questions. Returns the attempt as saved.
  */
 export async function readInk(attempt: QuizAttempt, teacher: Teacher, only?: number[]): Promise<QuizAttempt> {
-  const responses = await readHandwrittenAnswers(attempt, teacher.reader, only)
+  const { files } = services()
+  // A 作圖題 is read with the figure it was drawn on.
+  const figureOf = async (item: QuizItem) => {
+    const figure = questionFigures(item.question).find((f) => f.image)
+    return figure?.image ? files.read(figure.image.file) : null
+  }
+  const responses = await readHandwrittenAnswers(attempt, teacher.reader, only, figureOf)
   const { quizzes } = services()
   const saved = await quizzes.update(attempt.id, (now) => ({
     ...now,

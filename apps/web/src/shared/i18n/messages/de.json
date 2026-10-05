@@ -828,5 +828,7 @@
   "移除評分規則": "Bewertungsregel entfernen",
   "評分規則：": "Bewertungsregel: ",
   "限 {n} 字": "Max. {n} Zeichen",
-  "{n} / {max} 字": "{n} / {max} Zeichen"
+  "{n} / {max} 字": "{n} / {max} Zeichen",
+  "直接在圖上畫出答案。看答案或交卷時，AI 會看你畫的圖來批改。": "Zeichne deine Antwort direkt in die Abbildung. Beim Prüfen oder Abgeben bewertet die KI deine Zeichnung.",
+  "作圖": "Zeichnung"
 }
