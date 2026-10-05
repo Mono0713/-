@@ -102,9 +102,9 @@ describe('answerKind', () => {
     const blank = (label: string) => ({ label, bbox: { x: 0, y: 0, width: 0.1, height: 0.1 }, ink: null, printedText: null })
     const figure = { description: 'flow chart', bbox: { x: 0, y: 0, width: 1, height: 1 }, blanks: [blank('1'), blank('2')], pageNumber: 1, image: null }
     expect(answerKind({ ...fill, answer: { values: ['A', 'B'], source: 'printed' }, figures: [figure] })).toEqual({ kind: 'blanks', count: 2, figureBlanks: 2, pick: true })
-    // a key that is not made of labels, or no key at all, is typed
+    // a key that is not made of labels is typed; a key hidden until the answer is shown is still picked
     expect(answerKind({ ...fill, answer: { values: ['IL-4'], source: 'printed' } })).toEqual({ kind: 'blanks', count: 1, figureBlanks: 0 })
-    expect(answerKind({ ...fill, answer: { values: [], source: 'none' } })).toEqual({ kind: 'blanks', count: 1, figureBlanks: 0 })
+    expect(answerKind({ ...fill, answer: { values: ['', '', ''], source: 'none' } })).toEqual({ kind: 'blanks', count: 3, figureBlanks: 0, pick: true })
   })
 
   it('marks picked matching items, also with shuffled labels', () => {

@@ -4,11 +4,11 @@ import type { DraftQuestion } from './types.ts'
  * A question answered by picking option labels into its blanks or items instead of typing:
  * a matching question (配合題), or a fill-in whose blanks take labels from a printed list
  * ("fill the blanks with (A) to (L)", labels may repeat). It has at least two options and each
- * answer in its key is a single option label (a key such as "A, B" is typed); a fill-in needs a key.
+ * answer in its key is a single option label (a key such as "A, B" is typed). A key may be empty: the quiz hides it until the answer
+ * is shown, and a fill-in that prints a list of options is picked from it either way.
  */
 export function isPickAnswer(q: Pick<DraftQuestion, 'type' | 'options' | 'answer'>): boolean {
   if ((q.type !== 'matching' && q.type !== 'fill_in_blank') || q.options.length < 2) return false
-  if (q.type === 'fill_in_blank' && !q.answer.values.some((v) => v.trim())) return false
   const labels = new Set(q.options.map((o) => o.label.trim().toLowerCase()))
   return q.answer.values.every((v) => !v.trim() || labels.has(v.trim().toLowerCase()))
 }
