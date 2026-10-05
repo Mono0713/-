@@ -172,6 +172,8 @@ export function QuizQuestion({
         <Badge>{t(TYPE_LABELS[q.type])}</Badge>
         {kind.kind === 'multiple' && <Badge tone="accent">{t('可複選')}</Badge>}
         {q.points !== null && <Badge>{t('{n} 分', { n: q.points })}</Badge>}
+        {q.maxLength ? <Badge>{t('限 {n} 字', { n: q.maxLength })}</Badge> : null}
+        {q.markingRule?.trim() ? <span className="rounded-md bg-warn-soft px-1.5 py-0.5 text-xs text-ink/80">{q.markingRule.trim()}</span> : null}
         <span className="ml-auto" />
         {translatable && (
           <button
@@ -439,9 +441,13 @@ export function QuizQuestion({
           className={`${inputBase} w-full`}
         />
       )}
-      {!byHand && kind.kind === 'text' && (q.type === 'essay' || q.type === 'composition') && (
+      {!byHand && kind.kind === 'text' && q.maxLength ? (
+        <p className={`-mt-2 text-right text-xs tabular-nums ${wordCount(values[0] ?? '') > q.maxLength ? 'font-semibold text-bad' : 'text-muted'}`}>
+          {t('{n} / {max} 字', { n: wordCount(values[0] ?? ''), max: q.maxLength })}
+        </p>
+      ) : !byHand && kind.kind === 'text' && (q.type === 'essay' || q.type === 'composition') ? (
         <p className="-mt-2 text-right text-xs tabular-nums text-muted">{t('{n} 字', { n: wordCount(values[0] ?? '') })}</p>
-      )}
+      ) : null}
     </div>
   )
 }

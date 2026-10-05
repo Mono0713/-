@@ -107,6 +107,8 @@ export function questionLines(item: QuizItem): string[] {
   const key = q.answer.values.filter((v) => v.trim())
   lines.push(key.length ? `Reference answer:\n${numbered(key)}` : 'Reference answer: none given.')
   if (q.explanation) lines.push(`Explanation:\n${q.explanation}`)
+  if (q.markingRule?.trim()) lines.push(`Marking rule printed on the paper (apply it to the credit): ${q.markingRule.trim()}`)
+  if (q.maxLength) lines.push(`Length limit: ${q.maxLength} characters (words for languages written with spaces).`)
   return lines
 }
 

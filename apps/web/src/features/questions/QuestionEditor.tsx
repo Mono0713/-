@@ -38,9 +38,10 @@ export function QuestionEditor({
   const setAnswer = (patch: Partial<Answer>) => set('answer', { ...q.answer, ...patch })
   const hasChoices = q.options.length > 0 || q.type === 'single_choice' || q.type === 'multiple_choice'
   // Translation and explanation take room only once they have something in them, or are asked for.
-  const [extra, setExtra] = useState({ translation: false, explanation: false })
+  const [extra, setExtra] = useState({ translation: false, explanation: false, rule: false })
   const showTranslation = extra.translation || Boolean(q.translation)
   const showExplanation = extra.explanation || Boolean(q.explanation)
+  const showRule = extra.rule || Boolean(q.markingRule)
 
   return (
     <div className="space-y-3">
@@ -77,6 +78,23 @@ export function QuestionEditor({
           />
           <span className="text-muted">{t('分')}</span>
         </label>
+        {(q.type === 'short_answer' || q.type === 'essay' || q.type === 'composition') && (
+          <label className={`${chip} flex cursor-text items-center gap-1 pl-2.5 pr-2.5 focus-within:bg-surface focus-within:ring-2 focus-within:ring-accent/40`} title={t('字數上限')}>
+            <span className="text-muted">{t('限')}</span>
+            <input
+              autoComplete="off"
+              type="number"
+              min={1}
+              step={1}
+              value={q.maxLength ?? ''}
+              onChange={(e) => set('maxLength', e.target.value === '' ? null : Math.max(1, Math.round(Number(e.target.value))))}
+              placeholder="–"
+              className="num w-9 bg-transparent text-right outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+              aria-label={t('字數上限')}
+            />
+            <span className="text-muted">{t('字')}</span>
+          </label>
+        )}
         {actions && <div className="ml-auto flex items-center gap-0.5">{actions}</div>}
       </div>
 
@@ -134,10 +152,21 @@ export function QuestionEditor({
           actions={<RemoveButton label={t('移除詳解')} onClick={() => (set('explanation', null), setExtra({ ...extra, explanation: false }))} />}
         />
       )}
-      {(!showTranslation || !showExplanation) && (
+      {showRule && (
+        <MathTextInput
+          label={t('評分規則')}
+          multiline={false}
+          placeholder={t('例如：一個錯字扣一分')}
+          value={q.markingRule ?? ''}
+          onChange={(v) => set('markingRule', v || null)}
+          actions={<RemoveButton label={t('移除評分規則')} onClick={() => (set('markingRule', null), setExtra({ ...extra, rule: false }))} />}
+        />
+      )}
+      {(!showTranslation || !showExplanation || !showRule) && (
         <div className="flex flex-wrap gap-1.5">
           {!showTranslation && <AddChip onClick={() => setExtra({ ...extra, translation: true })}>{t('翻譯')}</AddChip>}
           {!showExplanation && <AddChip onClick={() => setExtra({ ...extra, explanation: true })}>{t('詳解')}</AddChip>}
+          {!showRule && <AddChip onClick={() => setExtra({ ...extra, rule: true })}>{t('評分規則')}</AddChip>}
         </div>
       )}
 

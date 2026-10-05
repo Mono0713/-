@@ -118,6 +118,16 @@ export const ExtractedQuestion = z.object({
   answer: Answer,
   explanation: z.string().nullable().describe('Printed or typed worked solution, if any'),
   points: z.number().nullable(),
+  maxLength: z
+    .number()
+    .nullable()
+    .default(null)
+    .describe('Most characters (words, for languages written with spaces) the answer may have when the paper sets a limit, e.g. 20 for "作答字數 20 字以內"; else null'),
+  markingRule: z
+    .string()
+    .nullable()
+    .default(null)
+    .describe('How this answer is marked when the paper says more than its points, e.g. "一個錯字扣一分" or "列式 2 分，答案 1 分", from the question or its section; else null'),
   figures: z.array(Figure),
   bbox: BoundingBox.describe('Area of the whole question on the page'),
   continuesFromPreviousPage: z.boolean(),
@@ -127,7 +137,8 @@ export const ExtractedQuestion = z.object({
     .array(z.string())
     .describe('Anything a reviewer should check: unreadable text, guessed symbols, cut-off parts'),
 })
-export type ExtractedQuestion = z.infer<typeof ExtractedQuestion>
+/** `maxLength` and `markingRule` are missing on questions saved before they existed. */
+export type ExtractedQuestion = Omit<z.infer<typeof ExtractedQuestion>, 'maxLength' | 'markingRule'> & { maxLength?: number | null; markingRule?: string | null }
 
 export const QuestionGroup = z.object({
   id: z.string(),
@@ -154,4 +165,4 @@ export const ExtractedPage = z.object({
     .nullable()
     .describe('Page-level remarks, e.g. "photo shows two exam pages side by side"'),
 })
-export type ExtractedPage = z.infer<typeof ExtractedPage>
+export type ExtractedPage = Omit<z.infer<typeof ExtractedPage>, 'questions'> & { questions: ExtractedQuestion[] }

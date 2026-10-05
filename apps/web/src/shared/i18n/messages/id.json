@@ -819,5 +819,14 @@
   "這張圖是": "Gambar ini",
   "題目的圖": "Bagian soal",
   "選項 ({label})": "Pilihan ({label})",
-  "數字答案可以寫範圍，例如 98 ± 2 或 96 ~ 100，範圍內都算對。": "Jawaban angka bisa berupa rentang, mis. 98 ± 2 atau 96 ~ 100; nilai di dalamnya dianggap benar."
+  "數字答案可以寫範圍，例如 98 ± 2 或 96 ~ 100，範圍內都算對。": "Jawaban angka bisa berupa rentang, mis. 98 ± 2 atau 96 ~ 100; nilai di dalamnya dianggap benar.",
+  "字數上限": "Batas panjang",
+  "限": "Maks",
+  "字": "karakter",
+  "評分規則": "Aturan penilaian",
+  "例如：一個錯字扣一分": "mis. −1 poin per salah tulis",
+  "移除評分規則": "Hapus aturan penilaian",
+  "評分規則：": "Aturan penilaian: ",
+  "限 {n} 字": "Maks {n} karakter",
+  "{n} / {max} 字": "{n} / {max} karakter"
 }

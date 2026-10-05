@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest'
 import type { DraftQuestion } from '@exam/core'
-import { answerKind, buildItems, displayLabel, grade, gradeItem, groupRange, inOtherLanguage, isOver, matches, PostgresQuizStore, SqliteQuizStore, summarize, toQuizLabels, type QuizSettings, type QuizStore } from '../src/index.ts'
+import { answerKind, buildItems, displayLabel, grade, gradeItem, groupRange, inOtherLanguage, isOver, matches, needsTeacher, PostgresQuizStore, SqliteQuizStore, summarize, toQuizLabels, type QuizSettings, type QuizStore } from '../src/index.ts'
 import { testDatabase } from '@exam/db'
 
 function q(overrides: Partial<DraftQuestion> = {}): DraftQuestion {
@@ -279,5 +279,16 @@ describe('multiple choice partial credit', () => {
     const [off] = buildItems([{ questionId: 'm', question: multi, group: null }], settings)
     expect(gradeItem(on!, { values: ['A'] }).score).toBe(3)
     expect(gradeItem(off!, { values: ['A'] }).score).toBe(0)
+  })
+})
+
+describe('marking rules', () => {
+  it('sends an answer the key calls wrong to the teacher when the paper has a marking rule', () => {
+    const calc = q({ type: 'fill_in_blank', options: [], answer: { values: ['156'], source: 'printed' } })
+    const [item] = buildItems([{ questionId: 'q', question: calc, group: null }], settings)
+    expect(needsTeacher(item!, { values: ['150'] }, null)).toBe(false)
+    const [ruled] = buildItems([{ questionId: 'q', question: { ...calc, markingRule: '列式 1 分，答案 1 分' }, group: null }], settings)
+    expect(needsTeacher(ruled!, { values: ['150'] }, null)).toBe(true)
+    expect(needsTeacher(ruled!, { values: ['156'] }, null)).toBe(false)
   })
 })

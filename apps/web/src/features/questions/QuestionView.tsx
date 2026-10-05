@@ -30,6 +30,12 @@ export function QuestionView({ q, compact = false, actions, onConfirm }: { q: Dr
 
       <Markdown>{q.stem}</Markdown>
       {q.translation && <Markdown className="border-l-2 border-line pl-3 text-sm text-muted">{q.translation}</Markdown>}
+      {q.markingRule?.trim() && (
+        <p className="text-xs text-muted">
+          {t('評分規則：')}
+          <span className="rounded bg-warn-soft px-1 text-ink/80">{q.markingRule.trim()}</span>
+        </p>
+      )}
 
       {questionFigures(q).map((f, i) => {
         const count = f.image?.blanks.length ?? 0
@@ -118,6 +124,7 @@ export function QuestionHeading({ q, showConfidence = false, actions, children }
       )}
       <Badge>{t(TYPE_LABELS[q.type])}</Badge>
       {q.points !== null && <Badge>{t('{points} 分', { points: q.points })}</Badge>}
+      {q.maxLength ? <Badge>{t('限 {n} 字', { n: q.maxLength })}</Badge> : null}
       {showConfidence && q.confidence !== 'high' && <Badge tone={q.confidence === 'low' ? 'bad' : 'warn'}>{t(CONFIDENCE_LABELS[q.confidence])}</Badge>}
       {children}
       {actions && <div className="ml-auto flex items-center gap-0.5">{actions}</div>}

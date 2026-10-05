@@ -819,5 +819,14 @@
   "這張圖是": "Esta imagen es",
   "題目的圖": "Parte de la pregunta",
   "選項 ({label})": "Opción ({label})",
-  "數字答案可以寫範圍，例如 98 ± 2 或 96 ~ 100，範圍內都算對。": "Un número puede ser un rango, p. ej. 98 ± 2 o 96 ~ 100; todo lo que esté dentro cuenta como correcto."
+  "數字答案可以寫範圍，例如 98 ± 2 或 96 ~ 100，範圍內都算對。": "Un número puede ser un rango, p. ej. 98 ± 2 o 96 ~ 100; todo lo que esté dentro cuenta como correcto.",
+  "字數上限": "Límite de longitud",
+  "限": "Máx.",
+  "字": "car.",
+  "評分規則": "Regla de calificación",
+  "例如：一個錯字扣一分": "p. ej., −1 punto por cada error ortográfico",
+  "移除評分規則": "Quitar regla de calificación",
+  "評分規則：": "Regla de calificación: ",
+  "限 {n} 字": "Máx. {n} car.",
+  "{n} / {max} 字": "{n} / {max} car."
 }

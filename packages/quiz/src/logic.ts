@@ -215,6 +215,8 @@ export function needsTeacher(item: QuizItem, response: QuizResponse | null, mark
   if (kind === 'single' || kind === 'multiple' || kind === 'true_false' || kind === 'writing') return false
   const status = gradeItem(item, response, null).status
   if (status === 'correct' || status === 'unanswered') return false
+  // A printed marking rule (一個錯字扣一分) can give part of the points to an answer the key alone calls wrong.
+  if (item.question.markingRule?.trim()) return true
   if (status === 'no_key' || (kind === 'text' && item.question.answer.values.filter((v) => v.trim()).length !== 1)) return true
   // Only answers the program cannot be sure are wrong: an option label or a number that differs from the key is simply wrong.
   const key = item.question.answer.values

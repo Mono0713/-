@@ -819,5 +819,14 @@
   "這張圖是": "Cette image est",
   "題目的圖": "Partie de la question",
   "選項 ({label})": "Option ({label})",
-  "數字答案可以寫範圍，例如 98 ± 2 或 96 ~ 100，範圍內都算對。": "Un nombre peut être un intervalle, p. ex. 98 ± 2 ou 96 ~ 100 ; toute valeur dedans est juste."
+  "數字答案可以寫範圍，例如 98 ± 2 或 96 ~ 100，範圍內都算對。": "Un nombre peut être un intervalle, p. ex. 98 ± 2 ou 96 ~ 100 ; toute valeur dedans est juste.",
+  "字數上限": "Longueur maximale",
+  "限": "Max",
+  "字": "car.",
+  "評分規則": "Règle de notation",
+  "例如：一個錯字扣一分": "p. ex. −1 point par faute",
+  "移除評分規則": "Retirer la règle de notation",
+  "評分規則：": "Règle de notation : ",
+  "限 {n} 字": "{n} car. max",
+  "{n} / {max} 字": "{n} / {max} car."
 }

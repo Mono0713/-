@@ -819,5 +819,14 @@
   "這張圖是": "Hình này là",
   "題目的圖": "Hình của câu hỏi",
   "選項 ({label})": "Lựa chọn ({label})",
-  "數字答案可以寫範圍，例如 98 ± 2 或 96 ~ 100，範圍內都算對。": "Đáp án số có thể là một khoảng, ví dụ 98 ± 2 hoặc 96 ~ 100; trong khoảng đều tính đúng."
+  "數字答案可以寫範圍，例如 98 ± 2 或 96 ~ 100，範圍內都算對。": "Đáp án số có thể là một khoảng, ví dụ 98 ± 2 hoặc 96 ~ 100; trong khoảng đều tính đúng.",
+  "字數上限": "Giới hạn số chữ",
+  "限": "Tối đa",
+  "字": "chữ",
+  "評分規則": "Quy tắc chấm",
+  "例如：一個錯字扣一分": "ví dụ: sai một chữ trừ một điểm",
+  "移除評分規則": "Xóa quy tắc chấm",
+  "評分規則：": "Quy tắc chấm: ",
+  "限 {n} 字": "Tối đa {n} chữ",
+  "{n} / {max} 字": "{n} / {max} chữ"
 }
