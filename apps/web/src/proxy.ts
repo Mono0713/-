@@ -2,8 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import './server/env'
 
-/** Pages anyone may open without signing in. */
-const PUBLIC = ['/login', '/auth/', '/privacy', '/manifest.webmanifest']
+/** Pages anyone may open without signing in (and `/`, the product page). */
+const PUBLIC = ['/welcome', '/login', '/auth/', '/privacy', '/manifest.webmanifest']
 
 /**
  * With sign-in on: keeps the Supabase session cookie fresh on every request (server
@@ -28,7 +28,7 @@ export async function proxy(request: NextRequest) {
   })
   const { data } = await supabase.auth.getClaims()
   const path = request.nextUrl.pathname
-  if (!data?.claims && !PUBLIC.some((p) => path === p || path.startsWith(p))) {
+  if (!data?.claims && path !== '/' && !PUBLIC.some((p) => path === p || path.startsWith(p))) {
     if (path.startsWith('/api/')) return new NextResponse('Sign in first', { status: 401 })
     const login = request.nextUrl.clone()
     login.pathname = '/login'

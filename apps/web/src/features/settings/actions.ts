@@ -6,7 +6,7 @@ import type { Strength, Task, Tier } from '@exam/models'
 import type { CustomProvider } from '@exam/settings'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
-import { authEnabled, currentOwner, services } from '@/server/context'
+import { authEnabled, currentOwner, currentUser, services } from '@/server/context'
 import { apiKeyOf } from '@/server/ai'
 import { checkServiceUrl } from '@/server/serviceUrl'
 import { isLocale, LOCALE_COOKIE } from '@/shared/i18n/locales'
@@ -28,7 +28,8 @@ const mine = async () => services().settings.get(await currentOwner())
 
 export async function saveLocale(locale: string) {
   if (!isLocale(locale)) return
-  await save({ locale })
+  // Signed-out visitors (the product page) only get the cookie.
+  if (!authEnabled() || (await currentUser())) await save({ locale })
   // Remembered in the browser too, so the sign-in page and other accounts on it follow.
   ;(await cookies()).set(LOCALE_COOKIE, locale, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' })
   revalidatePath('/', 'layout')

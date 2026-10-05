@@ -61,6 +61,7 @@ Packages never import from apps.
 | 設定頁 | `app/settings/page.tsx` | `features/settings/SettingsForm.tsx` (API 金鑰 rows), `StrengthSettings`, `ModelPicker`, `CustomProviders`, `TranslationSettings`, `StorageCard`, `ProfileEditor`/`ProfileCard` |
 | 側邊欄、帳號選單、頁首、手機導覽 | | `shared/chrome/` (`Sidebar`, `SideNav`, `rail.ts` fold state, `AccountMenu`, `Header`, `NavLinks`, `nav.ts` items) |
 | 懸浮球 (FAB) | | `shared/chrome/Fab.tsx` |
+| 宣傳頁、首頁介紹（未登入看到的 `/`，任何人可開 `/welcome`） | `app/page.tsx`, `app/welcome/page.tsx` | `features/landing/Landing.tsx` → `Hero`, `HeroSheet` (示範考卷動畫), `Loop` (四步驟), `Features`, `Closing` (結尾與頁尾), `StartButton` (Google 登入／前往題庫), `LanguagePick`, `RevealObserver`; public paths in `proxy.ts` |
 | 登入 | `app/login`, `app/auth/callback` | `features/auth/actions.ts`, `server/auth.ts` |
 | 刪除＋5 秒復原 | | `shared/removal.tsx`, `shared/Toast.tsx` |
 | 公式輸入 | | `shared/math/` (`MathTextInput`, `FormulaToolbar`, `mathlive.ts`) |

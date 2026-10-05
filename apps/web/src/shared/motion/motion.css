@@ -204,6 +204,20 @@
 }
 .m-found { outline: 2px solid transparent; outline-offset: 1px; animation: m-found 1.4s var(--m-ease-out) calc(var(--i, 0) * 140ms + 250ms) backwards; }
 
+/* product page (features/landing): the sample sheet is scanned once and its questions boxed one by one,
+   sections fade up once as they scroll into view, and the start arrow leans toward where it goes */
+.m-scan-once { animation-iteration-count: 1; animation-fill-mode: forwards; }
+@keyframes m-box-in { from { opacity: 0; transform: scale(1.04); } }
+.m-box-in { animation: m-box-in 420ms var(--m-spring) calc(var(--i, 0) * 260ms + 800ms) backwards; }
+.m-reveal { transition: opacity var(--m-slow) var(--m-ease-out), transform var(--m-slow) var(--m-ease-out); transition-delay: calc(var(--i, 0) * 70ms); }
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  .m-reveal:not([data-in]) { opacity: 0; transform: translateY(14px); }
+}
+.m-nudge-right { transition: transform var(--m-base) var(--m-spring); }
+@media (hover: hover) {
+  :hover > .m-nudge-right { transform: translateX(3px); }
+}
+
 /* pen checkbox (input.m-check): ticked in ballpoint, the tick drawn left to right; unticking is quick */
 .m-check {
   appearance: none; position: relative; display: inline-grid; place-items: center; width: 18px; height: 18px; flex-shrink: 0;

@@ -256,6 +256,15 @@ body:has(.auth-screen) :is(.app-sidebar, .app-header) {
   display: none;
 }
 
+/* The product page (features/landing) has its own header and uses the full width. */
+body:has(.landing) :is(.app-sidebar, .app-header) {
+  display: none;
+}
+main:has(.landing) {
+  max-width: none;
+  padding: 0;
+}
+
 /* A formula being edited inside a text box: sits in the line like the rendered formula did. */
 math-field.inline-formula {
   display: inline-block;

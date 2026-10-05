@@ -77,6 +77,7 @@ to an instant change under `prefers-reduced-motion`.
 | Pen checkbox | Things 3, Todoist | quiz setup | `input.m-check`: tick drawn in 320 ms, unticked in 120 ms |
 | Last-minute timer | Duolingo | timed exams, last 60 s | `.m-last-minute`: red pen, beats once a second, colon blinks |
 | Corner curl | iBooks, the logo | exam cards in the bank | `.m-curl` lifts on hover to show `開始練習 →`; the corner itself also opens the practice setup (always shown on touch). The rest of the card opens the exam |
+| Product page | Linear, Stripe | `/` for signed-out visitors, `/welcome` | The sample sheet plays once: `.m-scan-once` scan line, `.m-box-in` question boxes 260 ms apart, then the highlighter, tick and red-pen note. Sections fade up 14 px once as they scroll in (`.m-reveal` + `RevealObserver`). Nothing loops |
 | Punch confetti | Stripe, Linear | 100% on quiz results | `Confetti`: one burst of binder-hole dots in the four ink colors |
 
 Controls with a moving part must not change the layout around them: the sliding pill of
