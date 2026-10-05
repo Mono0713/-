@@ -14,6 +14,7 @@ import { Markdown } from '@/shared/Markdown'
 import { IconKeyboard, IconLanguages, IconLoader, IconPen, IconScratch } from '@/shared/icons'
 import { PenTick } from '@/shared/motion/PenMarks'
 import { Segmented } from '@/shared/Segmented'
+import { BlankPick } from './BlankPick'
 import { MatchingPicker } from './MatchingPicker'
 import { Passage } from './Passage'
 import { PracticeSheet } from './PracticeSheet'
@@ -84,7 +85,7 @@ export function QuizQuestion({
   const key = q.answer.values
 
   // Open and fill-in answers can be handwritten; the AI reads them into text when checked.
-  // 配合題 is answered by picking labels, never by hand.
+  // 配合題 and blanks filled from a list are answered by picking labels, never by hand.
   const pick = kind.kind === 'blanks' && kind.pick === true
   const writable = kind.kind === 'text' || (kind.kind === 'blanks' && !pick)
   const typed = values.some((v) => v.trim())
@@ -123,6 +124,18 @@ export function QuizQuestion({
       kind.kind === 'blanks' && count
         ? (_label: string, k: number) => {
             const slot = offset + k
+            if (pick) {
+              return (
+                <BlankPick
+                  label={_label}
+                  labels={item.displayLabels}
+                  value={values[slot] ?? ''}
+                  answer={reveal ? toQuizLabels(item, key[slot] ?? '') : null}
+                  locked={locked}
+                  onPick={(label) => setAt(slot, label, kind.count)}
+                />
+              )
+            }
             const right = reveal && matches(key[slot] ?? '', toPaperLabels(item, values[slot] ?? ''))
             return (
               <input
@@ -387,9 +400,10 @@ export function QuizQuestion({
         </div>
       )}
 
-      {pick && kind.kind === 'blanks' && (
+      {pick && kind.kind === 'blanks' && kind.count > kind.figureBlanks && (
         <MatchingPicker
           count={kind.count}
+          start={kind.figureBlanks}
           labels={item.displayLabels}
           values={values}
           answer={reveal ? key.map((v) => toQuizLabels(item, v)) : null}

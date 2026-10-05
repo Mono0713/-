@@ -93,6 +93,20 @@ describe('answerKind', () => {
     expect(answerKind(q({ type: 'matching', stem, answer: { values: [], source: 'none' } }))).toEqual({ kind: 'blanks', count: 3, figureBlanks: 0, pick: true })
   })
 
+  it('fills blanks from a list of labels by picking, labels may repeat', () => {
+    const bank = ['A', 'B', 'C', 'D', 'E'].map((label) => ({ label, content: `word ${label}` }))
+    const fill = q({ type: 'fill_in_blank', stem: 'Th1: (1)____ (2)____ Th2: (3)____', options: bank, points: 3, answer: { values: ['C', 'C', 'A'], source: 'printed' } })
+    expect(answerKind(fill)).toEqual({ kind: 'blanks', count: 3, figureBlanks: 0, pick: true })
+    expect(grade(fill, { values: ['C', 'C', 'B'] })).toEqual({ status: 'partial', score: 2, max: 3 })
+    // blanks on a figure are picked there
+    const blank = (label: string) => ({ label, bbox: { x: 0, y: 0, width: 0.1, height: 0.1 }, ink: null, printedText: null })
+    const figure = { description: 'flow chart', bbox: { x: 0, y: 0, width: 1, height: 1 }, blanks: [blank('1'), blank('2')], pageNumber: 1, image: null }
+    expect(answerKind({ ...fill, answer: { values: ['A', 'B'], source: 'printed' }, figures: [figure] })).toEqual({ kind: 'blanks', count: 2, figureBlanks: 2, pick: true })
+    // a key that is not made of labels, or no key at all, is typed
+    expect(answerKind({ ...fill, answer: { values: ['IL-4'], source: 'printed' } })).toEqual({ kind: 'blanks', count: 1, figureBlanks: 0 })
+    expect(answerKind({ ...fill, answer: { values: [], source: 'none' } })).toEqual({ kind: 'blanks', count: 1, figureBlanks: 0 })
+  })
+
   it('marks picked matching items, also with shuffled labels', () => {
     const match = q({ type: 'matching', points: 3, answer: { values: ['C', 'A', 'B'], source: 'printed' } })
     expect(grade(match, { values: ['C', 'A', 'D'] })).toEqual({ status: 'partial', score: 2, max: 3 })

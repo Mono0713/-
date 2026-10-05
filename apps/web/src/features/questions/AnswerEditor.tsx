@@ -1,6 +1,6 @@
 'use client'
 
-import { isPickMatching, matchingItemCount, type Answer, type DraftQuestion } from '@exam/core'
+import { isPickAnswer, matchingItemCount, type Answer, type DraftQuestion } from '@exam/core'
 import type { ReactNode } from 'react'
 import { IconPlus } from '@/shared/icons'
 import { msg } from '@/shared/i18n/format'
@@ -62,8 +62,8 @@ export function AnswerEditor({ q, setAnswer }: { q: DraftQuestion; setAnswer: (p
         ))}
       </div>
     )
-  } else if (isPickMatching(q) && !blanks.length) {
-    // 配合題: one row per item, each matched to one option label.
+  } else if (isPickAnswer(q) && !blanks.length) {
+    // 配合題 or blanks filled from a list: one row per item, each one option label.
     const count = matchingItemCount(q)
     const values = Array.from({ length: count }, (_, i) => q.answer.values[i] ?? '')
     const setAt = (i: number, label: string) => setAnswer({ values: values.map((v, j) => (j === i ? label : v)) })

@@ -1,4 +1,4 @@
-import { isPickMatching, matchingItemCount, questionFigures, type DraftFigure, type DraftQuestion } from '@exam/core'
+import { isPickAnswer, matchingItemCount, questionFigures, type DraftFigure, type DraftQuestion } from '@exam/core'
 import { isEmptyInk, practiceRows } from '@exam/ink'
 import { numberValue, sameMath } from './equivalence.ts'
 import type { Grade, QuizAttempt, QuizItem, QuizResponse, QuizSettings, Marking } from './types.ts'
@@ -9,8 +9,9 @@ export type AnswerKind =
   | { kind: 'multiple' }
   | { kind: 'true_false' }
   /**
-   * One input per blank; figure blanks come first, drawn on the figure. pick: a matching
-   * question whose items are each answered by picking one option label instead of typing.
+   * One input per blank; figure blanks come first, drawn on the figure. pick: each blank or
+   * item is answered by picking one option label instead of typing (配合題, or blanks filled
+   * from a list of labels).
    */
   | { kind: 'blanks'; count: number; figureBlanks: number; pick?: boolean }
   | { kind: 'text' }
@@ -23,7 +24,9 @@ export function answerKind(q: DraftQuestion): AnswerKind {
   if (q.type === 'multiple_choice' && q.options.length) return { kind: 'multiple' }
   if (q.type === 'true_false') return { kind: 'true_false' }
   if (q.type === 'writing') return { kind: 'writing', rows: practiceRows(q.answer.values) }
-  if (isPickMatching(q) && !figureBlanks) return { kind: 'blanks', count: matchingItemCount(q), figureBlanks: 0, pick: true }
+  if (isPickAnswer(q)) {
+    return { kind: 'blanks', count: Math.max(figureBlanks || matchingItemCount(q), q.answer.values.length), figureBlanks, pick: true }
+  }
   if (q.type === 'fill_in_blank' || q.type === 'matching') {
     return { kind: 'blanks', count: Math.max(1, figureBlanks, q.answer.values.length), figureBlanks }
   }

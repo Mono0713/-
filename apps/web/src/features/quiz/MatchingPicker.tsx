@@ -3,11 +3,13 @@
 import { useT } from '@/shared/i18n/client'
 
 /**
- * 配合題: one row per item, each answered by picking one option label (as shown in this quiz).
- * After the answer is shown, the right label is green and a wrong pick red.
+ * 配合題, or blanks filled from a list of labels: one row per item, each answered by picking one
+ * option label (as shown in this quiz). Rows start at slot `start` (blanks drawn on a figure come
+ * first). After the answer is shown, the right label is green and a wrong pick red.
  */
 export function MatchingPicker({
   count,
+  start = 0,
   labels,
   values,
   answer,
@@ -15,6 +17,7 @@ export function MatchingPicker({
   onPick,
 }: {
   count: number
+  start?: number
   /** Option labels in this quiz's order and naming. */
   labels: string[]
   values: string[]
@@ -26,7 +29,7 @@ export function MatchingPicker({
   const t = useT()
   return (
     <ol className="grid gap-2 sm:grid-cols-2">
-      {Array.from({ length: count }, (_, slot) => (
+      {Array.from({ length: count - start }, (_, k) => start + k).map((slot) => (
         <li key={slot} className="flex items-center gap-2">
           <span className="num w-8 shrink-0 text-right text-xs text-muted">({slot + 1})</span>
           <span className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={t('第 {n} 項', { n: slot + 1 })}>
