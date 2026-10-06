@@ -59,7 +59,6 @@ Packages never import from apps.
 | 測驗紀錄列表 | `app/quiz/page.tsx` | `features/quiz/QuizList.tsx` |
 | 分享連結 | `app/s/[token]` | `features/sharing/*`, `packages/sharing`, `server/shared.ts` |
 | 班級、作業、交卷、老師批閱 | `app/classes/**` | `features/classes/*`, `server/classes.ts`, `packages/classes` |
-| ↳ 派作業、選考卷 | `app/classes/assign` | `classes/AssignForm.tsx`, `ExamPicker.tsx`, `actions.ts` (`createAssignments`) |
 | ↳ 成績表、分布圖、選項分析、每題得分率 | `classes/[id]/a/[aid]` | `classes/ResultsTable.tsx`, `ScoreDistribution.tsx`, `OptionAnalysis.tsx`; math `packages/classes/src/analysis.ts`, `stats.ts` |
 | ↳ 匯出成績 CSV | `app/api/classes/[id]/export` | `classes/ExportLink.tsx`, `server/gradebook.ts` |
 | ↳ 學生個人成績頁（折線圖、弱點題型） | `classes/[id]/s/[userId]` | `classes/ScoreLine.tsx`, `typeRates` in `analysis.ts` |
