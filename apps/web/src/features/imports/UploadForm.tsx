@@ -107,7 +107,7 @@ export function UploadForm({ providers, defaultProvider }: { providers: Provider
         </p>
       </div>
 
-      {error && <p className="m-shake rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad">{error}</p>}
+      {error && <p className="m-shake rounded-lg bg-bad-soft px-3 py-2 text-sm text-bad [overflow-wrap:anywhere]">{error}</p>}
 
       <Button type="submit" variant="primary" disabled={!files.length || pending} loading={pending} icon={<IconSparkles size={16} />}>
         {shrinking ? t('壓縮照片中…') : pending ? t('上傳並轉換頁面中…') : t('開始辨識')}

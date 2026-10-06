@@ -1120,5 +1120,9 @@
   "班級：": "Lớp:",
   "座號：": "Số TT:",
   "筆跡已清除": "Đã xóa nét chữ",
-  "答對了，記得寫出 {step} 這一步。": "Đúng rồi! Nhớ ghi cả bước {step}."
+  "答對了，記得寫出 {step} 這一步。": "Đúng rồi! Nhớ ghi cả bước {step}.",
+  "檔案沒有存進去：存放檔案的空間這次沒有接受。請再按一次開始辨識。": "Tệp chưa được lưu: kho lưu trữ lần này không nhận. Hãy bấm Bắt đầu nhận dạng lại.",
+  "翻譯的模型": "Mô hình dịch",
+  "這個網址沒有列出任何模型，可能不是 API 網址。API 網址通常以 /v1 結尾，可以在該服務的「接入教程」或 API 文件裡找到 Base URL，移除後用正確網址重新接上。": "Địa chỉ này không liệt kê mô hình nào, có thể không phải địa chỉ API. Địa chỉ API thường kết thúc bằng /v1; hãy tìm Base URL trong hướng dẫn kết nối hoặc tài liệu API của dịch vụ, gỡ mục này rồi kết nối lại bằng địa chỉ đúng.",
+  "找到 {n} 個模型。API 網址已改成 {url}。": "Tìm thấy {n} mô hình. Địa chỉ API đã được đổi thành {url}."
 }

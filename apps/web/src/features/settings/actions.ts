@@ -11,6 +11,7 @@ import { apiKeyOf } from '@/server/ai'
 import { checkServiceUrl } from '@/server/serviceUrl'
 import { isLocale, LOCALE_COOKIE } from '@/shared/i18n/locales'
 import { getT } from '@/shared/i18n/server'
+import { looksLikeWebPage, modelsAt } from './apiBase'
 import { NAME_MAX } from './profile'
 
 type Result = { ok: true; note?: string } | { ok: false; error: string }
@@ -59,6 +60,8 @@ const rejected = (err: unknown) => {
   const status = (err as { status?: number })?.status
   return status === 400 || status === 401 || status === 403
 }
+const noModelsHint = (t: Awaited<ReturnType<typeof getT>>) =>
+  t('這個網址沒有列出任何模型，可能不是 API 網址。API 網址通常以 /v1 結尾，可以在該服務的「接入教程」或 API 文件裡找到 Base URL，移除後用正確網址重新接上。')
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
 
 /** Checks the key against the provider, then keeps it (and the models it can use) on this computer. */
@@ -69,14 +72,17 @@ export async function saveApiKey(provider: string, key: string): Promise<Result>
   const custom = s.customProviders.find((c) => c.id === provider)
   if ((!API_PROVIDERS.includes(provider) && !custom) || !key) return { ok: false, error: t('請貼上 API 金鑰。') }
   let known: string[] | null = null
+  let baseUrl = custom?.baseUrl
   let note: string | undefined
   try {
-    known = await listModels(provider, key, custom ? await checkServiceUrl(custom.baseUrl, authEnabled(), t) : undefined)
+    if (custom) ({ known, baseUrl } = await modelsAt(await checkServiceUrl(custom.baseUrl, authEnabled(), t), key))
+    else known = await listModels(provider, key)
   } catch (err) {
     if (rejected(err)) return { ok: false, error: t('這把金鑰無效或沒有權限，所以沒有儲存。請確認複製完整。') }
     note = t('已儲存，但暫時連不上服務，無法確認金鑰。（{reason}）', { reason: message(err) })
   }
-  await save({ apiKeys: { ...s.apiKeys, [provider]: key }, ...(known ? { knownModels: { ...s.knownModels, [provider]: known } } : {}) })
+  const customProviders = custom && baseUrl !== custom.baseUrl ? s.customProviders.map((c) => (c.id === custom.id ? { ...c, baseUrl: baseUrl! } : c)) : undefined
+  await save({ apiKeys: { ...s.apiKeys, [provider]: key }, ...(known ? { knownModels: { ...s.knownModels, [provider]: known } } : {}), ...(customProviders ? { customProviders } : {}) })
   return { ok: true, note }
 }
 
@@ -94,9 +100,18 @@ export async function refreshModels(provider: string): Promise<Result> {
   const custom = (await mine()).customProviders.find((c) => c.id === provider)
   if (!key && !custom) return { ok: false, error: t('先設定 API 金鑰。') }
   try {
-    const known = await listModels(provider, key ?? '', custom ? await checkServiceUrl(custom.baseUrl, authEnabled(), t) : undefined)
+    let known: string[]
+    let baseUrl = custom?.baseUrl
+    if (custom) ({ known, baseUrl } = await modelsAt(await checkServiceUrl(custom.baseUrl, authEnabled(), t), key ?? ''))
+    else known = await listModels(provider, key ?? '')
     const s = await mine()
-    await save({ knownModels: { ...s.knownModels, [provider]: known } })
+    const moved = custom && baseUrl !== custom.baseUrl
+    await save({
+      knownModels: { ...s.knownModels, [provider]: known },
+      ...(moved ? { customProviders: s.customProviders.map((c) => (c.id === custom.id ? { ...c, baseUrl: baseUrl! } : c)) } : {}),
+    })
+    if (moved) return { ok: true, note: t('找到 {n} 個模型。API 網址已改成 {url}。', { n: known.length, url: baseUrl! }) }
+    if (!known.length && custom && looksLikeWebPage(custom.baseUrl)) return { ok: false, error: noModelsHint(t) }
     return { ok: true, note: t('找到 {n} 個模型。', { n: known.length }) }
   } catch (err) {
     return { ok: false, error: t('無法取得模型清單：{reason}', { reason: message(err) }) }
@@ -156,11 +171,12 @@ export async function addCustomProvider(input: { name: string; baseUrl: string; 
   let known: string[] = []
   let note: string | undefined
   try {
-    known = await listModels('custom', key, baseUrl)
+    ;({ known, baseUrl } = await modelsAt(baseUrl, key))
   } catch (err) {
     if (rejected(err)) return { ok: false, error: t('服務拒絕了這把金鑰，所以沒有新增。請確認金鑰與網址。') }
     note = t('已新增，但暫時連不上服務，模型請自己輸入。（{reason}）', { reason: message(err) })
   }
+  if (!note && !known.length && looksLikeWebPage(baseUrl)) note = noModelsHint(t)
   const s = await mine()
   const id = `c-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'service'}-${randomBytes(2).toString('hex')}`
   const provider: CustomProvider = { id, name, baseUrl, models: [] }

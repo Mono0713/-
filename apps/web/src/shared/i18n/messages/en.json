@@ -1120,5 +1120,9 @@
   "班級：": "Class:",
   "座號：": "No.:",
   "筆跡已清除": "Handwriting removed",
-  "答對了，記得寫出 {step} 這一步。": "Correct! Show the {step} step too."
+  "答對了，記得寫出 {step} 這一步。": "Correct! Show the {step} step too.",
+  "檔案沒有存進去：存放檔案的空間這次沒有接受。請再按一次開始辨識。": "The file wasn't saved: file storage didn't accept it this time. Press Start recognition again.",
+  "翻譯的模型": "Translation model",
+  "這個網址沒有列出任何模型，可能不是 API 網址。API 網址通常以 /v1 結尾，可以在該服務的「接入教程」或 API 文件裡找到 Base URL，移除後用正確網址重新接上。": "This address lists no models, so it may not be the API address. API addresses usually end in /v1; find the Base URL in the service's setup guide or API docs, then remove this one and connect again with it.",
+  "找到 {n} 個模型。API 網址已改成 {url}。": "Found {n} models. The API address was changed to {url}."
 }

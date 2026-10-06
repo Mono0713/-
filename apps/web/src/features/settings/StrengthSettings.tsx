@@ -6,11 +6,11 @@ import { useState, useTransition } from 'react'
 import { msg } from '@/shared/i18n/format'
 import { useT } from '@/shared/i18n/client'
 import { rich } from '@/shared/i18n/rich'
-import { Listbox } from '@/shared/Listbox'
 import { Segmented } from '@/shared/Segmented'
 import { inputBase } from '@/shared/ui'
 import { saveStrength, saveTaskModel, saveTaskStrength } from './actions'
 import { STRENGTH_HINTS, STRENGTH_LABELS } from './strengths'
+import { TaskModelPicker } from './TaskModelPicker'
 
 const STRENGTHS = STRENGTH_LABELS
 const HINTS = STRENGTH_HINTS
@@ -88,8 +88,9 @@ export function StrengthSettings({ providers, initial, usage, onSaved }: { provi
                   </option>
                 ))}
               </select>
-              <ModelOverride
-                task={task}
+              <TaskModelPicker
+                task={task.id}
+                label={t('{task}的模型', { task: t(task.label) })}
                 providers={providers}
                 value={state.taskModels[task.id] ?? null}
                 onChange={(choice) => {
@@ -107,7 +108,6 @@ export function StrengthSettings({ providers, initial, usage, onSaved }: { provi
     </div>
   )
 }
-
 
 function TaskLine({ task, r, providers, usage, custom }: { task: (typeof TASKS)[number]; r: Route | null; providers: ProviderInfo[]; usage: UsageRow[]; custom: boolean }) {
   const t = useT()
@@ -133,31 +133,5 @@ function TaskLine({ task, r, providers, usage, custom }: { task: (typeof TASKS)[
       </span>
       <span className="num text-xs text-muted">{cost === null ? t('價格未知') : t('{unit}約 {cost}', { unit: t(task.unit), cost: formatUsd(cost) })}</span>
     </li>
-  )
-}
-
-/** "Automatic" or one model of a provider with a key; reading tasks only list models that see images. */
-function ModelOverride({ task, providers, value, onChange }: { task: (typeof TASKS)[number]; providers: ProviderInfo[]; value: ModelChoice | null; onChange: (choice: ModelChoice | null) => void }) {
-  const t = useT()
-  const sees = task.id !== 'grading'
-  const encode = (c: ModelChoice) => `${c.provider}\n${c.model}`
-  const groups = providers
-    .filter((p) => p.ready)
-    .map((p) => ({ label: p.label, options: p.models.filter((m) => !sees || m.vision).map((m) => ({ value: encode({ provider: p.id, model: m.id }), label: m.label })) }))
-    .filter((g) => g.options.length)
-  const current = value ? encode(value) : AUTO
-  const known = groups.some((g) => g.options.some((o) => o.value === current))
-  return (
-    <Listbox
-      value={current}
-      label={t('{task}的模型', { task: t(task.label) })}
-      className={inputBase}
-      onChange={(v) => {
-        if (!v) return onChange(null)
-        const [provider, model] = v.split('\n') as [string, string]
-        onChange({ provider, model })
-      }}
-      groups={[{ options: [{ value: AUTO, label: t('自動（依強度）') }, ...(value && !known ? [{ value: current, label: value.model }] : [])] }, ...groups]}
-    />
   )
 }

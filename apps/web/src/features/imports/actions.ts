@@ -27,7 +27,10 @@ export async function createImport(formData: FormData): Promise<{ error: string 
     })
     id = record.id
   } catch (err) {
-    return { error: t('無法讀取檔案：{reason}', { reason: err instanceof Error ? err.message : String(err) }) }
+    console.error('[import] could not save the upload', err)
+    const reason = err instanceof Error ? err.message : String(err)
+    if (reason.startsWith('File store could not')) return { error: t('檔案沒有存進去：存放檔案的空間這次沒有接受。請再按一次開始辨識。') }
+    return { error: t('無法讀取檔案：{reason}', { reason }) }
   }
   revalidatePath('/imports')
   redirect(`/imports/${id}`)

@@ -1120,5 +1120,9 @@
   "班級：": "Clase:",
   "座號：": "N.º:",
   "筆跡已清除": "Escritura borrada",
-  "答對了，記得寫出 {step} 這一步。": "¡Bien! Escribe también el paso {step}."
+  "答對了，記得寫出 {step} 這一步。": "¡Bien! Escribe también el paso {step}.",
+  "檔案沒有存進去：存放檔案的空間這次沒有接受。請再按一次開始辨識。": "No se guardó el archivo: el almacenamiento no lo aceptó esta vez. Pulsa de nuevo Empezar a reconocer.",
+  "翻譯的模型": "Modelo de traducción",
+  "這個網址沒有列出任何模型，可能不是 API 網址。API 網址通常以 /v1 結尾，可以在該服務的「接入教程」或 API 文件裡找到 Base URL，移除後用正確網址重新接上。": "Esta dirección no muestra ningún modelo; quizá no sea la dirección de la API. Suelen terminar en /v1: busca la Base URL en la guía de conexión o la documentación de la API del servicio, quita esta y vuelve a conectar con ella.",
+  "找到 {n} 個模型。API 網址已改成 {url}。": "Se encontraron {n} modelos. La dirección de la API se cambió a {url}."
 }
