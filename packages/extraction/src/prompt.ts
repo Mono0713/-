@@ -76,6 +76,15 @@ export function systemPrompt(reviewLanguage: string = DEFAULT_REVIEW_LANGUAGE): 
 
 export const SYSTEM_PROMPT = systemPrompt()
 
+/**
+ * For services that take the schema as text. Leaving out empty fields and indentation keeps
+ * the reply, the costliest part of a page, short; the fields are filled back in on our side.
+ */
+export function schemaInstructions(schema: { [key: string]: unknown }): string {
+  return `Reply with one JSON object only, matching the JSON Schema below. Write it compactly on one line, without indentation. Leave out any field whose value would be null, false or an empty list. Write bounding box numbers with at most 3 decimals.
+${JSON.stringify(schema)}`
+}
+
 export function userPrompt(page: PageImage, fileName: string): string {
   const lines = [`File: ${fileName}, page ${page.pageNumber}.`, 'Extract every question on this page.']
   if (page.textLayer) {

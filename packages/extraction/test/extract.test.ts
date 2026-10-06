@@ -75,6 +75,18 @@ describe('extractPage', () => {
     expect(result.page?.questions).toHaveLength(1)
   })
 
+  it('fills back fields a compact reply left out because they were empty', async () => {
+    const compact = {
+      meta: { title: 'Quiz' },
+      questions: [{ number: '1', type: 'single_choice', stem: 'Pick one', options: [{ label: 'A', content: 'x' }], answer: { source: 'none' }, bbox: { x: 0.1, y: 0.2, width: 0.8, height: 0.1 }, confidence: 'high' }],
+    }
+    const result = await extractPage(fakeProvider([JSON.stringify(compact)]), image, 'quiz.pdf')
+    expect(result.error).toBeNull()
+    expect(result.page?.meta).toEqual({ title: 'Quiz', subject: null, institution: null, term: null, language: null })
+    expect(result.page?.groups).toEqual([])
+    expect(result.page?.questions[0]).toMatchObject({ section: null, groupId: null, translation: null, answer: { values: [], source: 'none' }, figures: [], issues: [], continuesOnNextPage: false, maxLength: null, markingRule: null })
+  })
+
   it('tells the provider about an off-schema reply before retrying', async () => {
     const invalidReply = vi.fn()
     const provider = { ...fakeProvider(['{"questions": "nope"}', JSON.stringify(page([]))]), invalidReply }

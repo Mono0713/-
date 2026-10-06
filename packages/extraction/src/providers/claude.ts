@@ -31,7 +31,8 @@ export class ClaudeProvider implements VisionProvider {
       max_tokens: small ? 32000 : 64000,
       ...(small ? {} : { thinking: { type: 'adaptive' as const } }),
       output_config: { ...(small ? {} : { effort: this.effort }), format: { type: 'json_schema', schema: req.jsonSchema } },
-      system: req.system,
+      // The instructions are the same for every page; cached, later pages read them at a tenth of the price.
+      system: [{ type: 'text', text: req.system, cache_control: { type: 'ephemeral' } }],
       messages: [
         {
           role: 'user',

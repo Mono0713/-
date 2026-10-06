@@ -1,4 +1,4 @@
-import { ExtractedPage, toStrictJsonSchema, type IngestedDocument, type PageImage } from '@exam/core'
+import { ExtractedPage, fillLeftOut, toStrictJsonSchema, type IngestedDocument, type PageImage } from '@exam/core'
 import { systemPrompt, userPrompt } from './prompt.ts'
 import { ProviderStopError, type VisionProvider } from './provider.ts'
 
@@ -76,7 +76,7 @@ export async function extractPage(
       })
       usage = reply.usage
       model = reply.model
-      const parsed = ExtractedPage.safeParse(JSON.parse(jsonPart(reply.text)))
+      const parsed = ExtractedPage.safeParse(fillLeftOut(JSON.parse(jsonPart(reply.text)), PAGE_JSON_SCHEMA))
       if (parsed.success) return done(parsed.data)
       lastError = `reply did not match the schema: ${parsed.error.message}`
     } catch (err) {
