@@ -66,6 +66,15 @@ describe('extractPage', () => {
     expect(result.page?.questions).toHaveLength(1)
   })
 
+  it('reads a tool call a relay handed back as text', async () => {
+    const p = page([question()])
+    const fields = Object.entries(p).map(([k, v]) => `<parameter name="${k}">${typeof v === 'string' ? v : JSON.stringify(v)}</parameter>`).join('\n')
+    const provider = fakeProvider([`<function_calls>\n<invoke name="extracted_page">\n${fields}\n</invoke>\n</function_calls>`])
+    const result = await extractPage(provider, image, 'quiz.pdf')
+    expect(result.error).toBeNull()
+    expect(result.page?.questions).toHaveLength(1)
+  })
+
   it('tells the provider about an off-schema reply before retrying', async () => {
     const invalidReply = vi.fn()
     const provider = { ...fakeProvider(['{"questions": "nope"}', JSON.stringify(page([]))]), invalidReply }
