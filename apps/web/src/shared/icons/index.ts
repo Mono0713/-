@@ -66,6 +66,7 @@ export {
   TriangleAlert as IconAlert,
   Undo2 as IconUndo,
   Upload as IconUpload,
+  Download as IconDownload,
   UserRound as IconUser,
   Users as IconClass,
   X as IconX,

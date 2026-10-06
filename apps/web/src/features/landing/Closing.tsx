@@ -35,9 +35,14 @@ export async function Closing(start: Start) {
               © {new Date().getFullYear()} {BRAND.name}
             </span>
           </span>
-          <Link href="/privacy" className="hover:text-ink">
-            {t('隱私權政策')}
-          </Link>
+          <nav className="flex gap-4">
+            <Link href="/terms" className="hover:text-ink">
+              {t('服務條款')}
+            </Link>
+            <Link href="/privacy" className="hover:text-ink">
+              {t('隱私權政策')}
+            </Link>
+          </nav>
         </div>
       </footer>
     </>

@@ -4,6 +4,8 @@ import { monthStart, spend } from '@exam/usage'
 import { SettingsForm } from '@/features/settings/SettingsForm'
 import { ProfileCard } from '@/features/settings/ProfileCard'
 import { StorageCard } from '@/features/settings/StorageCard'
+import { AccountCard } from '@/features/account/AccountCard'
+import { accountControls } from '@/server/account'
 import { authEnabled, currentOwner, services } from '@/server/context'
 import { availableProviders, keySource, providersOf, teacherChoice } from '@/server/ai'
 import { storageOf } from '@/server/storage'
@@ -67,6 +69,7 @@ export default async function SettingsPage() {
         hosted={authEnabled()}
       />
       <StorageCard used={storage.used} quota={storage.quota} />
+      {user && accountControls() && <AccountCard />}
     </div>
   )
 }

@@ -3,9 +3,9 @@ import { getT } from '@/shared/i18n/server'
 
 export async function generateMetadata() {
   const t = await getT()
-  return { title: t('隱私權政策') }
+  return { title: t('服務條款') }
 }
 
-export default function PrivacyPage() {
-  return <LegalPage kind="privacy" />
+export default function TermsPage() {
+  return <LegalPage kind="terms" />
 }

@@ -66,7 +66,7 @@
 
 ### 發布 Google 登入
 
-Google Cloud 的登入畫面在「測試」狀態時，只有「測試使用者」名單裡的人能登入（最多 100 人）。網站上線後：Google Auth Platform → 品牌，首頁填網站網址、隱私權政策填 `https://<網址>/privacy`（網站內建，不用登入就能看；`SUPPORT_EMAIL` 會顯示成刪除帳號的聯絡信箱），再到「目標對象」按發布應用程式。只要求名稱和信箱，不需要 Google 審核。
+Google Cloud 的登入畫面在「測試」狀態時，只有「測試使用者」名單裡的人能登入（最多 100 人）。網站上線後：Google Auth Platform → 品牌，首頁填網站網址、隱私權政策填 `https://<網址>/privacy`、服務條款填 `https://<網址>/terms`（網站內建，不用登入就能看；`SUPPORT_EMAIL` 會顯示成聯絡信箱），再到「目標對象」按發布應用程式。只要求名稱和信箱，不需要 Google 審核。
 
 ### 上線後檢查
 
@@ -78,3 +78,9 @@ Google Cloud 的登入畫面在「測試」狀態時，只有「測試使用者�
 ## 本機資料
 
 本機版的 `data/` 不會自動搬到雲端。打開登入前在本機匯入的考卷，登入後看不到（它們屬於本機使用者 `local`）。
+
+## 帳號刪除與上線前檢查
+
+使用者可以在設定頁「帳號與資料」下載自己的全部資料、刪除帳號。要連 Google 登入帳號本身一起刪掉，Render 要多設 `SUPABASE_SERVICE_ROLE_KEY`（Supabase → Project Settings → API keys → service_role，只放在伺服器，絕不放進 `NEXT_PUBLIC_` 開頭的變數）；沒設時資料照樣刪除，只是登入帳號留著，再登入會是空帳號。
+
+正式開放前要做的事列在 [LAUNCH.md](LAUNCH.md)。

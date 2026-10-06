@@ -3,6 +3,7 @@ import { signInWithGoogle } from '@/features/auth/actions'
 import { authEnabled, currentUser } from '@/server/auth'
 import { BRAND, brandTagline } from '@/shared/brand/brand'
 import { LogoMark } from '@/shared/brand/LogoMark'
+import { rich } from '@/shared/i18n/rich'
 import { getLocale, getT } from '@/shared/i18n/server'
 
 export const dynamic = 'force-dynamic'
@@ -33,11 +34,21 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </button>
         </form>
         {error && <p className="mt-4 rounded-lg bg-bad-soft px-3 py-2 text-left text-sm text-bad">{t('登入失敗：{error}', { error })}</p>}
-        <p className="mt-6 text-xs leading-relaxed text-muted">
-          {t('登入後，你的題庫、測驗和 API 金鑰只屬於你的帳號。')}
-          <a href="/privacy" className="ml-1 text-accent hover:underline">
-            {t('隱私權政策')}
-          </a>
+        <p className="mt-6 text-xs leading-relaxed text-muted">{t('登入後，你的題庫、測驗和 API 金鑰只屬於你的帳號。')}</p>
+        <p className="mt-2 text-xs leading-relaxed text-muted">
+          {rich(t('登入即表示你同意<terms>服務條款</terms>和<privacy>隱私權政策</privacy>。'), {
+            // whole words: a link never breaks across lines
+            terms: (c) => (
+              <a href="/terms" className="whitespace-nowrap text-accent hover:underline">
+                {c}
+              </a>
+            ),
+            privacy: (c) => (
+              <a href="/privacy" className="whitespace-nowrap text-accent hover:underline">
+                {c}
+              </a>
+            ),
+          })}
         </p>
       </div>
     </div>

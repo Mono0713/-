@@ -18,6 +18,7 @@ packages/<p>/        Plain TypeScript libraries with no UI; each has src/index.t
 apps/cli/            `pnpm extract`: batch recognition from the command line.
 supabase/migrations/ Postgres schema (hosted). SQLite creates its own tables in each package's store code.
 docs/HOSTING.md      Supabase, Google login, R2, Render setup.
+docs/LAUNCH.md       What must be done before opening the site to the public.
 ```
 
 Dependency direction: `app → features → shared`, `features → server → packages`. A feature never imports another
@@ -63,6 +64,9 @@ Packages never import from apps.
 | 懸浮球 (FAB) | | `shared/chrome/Fab.tsx` |
 | 宣傳頁、首頁介紹（未登入看到的 `/`，任何人可開 `/welcome`） | `app/page.tsx`, `app/welcome/page.tsx` | `features/landing/Landing.tsx` → `Hero`, `HeroSheet` (示範考卷動畫), `Loop` (四步驟), `Features`, `Closing` (結尾與頁尾), `StartButton` (Google 登入／前往題庫), `LanguagePick`, `RevealObserver`; public paths in `proxy.ts` |
 | 登入 | `app/login`, `app/auth/callback` | `features/auth/actions.ts`, `server/auth.ts` |
+| 隱私權政策、服務條款 | `app/privacy`, `app/terms` | `features/legal/LegalPage.tsx`; texts `privacy.zh-Hant.ts`/`.en.ts`, `terms.*` (not t(): zh-Hant prevails, others read en; bump `LEGAL_UPDATED` in `docs.ts`) |
+| 下載我的資料、刪除帳號 | `app/api/account/export` | `features/account/` (`AccountCard`, `DeleteAccount`, `actions.ts`), `server/account.ts`, `packages/db/src/account.ts` (every table holding a person's rows: a new owner table goes there) |
+| 安全標頭 (CSP、HSTS…) | | `apps/web/next.config.ts` |
 | 刪除＋5 秒復原 | | `shared/removal.tsx`, `shared/Toast.tsx` |
 | 公式輸入 | | `shared/math/` (`MathTextInput`, `FormulaToolbar`, `mathlive.ts`) |
 | 手寫板、稿紙 | | `shared/ink/InkPad.tsx`, `packages/ink` (`paper.ts`) |
@@ -101,7 +105,7 @@ Packages never import from apps.
 | `ink` | Handwriting data and practice papers |
 | `db` | Postgres connection and `pnpm db:migrate` |
 
-A new column or table needs both `supabase/migrations/<timestamp>_<name>.sql` and the package's SQLite store (`grep -l "CREATE TABLE" packages/*/src`).
+A new column or table needs both `supabase/migrations/<timestamp>_<name>.sql` and the package's SQLite store (`grep -l "CREATE TABLE" packages/*/src`). A table holding someone's data also goes in `packages/db/src/account.ts` (its test fails otherwise).
 
 ## Rules every change follows
 
