@@ -3,12 +3,13 @@
 import katex from 'katex'
 import 'katex/contrib/mhchem'
 import type { MathfieldElement } from 'mathlive'
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useT } from '@/shared/i18n/client'
 import { IconCode, IconFormula } from '@/shared/icons'
 import { splitMath, withMathDelimiters } from './delimiters'
 import { FormulaToolbar } from './FormulaToolbar'
-import { loadMathLive } from './mathlive'
+import { loadMathLive, plain } from './mathlive'
+import { configureKeyboard, keepAboveKeyboard } from './mathKeyboard'
 
 /**
  * Text with formulas, edited as it looks. Formulas show rendered; clicking one turns it into a
@@ -41,12 +42,15 @@ export function MathTextInput({
   const t = useT()
   const chipTitle = t('點一下編輯公式')
   const root = useRef<HTMLDivElement>(null)
+  const box = useRef<HTMLDivElement>(null)
   // The text the editor last produced; the DOM is rebuilt only when the value changes from outside.
   const shown = useRef<string | null>(null)
   const range = useRef<Range | null>(null)
   // The formula being edited, also for the editor's own event listeners.
   const editingRef = useRef<{ chip: HTMLElement; field: MathfieldElement } | null>(null)
-  const [editing, setEditing] = useState<{ chip: HTMLElement; field: MathfieldElement } | null>(null)
+  const releaseKeyboard = useRef<(() => void) | null>(null)
+  useEffect(() => () => releaseKeyboard.current?.(), [])
+  const [editing, setEditing] = useState<{ chip: HTMLElement; field: MathfieldElement; id: number } | null>(null)
   const [source, setSource] = useState(false)
   const latest = useRef({ value, onChange })
   latest.current = { value, onChange }
@@ -70,8 +74,10 @@ export function MathTextInput({
     if (!current) return
     editingRef.current = null
     setEditing(null)
+    releaseKeyboard.current?.()
+    releaseKeyboard.current = null
     const { chip, field } = current
-    const latex = field.value.trim()
+    const latex = plain(field).trim()
     delete chip.dataset.editing
     const el = root.current
     if (!latex) chip.remove()
@@ -94,13 +100,14 @@ export function MathTextInput({
     close()
     const Element = await loadMathLive()
     if (!chip.isConnected) return
+    configureKeyboard(t)
     const field = new Element()
     field.value = chip.dataset.latex ?? ''
     field.smartFence = true
     field.mathVirtualKeyboardPolicy = 'auto'
     field.className = 'inline-formula'
     field.addEventListener('input', () => {
-      chip.dataset.latex = field.value
+      chip.dataset.latex = plain(field)
       emit()
     })
     // Enter finishes (once the key is over, or the text box would get the Enter as a new line);
@@ -118,7 +125,8 @@ export function MathTextInput({
     chip.dataset.editing = '1'
     chip.replaceChildren(field)
     editingRef.current = { chip, field }
-    setEditing({ chip, field })
+    setEditing({ chip, field, id: ++opened })
+    if (box.current) releaseKeyboard.current = keepAboveKeyboard(box.current)
     requestAnimationFrame(() => field.focus())
   }
 
@@ -162,7 +170,7 @@ export function MathTextInput({
           shown.current = null
           setSource(!source)
         }}
-        className={`m-press grid h-6 w-6 place-items-center rounded-md ${source ? 'bg-ink/[0.06] text-ink' : 'text-muted hover:bg-ink/[0.05] hover:text-ink'}`}
+        className={`m-press grid h-6 w-6 place-items-center rounded-md ${source ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-ink/[0.05] hover:text-ink'}`}
         title={source ? t('回到一般編輯') : t('直接編輯文字與 LaTeX')}
         aria-label={source ? t('回到一般編輯') : t('原始碼')}
         aria-pressed={source}
@@ -174,7 +182,8 @@ export function MathTextInput({
 
   return (
     <div
-      className={`group/field overflow-hidden rounded-xl border bg-surface text-sm transition-[border-color,box-shadow] ${
+      ref={box}
+      className={`group/field min-w-0 overflow-hidden rounded-xl border bg-surface text-sm transition-[border-color,box-shadow] ${
         editing ? 'border-accent ring-[3px] ring-accent/15' : 'border-line focus-within:border-accent focus-within:ring-[3px] focus-within:ring-accent/15'
       } ${className}`}
     >
@@ -182,7 +191,7 @@ export function MathTextInput({
         <div className="flex h-8 items-center gap-1 pl-3 pr-1.5 pt-1">
           {label && <span className="text-[11px] font-medium tracking-wide text-muted">{label}</span>}
           <div className="ml-auto flex items-center gap-0.5">
-            <div className="flex items-center gap-0.5 transition-opacity sm:opacity-0 sm:group-hover/field:opacity-100 sm:group-focus-within/field:opacity-100">{tools}</div>
+            <div className={`flex items-center gap-0.5 transition-opacity ${source ? '' : 'sm:opacity-0 sm:group-hover/field:opacity-100 sm:group-focus-within/field:opacity-100'}`}>{tools}</div>
             {actions}
           </div>
         </div>
@@ -248,19 +257,19 @@ export function MathTextInput({
                 <span className={`pointer-events-none absolute text-muted ${prefix ? 'left-2' : 'left-3'} ${header ? 'top-0.5' : 'top-2'}`}>{placeholder}</span>
               )}
             </div>
-            {!header && (
-              <div className="flex shrink-0 items-center gap-0.5 self-center pr-1">
-                {/* One-line boxes keep their width for text: the tools show while the box is in use. */}
-                <div className="hidden items-center gap-0.5 group-focus-within/field:flex sm:group-hover/field:flex">{tools}</div>
-                {actions}
-              </div>
-            )}
           </>
+        )}
+        {!header && (
+          <div className="flex shrink-0 items-center gap-0.5 self-center pr-1">
+            {/* One-line boxes keep their width for text: the tools show while the box is in use (always in source view, so the way back stays in sight). */}
+            <div className={`items-center gap-0.5 ${source ? 'flex' : 'hidden group-focus-within/field:flex sm:group-hover/field:flex'}`}>{tools}</div>
+            {actions}
+          </div>
         )}
       </div>
       {editing && (
         <FormulaToolbar
-          key={editing.chip.dataset.latex === '' ? 'new' : 'edit'}
+          key={editing.id}
           field={editing.field}
           onDone={() => close('after')}
           onRemove={() => {
@@ -279,6 +288,9 @@ export function MathTextInput({
 }
 
 /** `chipTitle` is the tooltip on each formula (translated by the caller). */
+// Each opened formula gets fresh tools.
+let opened = 0
+
 function render(el: HTMLElement, text: string, chipTitle: string) {
   el.replaceChildren()
   for (const seg of splitMath(text)) {

@@ -44,7 +44,6 @@
   "AI 批改 / 老師改過": "KI-bewertet / von Lehrkraft bewertet",
   "學生": "Schüler:in",
   "狀態": "Status",
-  "分數": "Punkte",
   "次數": "Versuche",
   "交卷時間": "Abgegeben am",
   "未交": "Nicht abgegeben",
@@ -753,9 +752,7 @@
   "插入公式符號": "Formelsymbol einfügen",
   "LaTeX 原始碼": "LaTeX-Quelltext",
   "刪除公式": "Formel löschen",
-  "公式完成": "Formel fertig",
   "公式完成（Enter）": "Formel fertig (Enter)",
-  "直接打字：/ 是分數、^ 是次方、sqrt 是根號，Enter 完成；平板會出現數學鍵盤。": "Einfach tippen: / für Brüche, ^ für Potenzen, sqrt für Wurzeln, Enter zum Beenden. Auf Tablets erscheint eine Mathe-Tastatur.",
   "點一下編輯公式": "Tippen, um die Formel zu bearbeiten",
   "插入公式": "Formel einfügen",
   "公式": "Formel",
@@ -1141,5 +1138,12 @@
   "讓 AI 作答": "KI lösen lassen",
   "這題已經有答案了。": "Diese Frage hat schon eine Antwort.",
   "還沒有 API 金鑰：先到設定加上任一家的金鑰。": "Noch kein API-Schlüssel: Füge zuerst in den Einstellungen einen beliebigen hinzu.",
-  "AI 這題沒有答出來，可以再試一次或自己填答案。": "Die KI konnte diese Frage nicht lösen. Versuche es erneut oder trage die Antwort selbst ein."
+  "AI 這題沒有答出來，可以再試一次或自己填答案。": "Die KI konnte diese Frage nicht lösen. Versuche es erneut oder trage die Antwort selbst ein.",
+  "也可以直接打：/ 分數、^ 次方、_ 下標、sqrt 根號；Enter 完成": "Oder direkt tippen: / Bruch, ^ Potenz, _ Index, sqrt Wurzel; Enter zum Abschließen",
+  "常用": "Häufig",
+  "代數": "Algebra",
+  "幾何": "Geometrie",
+  "微積分": "Analysis",
+  "希臘字母": "Griechisch",
+  "化學": "Chemie"
 }

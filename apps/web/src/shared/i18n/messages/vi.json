@@ -44,7 +44,6 @@
   "AI 批改 / 老師改過": "AI chấm / Giáo viên đã chấm",
   "學生": "Học sinh",
   "狀態": "Trạng thái",
-  "分數": "Điểm số",
   "次數": "Số lần",
   "交卷時間": "Thời gian nộp",
   "未交": "Chưa nộp",
@@ -753,9 +752,7 @@
   "插入公式符號": "Chèn ký hiệu công thức",
   "LaTeX 原始碼": "Mã nguồn LaTeX",
   "刪除公式": "Xóa công thức",
-  "公式完成": "Xong công thức",
   "公式完成（Enter）": "Xong công thức (Enter)",
-  "直接打字：/ 是分數、^ 是次方、sqrt 是根號，Enter 完成；平板會出現數學鍵盤。": "Cứ gõ trực tiếp: / là phân số, ^ là lũy thừa, sqrt là căn bậc hai, nhấn Enter để xong; máy tính bảng sẽ hiện bàn phím toán.",
   "點一下編輯公式": "Nhấn để sửa công thức",
   "插入公式": "Chèn công thức",
   "公式": "Công thức",
@@ -1141,5 +1138,12 @@
   "讓 AI 作答": "Để AI giải",
   "這題已經有答案了。": "Câu này đã có đáp án.",
   "還沒有 API 金鑰：先到設定加上任一家的金鑰。": "Chưa có khóa API: hãy thêm khóa của bất kỳ nhà cung cấp nào trong Cài đặt.",
-  "AI 這題沒有答出來，可以再試一次或自己填答案。": "AI không giải được câu này. Hãy thử lại hoặc tự điền đáp án."
+  "AI 這題沒有答出來，可以再試一次或自己填答案。": "AI không giải được câu này. Hãy thử lại hoặc tự điền đáp án.",
+  "也可以直接打：/ 分數、^ 次方、_ 下標、sqrt 根號；Enter 完成": "Hoặc gõ trực tiếp: / phân số, ^ lũy thừa, _ chỉ số dưới, sqrt căn; Enter để xong",
+  "常用": "Thường dùng",
+  "代數": "Đại số",
+  "幾何": "Hình học",
+  "微積分": "Giải tích",
+  "希臘字母": "Chữ Hy Lạp",
+  "化學": "Hóa học"
 }

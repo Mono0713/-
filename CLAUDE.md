@@ -81,7 +81,7 @@ Packages never import from apps.
 | 安全標頭 (CSP、HSTS…) | | `apps/web/next.config.ts` |
 | 找不到頁面 (404) | `app/not-found.tsx` | uses `shared/ui` `EmptyState` |
 | 刪除＋5 秒復原 | | `shared/removal.tsx`, `shared/Toast.tsx` |
-| 公式輸入 | | `shared/math/` (`MathTextInput`, `FormulaToolbar`, `mathlive.ts`) |
+| 公式輸入 | | `shared/math/` (`MathTextInput` 文字框裡的公式, `FormulaToolbar` 電腦版公式工具列, `formulaKeys.ts` 各分類按鍵（常用／代數／幾何／微積分／希臘字母／化學）, `mathKeyboard.ts` 手機平板的螢幕數學鍵盤, `mathlive.ts`; 鍵盤配色在 `app/globals.css`) |
 | 手寫板、稿紙 | | `shared/ink/InkPad.tsx`, `packages/ink` (`paper.ts`) |
 | 動畫 | | `shared/motion/` (`motion.css` holds every keyframe and `m-*` class) |
 | 深色/淺色 | | `shared/theme/`, color tokens in `app/globals.css` |

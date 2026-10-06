@@ -44,7 +44,6 @@
   "AI 批改 / 老師改過": "Dinilai AI / Dinilai guru",
   "學生": "Siswa",
   "狀態": "Status",
-  "分數": "Skor",
   "次數": "Percobaan",
   "交卷時間": "Waktu pengumpulan",
   "未交": "Belum dikumpulkan",
@@ -753,9 +752,7 @@
   "插入公式符號": "Sisipkan simbol rumus",
   "LaTeX 原始碼": "Kode sumber LaTeX",
   "刪除公式": "Hapus rumus",
-  "公式完成": "Rumus selesai",
   "公式完成（Enter）": "Rumus selesai (Enter)",
-  "直接打字：/ 是分數、^ 是次方、sqrt 是根號，Enter 完成；平板會出現數學鍵盤。": "Langsung ketik: / untuk pecahan, ^ untuk pangkat, sqrt untuk akar, Enter untuk selesai. Tablet menampilkan keyboard matematika.",
   "點一下編輯公式": "Ketuk untuk mengedit rumus",
   "插入公式": "Sisipkan rumus",
   "公式": "Rumus",
@@ -1141,5 +1138,12 @@
   "讓 AI 作答": "Biarkan AI menjawab",
   "這題已經有答案了。": "Soal ini sudah punya jawaban.",
   "還沒有 API 金鑰：先到設定加上任一家的金鑰。": "Belum ada kunci API: tambahkan dulu kunci dari penyedia mana pun di Pengaturan.",
-  "AI 這題沒有答出來，可以再試一次或自己填答案。": "AI tidak bisa menjawab soal ini. Coba lagi atau isi jawabannya sendiri."
+  "AI 這題沒有答出來，可以再試一次或自己填答案。": "AI tidak bisa menjawab soal ini. Coba lagi atau isi jawabannya sendiri.",
+  "也可以直接打：/ 分數、^ 次方、_ 下標、sqrt 根號；Enter 完成": "Atau ketik langsung: / pecahan, ^ pangkat, _ subskrip, sqrt akar; Enter untuk selesai",
+  "常用": "Umum",
+  "代數": "Aljabar",
+  "幾何": "Geometri",
+  "微積分": "Kalkulus",
+  "希臘字母": "Yunani",
+  "化學": "Kimia"
 }

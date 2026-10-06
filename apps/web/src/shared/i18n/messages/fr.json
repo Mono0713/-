@@ -44,7 +44,6 @@
   "AI 批改 / 老師改過": "Corrigé par l'IA / par l'enseignant",
   "學生": "Élève",
   "狀態": "Statut",
-  "分數": "Fraction",
   "次數": "Tentatives",
   "交卷時間": "Remis le",
   "未交": "Non remis",
@@ -753,9 +752,7 @@
   "插入公式符號": "Insérer un symbole de formule",
   "LaTeX 原始碼": "Code source LaTeX",
   "刪除公式": "Supprimer la formule",
-  "公式完成": "Terminer la formule",
   "公式完成（Enter）": "Terminer la formule (Entrée)",
-  "直接打字：/ 是分數、^ 是次方、sqrt 是根號，Enter 完成；平板會出現數學鍵盤。": "Tape directement : / pour les fractions, ^ pour les puissances, sqrt pour les racines carrées, Entrée pour terminer. Les tablettes affichent un clavier mathématique.",
   "點一下編輯公式": "Appuie pour modifier la formule",
   "插入公式": "Insérer une formule",
   "公式": "Formule",
@@ -1141,5 +1138,12 @@
   "讓 AI 作答": "Faire répondre l’IA",
   "這題已經有答案了。": "Cette question a déjà une réponse.",
   "還沒有 API 金鑰：先到設定加上任一家的金鑰。": "Pas encore de clé API : ajoutez-en une, de n’importe quel fournisseur, dans les réglages.",
-  "AI 這題沒有答出來，可以再試一次或自己填答案。": "L’IA n’a pas trouvé celle-ci. Réessayez ou saisissez la réponse vous-même."
+  "AI 這題沒有答出來，可以再試一次或自己填答案。": "L’IA n’a pas trouvé celle-ci. Réessayez ou saisissez la réponse vous-même.",
+  "也可以直接打：/ 分數、^ 次方、_ 下標、sqrt 根號；Enter 完成": "Ou tapez : / fraction, ^ puissance, _ indice, sqrt racine ; Entrée pour terminer",
+  "常用": "Courants",
+  "代數": "Algèbre",
+  "幾何": "Géométrie",
+  "微積分": "Analyse",
+  "希臘字母": "Grec",
+  "化學": "Chimie"
 }

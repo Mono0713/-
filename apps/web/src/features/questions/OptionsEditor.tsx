@@ -33,7 +33,7 @@ export function OptionsEditor({ q, onChange }: { q: DraftQuestion; onChange: (q:
           {t('新增')}
         </button>
       </SectionHead>
-      <div className="grid gap-1.5">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-1.5">
         {q.options.map((o, i) => (
           <div key={i}>
             <MathTextInput

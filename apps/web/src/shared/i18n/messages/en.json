@@ -44,7 +44,6 @@
   "AI 批改 / 老師改過": "AI graded / Teacher graded",
   "學生": "Student",
   "狀態": "Status",
-  "分數": "Fraction",
   "次數": "Attempts",
   "交卷時間": "Submitted at",
   "未交": "Not submitted",
@@ -753,9 +752,7 @@
   "插入公式符號": "Insert formula symbol",
   "LaTeX 原始碼": "LaTeX source",
   "刪除公式": "Delete formula",
-  "公式完成": "Done with formula",
   "公式完成（Enter）": "Done with formula (Enter)",
-  "直接打字：/ 是分數、^ 是次方、sqrt 是根號，Enter 完成；平板會出現數學鍵盤。": "Just type: / for fractions, ^ for powers, sqrt for square roots, Enter to finish. Tablets show a math keyboard.",
   "點一下編輯公式": "Tap to edit formula",
   "插入公式": "Insert formula",
   "公式": "Formula",
@@ -1141,5 +1138,12 @@
   "讓 AI 作答": "Let AI answer",
   "這題已經有答案了。": "This question already has an answer.",
   "還沒有 API 金鑰：先到設定加上任一家的金鑰。": "No API key yet: add one from any provider in Settings first.",
-  "AI 這題沒有答出來，可以再試一次或自己填答案。": "AI couldn't answer this one. Try again or fill in the answer yourself."
+  "AI 這題沒有答出來，可以再試一次或自己填答案。": "AI couldn't answer this one. Try again or fill in the answer yourself.",
+  "也可以直接打：/ 分數、^ 次方、_ 下標、sqrt 根號；Enter 完成": "Or just type: / fraction, ^ power, _ subscript, sqrt root; Enter to finish",
+  "常用": "Common",
+  "代數": "Algebra",
+  "幾何": "Geometry",
+  "微積分": "Calculus",
+  "希臘字母": "Greek",
+  "化學": "Chemistry"
 }
