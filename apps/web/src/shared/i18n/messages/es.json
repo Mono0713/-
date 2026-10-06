@@ -1126,5 +1126,9 @@
   "這個網址沒有列出任何模型，可能不是 API 網址。API 網址通常以 /v1 結尾，可以在該服務的「接入教程」或 API 文件裡找到 Base URL，移除後用正確網址重新接上。": "Esta dirección no muestra ningún modelo; quizá no sea la dirección de la API. Suelen terminar en /v1: busca la Base URL en la guía de conexión o la documentación de la API del servicio, quita esta y vuelve a conectar con ella.",
   "找到 {n} 個模型。API 網址已改成 {url}。": "Se encontraron {n} modelos. La dirección de la API se cambió a {url}.",
   "API 網址可能填錯了": "Puede que la dirección de la API sea incorrecta",
-  "這個服務回的不是 AI 的回答，通常是 API 網址填成了網站的頁面。到設定按這個服務的「更新清單」，會自動改成正確的 /v1 網址；還是不行就移除後用正確網址重新接上。": "Este servicio no respondió como una IA; normalmente la dirección de la API es una página de su web. En ajustes, pulsa Actualizar lista en este servicio y la dirección se cambia a la de /v1; si no funciona, quítalo y vuelve a conectar con la dirección correcta."
+  "這個服務回的不是 AI 的回答，通常是 API 網址填成了網站的頁面。到設定按這個服務的「更新清單」，會自動改成正確的 /v1 網址；還是不行就移除後用正確網址重新接上。": "Este servicio no respondió como una IA; normalmente la dirección de la API es una página de su web. En ajustes, pulsa Actualizar lista en este servicio y la dirección se cambia a la de /v1; si no funciona, quítalo y vuelve a conectar con la dirección correcta.",
+  "AI 回的格式不對": "La IA respondió en un formato incorrecto",
+  "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "El modelo leyó la página, pero su respuesta no está en un formato que la app entienda. Pulsa Volver a reconocer; si sigue fallando, elige otro modelo.",
+  "AI 的回答太長被截斷了": "La respuesta de la IA era demasiado larga y se cortó",
+  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Esta página tiene muchas preguntas y el modelo llegó a su límite de longitud a mitad. Pulsa Volver a reconocer; si sigue fallando, elige un modelo que escriba respuestas más largas."
 }

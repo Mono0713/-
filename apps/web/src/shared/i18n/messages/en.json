@@ -1126,5 +1126,9 @@
   "這個網址沒有列出任何模型，可能不是 API 網址。API 網址通常以 /v1 結尾，可以在該服務的「接入教程」或 API 文件裡找到 Base URL，移除後用正確網址重新接上。": "This address lists no models, so it may not be the API address. API addresses usually end in /v1; find the Base URL in the service's setup guide or API docs, then remove this one and connect again with it.",
   "找到 {n} 個模型。API 網址已改成 {url}。": "Found {n} models. The API address was changed to {url}.",
   "API 網址可能填錯了": "The API address may be wrong",
-  "這個服務回的不是 AI 的回答，通常是 API 網址填成了網站的頁面。到設定按這個服務的「更新清單」，會自動改成正確的 /v1 網址；還是不行就移除後用正確網址重新接上。": "This service didn't answer like an AI; usually the API address is a page of its website. In settings, press Refresh list for this service and the address is changed to its /v1 one; if that doesn't help, remove it and connect again with the right address."
+  "這個服務回的不是 AI 的回答，通常是 API 網址填成了網站的頁面。到設定按這個服務的「更新清單」，會自動改成正確的 /v1 網址；還是不行就移除後用正確網址重新接上。": "This service didn't answer like an AI; usually the API address is a page of its website. In settings, press Refresh list for this service and the address is changed to its /v1 one; if that doesn't help, remove it and connect again with the right address.",
+  "AI 回的格式不對": "The AI answered in the wrong format",
+  "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "The model read the page, but its answer wasn't in a format the app understands. Press Re-run to try again; if it still fails, pick another model.",
+  "AI 的回答太長被截斷了": "The AI's answer was too long and got cut off",
+  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "This page has many questions and the model hit its length limit halfway. Press Re-run to try again; if it still fails, pick a model that writes longer answers."
 }

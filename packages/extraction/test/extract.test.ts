@@ -60,6 +60,19 @@ describe('extractPage', () => {
     expect(result.attempts).toBe(2)
   })
 
+  it('reads JSON that has a sentence around it', async () => {
+    const provider = fakeProvider([`Here is the page:\n${JSON.stringify(page([question()]))}\nDone.`])
+    const result = await extractPage(provider, image, 'quiz.pdf')
+    expect(result.page?.questions).toHaveLength(1)
+  })
+
+  it('tells the provider about an off-schema reply before retrying', async () => {
+    const invalidReply = vi.fn()
+    const provider = { ...fakeProvider(['{"questions": "nope"}', JSON.stringify(page([]))]), invalidReply }
+    await extractPage(provider, image, 'quiz.pdf')
+    expect(invalidReply).toHaveBeenCalledTimes(1)
+  })
+
   it('reports a failure after running out of retries', async () => {
     const provider = fakeProvider(['not json', 'still not json'])
     const result = await extractPage(provider, image, 'quiz.pdf', { retries: 1 })

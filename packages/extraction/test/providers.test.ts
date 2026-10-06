@@ -144,6 +144,27 @@ describe('OpenAICompatibleProvider', () => {
     expect((create.mock.calls[2]![0] as Record<string, any>).response_format).toEqual({ type: 'json_object' })
   })
 
+  it('asks for room for a full page and puts the schema in the prompt after an off-schema reply', async () => {
+    const create = vi.fn(async (_params: Record<string, any>) => reply('{"ok":true}'))
+    const c = { chat: { completions: { create } } } as unknown as OpenAI
+    const provider = new OpenAICompatibleProvider({ id: 'c-1', baseUrl: 'http://x', model: 'm', client: c })
+    await provider.complete(request)
+    expect(firstArg<Record<string, any>>(create).max_tokens).toBe(32_000)
+    provider.invalidReply()
+    await provider.complete(request)
+    expect(create.mock.calls[1]![0].messages[1].content[1].text).toContain('JSON Schema')
+  })
+
+  it('asks for fewer tokens when the model can not write that many', async () => {
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('max_tokens: 32000 > 8192, which is the maximum allowed'), { status: 400 }))
+      .mockResolvedValue(reply('{"ok":true}'))
+    const c = { chat: { completions: { create } } } as unknown as OpenAI
+    await new OpenAICompatibleProvider({ id: 'c-1', baseUrl: 'http://x', model: 'm', client: c }).complete(request)
+    expect((create.mock.calls[1]![0] as Record<string, any>).max_tokens).toBe(8_192)
+  })
+
   it('throws a stop error when the reply is cut off', async () => {
     const create = vi.fn(async () => reply('{"ok"', 'length'))
     const c = { chat: { completions: { create } } } as unknown as OpenAI

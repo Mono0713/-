@@ -45,7 +45,7 @@ async function Recent() {
   const owner = authEnabled() ? (await currentUser())?.id : (await localPerson()).id
   if (!owner) return <div className="flex-1" />
   const [all, exams] = await Promise.all([bank.listImports(owner), bank.listExams({ ownerId: owner })])
-  const imports = all.slice(0, 6)
+  const imports = all.slice(0, 12)
   const questions = exams.reduce((n, e) => n + e.questionCount, 0)
   const t = await getT()
   const count = (c: ReactNode) => <span className="num mr-1 text-lg text-white">{c}</span>

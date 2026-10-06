@@ -1126,5 +1126,9 @@
   "這個網址沒有列出任何模型，可能不是 API 網址。API 網址通常以 /v1 結尾，可以在該服務的「接入教程」或 API 文件裡找到 Base URL，移除後用正確網址重新接上。": "Alamat ini tidak menampilkan model apa pun, mungkin bukan alamat API. Alamat API biasanya berakhiran /v1; cari Base URL di panduan koneksi atau dokumentasi API layanan, lalu hapus yang ini dan sambungkan lagi dengan alamat yang benar.",
   "找到 {n} 個模型。API 網址已改成 {url}。": "Ditemukan {n} model. Alamat API diubah menjadi {url}.",
   "API 網址可能填錯了": "Alamat API mungkin salah",
-  "這個服務回的不是 AI 的回答，通常是 API 網址填成了網站的頁面。到設定按這個服務的「更新清單」，會自動改成正確的 /v1 網址；還是不行就移除後用正確網址重新接上。": "Layanan ini tidak menjawab seperti AI; biasanya alamat API berisi halaman situsnya. Di pengaturan, tekan Perbarui daftar untuk layanan ini dan alamatnya diganti ke /v1; kalau tetap tidak bisa, hapus lalu sambungkan lagi dengan alamat yang benar."
+  "這個服務回的不是 AI 的回答，通常是 API 網址填成了網站的頁面。到設定按這個服務的「更新清單」，會自動改成正確的 /v1 網址；還是不行就移除後用正確網址重新接上。": "Layanan ini tidak menjawab seperti AI; biasanya alamat API berisi halaman situsnya. Di pengaturan, tekan Perbarui daftar untuk layanan ini dan alamatnya diganti ke /v1; kalau tetap tidak bisa, hapus lalu sambungkan lagi dengan alamat yang benar.",
+  "AI 回的格式不對": "AI menjawab dengan format yang salah",
+  "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "Model sudah membaca halaman, tetapi jawabannya tidak dalam format yang dipahami aplikasi. Tekan Kenali ulang; kalau masih gagal, pilih model lain.",
+  "AI 的回答太長被截斷了": "Jawaban AI terlalu panjang dan terpotong",
+  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Halaman ini berisi banyak soal dan model mencapai batas panjangnya di tengah jalan. Tekan Kenali ulang; kalau masih gagal, pilih model yang bisa menulis jawaban lebih panjang."
 }

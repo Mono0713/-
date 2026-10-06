@@ -18,6 +18,10 @@ export function explainError(raw: string, t: T): Explained {
     return { title: t('辨識到一半被中斷了'), detail: t('伺服器剛好重新啟動，這次的辨識沒有跑完。按重新辨識就會再讀一次。'), fix: 'retry' }
   if (text.startsWith('file store could not'))
     return { title: t('檔案沒有存進去'), detail: t('存放檔案的空間這次沒有回應，題目已經讀好了。過一下再按重新辨識。'), fix: 'retry' }
+  if (/reply did not match the schema|unexpected token|is not valid json|json at position/.test(text))
+    return { title: t('AI 回的格式不對'), detail: t('模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。'), fix: 'model' }
+  if (/stopped with "length"/.test(text))
+    return { title: t('AI 的回答太長被截斷了'), detail: t('這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。'), fix: 'model' }
   if (text.includes('did not answer like an openai-compatible api') || text.includes("cannot read properties of undefined (reading '0')"))
     return { title: t('API 網址可能填錯了'), detail: t('這個服務回的不是 AI 的回答，通常是 API 網址填成了網站的頁面。到設定按這個服務的「更新清單」，會自動改成正確的 /v1 網址；還是不行就移除後用正確網址重新接上。'), fix: 'settings' }
   const status = Number(/"code"\s*:\s*(\d{3})/.exec(raw)?.[1] ?? /\b(4\d\d|5\d\d)\b/.exec(raw)?.[1] ?? 0)

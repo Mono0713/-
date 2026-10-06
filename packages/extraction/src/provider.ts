@@ -25,6 +25,8 @@ export interface VisionProvider {
   readonly id: string
   readonly model: string
   complete(request: PageRequest): Promise<ProviderReply>
+  /** Called after a reply that wasn't valid JSON or didn't match the schema, before the retry. */
+  invalidReply?(): void
 }
 
 /** The provider answered but declined or cut off; retrying the same call will not help. */

@@ -76,7 +76,7 @@ export async function extractPage(
       })
       usage = reply.usage
       model = reply.model
-      const parsed = ExtractedPage.safeParse(JSON.parse(reply.text))
+      const parsed = ExtractedPage.safeParse(JSON.parse(jsonPart(reply.text)))
       if (parsed.success) return done(parsed.data)
       lastError = `reply did not match the schema: ${parsed.error.message}`
     } catch (err) {
@@ -89,7 +89,17 @@ export async function extractPage(
       }
     }
     if (invalidReplies++ >= retries) return done(null)
+    provider.invalidReply?.()
   }
+}
+
+/** The JSON object in a reply, when a model put a sentence before or after it. */
+export function jsonPart(text: string): string {
+  const trimmed = text.trim()
+  if (trimmed.startsWith('{')) return trimmed
+  const start = trimmed.indexOf('{')
+  const end = trimmed.lastIndexOf('}')
+  return start >= 0 && end > start ? trimmed.slice(start, end + 1) : trimmed
 }
 
 function statusOf(err: unknown): number | null {
