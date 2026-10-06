@@ -873,5 +873,8 @@
   "即將刪除": "About to delete",
   "帳號即將刪除": "Your account is about to be deleted",
   "網站管理者": "the site administrator",
-  "這份文件只有繁體中文和英文版本，兩者不同時以繁體中文為準。": "This document is available in Traditional Chinese and English; where they differ, the Traditional Chinese version prevails."
+  "這份文件只有繁體中文和英文版本，兩者不同時以繁體中文為準。": "This document is available in Traditional Chinese and English; where they differ, the Traditional Chinese version prevails.",
+  "找不到這個頁面": "Page not found",
+  "網址可能打錯了，或這個內容已經刪除。": "The address may be mistyped, or this content has been deleted.",
+  "回到首頁": "Back to home"
 }

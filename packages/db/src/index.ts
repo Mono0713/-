@@ -72,4 +72,4 @@ export async function testDatabase(): Promise<{ sql: Sql; drop: () => Promise<vo
     },
   }
 }
-export { accountFileKeys, ACCOUNT_TABLES, eraseAccount, exportAccount } from './account.ts'
+export { accountFileKeys, ACCOUNT_TABLES, eraseAccount, exportAccount, postgresAccountDb, sqliteAccountDb, type AccountDb } from './account.ts'

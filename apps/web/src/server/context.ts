@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path'
 import { repoRoot } from './env'
 import { PostgresBank, SqliteBank, type Bank } from '@exam/bank'
 import { PostgresClassStore, SqliteClassStore, type ClassStore } from '@exam/classes'
-import { connect, type Sql } from '@exam/db'
+import { connect, postgresAccountDb, sqliteAccountDb, type AccountDb } from '@exam/db'
 import { DedupFileStore, fileStoreFromEnv, PostgresFileIndex, SqliteFileIndex, type FileIndex } from '@exam/files'
 import { Importer } from '@exam/importer'
 import { PostgresGradingCache, PostgresTranslationCache, SqliteGradingCache, SqliteTranslationCache, type GradingCache, type TranslationCache } from '@exam/grading'
@@ -40,8 +40,8 @@ interface Services {
   classes: ClassStore
   /** Each distinct file is kept once, whatever key it is written under. */
   files: DedupFileStore
-  /** The Postgres connection when hosted (whole-account export and deletion use it); null locally. */
-  sql: Sql | null
+  /** The database seen as whole accounts, for 下載我的資料 and 刪除帳號. */
+  accounts: AccountDb
 }
 
 // Kept on globalThis so hot reloads in development reuse one database connection
@@ -98,7 +98,7 @@ export function keyPrefixOf(ownerId: string): string {
   return authEnabled() ? `u/${ownerId}/` : ''
 }
 
-type Stores = Pick<Services, 'bank' | 'quizzes' | 'settings' | 'gradingCache' | 'translationCache' | 'usage' | 'shares' | 'classes' | 'sql'> & { fileIndex: FileIndex }
+type Stores = Pick<Services, 'bank' | 'quizzes' | 'settings' | 'gradingCache' | 'translationCache' | 'usage' | 'shares' | 'classes' | 'accounts'> & { fileIndex: FileIndex }
 
 function sqliteStores(): Stores {
   const dbFile = join(dataDir, 'bank.sqlite')
@@ -112,7 +112,7 @@ function sqliteStores(): Stores {
     shares: new SqliteShareStore(dbFile),
     classes: new SqliteClassStore(dbFile),
     fileIndex: new SqliteFileIndex(dbFile),
-    sql: null,
+    accounts: sqliteAccountDb(dbFile),
   }
 }
 
@@ -120,7 +120,7 @@ function postgresStores(url: string): Stores {
   const secret = process.env.SETTINGS_SECRET
   if (!secret) throw new Error('SETTINGS_SECRET is required with DATABASE_URL: it encrypts the API keys people save.')
   const sql = connect(url)
-  return { bank: new PostgresBank(sql), quizzes: new PostgresQuizStore(sql), settings: new PostgresSettingsStore(sql, secret), gradingCache: new PostgresGradingCache(sql), translationCache: new PostgresTranslationCache(sql), usage: new PostgresUsageStore(sql), shares: new PostgresShareStore(sql), classes: new PostgresClassStore(sql), fileIndex: new PostgresFileIndex(sql), sql }
+  return { bank: new PostgresBank(sql), quizzes: new PostgresQuizStore(sql), settings: new PostgresSettingsStore(sql, secret), gradingCache: new PostgresGradingCache(sql), translationCache: new PostgresTranslationCache(sql), usage: new PostgresUsageStore(sql), shares: new PostgresShareStore(sql), classes: new PostgresClassStore(sql), fileIndex: new PostgresFileIndex(sql), accounts: postgresAccountDb(sql) }
 }
 
 /**

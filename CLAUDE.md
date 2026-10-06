@@ -65,8 +65,9 @@ Packages never import from apps.
 | 宣傳頁、首頁介紹（未登入看到的 `/`，任何人可開 `/welcome`） | `app/page.tsx`, `app/welcome/page.tsx` | `features/landing/Landing.tsx` → `Hero`, `HeroSheet` (示範考卷動畫), `Loop` (四步驟), `Features`, `Closing` (結尾與頁尾), `StartButton` (Google 登入／前往題庫), `LanguagePick`, `RevealObserver`; public paths in `proxy.ts` |
 | 登入 | `app/login`, `app/auth/callback` | `features/auth/actions.ts`, `server/auth.ts` |
 | 隱私權政策、服務條款 | `app/privacy`, `app/terms` | `features/legal/LegalPage.tsx`; texts `privacy.zh-Hant.ts`/`.en.ts`, `terms.*` (not t(): zh-Hant prevails, others read en; bump `LEGAL_UPDATED` in `docs.ts`) |
-| 下載我的資料、刪除帳號 | `app/api/account/export` | `features/account/` (`AccountCard`, `DeleteAccount`, `actions.ts`), `server/account.ts`, `packages/db/src/account.ts` (every table holding a person's rows: a new owner table goes there) |
+| 下載我的資料、刪除帳號 | `app/api/account/export` | `features/account/` (`AccountCard`, `DeleteAccount`, `actions.ts`), `server/account.ts`, `packages/db/src/account.ts` (every table holding a person's rows, SQLite and Postgres: a new owner table goes there); settings via `SettingsStore.remove`; entry in `shared/chrome/AccountMenu.tsx` |
 | 安全標頭 (CSP、HSTS…) | | `apps/web/next.config.ts` |
+| 找不到頁面 (404) | `app/not-found.tsx` | uses `shared/ui` `EmptyState` |
 | 刪除＋5 秒復原 | | `shared/removal.tsx`, `shared/Toast.tsx` |
 | 公式輸入 | | `shared/math/` (`MathTextInput`, `FormulaToolbar`, `mathlive.ts`) |
 | 手寫板、稿紙 | | `shared/ink/InkPad.tsx`, `packages/ink` (`paper.ts`) |

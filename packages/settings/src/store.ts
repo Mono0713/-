@@ -6,6 +6,8 @@ import { defaultSettings, Settings } from './settings.ts'
 export interface SettingsStore {
   get(ownerId: string): Promise<Settings>
   update(ownerId: string, patch: Partial<Settings>): Promise<Settings>
+  /** Forgets everything saved for the person, API keys included (deleting the account). */
+  remove(ownerId: string): Promise<void>
 }
 
 /**
@@ -25,12 +27,23 @@ export class FileSettingsStore implements SettingsStore {
     const all = this.readAll()
     const next = Settings.parse({ ...(await this.get(ownerId)), ...patch })
     all[ownerId] = next
+    this.writeAll(all)
+    return next
+  }
+
+  async remove(ownerId: string): Promise<void> {
+    const all = this.readAll()
+    if (!(ownerId in all)) return
+    delete all[ownerId]
+    this.writeAll(all)
+  }
+
+  private writeAll(all: Record<string, unknown>) {
     mkdirSync(dirname(this.file), { recursive: true })
     const tmp = `${this.file}.tmp`
     writeFileSync(tmp, JSON.stringify(all, null, 2), { mode: 0o600 })
     renameSync(tmp, this.file)
     chmodSync(this.file, 0o600)
-    return next
   }
 
   private readAll(): Record<string, unknown> {

@@ -873,5 +873,8 @@
   "即將刪除": "Wird gleich gelöscht",
   "帳號即將刪除": "Dein Konto wird gleich gelöscht",
   "網站管理者": "den Betreiber der Website",
-  "這份文件只有繁體中文和英文版本，兩者不同時以繁體中文為準。": "Dieses Dokument gibt es nur auf traditionellem Chinesisch und Englisch; bei Abweichungen gilt die chinesische Fassung."
+  "這份文件只有繁體中文和英文版本，兩者不同時以繁體中文為準。": "Dieses Dokument gibt es nur auf traditionellem Chinesisch und Englisch; bei Abweichungen gilt die chinesische Fassung.",
+  "找不到這個頁面": "Seite nicht gefunden",
+  "網址可能打錯了，或這個內容已經刪除。": "Die Adresse ist vielleicht falsch, oder der Inhalt wurde gelöscht.",
+  "回到首頁": "Zur Startseite"
 }

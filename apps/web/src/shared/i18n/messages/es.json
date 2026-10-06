@@ -873,5 +873,8 @@
   "即將刪除": "A punto de eliminarse",
   "帳號即將刪除": "Tu cuenta está a punto de eliminarse",
   "網站管理者": "el administrador del sitio",
-  "這份文件只有繁體中文和英文版本，兩者不同時以繁體中文為準。": "Este documento solo está en chino tradicional e inglés; si difieren, prevalece la versión en chino tradicional."
+  "這份文件只有繁體中文和英文版本，兩者不同時以繁體中文為準。": "Este documento solo está en chino tradicional e inglés; si difieren, prevalece la versión en chino tradicional.",
+  "找不到這個頁面": "No se encontró la página",
+  "網址可能打錯了，或這個內容已經刪除。": "Puede que la dirección esté mal escrita o que este contenido se haya eliminado.",
+  "回到首頁": "Volver al inicio"
 }

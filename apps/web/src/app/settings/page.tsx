@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { formatUsd } from '@exam/models'
 import { LOCALES, publicView } from '@exam/settings'
 import { monthStart, spend } from '@exam/usage'
@@ -70,6 +71,15 @@ export default async function SettingsPage() {
       />
       <StorageCard used={storage.used} quota={storage.quota} />
       {user && accountControls() && <AccountCard />}
+      <p className="mt-8 mb-2 text-center text-xs text-muted">
+        <Link href="/privacy" className="hover:text-ink hover:underline">
+          {t('隱私權政策')}
+        </Link>
+        <span className="mx-2">·</span>
+        <Link href="/terms" className="hover:text-ink hover:underline">
+          {t('服務條款')}
+        </Link>
+      </p>
     </div>
   )
 }

@@ -1,10 +1,9 @@
-import Link from 'next/link'
 import { getT } from '@/shared/i18n/server'
 import { IconDownload } from '@/shared/icons'
 import { Card } from '@/shared/ui'
 import { DeleteAccount } from './DeleteAccount'
 
-/** 帳號與資料: a copy of everything, deleting the account, and the policies. Shown only with accounts. */
+/** 帳號與資料: a copy of everything, and deleting the account. Shown only with sign-in. */
 export async function AccountCard() {
   const t = await getT()
   return (
@@ -20,15 +19,6 @@ export async function AccountCard() {
         <Row title={t('刪除帳號')} note={t('刪除所有考卷、題目、作答紀錄、檔案和金鑰，你建立的班級也會一起刪除。按下後有 5 秒可以復原，之後就無法救回。')}>
           <DeleteAccount />
         </Row>
-        <p className="px-5 py-3 text-xs text-muted">
-          <Link href="/privacy" className="text-accent hover:underline">
-            {t('隱私權政策')}
-          </Link>
-          <span className="mx-2">·</span>
-          <Link href="/terms" className="text-accent hover:underline">
-            {t('服務條款')}
-          </Link>
-        </p>
       </Card>
     </section>
   )

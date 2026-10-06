@@ -67,6 +67,7 @@ export {
   Undo2 as IconUndo,
   Upload as IconUpload,
   Download as IconDownload,
+  ShieldCheck as IconPrivacy,
   UserRound as IconUser,
   Users as IconClass,
   X as IconX,

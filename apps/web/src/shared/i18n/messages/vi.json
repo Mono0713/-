@@ -873,5 +873,8 @@
   "即將刪除": "Sắp xóa",
   "帳號即將刪除": "Tài khoản sắp bị xóa",
   "網站管理者": "quản trị viên trang web",
-  "這份文件只有繁體中文和英文版本，兩者不同時以繁體中文為準。": "Tài liệu này chỉ có bản tiếng Trung phồn thể và tiếng Anh; nếu khác nhau, bản tiếng Trung phồn thể được ưu tiên."
+  "這份文件只有繁體中文和英文版本，兩者不同時以繁體中文為準。": "Tài liệu này chỉ có bản tiếng Trung phồn thể và tiếng Anh; nếu khác nhau, bản tiếng Trung phồn thể được ưu tiên.",
+  "找不到這個頁面": "Không tìm thấy trang",
+  "網址可能打錯了，或這個內容已經刪除。": "Địa chỉ có thể bị gõ sai, hoặc nội dung này đã bị xóa.",
+  "回到首頁": "Về trang chủ"
 }

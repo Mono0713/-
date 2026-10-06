@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { useT } from '@/shared/i18n/client'
-import { IconKey, IconSignOut, IconStorage, IconUser, type Icon } from '@/shared/icons'
+import { IconKey, IconPrivacy, IconSignOut, IconStorage, IconUser, type Icon } from '@/shared/icons'
 import { Menu, menuItem } from './Menu'
 
 export interface AccountPerson {
@@ -12,7 +12,7 @@ export interface AccountPerson {
   avatar: string | null
 }
 
-/** The signed-in person; a click opens their account: profile, API keys, storage, settings and signing out. */
+/** The signed-in person; a click opens their account: profile, API keys, storage, account data and signing out. */
 export function AccountMenu({ person, signOut, tone }: { person: AccountPerson; signOut: () => Promise<void>; tone: 'sidebar' | 'header' }) {
   const t = useT()
   const label = person.name ?? person.email ?? t('帳號')
@@ -20,6 +20,7 @@ export function AccountMenu({ person, signOut, tone }: { person: AccountPerson; 
     { href: '/settings#profile', label: t('個人資料'), icon: IconUser },
     { href: '/settings#keys', label: t('API 金鑰'), icon: IconKey },
     { href: '/settings#storage', label: t('儲存空間'), icon: IconStorage },
+    { href: '/settings#account', label: t('帳號與資料'), icon: IconPrivacy },
   ]
   return (
     <Menu
