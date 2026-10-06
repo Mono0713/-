@@ -97,9 +97,31 @@ export async function extractPage(
 export function jsonPart(text: string): string {
   const trimmed = text.trim()
   if (trimmed.startsWith('{')) return trimmed
+  const call = invokeArguments(trimmed)
+  if (call) return call
   const start = trimmed.indexOf('{')
   const end = trimmed.lastIndexOf('}')
   return start >= 0 && end > start ? trimmed.slice(start, end + 1) : trimmed
+}
+
+/**
+ * Some relays turn the JSON Schema into a tool for Claude and hand back its call as text:
+ * <invoke name="…"><parameter name="questions">[…]</parameter>…</invoke>. Each parameter is
+ * one top-level field, JSON when it parses, plain text otherwise.
+ */
+function invokeArguments(text: string): string | null {
+  const body = /<invoke\b[^>]*>([\s\S]*?)(?:<\/invoke>|$)/.exec(text)?.[1]
+  if (body === undefined) return null
+  const out: Record<string, unknown> = {}
+  for (const m of body.matchAll(/<parameter\s+name="([^"]+)"[^>]*>([\s\S]*?)<\/parameter>/g)) {
+    const raw = m[2]!.trim()
+    try {
+      out[m[1]!] = JSON.parse(raw)
+    } catch {
+      out[m[1]!] = raw
+    }
+  }
+  return Object.keys(out).length ? JSON.stringify(out) : null
 }
 
 function statusOf(err: unknown): number | null {
