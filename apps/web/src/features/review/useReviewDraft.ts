@@ -14,11 +14,11 @@ export const isFlagged = (q: DraftQuestion) => q.confidence !== 'high' || q.issu
 
 // Deleting asks nothing; Ctrl+Z (or 復原 on the note) puts questions back, last deleted first.
 // A box moved on the original page goes on the same stack, so Ctrl+Z also puts it back.
-// An AI answer or explanation that replaced one already there goes on it too.
+// An AI answer or explanation that replaced one already there goes on it too; a whole-exam AI run is one step.
 type Undo =
   | { kind: 'delete'; index: number; question: DraftQuestion; key: string }
   | { kind: 'box'; key: string; locations: DraftQuestion['locations'] }
-  | { kind: 'replace'; key: string; question: DraftQuestion }
+  | { kind: 'replace'; batch?: string; before: { key: string; question: DraftQuestion }[] }
 
 /**
  * The draft being reviewed and every edit to it: which question is selected or being edited,
@@ -51,12 +51,20 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
 
   const updateQuestion = (index: number, q: DraftQuestion) => setDraft((d) => ({ ...d, questions: d.questions.map((x, i) => (i === index ? q : x)) }))
   // Changes the question with this card key wherever it is now (it may have moved meanwhile), keeping later edits to the others.
-  // `undoable`: Ctrl+Z (or 復原上一步) brings back the question as it was before the patch.
-  const patchQuestion = (key: string, patch: (q: DraftQuestion) => DraftQuestion, undoable = false) =>
+  // `undo`: Ctrl+Z (or 復原上一步) brings back the question as it was before the patch; patches
+  // sharing a batch name (one AI run over the whole exam) come back together in one step.
+  const patchQuestion = (key: string, patch: (q: DraftQuestion) => DraftQuestion, undo: boolean | string = false) =>
     setDraft((d) => {
       const index = keys.current.indexOf(key)
       if (index < 0) return d
-      if (undoable && !trash.current.some((u) => u.kind === 'replace' && u.question === d.questions[index])) trash.current.push({ kind: 'replace', key, question: d.questions[index]! })
+      const question = d.questions[index]!
+      // (the checks keep a doubled updater call in development from saving the same step twice)
+      const top = trash.current.at(-1)
+      if (typeof undo === 'string' && top?.kind === 'replace' && top.batch === undo) {
+        if (!top.before.some((b) => b.key === key)) top.before.push({ key, question })
+      } else if (undo && !trash.current.some((u) => u.kind === 'replace' && u.before.some((b) => b.question === question))) {
+        trash.current.push({ kind: 'replace', batch: typeof undo === 'string' ? undo : undefined, before: [{ key, question }] })
+      }
       return { ...d, questions: d.questions.map((x, i) => (i === index ? patch(x) : x)) }
     })
   const confirmQuestion = (index: number) => updateQuestion(index, { ...draft.questions[index]!, confidence: 'high', issues: [] })
@@ -132,10 +140,11 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     const last = trash.current.pop()
     if (!last) return
     if (last.kind === 'replace') {
-      const index = keys.current.indexOf(last.key)
-      if (index >= 0) {
-        setDraft((d) => ({ ...d, questions: d.questions.map((q, i) => (i === index ? last.question : q)) }))
-        setSelected(index)
+      const back = new Map(last.before.map((b) => [keys.current.indexOf(b.key), b.question]))
+      back.delete(-1)
+      if (back.size) {
+        setDraft((d) => ({ ...d, questions: d.questions.map((q, i) => back.get(i) ?? q) }))
+        setSelected(Math.min(...back.keys()))
       }
       return
     }
