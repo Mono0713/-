@@ -3,7 +3,7 @@ import type { Bank, ImportRecord } from '@exam/bank'
 import type { DraftExam, DraftFigure, ExtractedPage, IngestedDocument, PageImage } from '@exam/core'
 import { createProvider, extractDocument, keepEdits, ManualProvider, mergePages, type PageResult, type ProviderConfig, type TextFiles } from '@exam/extraction'
 import type { FileStore } from '@exam/files'
-import { cleanFigure, cropExamFigures, snapBoxesToText } from '@exam/figures'
+import { cleanFigure, cropExamFigures, figureFromUpload, snapBoxesToText } from '@exam/figures'
 import { ingestBuffer, storedPage } from '@exam/ingest'
 
 export interface UploadFile {
@@ -181,6 +181,18 @@ export class Importer {
     const key = `${this.base(imp)}/figures/${name}.png`
     await this.files.write(key, clean.png)
     return { ...figure, image: { file: key, width: clean.width, height: clean.height, blanks: clean.blanks } }
+  }
+
+  /**
+   * Stores a picture someone uploaded for a figure of this import (replacing a crop, or a new one),
+   * next to the cropped figures so a shared exam can show it too.
+   */
+  async uploadFigure(id: string, data: Buffer): Promise<NonNullable<DraftFigure['image']>> {
+    const imp = await this.require(id)
+    const { png, width, height } = await figureFromUpload(data)
+    const key = `${this.base(imp)}/figures/upload-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}.png`
+    await this.files.write(key, png)
+    return { file: key, width, height, blanks: [] }
   }
 
   /** Prompts to paste into a chat app for pages still waiting in manual mode. */

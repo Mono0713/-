@@ -105,6 +105,8 @@ export function MathTextInput({
     field.value = chip.dataset.latex ?? ''
     field.smartFence = true
     field.mathVirtualKeyboardPolicy = 'auto'
+    // Typed -> draws the same long arrow as chemistry equations (\ce), so arrows in one exam match.
+    field.inlineShortcuts = { ...field.inlineShortcuts, '->': '\\longrightarrow' }
     field.className = 'inline-formula'
     field.addEventListener('input', () => {
       chip.dataset.latex = plain(field)

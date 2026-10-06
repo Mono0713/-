@@ -7,9 +7,8 @@ import type { Strength } from '@exam/models'
 import { useState } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
 import { QuestionView } from '@/features/questions/QuestionView'
-import { STRENGTH_LABELS } from '@/features/settings/strengths'
-import { Fab, type FabAction } from '@/shared/chrome/Fab'
-import { IconAlert, IconCheck, IconChevronDown, IconCopy, IconEdit, IconGrip, IconIndent, IconMerge, IconOutdent, IconPlus, IconSplit, IconStrength, IconTrash, IconUndo } from '@/shared/icons'
+import { Fab } from '@/shared/chrome/Fab'
+import { IconCheck, IconChevronDown, IconEdit, IconGrip, IconLoader, IconPlus, IconSplit, IconTrash } from '@/shared/icons'
 import { msg } from '@/shared/i18n/format'
 import { useT } from '@/shared/i18n/client'
 import { Toast } from '@/shared/Toast'
@@ -20,12 +19,14 @@ import { GroupCard } from './GroupCard'
 import { NumberBar } from './NumberBar'
 import { Outline } from './Outline'
 import { PageViewer } from './PageViewer'
-import { attachToPrevious, mergeParts, splitNumber, splitParts } from './parts'
+import { splitParts } from './parts'
 import { iconButton, ReviewToolbar } from './ReviewToolbar'
 import { ActiveOverlay, alongList, EdgeScroll, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 import { StrengthPanel } from './StrengthPanel'
 import { useDraftSaving } from './useDraftSaving'
-import { SolveAnswers } from './SolveAnswers'
+import { SolveStatus } from './SolveStatus'
+import { useReviewFab } from './useReviewFab'
+import { useSolver } from './useSolver'
 import { isFlagged, useReviewDraft } from './useReviewDraft'
 import { clampSplit, DEFAULT_LAYOUT, OUTLINE_SPACE, SPLITTER, useWorkspaceLayout } from './useWorkspaceLayout'
 
@@ -61,6 +62,7 @@ export function ReviewEditor({
   const t = useT()
   // Phones show one side at a time.
   const [mobileView, setMobileView] = useState<'questions' | 'page'>('questions')
+  const reviewDraft = useReviewDraft(initial, () => setMobileView('questions'))
   const {
     start,
     draft,
@@ -88,7 +90,7 @@ export function ReviewEditor({
     setMeta,
     setGroupStem,
     patchQuestion,
-  } = useReviewDraft(initial, () => setMobileView('questions'))
+  } = reviewDraft
   const { saveState, published, inSync, publish, publishing } = useDraftSaving(importId, draft, initial, start, savedExam)
   const { layout, setLayout, row, viewer, bar, barHeight, startResize } = useWorkspaceLayout()
   const [flaggedOnly, setFlaggedOnly] = useState(false)
@@ -98,42 +100,11 @@ export function ReviewEditor({
   const flagged = draft.questions.filter(isFlagged).length
   const meta = draft.meta
 
-  const nextFlagged = () => {
-    const n = draft.questions.length
-    const from = selected ?? -1
-    for (let k = 1; k <= n; k++) {
-      const i = (from + k) % n
-      if (isFlagged(draft.questions[i]!)) return select(i, true)
-    }
-  }
-  // The floating button holds what the page does not already show: undo (phones and tablets have
-  // no Ctrl+Z), jumping to the next question to check, and actions on the selected question.
-  const chosen = selected !== null ? draft.questions[selected] : undefined
-  const chosenNumber = chosen ? chosen.number : ''
-  const chosenGroup = chosen?.groupId ? draft.groups.find((g) => g.id === chosen.groupId) : undefined
-  const canMerge = !!chosenGroup && !!mergeParts(chosenGroup, draft.questions.filter((q) => q.groupId === chosenGroup.id))
   const [strengthOpen, setStrengthOpen] = useState(false)
   // what the panel last saved, so the floating button's label follows it without a reload
   const [shownStrength, setShownStrength] = useState(strength ?? 'balanced')
-  const fabActions: FabAction[] = [
-    ...(flagged > 0 ? [{ id: 'next', label: t('下一題待確認'), icon: <IconAlert size={19} />, badge: flagged, onClick: nextFlagged }] : []),
-    ...(chosen && selected !== null
-      ? [
-          ...(splitParts(chosen, '') ? [{ id: 'split', label: t('把第 {n} 題拆成小題', { n: chosenNumber }), icon: <IconSplit size={19} />, onClick: () => splitQuestion(selected) }] : []),
-          ...(selected > 0 && attachToPrevious(draft, selected, '')
-            ? [{ id: 'attach', label: t('把第 {n} 題設為第 {main} 題的小題', { n: chosenNumber, main: splitNumber(draft.questions[selected - 1]!.number).main }), icon: <IconIndent size={19} />, onClick: () => attachPart(selected) }]
-            : []),
-          ...(chosenGroup ? [{ id: 'detach', label: t('把第 {n} 題移出小題', { n: chosenNumber }), icon: <IconOutdent size={19} />, onClick: () => detachQuestion(selected) }] : []),
-          ...(canMerge ? [{ id: 'merge', label: t('把第 {n} 題的小題合併', { n: splitNumber(chosenNumber).main }), icon: <IconMerge size={19} />, onClick: () => mergeGroup(chosenGroup!.id) }] : []),
-          { id: 'copy', label: t('複製第 {n} 題', { n: chosenNumber }), icon: <IconCopy size={19} />, onClick: () => duplicateQuestion(selected) },
-          { id: 'insert', label: t('在第 {n} 題後面新增', { n: chosenNumber }), icon: <IconPlus size={20} />, onClick: () => addQuestion(selected) },
-        ]
-      : [{ id: 'add', label: t('新增題目'), icon: <IconPlus size={20} />, onClick: () => addQuestion() }]),
-    ...(strength
-      ? [{ id: 'strength', label: t('AI 強度：{strength}', { strength: t(STRENGTH_LABELS.find(([v]) => v === shownStrength)![1]) }), icon: <IconStrength size={19} />, onClick: () => setStrengthOpen(true) }]
-      : []),
-    { id: 'undo', label: t('復原上一步'), icon: <IconUndo size={19} />, onClick: undo, disabled: !canUndo },
-  ]
+  const solver = useSolver(importId, draft, keys.current, patchQuestion)
+  const fabActions = useReviewFab({ d: reviewDraft, solver, strength: strength && shownStrength, onStrength: () => setStrengthOpen(true) })
 
   const metaFields = (compact: boolean) =>
     (
@@ -155,6 +126,11 @@ export function ReviewEditor({
   // A card's buttons when it is not being edited; the dragged copy draws the same row (inert) so it lines up.
   const viewActions = (q: DraftQuestion, index: number, handle: DragHandle | null) => (
     <>
+      {solver.busy.has(keys.current[index]!) && (
+        <span className={`${iconButton} !text-accent`} title={solver.busy.get(keys.current[index]!) === 'answer' ? t('AI 作答中…') : t('AI 撰寫中…')}>
+          <IconLoader size={15} className="m-spin" />
+        </span>
+      )}
       {!q.groupId && splitParts(q, '') && (
         <button type="button" onClick={() => splitQuestion(index)} className={iconButton} aria-label={t('拆成小題')} title={t('拆成小題：(a)(b) 各自一題，可以分別作答和計分')}>
           <IconSplit size={15} />
@@ -292,7 +268,6 @@ export function ReviewEditor({
               </summary>
               <div className="m-expand grid gap-3 px-4 pb-4 sm:grid-cols-2">{metaFields(false)}</div>
             </details>
-            <SolveAnswers importId={importId} draft={draft} keys={keys.current} onSolved={patchQuestion} />
 
             <DndContext
               id="review-cards"
@@ -348,6 +323,8 @@ export function ReviewEditor({
                                 value={q}
                                 onChange={(v) => updateQuestion(index, v)}
                                 importId={importId}
+                                pages={pages}
+                                ai={{ answer: () => solver.runOne(index, 'answer'), explain: () => solver.runOne(index, 'explain'), busy: solver.busy.get(key) }}
                                 actions={
                                   // the same places as the card's own buttons: done where edit was, then delete and the grip
                                   <>
@@ -407,6 +384,7 @@ export function ReviewEditor({
         {t('已刪除第 {n} 題', { n: deletedNote ?? '' })}
       </Toast>
 
+      <SolveStatus solver={solver} />
       <Fab actions={fabActions} badge={flagged || undefined} />
       {strength && <StrengthPanel open={strengthOpen} initial={shownStrength} onChange={setShownStrength} onClose={() => setStrengthOpen(false)} />}
     </div>

@@ -40,9 +40,10 @@ Packages never import from apps.
 | ↳ 原卷、題目框、放大縮小 | | `review/PageViewer.tsx`, `review/useBoxEditing.ts` (move/resize boxes), `review/boxGeometry.ts`; box placement from AI: `packages/core/src/boxes.ts` |
 | ↳ 題目大綱、分隔線、版面記憶 | | `review/Outline.tsx`, `review/useWorkspaceLayout.ts` |
 | ↳ 題組/小題共用卡片 | | `review/GroupCard.tsx` |
-| ↳ 懸浮球 AI 強度 | | `review/StrengthPanel.tsx` |
-| ↳ AI 作答（卷上沒答案）、AI 詳解（有答案沒詳解） | | `review/SolveAnswers.tsx`, `solveQuestion` in `review/actions.ts`; `needsAnswer`/`needsExplanation` in `packages/core/src/answers.ts`; models: tasks `solving`/`explaining` in `packages/models/src/routing.ts`; AI `packages/grading/src/solver.ts` |
+| ↳ 懸浮球（整份考卷／這一題的動作，分組） | | `review/useReviewFab.tsx` (what the FAB holds), `review/StrengthPanel.tsx` (AI 強度) |
+| ↳ AI 作答、AI 詳解（整份在懸浮球，單題在題目卡上） | | `review/useSolver.ts` (runs + undoable single-question redo), `review/SolveStatus.tsx` (progress toast), `solveQuestion` in `review/actions.ts`; `needsAnswer`/`needsExplanation` in `packages/core/src/answers.ts`; models: tasks `solving`/`explaining` in `packages/models/src/routing.ts`; AI `packages/grading/src/solver.ts` |
 | 題目卡（看）/ 題目編輯表單 | | `features/questions/QuestionView.tsx` (配合題 as a table: `MatchingTable.tsx`), `QuestionEditor.tsx` → `OptionsEditor.tsx`, `AnswerEditor.tsx`, `editorParts.tsx` |
+| 題目圖片：重新框選、換圖、上傳、刪除 | | `features/questions/FiguresEditor.tsx`, `FigureCropper.tsx` (框選原卷); `recropFigure`/`uploadFigureImage` in `questions/actions.ts`; `packages/figures/src/upload.ts` |
 | 圖片空格清理 | | `features/questions/FigureBlanksEditor.tsx`, `packages/figures` |
 | 圖片選項（選項是圖） | | figure `option` field in `packages/core/src/schema.ts`, `questionFigures`/`optionFigures` in `core/src/figures.ts`; shown by `shared/FigureView.tsx` (`OptionPictures`); assigned in `QuestionEditor.tsx` (這張圖是) |
 | 題庫、考卷卡、篩選 | `app/bank/page.tsx`, `bank/exams/[id]`, `bank/[id]` | `features/bank/*` (`ExamCard`, `BankFilters`, `ExamMetaForm`, `BankQuestionEditor`) |
@@ -107,7 +108,7 @@ Packages never import from apps.
 | `extraction` | AI recognition of pages: prompt (`prompt.ts`), providers, merging pages (`merge.ts`) |
 | `importer` | Upload → pages → recognition → draft pipeline, background runs, original-file expiry |
 | `ingest` | PDF and image → page images |
-| `figures` | Cropping figures, cleaning handwriting out of blanks, moving AI question boxes onto their text lines (`snap.ts`) |
+| `figures` | Cropping figures, cleaning handwriting out of blanks, moving AI question boxes onto their text lines (`snap.ts`), uploaded pictures (`upload.ts`) |
 | `bank` | Question bank storage (`sqlite.ts`, `postgres.ts`), drafts |
 | `quiz` | Attempts storage, marking rules (`logic.ts`), answer equivalence (`equivalence.ts`) |
 | `grading` | AI teacher, handwriting reader, tutor, translation, answer solver (`solver.ts`), their caches |

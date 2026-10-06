@@ -15,6 +15,8 @@ export interface FabAction {
   /** Extra classes for the item row, e.g. 'lg:hidden' for phone-only actions. */
   className?: string
   primary?: boolean
+  /** Items with the same group stand together; a new group starts with a gap (and its name on phones). */
+  group?: string
 }
 
 /**
@@ -47,6 +49,7 @@ export function Fab({ actions, badge, label }: { actions: FabAction[]; badge?: n
         <ul className="grid gap-1">
           {actions.map((a, i) => (
             <li key={a.id} className={a.className ?? ''} style={{ '--i': i } as React.CSSProperties}>
+              {a.group && a.group !== actions[i - 1]?.group && <p className={`px-3 pb-1 text-[11px] font-medium tracking-wide text-muted ${i ? 'mt-2 border-t border-line pt-3' : ''}`}>{a.group}</p>}
               <button
                 type="button"
                 tabIndex={open ? 0 : -1}
@@ -68,7 +71,7 @@ export function Fab({ actions, badge, label }: { actions: FabAction[]; badge?: n
       <div className="pointer-events-none fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3 sm:bottom-7 sm:right-7">
         <ul className="flex flex-col-reverse items-end gap-2.5 pr-1.5 max-sm:hidden" aria-hidden={!open}>
           {actions.map((a, i) => (
-            <li key={a.id} className={`m-fab-item flex items-center gap-3 ${a.className ?? ''}`} style={{ '--i': i, '--n': n } as React.CSSProperties}>
+            <li key={a.id} className={`m-fab-item flex items-center gap-3 ${i && a.group !== actions[i - 1]?.group ? 'mb-3' : ''} ${a.className ?? ''}`} style={{ '--i': i, '--n': n } as React.CSSProperties}>
               <span className="m-fab-label rounded-lg bg-night px-2.5 py-1.5 text-[13px] font-medium whitespace-nowrap text-white shadow-lg">{a.label}</span>
               <button
                 type="button"
