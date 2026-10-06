@@ -44,7 +44,6 @@
   "AI 批改 / 老師改過": "Corrigido pela IA / pelo professor",
   "學生": "Aluno",
   "狀態": "Status",
-  "分數": "Pontos",
   "次數": "Tentativas",
   "交卷時間": "Enviado em",
   "未交": "Não enviado",
@@ -753,9 +752,7 @@
   "插入公式符號": "Inserir símbolo de fórmula",
   "LaTeX 原始碼": "Código-fonte LaTeX",
   "刪除公式": "Excluir fórmula",
-  "公式完成": "Concluir fórmula",
   "公式完成（Enter）": "Concluir fórmula (Enter)",
-  "直接打字：/ 是分數、^ 是次方、sqrt 是根號，Enter 完成；平板會出現數學鍵盤。": "É só digitar: / para frações, ^ para potências, sqrt para raízes quadradas e Enter para terminar. Em tablets aparece um teclado matemático.",
   "點一下編輯公式": "Toque para editar a fórmula",
   "插入公式": "Inserir fórmula",
   "公式": "Fórmula",
@@ -1143,5 +1140,12 @@
   "AI 作答": "Respostas da IA",
   "有 {n} 題有答案但沒有詳解。": "{n} questões têm resposta, mas não explicação.",
   "這題不需要了。": "Esta questão não precisa mais disso.",
-  "AI 這題沒有做出來，可以再試一次或自己填。": "A IA não conseguiu fazer esta. Tente de novo ou preencha você mesmo."
+  "AI 這題沒有做出來，可以再試一次或自己填。": "A IA não conseguiu fazer esta. Tente de novo ou preencha você mesmo.",
+  "也可以直接打：/ 分數、^ 次方、_ 下標、sqrt 根號；Enter 完成": "Ou digite: / fração, ^ potência, _ subscrito, sqrt raiz; Enter para concluir",
+  "常用": "Comuns",
+  "代數": "Álgebra",
+  "幾何": "Geometria",
+  "微積分": "Cálculo",
+  "希臘字母": "Grego",
+  "化學": "Química"
 }

@@ -305,6 +305,40 @@ math-field.inline-formula::part(virtual-keyboard-toggle) {
   display: none;
 }
 
+/* The on-screen math keyboard (phones and tablets) in the study-desk colors, light and dark. */
+body {
+  --keyboard-background: var(--color-paper);
+  --keyboard-border: var(--color-line);
+  --keyboard-accent-color: var(--color-accent);
+  --keyboard-toolbar-text: var(--color-muted);
+  --keyboard-toolbar-font-size: 14px;
+  --keyboard-toolbar-text-active: var(--color-accent);
+  --keyboard-toolbar-background-hover: var(--color-accent-soft);
+  --keyboard-toolbar-background-selected: transparent;
+  --keyboard-horizontal-rule: 1px solid var(--color-line);
+  --keycap-background: var(--color-surface);
+  --keycap-background-hover: var(--color-accent-soft);
+  --keycap-background-active: var(--color-accent);
+  --keycap-background-pressed: var(--color-accent);
+  --keycap-border: var(--color-line);
+  --keycap-border-bottom: var(--color-line);
+  --keycap-text: var(--color-ink);
+  --keycap-text-active: var(--color-on-accent);
+  --keycap-text-pressed: var(--color-on-accent);
+  --keycap-shift-text: var(--color-accent);
+  --keycap-shift-color: var(--color-accent);
+  --keycap-primary-background: var(--color-accent);
+  --keycap-primary-text: var(--color-on-accent);
+  --keycap-primary-background-hover: var(--color-accent-deep);
+  --keycap-secondary-background: color-mix(in srgb, var(--color-ink) 7%, var(--color-paper));
+  --keycap-secondary-background-hover: color-mix(in srgb, var(--color-ink) 12%, var(--color-paper));
+  --keycap-secondary-text: var(--color-ink);
+  --keycap-secondary-border: var(--color-line);
+  --keycap-secondary-border-bottom: var(--color-line);
+  --variant-panel-background: var(--color-surface);
+  --box-placeholder-color: var(--color-accent);
+}
+
 /* Korean breaks lines between words, not inside them. */
 :lang(ko) {
   word-break: keep-all;
