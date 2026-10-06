@@ -41,7 +41,7 @@ Packages never import from apps.
 | ↳ 題目大綱、分隔線、版面記憶 | | `review/Outline.tsx`, `review/useWorkspaceLayout.ts` |
 | ↳ 題組/小題共用卡片 | | `review/GroupCard.tsx` |
 | ↳ 懸浮球 AI 強度 | | `review/StrengthPanel.tsx` |
-| 題目卡（看）/ 題目編輯表單 | | `features/questions/QuestionView.tsx`, `QuestionEditor.tsx` → `OptionsEditor.tsx`, `AnswerEditor.tsx`, `editorParts.tsx` |
+| 題目卡（看）/ 題目編輯表單 | | `features/questions/QuestionView.tsx` (配合題 as a table: `MatchingTable.tsx`), `QuestionEditor.tsx` → `OptionsEditor.tsx`, `AnswerEditor.tsx`, `editorParts.tsx` |
 | 圖片空格清理 | | `features/questions/FigureBlanksEditor.tsx`, `packages/figures` |
 | 圖片選項（選項是圖） | | figure `option` field in `packages/core/src/schema.ts`, `questionFigures`/`optionFigures` in `core/src/figures.ts`; shown by `shared/FigureView.tsx` (`OptionPictures`); assigned in `QuestionEditor.tsx` (這張圖是) |
 | 題庫、考卷卡、篩選 | `app/bank/page.tsx`, `bank/exams/[id]`, `bank/[id]` | `features/bank/*` (`ExamCard`, `BankFilters`, `ExamMetaForm`, `BankQuestionEditor`) |
@@ -87,7 +87,7 @@ Packages never import from apps.
 | Logo、產品名 | | `shared/brand/brand.ts` (the only place the name is written) |
 | 圖示 | | `shared/icons` (lucide, import only from here) |
 | 介面語言 | | `shared/i18n/` (see below) |
-| 題型名稱 | | `shared/labels.ts`; types defined in `packages/core/src/schema.ts` |
+| 題型名稱 | | `shared/labels.ts`; section headings' ○/╳ marks evened out by `shared/markSymbols.ts`; types defined in `packages/core/src/schema.ts` |
 | PWA | | `shared/pwa/ServiceWorker.tsx`, `apps/web/public` |
 
 ## Server side

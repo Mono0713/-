@@ -1130,5 +1130,6 @@
   "AI 回的格式不對": "AI menjawab dengan format yang salah",
   "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "Model sudah membaca halaman, tetapi jawabannya tidak dalam format yang dipahami aplikasi. Tekan Kenali ulang; kalau masih gagal, pilih model lain.",
   "AI 的回答太長被截斷了": "Jawaban AI terlalu panjang dan terpotong",
-  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Halaman ini berisi banyak soal dan model mencapai batas panjangnya di tengah jalan. Tekan Kenali ulang; kalau masih gagal, pilih model yang bisa menulis jawaban lebih panjang."
+  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Halaman ini berisi banyak soal dan model mencapai batas panjangnya di tengah jalan. Tekan Kenali ulang; kalau masih gagal, pilih model yang bisa menulis jawaban lebih panjang.",
+  "配對": "Pasangan"
 }

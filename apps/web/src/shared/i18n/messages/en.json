@@ -1130,5 +1130,6 @@
   "AI 回的格式不對": "The AI answered in the wrong format",
   "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "The model read the page, but its answer wasn't in a format the app understands. Press Re-run to try again; if it still fails, pick another model.",
   "AI 的回答太長被截斷了": "The AI's answer was too long and got cut off",
-  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "This page has many questions and the model hit its length limit halfway. Press Re-run to try again; if it still fails, pick a model that writes longer answers."
+  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "This page has many questions and the model hit its length limit halfway. Press Re-run to try again; if it still fails, pick a model that writes longer answers.",
+  "配對": "Match"
 }

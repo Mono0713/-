@@ -5,3 +5,6 @@ onlyBuiltDependencies:
   - "@napi-rs/canvas"
   - sharp
   - esbuild
+overrides:
+  # One KaTeX for everything: rehype-katex would bring its own copy, which never gets the mhchem (\ce) extension.
+  katex: ^0.18.9

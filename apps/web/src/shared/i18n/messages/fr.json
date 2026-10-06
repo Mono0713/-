@@ -1130,5 +1130,6 @@
   "AI 回的格式不對": "L'IA a répondu dans un mauvais format",
   "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "Le modèle a lu la page, mais sa réponse n'est pas dans un format que l'app comprend. Appuyez sur Relancer ; si cela échoue encore, choisissez un autre modèle.",
   "AI 的回答太長被截斷了": "La réponse de l'IA était trop longue et a été coupée",
-  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Cette page contient beaucoup de questions et le modèle a atteint sa limite de longueur en chemin. Appuyez sur Relancer ; si cela échoue encore, choisissez un modèle qui écrit des réponses plus longues."
+  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Cette page contient beaucoup de questions et le modèle a atteint sa limite de longueur en chemin. Appuyez sur Relancer ; si cela échoue encore, choisissez un modèle qui écrit des réponses plus longues.",
+  "配對": "Réponse"
 }

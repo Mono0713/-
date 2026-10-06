@@ -6,6 +6,7 @@ import { msg, type T } from '@/shared/i18n/format'
 import { useT } from '@/shared/i18n/client'
 import { IconAlert } from '@/shared/icons'
 import { ConfirmNote } from './ConfirmNote'
+import { MatchingTable, matchingParts } from './MatchingTable'
 import { CONFIDENCE_LABELS, TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
 import { splitNumber } from '@/shared/questionNumber'
@@ -17,6 +18,14 @@ const SOURCE_LABELS = { printed: msg('印刷'), handwritten: msg('手寫'), none
  * Read-only rendering of a question, used in review and in the bank. `actions` sit at the end of its header line.
  * With `onConfirm` (review), what needs checking shows as one note with a button that clears it.
  */
+/** The marking rule, unless the section heading above the card already says it (e.g. 「多選題（答錯一個選項扣 2 分）」). */
+function ownRule(q: DraftQuestion): string | null {
+  const rule = q.markingRule?.trim()
+  if (!rule) return null
+  const squash = (s: string) => s.replace(/\s+/g, '')
+  return q.section && squash(q.section).includes(squash(rule)) ? null : rule
+}
+
 export function QuestionView({ q, compact = false, actions, onConfirm }: { q: DraftQuestion; compact?: boolean; actions?: React.ReactNode; onConfirm?: () => void }) {
   const t = useT()
   const blanks = questionFigures(q).flatMap((f) => f.image?.blanks ?? [])
@@ -24,16 +33,17 @@ export function QuestionView({ q, compact = false, actions, onConfirm }: { q: Dr
   const isChoice = q.type === 'single_choice' || q.type === 'multiple_choice'
   let blankOffset = 0
   const flagged = q.confidence !== 'high' || q.issues.length > 0
+  const table = q.type === 'matching' && q.options.length > 0 && matchingParts(q.stem).items.length > 0
   return (
     <div className="space-y-3">
       <QuestionHeading q={q} showConfidence={!onConfirm} actions={actions} />
 
-      <Markdown>{q.stem}</Markdown>
+      {table ? <MatchingTable q={q} /> : <Markdown>{q.stem}</Markdown>}
       {q.translation && <Markdown className="border-l-2 border-line pl-3 text-sm text-muted">{q.translation}</Markdown>}
-      {q.markingRule?.trim() && (
+      {ownRule(q) && (
         <p className="text-xs text-muted">
           {t('評分規則：')}
-          <span className="rounded bg-warn-soft px-1 text-ink/80">{q.markingRule.trim()}</span>
+          <span className="rounded bg-warn-soft px-1 text-ink/80">{ownRule(q)}</span>
         </p>
       )}
 
@@ -44,7 +54,7 @@ export function QuestionView({ q, compact = false, actions, onConfirm }: { q: Dr
         return <FigureView key={i} figure={f} answers={answers} />
       })}
 
-      {q.options.length > 0 && (
+      {q.options.length > 0 && !table && (
         <ul className={`grid gap-1.5 ${compact ? '' : 'sm:grid-cols-2'}`}>
           {q.options.map((o, i) => {
             const correct = isChoice && q.answer.values.includes(o.label)
@@ -61,7 +71,7 @@ export function QuestionView({ q, compact = false, actions, onConfirm }: { q: Dr
         </ul>
       )}
 
-      {q.answer.values.length > 0 && !(isChoice && q.options.length && q.answer.values.every((v) => q.options.some((o) => o.label === v))) && (
+      {q.answer.values.length > 0 && !table && !(isChoice && q.options.length && q.answer.values.every((v) => q.options.some((o) => o.label === v))) && (
         <div className="rounded-lg bg-good-soft px-3 py-2 text-sm">
           <span className="font-medium text-good">{SOURCE_LABELS[q.answer.source] ? t('答案（{source}）：', { source: t(SOURCE_LABELS[q.answer.source]) }) : t('答案：')}</span>
           {answerByBlank ? (
