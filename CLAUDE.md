@@ -40,8 +40,9 @@ Packages never import from apps.
 | ↳ 原卷、題目框、放大縮小 | | `review/PageViewer.tsx`, `review/useBoxEditing.ts` (move/resize boxes), `review/boxGeometry.ts`; box placement from AI: `packages/core/src/boxes.ts` |
 | ↳ 題目大綱、分隔線、版面記憶 | | `review/Outline.tsx`, `review/useWorkspaceLayout.ts` |
 | ↳ 題組/小題共用卡片 | | `review/GroupCard.tsx` |
-| ↳ 懸浮球（整份考卷／這一題的動作，分組） | | `review/useReviewFab.tsx` (what the FAB holds), `review/StrengthPanel.tsx` (AI 強度) |
-| ↳ AI 作答、AI 詳解（整份在懸浮球，單題在題目卡上） | | `review/useSolver.ts` (runs + undoable single-question redo), `review/SolveStatus.tsx` (progress toast), `solveQuestion` in `review/actions.ts`; `needsAnswer`/`needsExplanation` in `packages/core/src/answers.ts`; models: tasks `solving`/`explaining` in `packages/models/src/routing.ts`; AI `packages/grading/src/solver.ts` |
+| ↳ 懸浮球（全部生成答案/詳解、新增、複製、AI 強度和目前模型、復原） | | `review/useReviewFab.tsx` (what the FAB holds), `review/StrengthPanel.tsx` (AI 強度; models from `modelsByStrength` in `server/ai.ts`) |
+| ↳ 題目卡上的按鈕（拆小題、設為小題/移出小題、編輯、刪除、拖曳） | | `review/CardActions.tsx` |
+| ↳ AI 作答、AI 詳解（全部在懸浮球，單題在題目卡上） | | `review/useSolver.ts` (runs + undoable single-question redo), `review/SolveStatus.tsx` (progress toast), `solveQuestion` in `review/actions.ts`; `needsAnswer`/`needsExplanation` in `packages/core/src/answers.ts`; models: tasks `solving`/`explaining` in `packages/models/src/routing.ts`; AI `packages/grading/src/solver.ts` |
 | 題目卡（看）/ 題目編輯表單 | | `features/questions/QuestionView.tsx` (配合題 as a table: `MatchingTable.tsx`), `QuestionEditor.tsx` → `OptionsEditor.tsx`, `AnswerEditor.tsx`, `editorParts.tsx` |
 | 題目圖片：重新框選、換圖、上傳、刪除 | | `features/questions/FiguresEditor.tsx`, `FigureCropper.tsx` (框選原卷); `recropFigure`/`uploadFigureImage` in `questions/actions.ts`; `packages/figures/src/upload.ts` |
 | 圖片空格清理 | | `features/questions/FigureBlanksEditor.tsx`, `packages/figures` |

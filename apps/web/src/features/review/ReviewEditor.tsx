@@ -7,19 +7,20 @@ import type { Strength } from '@exam/models'
 import { useState } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
 import { QuestionView } from '@/features/questions/QuestionView'
+import type { StrengthModels } from '@/server/ai'
 import { Fab } from '@/shared/chrome/Fab'
-import { IconCheck, IconChevronDown, IconEdit, IconGrip, IconLoader, IconPlus, IconSplit, IconTrash } from '@/shared/icons'
+import { IconCheck, IconChevronDown, IconPlus, IconTrash } from '@/shared/icons'
 import { msg } from '@/shared/i18n/format'
 import { useT } from '@/shared/i18n/client'
 import { Toast } from '@/shared/Toast'
 import { markSymbols } from '@/shared/markSymbols'
 import { Button, inputClass } from '@/shared/ui'
+import { CardActions, GripButton } from './CardActions'
 import { DragPreview } from './DragPreview'
 import { GroupCard } from './GroupCard'
 import { NumberBar } from './NumberBar'
 import { Outline } from './Outline'
 import { PageViewer } from './PageViewer'
-import { splitParts } from './parts'
 import { iconButton, ReviewToolbar } from './ReviewToolbar'
 import { ActiveOverlay, alongList, EdgeScroll, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 import { StrengthPanel } from './StrengthPanel'
@@ -47,6 +48,7 @@ export function ReviewEditor({
   notice,
   heading,
   strength,
+  models,
 }: {
   importId: string
   initial: DraftExam
@@ -58,6 +60,8 @@ export function ReviewEditor({
   heading: { title: string; meta?: string; menu?: React.ReactNode }
   /** The AI strength from settings; given, the floating button can change it. */
   strength?: Strength
+  /** The models each strength would use, shown beside it. */
+  models?: StrengthModels
 }) {
   const t = useT()
   // Phones show one side at a time.
@@ -104,7 +108,7 @@ export function ReviewEditor({
   // what the panel last saved, so the floating button's label follows it without a reload
   const [shownStrength, setShownStrength] = useState(strength ?? 'balanced')
   const solver = useSolver(importId, draft, keys.current, patchQuestion)
-  const fabActions = useReviewFab({ d: reviewDraft, solver, strength: strength && shownStrength, onStrength: () => setStrengthOpen(true) })
+  const fabActions = useReviewFab({ d: reviewDraft, solver, strength: strength && shownStrength, model: models?.[shownStrength].solving, onStrength: () => setStrengthOpen(true) })
 
   const metaFields = (compact: boolean) =>
     (
@@ -122,47 +126,6 @@ export function ReviewEditor({
     ))
 
   const visibleKeys = keys.current.filter((_, i) => !flaggedOnly || isFlagged(draft.questions[i]!))
-
-  // A card's buttons when it is not being edited; the dragged copy draws the same row (inert) so it lines up.
-  const viewActions = (q: DraftQuestion, index: number, handle: DragHandle | null) => (
-    <>
-      {solver.busy.has(keys.current[index]!) && (
-        <span className={`${iconButton} !text-accent`} title={solver.busy.get(keys.current[index]!) === 'answer' ? t('AI 作答中…') : t('AI 撰寫中…')}>
-          <IconLoader size={15} className="m-spin" />
-        </span>
-      )}
-      {!q.groupId && splitParts(q, '') && (
-        <button type="button" onClick={() => splitQuestion(index)} className={iconButton} aria-label={t('拆成小題')} title={t('拆成小題：(a)(b) 各自一題，可以分別作答和計分')}>
-          <IconSplit size={15} />
-        </button>
-      )}
-      <button type="button" onClick={() => setEditing(index)} className={iconButton} aria-label={t('編輯')} title={t('編輯（或點兩下題目）')}>
-        <IconEdit size={15} />
-      </button>
-      <button type="button" onClick={() => removeQuestion(index)} className={`${iconButton} hover:bg-bad-soft hover:text-bad`} aria-label={t('刪除')} title={t('刪除')}>
-        <IconTrash size={15} />
-      </button>
-      {handle ? (
-        gripButton(q, handle)
-      ) : (
-        <span className={iconButton.replace('text-muted', 'text-accent')}>
-          <IconGrip size={16} />
-        </span>
-      )}
-    </>
-  )
-  const gripButton = (q: DraftQuestion, handle: DragHandle) => (
-    <button
-      type="button"
-      {...handle}
-      className={`${iconButton} cursor-grab touch-none active:cursor-grabbing`}
-      aria-label={t('拖曳第 {n} 題來排序', { n: q.number })}
-      title={t('拖曳排序')}
-    >
-      <IconGrip size={16} />
-    </button>
-  )
-
 
   return (
     <div className="workspace">
@@ -335,7 +298,7 @@ export function ReviewEditor({
                                       <IconTrash size={15} />
                                     </button>
                                     {/* Phones keep the header on one line; cards are reordered outside editing there. */}
-                                    <span className="hidden sm:contents">{gripButton(q, handle)}</span>
+                                    <span className="hidden sm:contents"><GripButton q={q} handle={handle} /></span>
                                   </>
                                 }
                               />
@@ -343,7 +306,7 @@ export function ReviewEditor({
                               <QuestionView
                                 q={q}
                                 onConfirm={() => confirmQuestion(index)}
-                                actions={viewActions(q, index, handle)}
+                                actions={<CardActions d={reviewDraft} q={q} index={index} busy={solver.busy.get(key)} handle={handle} />}
                               />
                             )}
                           </section>
@@ -363,7 +326,7 @@ export function ReviewEditor({
                       inGroup={q.groupId !== null && draft.groups.some((g) => g.id === q.groupId)}
                       offset={cards.current.get(index)?.offsetTop ?? 0}
                       flagged={isFlagged(q)}
-                      actions={viewActions(q, index, null)}
+                      actions={<CardActions d={reviewDraft} q={q} index={index} busy={solver.busy.get(key)} handle={null} />}
                     />
                   ) : null
                 }}
@@ -386,7 +349,7 @@ export function ReviewEditor({
 
       <SolveStatus solver={solver} />
       <Fab actions={fabActions} badge={flagged || undefined} />
-      {strength && <StrengthPanel open={strengthOpen} initial={shownStrength} onChange={setShownStrength} onClose={() => setStrengthOpen(false)} />}
+      {strength && <StrengthPanel open={strengthOpen} initial={shownStrength} models={models} onChange={setShownStrength} onClose={() => setStrengthOpen(false)} />}
     </div>
   )
 }

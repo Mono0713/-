@@ -1,7 +1,7 @@
 import { DEFAULT_MODELS, type ModelTier } from '@exam/extraction'
 import { AUTO } from '@exam/importer'
 import { AiSolver, AiTeacher, AiTranslator, FreeTranslator, AiTutor, createTextModel, type TextModel } from '@exam/grading'
-import { BUILTIN_LABELS, BUILTIN_MODELS, route, type ModelChoice, type ProviderInfo, type Route, type Strength, type Task } from '@exam/models'
+import { BUILTIN_LABELS, BUILTIN_MODELS, route, STRENGTHS, type ModelChoice, type ProviderInfo, type Route, type Strength, type Task } from '@exam/models'
 import type { Settings } from '@exam/settings'
 import { authEnabled } from './auth'
 import { services } from './context'
@@ -87,6 +87,23 @@ function overrideOf(s: Settings, task: Task): ModelChoice | null {
 export async function routeFor(ownerId: string, task: Task): Promise<Route | null> {
   const s = await services().settings.get(ownerId)
   return route(task, strengthOf(s, task), providersOf(s), { override: overrideOf(s, task) })
+}
+
+/** The model each task would run on at each strength (null: no service with a key can do it). */
+export type StrengthModels = Record<Strength, Partial<Record<Task, string | null>>>
+
+/** What the strength switch shows beside each choice: the models it would pick for these tasks, by name. */
+export async function modelsByStrength(ownerId: string, tasks: Task[]): Promise<StrengthModels> {
+  const s = await services().settings.get(ownerId)
+  const providers = providersOf(s)
+  const name = (c: ModelChoice) => providers.find((p) => p.id === c.provider)?.models.find((m) => m.id === c.model)?.label ?? c.model
+  const at = (strength: Strength) =>
+    Object.fromEntries(tasks.map((task) => {
+      // a task given its own strength in settings keeps it whatever the overall one is
+      const r = route(task, s.taskStrength[task] ?? strength, providers, { override: overrideOf(s, task) })
+      return [task, r ? name(r.primary) : null]
+    }))
+  return Object.fromEntries(STRENGTHS.map((strength) => [strength, at(strength)])) as StrengthModels
 }
 
 export interface ProviderOption {

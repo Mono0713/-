@@ -28,13 +28,15 @@ export function SolveStatus({ solver }: { solver: Solver }) {
       : result?.failed
         ? t('其中 {failed} 題 AI 沒做出來。', { failed: result.failed })
         : result
-          ? result.job === 'answer' ? t('AI 作答完成，請確認答案。') : t('AI 詳解完成。')
+          ? result.scope === 'all'
+            ? t('全部重新生成好了，按「復原上一步」可以一次改回來。')
+            : result.job === 'answer' ? t('AI 作答完成，請確認答案。') : t('AI 詳解完成。')
           : ''
   return (
     <Toast
       show={Boolean(running || result)}
       action={result && result.failed && !result.error ? t('再試一次') : undefined}
-      onAction={() => result && runAll(result.job)}
+      onAction={() => result && runAll(result.job, 'missing')}
     >
       {running && <IconLoader size={15} className="m-spin shrink-0" aria-hidden />}
       <span className="num">{text}</span>

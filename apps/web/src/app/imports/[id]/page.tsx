@@ -10,7 +10,7 @@ import { RerunForm } from '@/features/imports/RerunForm'
 import { Scan } from '@/features/imports/Scan'
 import { ReviewEditor } from '@/features/review/ReviewEditor'
 import { services } from '@/server/context'
-import { availableProviders } from '@/server/ai'
+import { availableProviders, modelsByStrength } from '@/server/ai'
 import { ownedImport } from '@/server/owned'
 import type { T } from '@/shared/i18n/format'
 import { getT } from '@/shared/i18n/server'
@@ -103,6 +103,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         pages={pages}
         savedExam={savedExam}
         strength={(await services().settings.get(imp.ownerId)).strength}
+        models={await modelsByStrength(imp.ownerId, ['recognition', 'solving', 'explaining'])}
         heading={{
           title: imp.title ?? imp.fileName,
           meta: imp.provider === BLANK ? t('從零建立') : t('{n} 頁 · {provider}', { n: imp.pageCount, provider: readBy(imp, results, t) }),
