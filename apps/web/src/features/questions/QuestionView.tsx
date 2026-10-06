@@ -12,7 +12,7 @@ import { Markdown } from '@/shared/Markdown'
 import { splitNumber } from '@/shared/questionNumber'
 import { Badge } from '@/shared/ui'
 
-const SOURCE_LABELS = { printed: msg('印刷'), handwritten: msg('手寫'), none: '' } as const
+const SOURCE_LABELS = { printed: msg('印刷'), handwritten: msg('手寫'), ai: msg('AI 解答'), none: '' } as const
 
 /**
  * Read-only rendering of a question, used in review and in the bank. `actions` sit at the end of its header line.

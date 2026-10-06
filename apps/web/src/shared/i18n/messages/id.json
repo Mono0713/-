@@ -1131,5 +1131,15 @@
   "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "Model sudah membaca halaman, tetapi jawabannya tidak dalam format yang dipahami aplikasi. Tekan Kenali ulang; kalau masih gagal, pilih model lain.",
   "AI 的回答太長被截斷了": "Jawaban AI terlalu panjang dan terpotong",
   "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Halaman ini berisi banyak soal dan model mencapai batas panjangnya di tengah jalan. Tekan Kenali ulang; kalau masih gagal, pilih model yang bisa menulis jawaban lebih panjang.",
-  "配對": "Pasangan"
+  "配對": "Pasangan",
+  "AI 解答": "Jawaban AI",
+  "答案由 AI 作答，請確認是否正確。": "Jawaban ini dikerjakan AI. Mohon periksa kembali.",
+  "AI 正在作答…（{done} / {total}）": "AI sedang menjawab… ({done} / {total})",
+  "還有 {n} 題沒有答案，其中 {failed} 題 AI 沒答出來。": "Masih ada {n} soal tanpa jawaban; AI tidak bisa menjawab {failed} di antaranya.",
+  "有 {n} 題卷上沒有答案。": "{n} soal tidak memiliki jawaban di kertas.",
+  "再試一次": "Coba lagi",
+  "讓 AI 作答": "Biarkan AI menjawab",
+  "這題已經有答案了。": "Soal ini sudah punya jawaban.",
+  "還沒有 API 金鑰：先到設定加上任一家的金鑰。": "Belum ada kunci API: tambahkan dulu kunci dari penyedia mana pun di Pengaturan.",
+  "AI 這題沒有答出來，可以再試一次或自己填答案。": "AI tidak bisa menjawab soal ini. Coba lagi atau isi jawabannya sendiri."
 }

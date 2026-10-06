@@ -1131,5 +1131,15 @@
   "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "Mô hình đã đọc trang nhưng câu trả lời không theo định dạng ứng dụng hiểu được. Bấm Nhận dạng lại; nếu vẫn lỗi, hãy chọn mô hình khác.",
   "AI 的回答太長被截斷了": "Câu trả lời của AI quá dài nên bị cắt",
   "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Trang này có nhiều câu hỏi nên mô hình chạm giới hạn độ dài giữa chừng. Bấm Nhận dạng lại; nếu vẫn lỗi, hãy chọn mô hình viết được câu trả lời dài hơn.",
-  "配對": "Ghép"
+  "配對": "Ghép",
+  "AI 解答": "Đáp án của AI",
+  "答案由 AI 作答，請確認是否正確。": "Đáp án này do AI giải. Hãy kiểm tra lại.",
+  "AI 正在作答…（{done} / {total}）": "AI đang giải… ({done} / {total})",
+  "還有 {n} 題沒有答案，其中 {failed} 題 AI 沒答出來。": "Còn {n} câu chưa có đáp án, trong đó AI không giải được {failed} câu.",
+  "有 {n} 題卷上沒有答案。": "Có {n} câu không có đáp án trên đề.",
+  "再試一次": "Thử lại",
+  "讓 AI 作答": "Để AI giải",
+  "這題已經有答案了。": "Câu này đã có đáp án.",
+  "還沒有 API 金鑰：先到設定加上任一家的金鑰。": "Chưa có khóa API: hãy thêm khóa của bất kỳ nhà cung cấp nào trong Cài đặt.",
+  "AI 這題沒有答出來，可以再試一次或自己填答案。": "AI không giải được câu này. Hãy thử lại hoặc tự điền đáp án."
 }

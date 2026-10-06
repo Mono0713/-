@@ -1131,5 +1131,15 @@
   "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "Le modèle a lu la page, mais sa réponse n'est pas dans un format que l'app comprend. Appuyez sur Relancer ; si cela échoue encore, choisissez un autre modèle.",
   "AI 的回答太長被截斷了": "La réponse de l'IA était trop longue et a été coupée",
   "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Cette page contient beaucoup de questions et le modèle a atteint sa limite de longueur en chemin. Appuyez sur Relancer ; si cela échoue encore, choisissez un modèle qui écrit des réponses plus longues.",
-  "配對": "Réponse"
+  "配對": "Réponse",
+  "AI 解答": "Réponse de l’IA",
+  "答案由 AI 作答，請確認是否正確。": "Cette réponse a été trouvée par l’IA. Vérifiez-la.",
+  "AI 正在作答…（{done} / {total}）": "L’IA répond… ({done} / {total})",
+  "還有 {n} 題沒有答案，其中 {failed} 題 AI 沒答出來。": "{n} questions n’ont toujours pas de réponse ; l’IA n’a pas trouvé {failed} d’entre elles.",
+  "有 {n} 題卷上沒有答案。": "{n} questions n’ont pas de réponse sur la feuille.",
+  "再試一次": "Réessayer",
+  "讓 AI 作答": "Faire répondre l’IA",
+  "這題已經有答案了。": "Cette question a déjà une réponse.",
+  "還沒有 API 金鑰：先到設定加上任一家的金鑰。": "Pas encore de clé API : ajoutez-en une, de n’importe quel fournisseur, dans les réglages.",
+  "AI 這題沒有答出來，可以再試一次或自己填答案。": "L’IA n’a pas trouvé celle-ci. Réessayez ou saisissez la réponse vous-même."
 }

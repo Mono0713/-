@@ -46,6 +46,12 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
   }
 
   const updateQuestion = (index: number, q: DraftQuestion) => setDraft((d) => ({ ...d, questions: d.questions.map((x, i) => (i === index ? q : x)) }))
+  // Changes the question with this card key wherever it is now (it may have moved meanwhile), keeping later edits to the others.
+  const patchQuestion = (key: string, patch: (q: DraftQuestion) => DraftQuestion) =>
+    setDraft((d) => {
+      const index = keys.current.indexOf(key)
+      return index < 0 ? d : { ...d, questions: d.questions.map((x, i) => (i === index ? patch(x) : x)) }
+    })
   const confirmQuestion = (index: number) => updateQuestion(index, { ...draft.questions[index]!, confidence: 'high', issues: [] })
   // "(a) … (b) …" in one question becomes one question per part under a shared group.
   const splitQuestion = (index: number) => {
@@ -217,6 +223,7 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     editing,
     setEditing,
     updateQuestion,
+    patchQuestion,
     confirmQuestion,
     splitQuestion,
     mergeGroup,

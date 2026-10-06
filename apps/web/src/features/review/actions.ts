@@ -1,9 +1,11 @@
 'use server'
 
-import type { DraftExam } from '@exam/core'
+import { type DraftExam, type DraftQuestion, needsAnswer } from '@exam/core'
 import { revalidatePath } from 'next/cache'
-import { services } from '@/server/context'
+import { solverFor } from '@/server/ai'
+import { currentOwner, keyPrefixOf, localeOf, services } from '@/server/context'
 import { requireImport } from '@/server/owned'
+import { getT } from '@/shared/i18n/server'
 
 export async function saveDraft(importId: string, draft: DraftExam) {
   await requireImport(importId)
@@ -19,4 +21,27 @@ export async function publishDraft(importId: string, draft: DraftExam): Promise<
   revalidatePath('/imports')
   revalidatePath(`/imports/${importId}`)
   return { count: exam.questionCount, examId: exam.id }
+}
+
+/**
+ * The AI's answer and explanation for one question the paper printed no key for. The question
+ * comes from the editor (it may have unsaved edits); only figures in the person's own files are read.
+ */
+export async function solveAnswer(importId: string, question: DraftQuestion, shared: string | null): Promise<{ values: string[]; explanation: string } | { error: string }> {
+  await requireImport(importId)
+  const t = await getT()
+  if (!needsAnswer(question)) return { error: t('這題已經有答案了。') }
+  const owner = await currentOwner()
+  const solver = await solverFor(owner)
+  if (!solver) return { error: t('還沒有 API 金鑰：先到設定加上任一家的金鑰。') }
+  const prefix = keyPrefixOf(owner)
+  const { files } = services()
+  const keys = question.figures.flatMap((f) => (f.image && f.image.file.startsWith(prefix) ? [f.image.file] : []))
+  const images = (await Promise.all(keys.map((k) => files.read(k)))).filter((b): b is Buffer => Boolean(b))
+  try {
+    return await solver.solve({ question, shared, images, language: await localeOf(owner) })
+  } catch (err) {
+    console.error('[review] AI could not answer a question', err)
+    return { error: t('AI 這題沒有答出來，可以再試一次或自己填答案。') }
+  }
 }
