@@ -28,10 +28,12 @@ export async function publishDraft(importId: string, draft: DraftExam): Promise<
  * `explain` writes a worked explanation for the key. The question comes from the editor (it may
  * have unsaved edits); only figures in the person's own files are read.
  */
-export async function solveQuestion(importId: string, job: 'answer' | 'explain', question: DraftQuestion, shared: string | null): Promise<{ values: string[] } | { explanation: string } | { error: string }> {
+export async function solveQuestion(importId: string, job: 'answer' | 'explain', question: DraftQuestion, shared: string | null, again = false): Promise<{ values: string[] } | { explanation: string } | { error: string }> {
   await requireImport(importId)
   const t = await getT()
-  if (job === 'answer' ? !needsAnswer(question) : !needsExplanation(question)) return { error: t('這題不需要了。') }
+  // `again`: asked for this one question, so a key or explanation already there is redone.
+  if (!again && (job === 'answer' ? !needsAnswer(question) : !needsExplanation(question))) return { error: t('這題不需要了。') }
+  if (job === 'explain' && !question.answer.values.some((v) => v.trim())) return { error: t('先填好答案，或先讓 AI 作答，再寫詳解。') }
   const owner = await currentOwner()
   const solver = await solverFor(owner, job === 'answer' ? 'solving' : 'explaining')
   if (!solver) return { error: t('還沒有 API 金鑰：先到設定加上任一家的金鑰。') }

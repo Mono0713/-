@@ -14,7 +14,11 @@ export const isFlagged = (q: DraftQuestion) => q.confidence !== 'high' || q.issu
 
 // Deleting asks nothing; Ctrl+Z (or 復原 on the note) puts questions back, last deleted first.
 // A box moved on the original page goes on the same stack, so Ctrl+Z also puts it back.
-type Undo = { kind: 'delete'; index: number; question: DraftQuestion; key: string } | { kind: 'box'; key: string; locations: DraftQuestion['locations'] }
+// An AI answer or explanation that replaced one already there goes on it too.
+type Undo =
+  | { kind: 'delete'; index: number; question: DraftQuestion; key: string }
+  | { kind: 'box'; key: string; locations: DraftQuestion['locations'] }
+  | { kind: 'replace'; key: string; question: DraftQuestion }
 
 /**
  * The draft being reviewed and every edit to it: which question is selected or being edited,
@@ -47,10 +51,13 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
 
   const updateQuestion = (index: number, q: DraftQuestion) => setDraft((d) => ({ ...d, questions: d.questions.map((x, i) => (i === index ? q : x)) }))
   // Changes the question with this card key wherever it is now (it may have moved meanwhile), keeping later edits to the others.
-  const patchQuestion = (key: string, patch: (q: DraftQuestion) => DraftQuestion) =>
+  // `undoable`: Ctrl+Z (or 復原上一步) brings back the question as it was before the patch.
+  const patchQuestion = (key: string, patch: (q: DraftQuestion) => DraftQuestion, undoable = false) =>
     setDraft((d) => {
       const index = keys.current.indexOf(key)
-      return index < 0 ? d : { ...d, questions: d.questions.map((x, i) => (i === index ? patch(x) : x)) }
+      if (index < 0) return d
+      if (undoable && !trash.current.some((u) => u.kind === 'replace' && u.question === d.questions[index])) trash.current.push({ kind: 'replace', key, question: d.questions[index]! })
+      return { ...d, questions: d.questions.map((x, i) => (i === index ? patch(x) : x)) }
     })
   const confirmQuestion = (index: number) => updateQuestion(index, { ...draft.questions[index]!, confidence: 'high', issues: [] })
   // "(a) … (b) …" in one question becomes one question per part under a shared group.
@@ -124,6 +131,14 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
   const undo = () => {
     const last = trash.current.pop()
     if (!last) return
+    if (last.kind === 'replace') {
+      const index = keys.current.indexOf(last.key)
+      if (index >= 0) {
+        setDraft((d) => ({ ...d, questions: d.questions.map((q, i) => (i === index ? last.question : q)) }))
+        setSelected(index)
+      }
+      return
+    }
     if (last.kind === 'box') {
       const index = keys.current.indexOf(last.key)
       if (index >= 0) {

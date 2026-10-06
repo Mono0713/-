@@ -2,16 +2,15 @@
 
 import { QuestionType, type Answer, type DraftQuestion } from '@exam/core'
 import { useState, type ReactNode } from 'react'
-import { FigureView } from '@/shared/FigureView'
 import { useT } from '@/shared/i18n/client'
-import { FigureBlanksEditor } from './FigureBlanksEditor'
+import type { CropPage } from './FigureCropper'
+import { FiguresEditor } from './FiguresEditor'
 import { IconAlert, IconChevronDown, IconX } from '@/shared/icons'
 import { TYPE_LABELS } from '@/shared/labels'
-import { Listbox } from '@/shared/Listbox'
 import { Markdown } from '@/shared/Markdown'
 import { MathTextInput } from '@/shared/math/MathTextInput'
 import { AnswerEditor } from './AnswerEditor'
-import { AddChip, chip, RemoveButton } from './editorParts'
+import { AddChip, AiButton, chip, RemoveButton, type QuestionAi } from './editorParts'
 import { OptionsEditor } from './OptionsEditor'
 
 const TYPES = QuestionType.options
@@ -27,11 +26,17 @@ export function QuestionEditor({
   onChange,
   importId = null,
   actions,
+  ai,
+  pages = [],
 }: {
   value: DraftQuestion
   onChange: (q: DraftQuestion) => void
   importId?: string | null
   actions?: ReactNode
+  /** AI 作答 / AI 詳解 for this question, where the page offers them. */
+  ai?: QuestionAi
+  /** The original pages, so a picture can be framed again on its page (review only). */
+  pages?: CropPage[]
 }) {
   const t = useT()
   const set = <K extends keyof DraftQuestion>(key: K, v: DraftQuestion[K]) => onChange({ ...q, [key]: v })
@@ -42,6 +47,7 @@ export function QuestionEditor({
   const showTranslation = extra.translation || Boolean(q.translation)
   const showExplanation = extra.explanation || Boolean(q.explanation)
   const showRule = extra.rule || Boolean(q.markingRule)
+  const hasKey = q.answer.values.some((v) => v.trim())
 
   return (
     <div className="space-y-3">
@@ -100,41 +106,15 @@ export function QuestionEditor({
 
       <MathTextInput label={t('題幹')} value={q.stem} onChange={(v) => set('stem', v)} />
 
-      {q.figures.map((f, i) => (
-        <div key={i} className="rounded-xl border border-line p-2">
-          <FigureView figure={f} />
-          {q.options.length > 0 && (
-            // A picture can be one of the options instead of part of the question.
-            <div className="mt-2 flex items-center gap-2 px-1 text-xs text-muted">
-              <span>{t('這張圖是')}</span>
-              <Listbox
-                label={t('這張圖是')}
-                className={`${chip} min-w-32 px-3 text-ink`}
-                value={f.option && q.options.some((o) => o.label === f.option) ? f.option : ''}
-                groups={[{ options: [{ value: '', label: t('題目的圖') }, ...q.options.map((o) => ({ value: o.label, label: t('選項 ({label})', { label: o.label }) }))] }]}
-                onChange={(v) => set('figures', q.figures.map((g, j) => (j === i ? { ...g, option: v || null } : g)))}
-              />
-            </div>
-          )}
-          <MathTextInput
-            multiline={false}
-            prefix={<span className="pl-1.5 text-[11px] font-medium text-muted">{t('說明')}</span>}
-            placeholder={t('圖片說明')}
-            value={f.description}
-            onChange={(v) => set('figures', q.figures.map((g, j) => (j === i ? { ...g, description: v } : g)))}
-            className="mt-2"
-          />
-          {f.blanks.length ? (
-            <div className="px-1">
-              <FigureBlanksEditor figure={f} importId={importId} onChange={(g) => set('figures', q.figures.map((x, j) => (j === i ? g : x)))} />
-            </div>
-          ) : null}
-        </div>
-      ))}
+      <FiguresEditor q={q} onChange={onChange} importId={importId} pages={pages} />
 
       {hasChoices && <OptionsEditor q={q} onChange={onChange} />}
 
-      <AnswerEditor q={q} setAnswer={setAnswer} />
+      <AnswerEditor
+        q={q}
+        setAnswer={setAnswer}
+        extra={ai && <AiButton label={ai.busy === 'answer' ? t('AI 作答中…') : t('AI 作答')} title={hasKey ? t('讓 AI 重新作答這一題（可以復原）') : t('讓 AI 作答這一題')} busy={ai.busy === 'answer'} onClick={ai.answer} />}
+      />
 
       {showTranslation && (
         <MathTextInput
@@ -149,7 +129,12 @@ export function QuestionEditor({
           label={t('詳解')}
           value={q.explanation ?? ''}
           onChange={(v) => set('explanation', v || null)}
-          actions={<RemoveButton label={t('移除詳解')} onClick={() => (set('explanation', null), setExtra({ ...extra, explanation: false }))} />}
+          actions={
+            <>
+              {ai && hasKey && <AiButton label={ai.busy === 'explain' ? t('AI 撰寫中…') : t('AI 重寫')} title={t('讓 AI 重新寫這一題的詳解（可以復原）')} busy={ai.busy === 'explain'} onClick={ai.explain} />}
+              <RemoveButton label={t('移除詳解')} onClick={() => (set('explanation', null), setExtra({ ...extra, explanation: false }))} />
+            </>
+          }
         />
       )}
       {showRule && (
@@ -166,6 +151,7 @@ export function QuestionEditor({
         <div className="flex flex-wrap gap-1.5">
           {!showTranslation && <AddChip onClick={() => setExtra({ ...extra, translation: true })}>{t('翻譯')}</AddChip>}
           {!showExplanation && <AddChip onClick={() => setExtra({ ...extra, explanation: true })}>{t('詳解')}</AddChip>}
+          {!showExplanation && ai && hasKey && <AiButton chip label={ai.busy === 'explain' ? t('AI 撰寫中…') : t('AI 詳解')} title={t('讓 AI 寫這一題的詳解')} busy={ai.busy === 'explain'} onClick={ai.explain} />}
           {!showRule && <AddChip onClick={() => setExtra({ ...extra, rule: true })}>{t('評分規則')}</AddChip>}
         </div>
       )}

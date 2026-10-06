@@ -283,3 +283,4 @@ class Page {
   }
 }
 export { snapBoxesToText, lineShift } from './snap.ts'
+export { figureFromUpload } from './upload.ts'

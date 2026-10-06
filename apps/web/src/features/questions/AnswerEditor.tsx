@@ -15,7 +15,7 @@ const SOURCES: [Answer['source'], string][] = [
   ['none', msg('無')],
 ]
 
-export function AnswerEditor({ q, setAnswer }: { q: DraftQuestion; setAnswer: (patch: Partial<Answer>) => void }) {
+export function AnswerEditor({ q, setAnswer, extra }: { q: DraftQuestion; setAnswer: (patch: Partial<Answer>) => void; extra?: React.ReactNode }) {
   const t = useT()
   const blanks = q.figures.flatMap((f) => f.image?.blanks ?? f.blanks)
   const toggle = (label: string) => {
@@ -137,6 +137,7 @@ export function AnswerEditor({ q, setAnswer }: { q: DraftQuestion; setAnswer: (p
   return (
     <div>
       <SectionHead title={t('答案')}>
+        {extra}
         {more}
         <div className="flex rounded-lg bg-ink/[0.045] p-0.5" role="group" aria-label={t('答案來源')} title={t('答案來源：卷上印的、手寫的，或沒有')}>
           {SOURCES.map(([v, text]) => (
