@@ -11,7 +11,7 @@ export interface UnitTokens {
  * Typical tokens per unit of each task, used until the person's own usage says otherwise:
  * a page read (image, instructions, the JSON reply), an answer read from handwriting,
  * a marking request (up to ten answers sharing the instructions), a tutoring reply,
- * a question translated.
+ * a question translated, a question answered or explained.
  */
 export const TYPICAL: Record<Task, UnitTokens> = {
   recognition: { input: 6000, output: 3000 },
@@ -19,6 +19,8 @@ export const TYPICAL: Record<Task, UnitTokens> = {
   grading: { input: 4000, output: 1200 },
   tutoring: { input: 3000, output: 600 },
   translation: { input: 300, output: 300 },
+  solving: { input: 1500, output: 400 },
+  explaining: { input: 1500, output: 700 },
 }
 
 /** Share of pages read a second time by the escalation model, on average. */

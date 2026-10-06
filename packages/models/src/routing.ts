@@ -1,15 +1,15 @@
 import { TIERS, type ModelInfo, type ProviderInfo, type Tier } from './catalog.ts'
 
 /** The jobs the app gives AI. Each picks its own model, so the cheap jobs never pay for the expensive ones. */
-export type Task = 'recognition' | 'handwriting' | 'grading' | 'tutoring' | 'translation'
-export const TASKS: readonly Task[] = ['recognition', 'handwriting', 'grading', 'tutoring', 'translation']
+export type Task = 'recognition' | 'handwriting' | 'grading' | 'tutoring' | 'translation' | 'solving' | 'explaining'
+export const TASKS: readonly Task[] = ['recognition', 'handwriting', 'grading', 'tutoring', 'translation', 'solving', 'explaining']
 
 /** The one setting most people touch: save money, balance, or be as accurate as possible. */
 export type Strength = 'save' | 'balanced' | 'best'
 export const STRENGTHS: readonly Strength[] = ['save', 'balanced', 'best']
 
 /** Tasks that send images, so only models that can see qualify. */
-const NEEDS_VISION: Record<Task, boolean> = { recognition: true, handwriting: true, grading: false, tutoring: false, translation: false }
+const NEEDS_VISION: Record<Task, boolean> = { recognition: true, handwriting: true, grading: false, tutoring: false, translation: false, solving: false, explaining: false }
 
 /**
  * Which tier each task uses at each strength, and for recognition, the tier a doubtful
@@ -22,6 +22,9 @@ export const PLAN: Record<Task, Record<Strength, { tier: Tier; escalate?: Tier }
   grading: { save: { tier: 'fast' }, balanced: { tier: 'fast' }, best: { tier: 'balanced' } },
   tutoring: { save: { tier: 'fast' }, balanced: { tier: 'balanced' }, best: { tier: 'best' } },
   translation: { save: { tier: 'fast' }, balanced: { tier: 'fast' }, best: { tier: 'balanced' } },
+  // Working out a key the paper left out, and writing a worked explanation: both need real reasoning.
+  solving: { save: { tier: 'fast' }, balanced: { tier: 'balanced' }, best: { tier: 'best' } },
+  explaining: { save: { tier: 'fast' }, balanced: { tier: 'balanced' }, best: { tier: 'best' } },
 }
 
 export interface ModelChoice {
