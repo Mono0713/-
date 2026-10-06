@@ -59,6 +59,13 @@ Packages never import from apps.
 | 測驗紀錄列表 | `app/quiz/page.tsx` | `features/quiz/QuizList.tsx` |
 | 分享連結 | `app/s/[token]` | `features/sharing/*`, `packages/sharing`, `server/shared.ts` |
 | 班級、作業、交卷、老師批閱 | `app/classes/**` | `features/classes/*`, `server/classes.ts`, `packages/classes` |
+| ↳ 派作業、選考卷 | `app/classes/assign` | `classes/AssignForm.tsx`, `ExamPicker.tsx`, `actions.ts` (`createAssignments`) |
+| ↳ 成績表、分布圖、選項分析、每題得分率 | `classes/[id]/a/[aid]` | `classes/ResultsTable.tsx`, `ScoreDistribution.tsx`, `OptionAnalysis.tsx`; math `packages/classes/src/analysis.ts`, `stats.ts` |
+| ↳ 匯出成績 CSV | `app/api/classes/[id]/export` | `classes/ExportLink.tsx`, `server/gradebook.ts` |
+| ↳ 學生個人成績頁（折線圖、弱點題型） | `classes/[id]/s/[userId]` | `classes/ScoreLine.tsx`, `typeRates` in `analysis.ts` |
+| ↳ 個人延長／補考、錯題複習卷、公告 | | `classes/ExceptionEditor.tsx`, `ReviewSetButton.tsx`, `Announcements.tsx`, actions `teaching.ts`; rules `packages/classes/src/exceptions.ts` (`rulesFor`, `isOpenFor`, `lastClose`) |
+| ↳ 學生待辦清單 | `app/classes` | `classes/TodoList.tsx` |
+| ↳ 考試防作弊（離開畫面、截圖鍵、全螢幕） | `app/quiz/[id]` | `classes/Proctor.tsx` (records), `integrity.ts` (saves), `integrityCounts.ts`, `IntegrityLog.tsx` (老師看紀錄); `IntegrityEvent` in `packages/quiz/src/types.ts` |
 | 派作業（選考卷、派給一或多個班級；題庫考卷頁的「派給班級」） | `app/classes/assign` | `features/classes/AssignForm.tsx`, `ExamPicker.tsx` (搜尋＋科目篩選), `createAssignments` in `features/classes/actions.ts` |
 | 多選題部分給分（考卷設定） | `app/bank/exams/[id]` | `features/bank/ExamMetaForm.tsx`; `multiplePartial` on `BankExam` (`packages/bank`, column `multiple_partial`) |
 | 設定頁 | `app/settings/page.tsx` | `features/settings/SettingsForm.tsx` (API 金鑰 rows), `StrengthSettings`, `ModelPicker`, `CustomProviders`, `TranslationSettings`, `StorageCard`, `ProfileEditor`/`ProfileCard` |
@@ -103,7 +110,7 @@ Packages never import from apps.
 | `grading` | AI teacher, handwriting reader, tutor, translation, their caches |
 | `models` | Model catalog, prices, routing by AI strength (see `packages/models/SPEC.md`) |
 | `settings` | Per-user settings and their stores, locales list |
-| `sharing`, `classes`, `usage` | Share links; classes and assignments; AI usage log |
+| `sharing`, `classes`, `usage` | Share links; classes and assignments (`types.ts`, stores `sqlite.ts`/`postgres.ts`, `rows.ts`, `stats.ts`, `analysis.ts`, `exceptions.ts`); AI usage log |
 | `files` | File storage (local folder or R2) with dedup |
 | `ink` | Handwriting data and practice papers |
 | `db` | Postgres connection and `pnpm db:migrate` |

@@ -53,6 +53,7 @@ export function AssignForm({ classes, chosen, exams, preselected }: { classes: A
   const [opensAt, setOpensAt] = useState('')
   const [closesAt, setClosesAt] = useState('')
   const [answers, setAnswers] = useState<AssignmentAnswers>('after_close')
+  const [fullscreen, setFullscreen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pending, start] = useTransition()
 
@@ -69,7 +70,7 @@ export function AssignForm({ classes, chosen, exams, preselected }: { classes: A
       const result = await createAssignments(classIds, {
         examId,
         title: title || exam?.title || '',
-        settings: { mode, shuffleQuestions, shuffleOptions, timeLimitMinutes: timeLimit ? Number(timeLimit) : null, maxAttempts: maxAttempts ? Number(maxAttempts) : null, answers },
+        settings: { mode, shuffleQuestions, shuffleOptions, timeLimitMinutes: timeLimit ? Number(timeLimit) : null, maxAttempts: maxAttempts ? Number(maxAttempts) : null, answers, fullscreen },
         opensAt: toIso(opensAt),
         closesAt: toIso(closesAt),
       })
@@ -167,7 +168,19 @@ export function AssignForm({ classes, chosen, exams, preselected }: { classes: A
             <input type="checkbox" className="m-check" checked={shuffleOptions} onChange={(e) => setShuffleOptions(e.target.checked)} />
             {t('每個人的選項順序不同')}
           </label>
+          {mode === 'exam' && (
+            <label className="flex items-center gap-2">
+              <input type="checkbox" className="m-check" checked={fullscreen} onChange={(e) => setFullscreen(e.target.checked)} />
+              {t('考試時全螢幕')}
+            </label>
+          )}
         </div>
+        {mode === 'exam' && (
+          <p className="text-xs text-muted">
+            {t('考試會記錄學生離開畫面、切換視窗、按截圖鍵和複製貼上的次數，老師在成績表看得到。')}
+            {fullscreen && ` ${t('全螢幕時離開全螢幕也會記錄；iPhone 不支援全螢幕，只記錄離開畫面。')}`}
+          </p>
+        )}
         {exam && (
           <p className="text-xs text-muted">
             {exam.multiplePartial ? t('多選題部分給分（學測規則），照考卷的設定。') : t('多選題全對才給分，照考卷的設定。')}{' '}

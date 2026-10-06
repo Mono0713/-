@@ -1,9 +1,14 @@
-import { assignmentStats, isOpen } from '@exam/classes'
-import { isOver, summarize } from '@exam/quiz'
+import { assignmentStats, distribution, isOpenFor, optionStats, rulesFor } from '@exam/classes'
+import { isOver, summarize, type IntegrityEvent } from '@exam/quiz'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { AssignmentControls } from '@/features/classes/AssignmentControls'
+import { ExportLink } from '@/features/classes/ExportLink'
 import { LocalTime } from '@/features/classes/LocalTime'
+import { OptionAnalysis } from '@/features/classes/OptionAnalysis'
+import { ResultsTable } from '@/features/classes/ResultsTable'
+import { ReviewSetButton } from '@/features/classes/ReviewSetButton'
+import { ScoreDistribution } from '@/features/classes/ScoreDistribution'
 import { StartAssignment } from '@/features/classes/StartAssignment'
 import { inAssignment, resultsWithheld } from '@/server/classes'
 import { services } from '@/server/context'
@@ -18,6 +23,9 @@ const ANSWER_RULES = { after_submit: msg('交卷後公布答案'), after_close: 
 
 const percent = (share: number | null) => (share === null ? '—' : `${Math.round(share * 100)}%`)
 
+/** Questions below this share of the points go into 錯題組成複習卷. */
+const WEAK = 0.6
+
 export default async function AssignmentPage({ params }: { params: Promise<{ id: string; aid: string }> }) {
   const { id, aid } = await params
   const t = await getT()
@@ -26,12 +34,16 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
   const { assignment: a, classroom, me, teaches } = found
   const { classes, quizzes } = services()
   const s = a.settings
+  // A student sees their own deadline, tries and time when the teacher gave them more.
+  const rules = rulesFor(a, me.userId)
+  const mine = teaches ? { closesAt: a.closesAt, maxAttempts: s.maxAttempts, timeLimitMinutes: s.timeLimitMinutes } : rules
   const facts = [
     s.mode === 'exam' ? t('考試') : t('練習'),
     t('{n} 題', { n: a.sources.length }),
-    s.timeLimitMinutes ? t('限時 {n} 分鐘', { n: s.timeLimitMinutes }) : null,
-    s.maxAttempts ? t('可作答 {n} 次', { n: s.maxAttempts }) : t('次數不限'),
-    t(ANSWER_RULES[s.answers]),
+    s.mode === 'exam' && mine.timeLimitMinutes ? t('限時 {n} 分鐘', { n: mine.timeLimitMinutes }) : null,
+    mine.maxAttempts ? t('可作答 {n} 次', { n: mine.maxAttempts }) : t('次數不限'),
+    s.mode === 'exam' ? t(ANSWER_RULES[s.answers]) : null,
+    s.mode === 'exam' && s.fullscreen ? t('全螢幕') : null,
   ].filter(Boolean)
   const times = (
     <p className="text-sm text-muted">
@@ -47,10 +59,12 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
           {' · '}
         </>
       )}
-      {a.closesAt ? (
-        rich(t('截止 <time></time>'), { time: () => <LocalTime at={a.closesAt!} /> })
-      ) : (
-        t('沒有截止時間')
+      {mine.closesAt ? rich(t('截止 <time></time>'), { time: () => <LocalTime at={mine.closesAt!} /> }) : t('沒有截止時間')}
+      {!teaches && rules.exception && (
+        <>
+          {' '}
+          <Badge tone="accent">{t('老師給你延長')}</Badge>
+        </>
       )}
     </p>
   )
@@ -60,8 +74,8 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
     const handedIn = tries.find((x) => x.finishedAt && !x.assignment?.preview)
     const withheld = handedIn ? await resultsWithheld(handedIn) : false
     const running = tries.find((x) => !x.finishedAt && !isOver(x)) ?? null
-    const left = s.maxAttempts === null ? null : Math.max(0, s.maxAttempts - tries.length)
-    const open = isOpen(a)
+    const left = rules.maxAttempts === null ? null : Math.max(0, rules.maxAttempts - tries.length)
+    const open = isOpenFor(a, me.userId)
     return (
       <div className="mx-auto max-w-2xl space-y-4">
         <PageHeader
@@ -81,10 +95,11 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
             ))}
           </div>
           {times}
+          {s.mode === 'exam' && <p className="text-xs text-muted">{s.fullscreen ? t('這是全螢幕考試：離開全螢幕、切換分頁或程式、按截圖鍵都會記錄給老師。') : t('這份考試會記錄離開畫面、切換分頁或程式、按截圖鍵的次數給老師。')}</p>}
           {running ? (
-            <StartAssignment assignmentId={a.id} resume={running.id} label="" />
+            <StartAssignment assignmentId={a.id} resume={running.id} label="" fullscreen={false} />
           ) : open && left !== 0 ? (
-            <StartAssignment assignmentId={a.id} resume={null} label={tries.length ? t('再作答一次') : t('開始作答')} />
+            <StartAssignment assignmentId={a.id} resume={null} label={tries.length ? t('再作答一次') : t('開始作答')} fullscreen={s.mode === 'exam' && Boolean(s.fullscreen)} />
           ) : (
             <p className="text-sm text-muted">{!open ? (a.opensAt && new Date() < new Date(a.opensAt) ? t('作業還沒開始。') : t('作業已經截止。')) : t('已經用完可以作答的次數。')}</p>
           )}
@@ -123,6 +138,8 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
   const attempts = (await Promise.all(tries.filter((x) => !x.preview).map((x) => quizzes.get(x.attemptId)))).filter((x) => x !== null)
   const stats = assignmentStats(a.sources, members, attempts)
   const pending = stats.students.reduce((n, r) => n + (r.counted?.handedIn ? r.counted.pending : 0), 0)
+  const integrity = new Map<string, IntegrityEvent[]>(attempts.map((x) => [x.id, x.integrity ?? []]))
+  const weak = stats.questions.filter((q) => q.rate !== null && q.rate < WEAK).length
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -165,65 +182,8 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
             )}
           </Card>
 
-          <Card className="overflow-x-auto p-2">
-            <table className="w-full min-w-[30rem] text-sm">
-              <thead>
-                <tr className="text-left text-xs text-muted">
-                  <th className="px-3 py-2 font-medium">{t('學生')}</th>
-                  <th className="px-3 py-2 font-medium">{t('狀態')}</th>
-                  <th className="px-3 py-2 text-right font-medium">{t('得分')}</th>
-                  <th className="px-3 py-2 text-right font-medium">{t('次數')}</th>
-                  <th className="px-3 py-2 font-medium">{t('交卷時間')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.students.map((r) => {
-                  const c = r.counted
-                  const row = (
-                    <>
-                      <td className={`px-3 py-2 font-medium ${r.left ? 'text-muted' : ''}`}>{r.left ? t('已退出的學生') : r.name}</td>
-                      <td className="px-3 py-2">
-                        {!c ? (
-                          <Badge tone="warn">{t('未交')}</Badge>
-                        ) : !c.handedIn ? (
-                          <Badge tone="accent">{t('作答中')}</Badge>
-                        ) : c.pending ? (
-                          <Badge tone="accent">{t('待批改 {n}', { n: c.pending })}</Badge>
-                        ) : (
-                          <Badge tone="good">{t('已交')}</Badge>
-                        )}
-                      </td>
-                      <td className="num px-3 py-2 text-right">{c?.handedIn && c.max ? `${c.score} / ${c.max}` : '—'}</td>
-                      <td className="num px-3 py-2 text-right text-muted">{r.tries || '—'}</td>
-                      <td className="px-3 py-2 text-muted">{c?.finishedAt ? <LocalTime at={c.finishedAt} /> : '—'}</td>
-                    </>
-                  )
-                  return c?.handedIn ? (
-                    <tr key={r.userId} className="border-t border-line/70 hover:bg-paper">
-                      {row}
-                      <td className="px-3 py-2 text-right">
-                        <Link href={`/classes/${classroom.id}/a/${a.id}/r/${c.attemptId}`} className="text-accent hover:underline">
-                          {t('批改')}
-                        </Link>
-                      </td>
-                    </tr>
-                  ) : (
-                    <tr key={r.userId} className="border-t border-line/70">
-                      {row}
-                      <td />
-                    </tr>
-                  )
-                })}
-                {stats.students.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-3 py-6 text-center text-muted">
-                      {t('班上還沒有學生。把加入碼給學生，他們加入後會出現在這裡。')}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </Card>
+          <ResultsTable classId={classroom.id} assignment={a} students={stats.students} integrity={integrity} t={t} />
+          <ScoreDistribution d={distribution(stats.students)} average={stats.average} t={t} />
 
           <Card className="p-5">
             <h2 className="mb-3 text-sm font-semibold">{t('每題得分率')}</h2>
@@ -243,6 +203,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
               </ul>
             )}
           </Card>
+          <OptionAnalysis stats={optionStats(a.sources, stats.counted)} handedIn={stats.handedIn} t={t} />
         </div>
         <aside className="space-y-4">
           <Card className="space-y-3 p-4">
@@ -256,6 +217,10 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
             {times}
           </Card>
           <AssignmentControls classId={classroom.id} assignmentId={a.id} closesAt={a.closesAt} answers={s.answers} practice={s.mode === 'practice'} />
+          <Card className="space-y-4 p-4">
+            <ExportLink classId={classroom.id} assignmentId={a.id} label={t('匯出這份作業的成績')} />
+            {stats.handedIn > 0 && <ReviewSetButton assignmentId={a.id} weak={weak} />}
+          </Card>
         </aside>
       </div>
     </div>

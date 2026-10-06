@@ -119,6 +119,8 @@ export interface QuizAttempt {
   teacher?: TeacherState
   /** Conversations with the AI tutor, by question position. */
   tutoring?: Record<number, TutorTurn[]>
+  /** What the browser noticed during a class exam: leaving the page, the window or full screen, screenshot keys. */
+  integrity?: IntegrityEvent[]
   /** Translations asked for, by question position: the stem and each option in its stored order, and which way made them. */
   translations?: Record<number, { stem: string; options: string[]; engine?: 'free' | 'ai' }>
 }
@@ -128,4 +130,17 @@ export interface TutorTurn {
   from: 'student' | 'tutor'
   text: string
   at: string
+}
+
+/**
+ * Something the exam page saw that may mean looking elsewhere. hidden: the page left the screen
+ * (another tab or app, the home screen); blur: the window lost focus while still showing (another
+ * window, a screenshot or Lens overlay); fullscreen: full screen was left; screenshot: a
+ * screenshot key was pressed; copy: text was copied or cut; paste: something was pasted in.
+ */
+export interface IntegrityEvent {
+  kind: 'hidden' | 'blur' | 'fullscreen' | 'screenshot' | 'copy' | 'paste'
+  at: string
+  /** How long it lasted, for leaving the page or the window. */
+  ms?: number
 }

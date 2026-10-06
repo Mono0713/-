@@ -1,5 +1,5 @@
 import { summarize, type QuizAttempt, type QuizSource } from '@exam/quiz'
-import type { Member } from './index.ts'
+import type { Member } from './types.ts'
 
 /** How one student did on an assignment: the attempt that counts is the last one handed in, else the one under way. */
 export interface StudentResult {
@@ -35,6 +35,8 @@ export interface AssignmentStats {
   students: StudentResult[]
   questions: QuestionStat[]
   handedIn: number
+  /** The handed-in attempts that count, one per student: what the charts and the export read. */
+  counted: QuizAttempt[]
   /** Average share of the points over the handed-in attempts; null before anyone handed in. */
   average: number | null
   /** Answers the AI marked, and how many of those the teacher changed. */
@@ -94,6 +96,7 @@ export function assignmentStats(sources: QuizSource[], members: Member[], attemp
       return { questionId: src.questionId, number: src.question.number, rate: e && e.max ? e.score / e.max : null, answered: e?.answered ?? 0 }
     }),
     handedIn: counted.length,
+    counted,
     average: counted.length ? shares / counted.length : null,
     aiMarked,
     overridden,

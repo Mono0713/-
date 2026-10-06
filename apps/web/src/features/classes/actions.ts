@@ -1,7 +1,7 @@
 'use server'
 
 import { randomUUID } from 'node:crypto'
-import { isOpen, type AiPayer, type AssignmentAnswers, type AssignmentSettings, type ClassRole } from '@exam/classes'
+import { isOpenFor, rulesFor, type AiPayer, type AssignmentAnswers, type AssignmentSettings, type ClassRole } from '@exam/classes'
 import type { Marking } from '@exam/quiz'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -118,7 +118,7 @@ export async function setMemberRole(classId: string, userId: string, role: Class
 export interface NewAssignmentInput {
   examId: string
   title: string
-  settings: Omit<AssignmentSettings, 'multiplePartial'>
+  settings: Omit<AssignmentSettings, 'multiplePartial' | 'exceptions'>
   opensAt: string | null
   closesAt: string | null
 }
@@ -158,6 +158,7 @@ export async function createAssignments(classIds: string[], input: NewAssignment
     maxAttempts: count(s.maxAttempts),
     // Practice shows each answer once it is written, so its answers cannot wait.
     answers: s.mode !== 'practice' && ANSWERS.includes(s.answers) ? s.answers : 'after_submit',
+    ...(s.mode === 'exam' && s.fullscreen && { fullscreen: true }),
   }
   const { sources } = await sourcesOf(items)
   const title = clean(input.title) || exam.title || t('未命名作業')
@@ -206,12 +207,15 @@ export async function startAssignment(assignmentId: string): Promise<{ error: st
   if (!found) return { error: t('找不到這份作業') }
   const { assignment, me, teaches } = found
   const { classes } = services()
+  // A student's own exception (a make-up, an extension) changes their deadline, tries and time.
+  const rules = rulesFor(assignment, me.userId)
   if (!teaches) {
-    if (!isOpen(assignment)) return { error: assignment.opensAt && new Date() < new Date(assignment.opensAt) ? t('作業還沒開始') : t('作業已經截止了') }
+    if (!isOpenFor(assignment, me.userId)) return { error: assignment.opensAt && new Date() < new Date(assignment.opensAt) ? t('作業還沒開始') : t('作業已經截止了') }
     const tries = (await classes.attempts(assignment.id, me.userId)).filter((a) => !a.preview).length
-    if (assignment.settings.maxAttempts !== null && tries >= assignment.settings.maxAttempts) return { error: t('已經用完可以作答的次數') }
+    if (rules.maxAttempts !== null && tries >= rules.maxAttempts) return { error: t('已經用完可以作答的次數') }
   }
-  const { mode, shuffleQuestions, shuffleOptions, timeLimitMinutes, multiplePartial } = assignment.settings
+  const { mode, shuffleQuestions, shuffleOptions, multiplePartial } = assignment.settings
+  const timeLimitMinutes = mode === 'exam' ? rules.timeLimitMinutes : null
   const attempt = await startFromSources({
     ownerId: me.userId,
     title: assignment.title,
@@ -219,7 +223,7 @@ export async function startAssignment(assignmentId: string): Promise<{ error: st
     sources: assignment.sources,
     settings: { mode, shuffleQuestions, shuffleOptions, timeLimitMinutes, multiplePartial },
     assignment: { classId: assignment.classId, assignmentId: assignment.id, ...(teaches && { preview: true }) },
-    endsBy: teaches ? null : assignment.closesAt,
+    endsBy: teaches ? null : rules.closesAt,
   })
   await classes.recordAttempt({ attemptId: attempt.id, assignmentId: assignment.id, userId: me.userId, preview: teaches })
   revalidatePath(`/classes/${assignment.classId}/a/${assignment.id}`)

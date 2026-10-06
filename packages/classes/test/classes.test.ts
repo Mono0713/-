@@ -2,7 +2,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { testDatabase } from '@exam/db'
 import { PostgresBank } from '@exam/bank'
 import { PostgresQuizStore, SqliteQuizStore, type QuizAttempt } from '@exam/quiz'
-import { isOpen, JOIN_CODE, normalizeCode, PostgresClassStore, SqliteClassStore, type AssignmentSettings, type ClassStore } from '../src/index.ts'
+import { isOpen, isOpenFor, JOIN_CODE, lastClose, normalizeCode, PostgresClassStore, rulesFor, SqliteClassStore, type AssignmentSettings, type ClassStore } from '../src/index.ts'
 
 const pg = await testDatabase()
 afterAll(() => pg?.drop())
@@ -95,6 +95,34 @@ describe.each(stores)('%s', (_name, open) => {
     await store.deleteAssignment(a.id)
     expect(await store.assignment(a.id)).toBeNull()
     expect(await store.attempts(a.id)).toEqual([])
+  })
+
+  it('gives one student their own deadline, tries and time, and takes it back', async () => {
+    const store = open()
+    const c = await store.create('teacher', '王老師', '補考')
+    const a = await store.assign({ classId: c.id, examId: null, title: 'x', settings: SETTINGS, sources: [], opensAt: null, closesAt: '2026-10-01T00:00:00.000Z' })
+    await store.updateAssignment(a.id, { exception: { userId: 'bo', value: { closesAt: '2026-10-08T00:00:00.000Z', extraAttempts: 1, extraMinutes: 10 } } })
+    const after = (await store.assignment(a.id))!
+    expect(rulesFor(after, 'bo')).toMatchObject({ closesAt: '2026-10-08T00:00:00.000Z', maxAttempts: 3, timeLimitMinutes: 40 })
+    expect(rulesFor(after, 'amy')).toMatchObject({ closesAt: '2026-10-01T00:00:00.000Z', maxAttempts: 2, timeLimitMinutes: 30, exception: null })
+    const now = new Date('2026-10-05T00:00:00Z')
+    expect([isOpenFor(after, 'bo', now), isOpenFor(after, 'amy', now)]).toEqual([true, false])
+    expect(lastClose(after)).toBe('2026-10-08T00:00:00.000Z')
+    await store.updateAssignment(a.id, { exception: { userId: 'bo', value: null } })
+    expect((await store.assignment(a.id))!.settings.exceptions).toEqual({})
+  })
+
+  it('posts and deletes announcements, newest first', async () => {
+    const store = open()
+    const c = await store.create('teacher', '王老師', '公告')
+    const first = await store.announce(c.id, 'teacher', '第一則')
+    await new Promise((r) => setTimeout(r, 5))
+    await store.announce(c.id, 'teacher', '第二則')
+    expect((await store.announcements(c.id)).map((a) => a.text)).toEqual(['第二則', '第一則'])
+    await store.deleteAnnouncement(first.id)
+    expect((await store.announcements(c.id)).map((a) => a.text)).toEqual(['第二則'])
+    await store.delete(c.id)
+    expect(await store.announcements(c.id)).toEqual([])
   })
 
   it('deletes a class with everything in it', async () => {

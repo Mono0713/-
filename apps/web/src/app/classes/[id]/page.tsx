@@ -1,11 +1,13 @@
-import { isOpen, type Assignment } from '@exam/classes'
+import { isOpen, rulesFor, type Assignment } from '@exam/classes'
 import { summarize } from '@exam/quiz'
 import Link from 'next/link'
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import QRCode from 'qrcode'
 import { AiPayment } from '@/features/classes/AiPayment'
+import { Announcements } from '@/features/classes/Announcements'
 import { ClassMenu } from '@/features/classes/ClassMenu'
+import { ExportLink } from '@/features/classes/ExportLink'
 import { JoinPanel } from '@/features/classes/JoinPanel'
 import { LocalTime } from '@/features/classes/LocalTime'
 import { Members } from '@/features/classes/Members'
@@ -51,7 +53,14 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
   if (!found) notFound()
   const { classroom, me, teaches } = found
   const { classes, quizzes } = services()
-  const [members, assignments] = await Promise.all([classes.members(classroom.id), classes.assignments(classroom.id)])
+  const [members, assignments, notes] = await Promise.all([classes.members(classroom.id), classes.assignments(classroom.id), classes.announcements(classroom.id)])
+  const announcements = (
+    <Announcements
+      classId={classroom.id}
+      canPost={teaches}
+      items={notes.map((n) => ({ id: n.id, text: n.text, createdAt: n.createdAt, author: members.find((m) => m.userId === n.authorId)?.name ?? t('老師') }))}
+    />
+  )
   const students = members.filter((m) => m.role === 'student')
   const role = me.role === 'teacher' ? 'owner' : me.role
 
@@ -75,7 +84,8 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
   if (!teaches) {
     // A student sees their own state on each assignment.
     const mine = await Promise.all(
-      assignments.map(async (a) => {
+      // Each with the student's own deadline when the teacher gave them more time.
+      assignments.map((x) => ({ ...x, closesAt: rulesFor(x, me.userId).closesAt })).map(async (a) => {
         const tries = await classes.attempts(a.id, me.userId)
         const attempts = (await Promise.all(tries.map((x) => quizzes.get(x.attemptId)))).filter((x) => x !== null)
         const done = attempts.filter((x) => x.finishedAt).at(-1)
@@ -83,8 +93,16 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
       }),
     )
     return (
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-3xl space-y-4">
         {header}
+        {announcements}
+        <Link href={`/classes/${classroom.id}/s/${me.userId}`} className="block">
+          <Card interactive className="flex items-center gap-3 p-4">
+            <span className="flex-1 text-sm font-medium">{t('我的成績')}</span>
+            <span className="text-xs text-muted">{t('歷次成績和常錯的題型')}</span>
+            <span className="text-muted">→</span>
+          </Card>
+        </Link>
         {assignments.length === 0 ? (
           <EmptyState title={t('還沒有作業')}>{t('老師派作業後會出現在這裡。')}</EmptyState>
         ) : (
@@ -130,6 +148,7 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
       {header}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <section className="min-w-0 space-y-3">
+          {announcements}
           {assignments.length === 0 ? (
             <EmptyState title={t('還沒有派作業')}>{t('按「派作業」從題庫挑一份考卷給全班，可以設定截止時間、限時、次數和公布答案的時間。')}</EmptyState>
           ) : (
@@ -156,6 +175,11 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
           )}
         </section>
         <aside className="space-y-4">
+          {assignments.length > 0 && (
+            <Card className="p-4">
+              <ExportLink classId={classroom.id} label={t('匯出全班成績')} />
+            </Card>
+          )}
           <JoinPanel classId={classroom.id} code={classroom.joinCode} open={classroom.joinOpen} link={link} qr={qr} />
           <Members classId={classroom.id} members={members.map(({ userId, name, role }) => ({ userId, name, role }))} me={me.userId} isOwner={me.role === 'teacher'} />
           <AiPayment classId={classroom.id} payer={classroom.aiPayer} cap={classroom.aiMonthlyCapUsd} spent={spent.usd} unpriced={spent.unpriced} canEdit={me.role === 'teacher'} />

@@ -12,6 +12,7 @@ import { ownedAttempt } from '@/server/owned'
 import { getLocale, getT } from '@/shared/i18n/server'
 import { intlTag } from '@/shared/i18n/locales'
 import { HandedIn } from '@/features/classes/HandedIn'
+import { Proctor } from '@/features/classes/Proctor'
 import { ButtonLink, PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -64,12 +65,16 @@ export default async function QuizPage({ params }: { params: Promise<{ id: strin
     )
   }
 
+  // A class exam is watched while it is written (not a teacher's own try, not practice).
+  const watched = attempt.assignment && !attempt.assignment.preview && attempt.settings.mode === 'exam' ? await services().classes.assignment(attempt.assignment.assignmentId) : null
+
   // Answers stay on the server until a question is checked or the quiz is handed in.
   const visible = { ...attempt, items: attempt.items.map((item, i) => (attempt.checked[i] ? revealedItem(item, key) : hiddenItem(item))) }
   return (
     <Removable id={attempt.id}>
     <div className="mx-auto max-w-6xl">
       <PageHeader title={attempt.title} subtitle={t('{mode} · {n} 題', { mode, n: attempt.items.length })} actions={deletable && <DeleteQuizButton quizId={attempt.id} label={t('不做了，刪除')} note={t('已刪除測驗')} iconOnly />} />
+      {watched && <Proctor attemptId={attempt.id} fullscreen={Boolean(watched.settings.fullscreen)} />}
       <QuizPlayer attempt={visible} locale={await localeOf(attempt.ownerId)} aiMarks={(await graderFor(attempt)) !== null} />
     </div>
     </Removable>

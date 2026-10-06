@@ -1,4 +1,4 @@
-import { canTeach, type Assignment, type Classroom, type ClassRole, type Member } from '@exam/classes'
+import { canTeach, lastClose, type Assignment, type Classroom, type ClassRole, type Member } from '@exam/classes'
 import type { DraftFigure } from '@exam/core'
 import type { QuizAttempt, QuizSettings, QuizSource } from '@exam/quiz'
 import { monthStart, spend } from '@exam/usage'
@@ -164,6 +164,8 @@ export async function keyRule(attempt: Pick<QuizAttempt, 'settings' | 'assignmen
   if (assignment.settings.mode === 'practice') return {}
   const { answers } = assignment.settings
   if (answers === 'never') return { keyHidden: true }
-  if (answers === 'after_close') return assignment.closesAt ? { keyUntil: assignment.closesAt } : { keyHidden: true }
+  // A student with a later deadline may still be writing; the answers wait for them too.
+  const closes = lastClose(assignment)
+  if (answers === 'after_close') return closes ? { keyUntil: closes } : { keyHidden: true }
   return {}
 }

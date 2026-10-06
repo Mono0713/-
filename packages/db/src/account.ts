@@ -19,8 +19,8 @@ export const ACCOUNT_TABLES = {
   byOwner: ['file_refs'],
   /** Handled by the settings store (it also holds the encrypted API keys). */
   settings: ['user_settings'],
-  /** Nobody's data: caches keyed by content, assignments (go with their class), bookkeeping. */
-  shared: ['grading_cache', 'translation_cache', 'class_assignments', 'schema_migrations'],
+  /** Nobody's data: caches keyed by content, assignments and announcements (go with their class), bookkeeping. */
+  shared: ['grading_cache', 'translation_cache', 'class_assignments', 'class_announcements', 'schema_migrations'],
 } as const
 
 /** The few queries both databases answer the same way. Placeholders are written `?`. */

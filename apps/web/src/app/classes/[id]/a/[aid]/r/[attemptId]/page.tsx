@@ -1,6 +1,7 @@
 import { summarize } from '@exam/quiz'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { IntegrityLog } from '@/features/classes/IntegrityLog'
 import { LocalTime } from '@/features/classes/LocalTime'
 import { TeacherReview } from '@/features/classes/TeacherReview'
 import { taughtAttempt } from '@/server/classes'
@@ -47,6 +48,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
           {rich(t('交卷 <time></time>'), { time: () => <LocalTime at={attempt.finishedAt!} /> })}
         </p>
       </Card>
+      {attempt.settings.mode === 'exam' && <IntegrityLog events={attempt.integrity ?? []} t={t} />}
       <TeacherReview attempt={attempt} summary={summary} />
     </div>
   )

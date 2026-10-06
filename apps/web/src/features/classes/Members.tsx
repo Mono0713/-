@@ -1,6 +1,7 @@
 'use client'
 
 import type { ClassRole } from '@exam/classes'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTransition } from 'react'
 import { useT } from '@/shared/i18n/client'
@@ -39,7 +40,13 @@ export function Members({ classId, members, me, isOwner }: { classId: string; me
           <Removable key={m.userId} id={`member-${m.userId}`}>
             <li className="group flex items-center gap-2 rounded-md px-1 py-1 text-sm hover:bg-paper">
               <span className="min-w-0 flex-1 truncate">
-                {m.name}
+                {m.role === 'student' ? (
+                  <Link href={`/classes/${classId}/s/${m.userId}`} className="hover:text-accent hover:underline">
+                    {m.name}
+                  </Link>
+                ) : (
+                  m.name
+                )}
                 {m.userId === me && <span className="text-muted">{t('（我）')}</span>}
               </span>
               {isOwner && m.role !== 'teacher' ? (
