@@ -177,7 +177,7 @@ export function AssignForm({ classes, chosen, exams, preselected }: { classes: A
         </div>
         {mode === 'exam' && (
           <p className="text-xs text-muted">
-            {t('考試會記錄學生離開畫面、切換視窗、按截圖鍵和複製貼上的次數，老師在成績表看得到。')}
+            {t('考試時題目不能選取、複製或列印，並記錄學生離開畫面、切換視窗、按截圖鍵和複製貼上的次數，老師在成績表看得到。')}
             {fullscreen && ` ${t('全螢幕時離開全螢幕也會記錄；iPhone 不支援全螢幕，只記錄離開畫面。')}`}
           </p>
         )}

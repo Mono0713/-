@@ -17,8 +17,10 @@ export async function generateMetadata() {
 }
 
 /** A student's handed-in work, opened by the class's teacher or an assistant to mark. */
-export default async function ReviewPage({ params }: { params: Promise<{ id: string; aid: string; attemptId: string }> }) {
+export default async function ReviewPage({ params, searchParams }: { params: Promise<{ id: string; aid: string; attemptId: string }>; searchParams: Promise<{ q?: string }> }) {
   const { id, aid, attemptId } = await params
+  // Opened from a square of 每題對錯: that question is shown first.
+  const q = Number((await searchParams).q)
   const t = await getT()
   const found = await taughtAttempt(attemptId)
   if (!found || found.assignment.id !== aid || found.in.classroom.id !== id || !found.attempt.finishedAt) notFound()
@@ -49,7 +51,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
         </p>
       </Card>
       {attempt.settings.mode === 'exam' && <IntegrityLog events={attempt.integrity ?? []} t={t} />}
-      <TeacherReview attempt={attempt} summary={summary} />
+      <TeacherReview attempt={attempt} summary={summary} focus={Number.isInteger(q) && q >= 0 && q < attempt.items.length ? q : null} />
     </div>
   )
 }

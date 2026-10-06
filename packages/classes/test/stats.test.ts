@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { DraftQuestion } from '@exam/core'
 import { buildItems, type QuizAttempt, type QuizSettings, type QuizSource } from '@exam/quiz'
-import { assignmentStats, distribution, optionStats, typeRates, type Member } from '../src/index.ts'
+import { answerGrid, assignmentStats, distribution, missedQuestions, optionStats, typeRates, type Member } from '../src/index.ts'
 
 function q(number: string, overrides: Partial<DraftQuestion> = {}): DraftQuestion {
   return {
@@ -127,5 +127,23 @@ describe('charts', () => {
       { type: 'single_choice', score: 1, max: 3 },
       { type: 'short_answer', score: 1.5, max: 3 },
     ])
+  })
+
+  it('lays out each student against each question in the assignment order', () => {
+    const grid = answerGrid(sources, [...stats.students, { userId: 'dee', name: 'DEE', left: false, tries: 0, counted: null }], stats.counted)
+    expect(grid.map((r) => r.cells.map((c) => c?.status ?? null))).toEqual([
+      ['correct', 'correct'],
+      ['wrong', 'unanswered'],
+      ['unanswered', 'partial'],
+      [null, null],
+    ])
+    // the students saw the questions the other way round
+    expect(grid[0]!.cells.map((c) => c?.index)).toEqual([1, 0])
+  })
+
+  it('picks the questions that lost points to practise again', () => {
+    expect(missedQuestions(attempts[0]!)).toEqual([])
+    expect(missedQuestions(attempts[1]!).sort()).toEqual(['q1', 'q2'])
+    expect(missedQuestions(attempts[2]!).sort()).toEqual(['q1', 'q2'])
   })
 })

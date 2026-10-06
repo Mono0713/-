@@ -12,7 +12,7 @@ export function ResultsTable({ classId, assignment, students, integrity, t }: { 
   const exam = assignment.settings.mode === 'exam'
   return (
     <Card className="overflow-x-auto p-2">
-      <table className="w-full min-w-[36rem] text-sm">
+      <table className="w-full min-w-[36rem] whitespace-nowrap text-sm">
         <thead>
           <tr className="text-left text-xs text-muted">
             <th className="px-3 py-2 font-medium">{t('學生')}</th>
@@ -21,6 +21,7 @@ export function ResultsTable({ classId, assignment, students, integrity, t }: { 
             <th className="px-3 py-2 text-right font-medium">{t('次數')}</th>
             <th className="px-3 py-2 font-medium">{t('交卷時間')}</th>
             {exam && <th className="px-3 py-2 font-medium">{t('離開畫面')}</th>}
+            <th />
             <th />
           </tr>
         </thead>
@@ -68,22 +69,27 @@ export function ResultsTable({ classId, assignment, students, integrity, t }: { 
                     )}
                   </td>
                 )}
-                <td className="px-3 py-2">
-                  <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                    {!r.left && <ExceptionEditor assignmentId={assignment.id} userId={r.userId} name={r.name} value={assignment.settings.exceptions?.[r.userId] ?? null} timed={exam && assignment.settings.timeLimitMinutes !== null} />}
-                    {c?.handedIn && (
-                      <Link href={`/classes/${classId}/a/${assignment.id}/r/${c.attemptId}`} className="text-accent hover:underline">
-                        {t('批改')}
-                      </Link>
-                    )}
-                  </div>
+                {/* 延長 and 批改 keep their own columns, so neither moves when the other is missing. */}
+                <td className="w-px whitespace-nowrap py-2 pl-3 text-right">
+                  {!r.left && <ExceptionEditor assignmentId={assignment.id} userId={r.userId} name={r.name} value={assignment.settings.exceptions?.[r.userId] ?? null} timed={exam && assignment.settings.timeLimitMinutes !== null} />}
+                </td>
+                <td className="w-px whitespace-nowrap px-3 py-2 text-right">
+                  {c?.handedIn ? (
+                    <Link href={`/classes/${classId}/a/${assignment.id}/r/${c.attemptId}`} className="text-accent hover:underline">
+                      {t('批改')}
+                    </Link>
+                  ) : (
+                    <span className="invisible" aria-hidden>
+                      {t('批改')}
+                    </span>
+                  )}
                 </td>
               </tr>
             )
           })}
           {students.length === 0 && (
             <tr>
-              <td colSpan={7} className="px-3 py-6 text-center text-muted">
+              <td colSpan={8} className="px-3 py-6 text-center text-muted">
                 {t('班上還沒有學生。把加入碼給學生，他們加入後會出現在這裡。')}
               </td>
             </tr>

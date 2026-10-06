@@ -44,7 +44,7 @@ const ANSWER_MODES = [
 
 /**
  * One question to answer. With `reveal`, the answer is locked and the key is
- * marked: correct options in green, a wrong pick in red. Every question has a
+ * marked: a right pick in green, a right option not picked outlined, a wrong pick in red. Every question has a
  * scratch pad for working; open and fill-in questions can also be answered by hand.
  */
 export function QuizQuestion({
@@ -58,6 +58,7 @@ export function QuizQuestion({
   onTranslate,
   focus = false,
   groupRange,
+  answerOnly = false,
 }: {
   item: QuizItem
   index: number
@@ -74,6 +75,8 @@ export function QuizQuestion({
   focus?: boolean
   /** First and last position of the questions sharing this question's passage. */
   groupRange?: [number, number] | null
+  /** Only the written answer, without the question: one of many answers to the same question, read in a row. */
+  answerOnly?: boolean
 }) {
   const t = useT()
   const q = item.question
@@ -170,37 +173,39 @@ export function QuizQuestion({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-lg font-semibold tabular-nums">{t('第 {n} 題', { n: index + 1 })}</span>
-        <Badge>{t(TYPE_LABELS[q.type])}</Badge>
-        {kind.kind === 'multiple' && <Badge tone="accent">{t('可複選')}</Badge>}
-        {q.points !== null && <Badge>{t('{n} 分', { n: q.points })}</Badge>}
-        {q.maxLength ? <Badge>{t('限 {n} 字', { n: q.maxLength })}</Badge> : null}
-        {q.markingRule?.trim() ? <span className="rounded-md bg-warn-soft px-1.5 py-0.5 text-xs text-ink/80">{q.markingRule.trim()}</span> : null}
-        <span className="ml-auto" />
-        {translatable && (
-          <button
-            type="button"
-            onClick={toggleTranslation}
-            aria-pressed={translationShown}
-            className={`m-press flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm ${translationShown ? 'bg-ink text-paper' : 'text-muted hover:bg-ink/[0.06] hover:text-ink'}`}
-          >
-            {translating ? <IconLoader size={16} className="m-spin" aria-hidden /> : <IconLanguages size={16} />}
-            {t('翻譯')}
-          </button>
-        )}
-        {(!locked || hasScratch) && (
-          <button
-            type="button"
-            onClick={() => setScratchOpen(!scratchOpen)}
-            aria-expanded={scratchOpen}
-            className={`m-press flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm ${scratchOpen ? 'bg-ink text-paper' : 'text-muted hover:bg-ink/[0.06] hover:text-ink'}`}
-          >
-            <IconScratch size={16} />
-            {locked ? t('看草稿') : t('草稿')}
-          </button>
-        )}
-      </div>
+      {!answerOnly && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-lg font-semibold tabular-nums">{t('第 {n} 題', { n: index + 1 })}</span>
+          <Badge>{t(TYPE_LABELS[q.type])}</Badge>
+          {kind.kind === 'multiple' && <Badge tone="accent">{t('可複選')}</Badge>}
+          {q.points !== null && <Badge>{t('{n} 分', { n: q.points })}</Badge>}
+          {q.maxLength ? <Badge>{t('限 {n} 字', { n: q.maxLength })}</Badge> : null}
+          {q.markingRule?.trim() ? <span className="rounded-md bg-warn-soft px-1.5 py-0.5 text-xs text-ink/80">{q.markingRule.trim()}</span> : null}
+          <span className="ml-auto" />
+          {translatable && (
+            <button
+              type="button"
+              onClick={toggleTranslation}
+              aria-pressed={translationShown}
+              className={`m-press flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm ${translationShown ? 'bg-ink text-paper' : 'text-muted hover:bg-ink/[0.06] hover:text-ink'}`}
+            >
+              {translating ? <IconLoader size={16} className="m-spin" aria-hidden /> : <IconLanguages size={16} />}
+              {t('翻譯')}
+            </button>
+          )}
+          {(!locked || hasScratch) && (
+            <button
+              type="button"
+              onClick={() => setScratchOpen(!scratchOpen)}
+              aria-expanded={scratchOpen}
+              className={`m-press flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm ${scratchOpen ? 'bg-ink text-paper' : 'text-muted hover:bg-ink/[0.06] hover:text-ink'}`}
+            >
+              <IconScratch size={16} />
+              {locked ? t('看草稿') : t('草稿')}
+            </button>
+          )}
+        </div>
+      )}
 
       {scratchOpen && (
         <div className="m-expand space-y-1.5">
@@ -209,9 +214,9 @@ export function QuizQuestion({
         </div>
       )}
 
-      {item.group && <Passage group={item.group} range={groupRange ?? null} />}
+      {item.group && !answerOnly && <Passage group={item.group} range={groupRange ?? null} />}
 
-      {stemShown ? (
+      {answerOnly ? null : stemShown ? (
         <div className={focus ? 'flex items-start gap-2' : undefined}>
           <Markdown className={focus ? 'min-w-0 flex-1' : undefined} renderBlank={stemBlank}>{q.stem}</Markdown>
           {focus && (
@@ -231,7 +236,7 @@ export function QuizQuestion({
           <Markdown>{shownTranslation.stem}</Markdown>
         </div>
       )}
-      {figures}
+      {!answerOnly && figures}
 
       {choice ? (
         <ul className={`grid gap-2 ${pictureOptions ? 'sm:grid-cols-2' : ''}`}>
@@ -240,7 +245,9 @@ export function QuizQuestion({
             const picked = values.includes(label)
             const correct = reveal && key.includes(label)
             const wrong = reveal && picked && !correct
-            const tone = correct ? 'border-good bg-good-soft' : wrong ? 'border-bad bg-bad-soft' : picked ? 'border-accent bg-accent-soft' : 'border-line bg-surface hover:border-accent/50'
+            // A right option nobody picked is only outlined, so an unanswered paper never looks all right.
+            const missed = correct && !picked
+            const tone = correct && picked ? 'border-good bg-good-soft' : missed ? 'border-dashed border-good bg-surface' : wrong ? 'border-bad bg-bad-soft' : picked ? 'border-accent bg-accent-soft' : 'border-line bg-surface hover:border-accent/50'
             // feedback plays once when the answer is revealed: a wrong pick is nudged (its red tint says
             // the rest; a red-pen ring was too loud) and the right option gets its tick
             const feedback = !celebrate ? '' : correct && picked ? 'm-pop' : wrong ? 'm-nudge' : ''
@@ -254,17 +261,18 @@ export function QuizQuestion({
                     {optionTranslation(label) && <Markdown className="m-expand text-muted">{optionTranslation(label)!}</Markdown>}
                   </span>
                   {/* Marks sit one line high, centred on the option's first line. */}
-                  {correct && (
+                  {correct && picked && (
                     <span className="flex h-[1.625em] shrink-0 items-center">
                       <PenTick size={20} />
                     </span>
                   )}
+                  {missed && <span className="flex h-[1.625em] shrink-0 items-center text-xs font-medium text-good">{t('正確答案')}</span>}
                 </button>
               </li>
             )
           })}
         </ul>
-      ) : q.options.length > 0 ? (
+      ) : q.options.length > 0 && !answerOnly ? (
         <ul className="grid gap-1.5 sm:grid-cols-2">
           {item.optionOrder.map((label, i) => (
             <li key={`${label}-${i}`} className="flex gap-2 rounded-lg bg-paper px-2.5 py-1.5 text-sm">
@@ -296,7 +304,7 @@ export function QuizQuestion({
                 disabled={locked}
                 onClick={() => set(picked ? [] : [v])}
                 className={`rounded-lg border px-5 py-2 text-sm font-medium ${
-                  correct ? 'border-good bg-good-soft text-good' : reveal && picked ? 'border-bad bg-bad-soft text-bad' : picked ? 'border-accent bg-accent-soft text-accent' : 'border-line bg-surface'
+                  correct && picked ? 'border-good bg-good-soft text-good' : correct ? 'border-dashed border-good bg-surface text-good' : reveal && picked ? 'border-bad bg-bad-soft text-bad' : picked ? 'border-accent bg-accent-soft text-accent' : 'border-line bg-surface'
                 }`}
               >
                 {text}

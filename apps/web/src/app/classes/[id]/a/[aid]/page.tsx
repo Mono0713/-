@@ -1,13 +1,14 @@
-import { assignmentStats, distribution, isOpenFor, optionStats, rulesFor } from '@exam/classes'
+import { answerGrid, assignmentStats, distribution, isOpenFor, missedQuestions, optionStats, rulesFor } from '@exam/classes'
 import { isOver, summarize, type IntegrityEvent } from '@exam/quiz'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { AnswerGrid } from '@/features/classes/AnswerGrid'
 import { AssignmentControls } from '@/features/classes/AssignmentControls'
 import { ExportLink } from '@/features/classes/ExportLink'
 import { LocalTime } from '@/features/classes/LocalTime'
+import { MistakesButton } from '@/features/classes/MistakesButton'
 import { OptionAnalysis } from '@/features/classes/OptionAnalysis'
 import { ResultsTable } from '@/features/classes/ResultsTable'
-import { ReviewSetButton } from '@/features/classes/ReviewSetButton'
 import { ScoreDistribution } from '@/features/classes/ScoreDistribution'
 import { StartAssignment } from '@/features/classes/StartAssignment'
 import { inAssignment, resultsWithheld } from '@/server/classes'
@@ -22,9 +23,6 @@ export const dynamic = 'force-dynamic'
 const ANSWER_RULES = { after_submit: msg('交卷後公布答案'), after_close: msg('截止後公布答案'), never: msg('不公布答案') } as const
 
 const percent = (share: number | null) => (share === null ? '—' : `${Math.round(share * 100)}%`)
-
-/** Questions below this share of the points go into 錯題組成複習卷. */
-const WEAK = 0.6
 
 export default async function AssignmentPage({ params }: { params: Promise<{ id: string; aid: string }> }) {
   const { id, aid } = await params
@@ -71,8 +69,10 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
 
   if (!teaches) {
     const tries = (await Promise.all((await classes.attempts(a.id, me.userId)).map((x) => quizzes.get(x.attemptId)))).filter((x) => x !== null)
-    const handedIn = tries.find((x) => x.finishedAt && !x.assignment?.preview)
+    // The teacher counts the last paper handed in; its mistakes are the ones to practise.
+    const handedIn = tries.filter((x) => x.finishedAt && !x.assignment?.preview).sort((x, y) => x.finishedAt!.localeCompare(y.finishedAt!)).at(-1)
     const withheld = handedIn ? await resultsWithheld(handedIn) : false
+    const missed = handedIn && !withheld ? missedQuestions(handedIn).length : 0
     const running = tries.find((x) => !x.finishedAt && !isOver(x)) ?? null
     const left = rules.maxAttempts === null ? null : Math.max(0, rules.maxAttempts - tries.length)
     const open = isOpenFor(a, me.userId)
@@ -95,7 +95,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
             ))}
           </div>
           {times}
-          {s.mode === 'exam' && <p className="text-xs text-muted">{s.fullscreen ? t('這是全螢幕考試：離開全螢幕、切換分頁或程式、按截圖鍵都會記錄給老師。') : t('這份考試會記錄離開畫面、切換分頁或程式、按截圖鍵的次數給老師。')}</p>}
+          {s.mode === 'exam' && <p className="text-xs text-muted">{s.fullscreen ? t('這是全螢幕考試：題目不能複製，離開全螢幕、切換分頁或程式、按截圖鍵都會記錄給老師。') : t('這份考試的題目不能複製，離開畫面、切換分頁或程式、按截圖鍵的次數會記錄給老師。')}</p>}
           {running ? (
             <StartAssignment assignmentId={a.id} resume={running.id} label="" fullscreen={false} />
           ) : open && left !== 0 ? (
@@ -128,6 +128,11 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
                   )
                 })}
             </ul>
+            {missed > 0 && (
+              <div className="mt-3 border-t border-line/70 pt-3">
+                <MistakesButton assignmentId={a.id} count={missed} />
+              </div>
+            )}
           </Card>
         )}
       </div>
@@ -139,7 +144,6 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
   const stats = assignmentStats(a.sources, members, attempts)
   const pending = stats.students.reduce((n, r) => n + (r.counted?.handedIn ? r.counted.pending : 0), 0)
   const integrity = new Map<string, IntegrityEvent[]>(attempts.map((x) => [x.id, x.integrity ?? []]))
-  const weak = stats.questions.filter((q) => q.rate !== null && q.rate < WEAK).length
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -183,6 +187,7 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
           </Card>
 
           <ResultsTable classId={classroom.id} assignment={a} students={stats.students} integrity={integrity} t={t} />
+          {stats.handedIn > 0 && <AnswerGrid classId={classroom.id} assignmentId={a.id} questions={stats.questions} rows={answerGrid(a.sources, stats.students, stats.counted)} t={t} />}
           <ScoreDistribution d={distribution(stats.students)} average={stats.average} t={t} />
 
           <Card className="p-5">
@@ -193,7 +198,9 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
               <ul className="space-y-1.5">
                 {stats.questions.map((q) => (
                   <li key={q.questionId} className="flex items-center gap-3 text-sm">
-                    <span className="w-8 shrink-0 text-right tabular-nums text-muted">{q.number}</span>
+                    <Link href={`/classes/${classroom.id}/a/${a.id}/q/${q.questionId}`} className="w-8 shrink-0 text-right tabular-nums text-muted hover:text-accent hover:underline">
+                      {q.number}
+                    </Link>
                     <span className="relative h-2 flex-1 overflow-hidden rounded-full bg-ink/[0.07]">
                       <span className={`absolute inset-y-0 left-0 rounded-full ${q.rate !== null && q.rate < 0.5 ? 'bg-bad' : 'bg-good'}`} style={{ width: `${Math.round((q.rate ?? 0) * 100)}%` }} />
                     </span>
@@ -217,9 +224,8 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
             {times}
           </Card>
           <AssignmentControls classId={classroom.id} assignmentId={a.id} closesAt={a.closesAt} answers={s.answers} practice={s.mode === 'practice'} />
-          <Card className="space-y-4 p-4">
+          <Card className="p-4">
             <ExportLink classId={classroom.id} assignmentId={a.id} label={t('匯出這份作業的成績')} />
-            {stats.handedIn > 0 && <ReviewSetButton assignmentId={a.id} weak={weak} />}
           </Card>
         </aside>
       </div>

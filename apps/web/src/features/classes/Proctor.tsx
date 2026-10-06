@@ -20,13 +20,19 @@ const isScreenshotKey = (e: KeyboardEvent) =>
 /** Proctors on screen; full screen ends once the last one goes (not when React remounts one). */
 let live = 0
 
-const editable = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA'].includes(target.tagName))
+const editable = (target: EventTarget | null) => target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'MATH-FIELD'].includes(target.tagName))
+
+/** Nothing on the exam page can be selected or printed; the student's own answer boxes still can be. */
+const LOCKED_CSS = `body{-webkit-user-select:none;user-select:none}
+input,textarea,math-field,[contenteditable="true"]{-webkit-user-select:text;user-select:text}
+@media print{body{display:none!important}}`
 
 /**
  * Watches a class exam while a student writes it, and tells them so. The page cannot stop a
  * phone screenshot or another device; it records what a browser can notice — the page leaving
  * the screen, the window losing focus (another window, a Lens or screenshot overlay), leaving
- * full screen, screenshot keys, copying and pasting — for the teacher to judge.
+ * full screen, screenshot keys, copying and pasting — for the teacher to judge. Questions cannot
+ * be selected, copied, dragged out or printed; only the student's own answers can be copied.
  */
 export function Proctor({ attemptId, fullscreen }: { attemptId: string; fullscreen: boolean }) {
   const t = useT()
@@ -67,8 +73,17 @@ export function Proctor({ attemptId, fullscreen }: { attemptId: string; fullscre
     }
     const onKey = (e: KeyboardEvent) => {
       if (isScreenshotKey(e)) record('screenshot')
+      if (e.type === 'keydown' && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') e.preventDefault()
     }
-    const onCopy = () => record('copy')
+    // A copy is stopped (and still noted) unless it comes from the student's own answer.
+    const onCopy = (e: ClipboardEvent) => {
+      if (editable(e.target)) return
+      e.preventDefault()
+      record('copy')
+    }
+    const onSelect = (e: Event) => {
+      if (!editable(e.target)) e.preventDefault()
+    }
     const onPaste = () => record('paste')
     // Long-pressing a picture opens "Search with Google Lens" on Android; outside the answer boxes the menu stays shut.
     const onMenu = (e: MouseEvent) => {
@@ -92,6 +107,8 @@ export function Proctor({ attemptId, fullscreen }: { attemptId: string; fullscre
     document.addEventListener('cut', onCopy)
     document.addEventListener('paste', onPaste)
     document.addEventListener('contextmenu', onMenu)
+    document.addEventListener('selectstart', onSelect)
+    document.addEventListener('dragstart', onSelect)
     if (full) document.addEventListener('fullscreenchange', onFull)
     const root = document.documentElement.style
     root.setProperty('-webkit-touch-callout', 'none')
@@ -110,6 +127,8 @@ export function Proctor({ attemptId, fullscreen }: { attemptId: string; fullscre
       document.removeEventListener('cut', onCopy)
       document.removeEventListener('paste', onPaste)
       document.removeEventListener('contextmenu', onMenu)
+      document.removeEventListener('selectstart', onSelect)
+      document.removeEventListener('dragstart', onSelect)
       document.removeEventListener('fullscreenchange', onFull)
       root.removeProperty('-webkit-touch-callout')
       // The exam is over or left: full screen ends with it.
@@ -119,7 +138,8 @@ export function Proctor({ attemptId, fullscreen }: { attemptId: string; fullscre
 
   return (
     <>
-      <p className="mb-3 text-xs text-muted">{fullscreen && canFull ? t('這是全螢幕考試：離開全螢幕、切換分頁或程式、按截圖鍵都會記錄給老師。') : t('這份考試會記錄離開畫面、切換分頁或程式、按截圖鍵的次數給老師。')}</p>
+      <style>{LOCKED_CSS}</style>
+      <p className="mb-3 text-xs text-muted">{fullscreen && canFull ? t('這是全螢幕考試：題目不能複製，離開全螢幕、切換分頁或程式、按截圖鍵都會記錄給老師。') : t('這份考試的題目不能複製，離開畫面、切換分頁或程式、按截圖鍵的次數會記錄給老師。')}</p>
       {canFull && outside && (
         <div className="fixed inset-0 z-[70] grid place-items-center bg-paper/95 p-6 backdrop-blur-sm">
           <div className="m-enter max-w-sm space-y-4 text-center">
