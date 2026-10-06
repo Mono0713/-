@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { BRAND, brandTagline } from '@/shared/brand/brand'
 import { LogoMark } from '@/shared/brand/LogoMark'
-import { IconLanguages } from '@/shared/icons'
 import { getLocale, getT } from '@/shared/i18n/server'
 import { LanguagePick } from './LanguagePick'
 import { WRAP } from './wrap'
@@ -19,10 +18,7 @@ export async function Footer() {
           <p className="mt-2 text-sm text-muted">{brandTagline(await getLocale())}</p>
         </div>
         <div className="flex flex-col items-start gap-2 text-xs text-muted sm:items-end">
-          <span className="flex items-center gap-1.5">
-            <IconLanguages size={14} aria-hidden />
-            <LanguagePick className="" />
-          </span>
+          <LanguagePick className="hover:text-ink" />
           <nav className="flex gap-4">
             <Link href="/terms" className="hover:text-ink">
               {t('服務條款')}

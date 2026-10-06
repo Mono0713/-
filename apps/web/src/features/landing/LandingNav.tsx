@@ -30,8 +30,8 @@ export async function LandingNav(start: Start) {
         </nav>
         <div className="flex items-center gap-2">
           {/* phones keep the header to the logo and sign-in; the language is in the footer there */}
-          <div className="hidden sm:block">
-            <LanguagePick />
+          <div className="mr-1 hidden sm:block">
+            <LanguagePick className="text-sm text-muted hover:text-ink" />
           </div>
           <StartButton {...start} size="small" />
         </div>
