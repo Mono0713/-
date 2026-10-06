@@ -35,7 +35,7 @@ export function ResultsTable({ classId, assignment, students, integrity, t }: { 
                   {r.left ? (
                     t('已退出的學生')
                   ) : (
-                    <Link href={`/classes/${classId}/s/${r.userId}`} className="hover:text-accent hover:underline">
+                    <Link href={`/classes/${classId}/s/${r.userId}`} title={r.name} className="block max-w-28 truncate hover:text-accent hover:underline">
                       {r.name}
                     </Link>
                   )}

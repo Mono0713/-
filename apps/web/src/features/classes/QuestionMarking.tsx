@@ -94,7 +94,7 @@ export function QuestionMarking({ paper, position, answers, reviewBase }: { pape
         return (
           <Card key={a.attemptId} className="m-enter space-y-3 p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <Link href={`${reviewBase}/${a.attemptId}?q=${a.index}`} className="font-medium hover:text-accent hover:underline">
+              <Link href={`${reviewBase}/${a.attemptId}?q=${a.index}`} title={a.name} className="max-w-60 truncate font-medium hover:text-accent hover:underline">
                 {a.name}
               </Link>
               <Badge tone={tone}>{t(label)}</Badge>

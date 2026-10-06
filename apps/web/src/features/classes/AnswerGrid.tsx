@@ -57,8 +57,9 @@ export function AnswerGrid({ classId, assignmentId, questions, rows, t }: { clas
           <tbody>
             {handedIn.map((r) => (
               <tr key={r.userId}>
-                <th scope="row" className="sticky left-0 z-10 max-w-32 truncate bg-surface pr-2 text-left font-medium">
-                  <Link href={`${base}/r/${r.attemptId}`} className="hover:text-accent hover:underline">
+                <th scope="row" className="sticky left-0 z-10 bg-surface pr-2 text-left font-medium">
+                  {/* A long name is cut with …; the whole name shows on hover. */}
+                  <Link href={`${base}/r/${r.attemptId}`} title={r.left ? undefined : r.name} className="block max-w-28 truncate hover:text-accent hover:underline">
                     {r.left ? t('已退出的學生') : r.name}
                   </Link>
                 </th>

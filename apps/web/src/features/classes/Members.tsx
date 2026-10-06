@@ -39,7 +39,7 @@ export function Members({ classId, members, me, isOwner }: { classId: string; me
         {members.map((m) => (
           <Removable key={m.userId} id={`member-${m.userId}`}>
             <li className="group flex items-center gap-2 rounded-md px-1 py-1 text-sm hover:bg-paper">
-              <span className="min-w-0 flex-1 truncate">
+              <span className="min-w-0 flex-1 truncate" title={m.name}>
                 {m.role === 'student' ? (
                   <Link href={`/classes/${classId}/s/${m.userId}`} className="hover:text-accent hover:underline">
                     {m.name}

@@ -4,7 +4,7 @@ import { Card } from '@/shared/ui'
 
 const percent = (share: number | null) => (share === null ? '—' : `${Math.round(share * 100)}%`)
 
-/** How many students scored in each 10 % band, with the highest, lowest, median and average beside it. */
+/** How many students scored in each 10 % band, with the highest, median, average and lowest under it. */
 export function ScoreDistribution({ d, average, t }: { d: Distribution; average: number | null; t: T }) {
   const tallest = Math.max(1, ...d.bands)
   const figures = [
@@ -19,8 +19,8 @@ export function ScoreDistribution({ d, average, t }: { d: Distribution; average:
       {d.count === 0 ? (
         <p className="text-sm text-muted">{t('有人交卷後會出現。')}</p>
       ) : (
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
-          <div className="min-w-0 flex-1">
+        <div className="space-y-4">
+          <div>
             <div className="flex h-36 items-end gap-[2px] border-b border-line" role="img" aria-label={t('成績分布')}>
               {d.bands.map((n, i) => (
                 <div key={i} className="group relative flex h-full flex-1 flex-col justify-end" title={t('{from}–{to}%：{n} 人', { from: i * 10, to: i === 9 ? 100 : i * 10 + 9, n })}>
@@ -38,7 +38,8 @@ export function ScoreDistribution({ d, average, t }: { d: Distribution; average:
             </div>
             <p className="mt-1 text-right text-[10px] text-muted">{t('得分率（%）')}</p>
           </div>
-          <dl className="grid grid-cols-4 gap-3 sm:w-28 sm:grid-cols-1">
+          {/* The numbers sit under the bars, so the chart has the whole width. */}
+          <dl className="grid grid-cols-4 gap-3 border-t border-line/70 pt-3">
             {figures.map(([label, value]) => (
               <div key={label}>
                 <dt className="text-xs text-muted">{label}</dt>
