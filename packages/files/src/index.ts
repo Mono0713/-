@@ -147,7 +147,10 @@ export class S3FileStore implements FileStore {
   /** A request that gives up after timeoutMs, so a stalled connection fails instead of hanging. */
   private async send(url: string, init: RequestInit, action: string, key: string): Promise<Response> {
     try {
-      return await this.client.fetch(url, { ...init, signal: AbortSignal.timeout(this.timeoutMs) })
+      // Sign, then send the plain bytes ourselves: a signed Request object carries its body as a stream, which some
+      // fetch wrappers (Next.js) send chunked with no Content-Length, and R2 refuses that with 411.
+      const signed = await this.client.sign(url, init)
+      return await fetch(signed.url, { method: signed.method, headers: signed.headers, body: init.body, signal: AbortSignal.timeout(this.timeoutMs) })
     } catch (err) {
       if ((err as Error).name === 'TimeoutError') throw new Error(`File store could not ${action} ${key}: no answer within ${Math.round(this.timeoutMs / 1000)} s`)
       throw err

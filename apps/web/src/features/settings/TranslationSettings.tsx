@@ -5,8 +5,9 @@ import { useState, useTransition } from 'react'
 import { msg } from '@/shared/i18n/format'
 import { useT } from '@/shared/i18n/client'
 import { Segmented } from '@/shared/Segmented'
-import { saveTaskStrength, saveTranslationEngine } from './actions'
+import { saveTaskModel, saveTaskStrength, saveTranslationEngine } from './actions'
 import { STRENGTH_LABELS } from './strengths'
+import { TaskModelPicker } from './TaskModelPicker'
 
 type Engine = 'free' | 'ai'
 
@@ -18,12 +19,13 @@ const ENGINES = [
 const FOLLOW = 'follow'
 const STRENGTHS = [[FOLLOW, msg('跟著整體')], ...STRENGTH_LABELS] as const
 
-/** How the 翻譯 button translates: free services by default, or the AI with a strength of its own. */
+/** How the 翻譯 button translates: free services by default, or the AI with a strength or a model of its own. */
 export function TranslationSettings({ initial, strength, providers, override }: { initial: { engine: Engine; strength: Strength | null }; strength: Strength; providers: ProviderInfo[]; override: ModelChoice | null }) {
   const t = useT()
   const [state, setState] = useState(initial)
+  const [model, setModel] = useState(override)
   const [, start] = useTransition()
-  const r = route('translation', state.strength ?? strength, providers, { override })
+  const r = route('translation', state.strength ?? strength, providers, { override: model })
   return (
     <div className="space-y-3 px-5 py-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -51,6 +53,19 @@ export function TranslationSettings({ initial, strength, providers, override }: 
               start(() => saveTaskStrength('translation', next))
             }}
           />
+          <span className="text-sm">{t('模型')}</span>
+          <div className="min-w-0 flex-1 basis-56">
+            <TaskModelPicker
+              task="translation"
+              label={t('翻譯的模型')}
+              providers={providers}
+              value={model}
+              onChange={(choice) => {
+                setModel(choice)
+                start(() => saveTaskModel('translation', choice))
+              }}
+            />
+          </div>
         </div>
       )}
     </div>

@@ -16,6 +16,8 @@ function fakeS3(): Promise<{ server: Server; endpoint: string; requests: string[
     const key = rest.map(decodeURIComponent).join('/')
     if (bucket !== 'exams') return void res.writeHead(404).end()
     if (req.method === 'PUT') {
+      // R2 refuses chunked uploads.
+      if (!req.headers['content-length']) return void res.writeHead(411).end('<Error><Code>MissingContentLength</Code></Error>')
       const chunks: Buffer[] = []
       for await (const c of req) chunks.push(c as Buffer)
       objects.set(key, Buffer.concat(chunks))
