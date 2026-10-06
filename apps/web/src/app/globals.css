@@ -247,17 +247,31 @@ h2 {
 
 /* The review workspace needs the whole screen for the exam and its questions;
    its own toolbar links back to the rest of the app. */
-body:has(.workspace) :is(.app-sidebar, .app-header) {
+body:has(.workspace) :is(.app-sidebar, .app-header, .app-bottomnav) {
   display: none;
 }
 
+/* Phones: room under the page for the bottom bar, and none of it while a quiz is being taken
+   (the quiz pins its own buttons there instead). */
+@media (max-width: 639.98px) {
+  body:has(.app-bottomnav) main {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  }
+  body:has(.quiz-play) .app-bottomnav {
+    display: none;
+  }
+  body:has(.quiz-play) main {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+}
+
 /* The sign-in page stands alone: nothing to navigate to before signing in. */
-body:has(.auth-screen) :is(.app-sidebar, .app-header) {
+body:has(.auth-screen) :is(.app-sidebar, .app-header, .app-bottomnav) {
   display: none;
 }
 
 /* The product page (features/landing) has its own header and uses the full width. */
-body:has(.landing) :is(.app-sidebar, .app-header) {
+body:has(.landing) :is(.app-sidebar, .app-header, .app-bottomnav) {
   display: none;
 }
 main:has(.landing) {

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
 import { BRAND, brandTagline } from '@/shared/brand/brand'
+import { BottomNav } from '@/shared/chrome/BottomNav'
 import { Header } from '@/shared/chrome/Header'
 import { Sidebar } from '@/shared/chrome/Sidebar'
 import { MOTION_SCRIPT } from '@/shared/motion/preference'
@@ -31,6 +32,8 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
+  // Lets the page reach under the phone's home indicator; the bottom bar pads itself with the safe area.
+  viewportFit: 'cover',
   // Colors the phone's status bar to match the page.
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#fcfcfa' },
@@ -60,6 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               </main>
             </div>
           </div>
+          <BottomNav />
         </RemovalProvider>
         </I18nProvider>
         <ServiceWorker />

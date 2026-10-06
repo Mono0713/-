@@ -9,7 +9,11 @@ export function Header() {
     <header className="app-header sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur-md xl:hidden">
       <div className="flex h-14 items-center gap-3 px-4 sm:gap-8 sm:px-6">
         <Logo />
-        <NavLinks />
+        {/* phones have the bottom bar instead */}
+        <div className="max-sm:hidden">
+          <NavLinks />
+        </div>
+        <span className="flex-1 sm:hidden" />
         <Suspense>
           <Account tone="header" />
         </Suspense>

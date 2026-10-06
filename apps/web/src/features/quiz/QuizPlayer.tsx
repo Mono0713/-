@@ -8,6 +8,7 @@ import { useEffect, useRef, useState, useTransition } from 'react'
 import { useT } from '@/shared/i18n/client'
 import { IconChevronLeft, IconChevronRight, IconFinish, IconReveal, IconSparkles, IconTimer } from '@/shared/icons'
 import { quizIsCalm } from '@/shared/motion/preference'
+import { useSwipe } from '@/shared/motion/useSwipe'
 import { Button, Card } from '@/shared/ui'
 import { checkAnswer, finishQuiz, markAnswer, saveResponse, translateQuestion } from './actions'
 import { QuizQuestion } from './QuizQuestion'
@@ -115,6 +116,10 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  // phones: swipe the sheet left for the next question, right for the one before
+  const sheet = useRef<HTMLDivElement>(null)
+  useSwipe(sheet, { onLeft: current < total - 1 ? () => go(current + 1) : undefined, onRight: current > 0 ? () => go(current - 1) : undefined })
+
   const item = items[current]!
   // 書寫模式: writing practice and compositions get a bigger writing area inside the same frame,
   // so moving between question types never rearranges the page.
@@ -163,7 +168,7 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
 
   return (
     // m-calm-zone: 設定裡的「做題時減少動畫」 stills everything in here
-    <div className="m-calm-zone grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-6">
+    <div className="quiz-play m-calm-zone grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-6">
       {/* Phones: progress, time and the question list in a bar that stays on screen. */}
       <div className="sticky top-14 z-20 -mx-4 border-b border-line bg-paper/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
         <div className="flex items-center gap-3">
@@ -197,7 +202,7 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
         {/* One sheet size for every question, so the buttons under it stay put as types change.
             Keyed by question. The old sheet slides off quickly and is gone before the next one
             slides in from the side you are heading to, so two questions never show at once. */}
-        <div className="relative">
+        <div ref={sheet} className="relative">
           <div key={current} data-back={direction < 0 || undefined} className={moved ? 'm-leaf-in' : undefined}>
             <Card className="p-4 sm:min-h-[24rem] sm:p-5">
               <QuizQuestion
@@ -247,7 +252,8 @@ export function QuizPlayer({ attempt, locale, aiMarks }: {
           />
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        {/* phones: pinned to the bottom edge, where the thumb is */}
+        <div className="flex flex-wrap items-center justify-between gap-2 max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:flex-nowrap max-sm:border-t max-sm:border-line max-sm:bg-paper/90 max-sm:px-4 max-sm:pt-3 max-sm:pb-[calc(0.75rem+env(safe-area-inset-bottom))] max-sm:backdrop-blur-md">
           <Button onClick={() => go(current - 1)} disabled={current === 0} icon={<IconChevronLeft size={16} />}>
             {t('上一題')}
           </Button>

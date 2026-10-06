@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { BankFilters } from '@/features/bank/BankFilters'
 import { ExamCard } from '@/features/bank/ExamCard'
+import { SwipeDeleteExam } from '@/features/bank/SwipeDeleteExam'
 import { QuestionView } from '@/features/questions/QuestionView'
 import { currentOwner, services } from '@/server/context'
 import { getT } from '@/shared/i18n/server'
@@ -51,7 +52,9 @@ export default async function BankPage({ searchParams }: { searchParams: Promise
           {exams.map((exam) => (
             <Removable key={exam.id} id={exam.id}>
               <li>
-                <ExamCard exam={exam} />
+                <SwipeDeleteExam id={exam.id}>
+                  <ExamCard exam={exam} />
+                </SwipeDeleteExam>
               </li>
             </Removable>
           ))}

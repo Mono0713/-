@@ -4,6 +4,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { useT } from '@/shared/i18n/client'
 import { IconTrash } from '@/shared/icons'
+import { SwipeToDelete } from '@/shared/motion/SwipeToDelete'
 import { useRemoval } from '@/shared/removal'
 import { Badge } from '@/shared/ui'
 import { removeQuiz } from './actions'
@@ -32,34 +33,36 @@ export function QuizList({ rows, empty }: { rows: QuizRow[]; /** Shown once ever
   return (
     <ul className="m-stagger divide-y divide-line overflow-hidden rounded-2xl bg-surface shadow-sheet">
       {shown.map((a) => (
-        <li key={a.id} className="group relative">
-          <Link href={`/quiz/${a.id}`} className="flex items-center gap-3 py-3 pl-4 pr-14 transition-colors hover:bg-paper">
-            <div className="min-w-0 flex-1">
-              <p className="line-clamp-2 font-medium sm:truncate">{a.title}</p>
-              <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
-                <Badge tone={a.exam ? 'accent' : 'neutral'}>{a.exam ? t('考試') : t('練習')}</Badge>
-                {t('{n} 題 · {date}', { n: a.count, date: a.date })}
-              </p>
-            </div>
-            {a.score ? (
-              <span className="shrink-0 text-sm font-semibold tabular-nums">
-                {a.score.score} / {a.score.max}
-              </span>
-            ) : (
-              <span className="shrink-0">
-                <Badge tone="warn">{t('進行中')}</Badge>
-              </span>
-            )}
-          </Link>
-          <button
-            type="button"
-            onClick={() => removeRow(a)}
-            aria-label={t('刪除「{title}」', { title: a.title })}
-            title={t('刪除')}
-            className="m-press absolute right-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-muted transition-[opacity,color,background-color] hover:bg-bad-soft hover:text-bad focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0"
-          >
-            <IconTrash size={16} />
-          </button>
+        <li key={a.id}>
+          <SwipeToDelete onDelete={() => removeRow(a)} className="group">
+            <Link href={`/quiz/${a.id}`} className="flex items-center gap-3 py-3 pl-4 pr-14 transition-colors hover:bg-paper">
+              <div className="min-w-0 flex-1">
+                <p className="line-clamp-2 font-medium sm:truncate">{a.title}</p>
+                <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted">
+                  <Badge tone={a.exam ? 'accent' : 'neutral'}>{a.exam ? t('考試') : t('練習')}</Badge>
+                  {t('{n} 題 · {date}', { n: a.count, date: a.date })}
+                </p>
+              </div>
+              {a.score ? (
+                <span className="shrink-0 text-sm font-semibold tabular-nums">
+                  {a.score.score} / {a.score.max}
+                </span>
+              ) : (
+                <span className="shrink-0">
+                  <Badge tone="warn">{t('進行中')}</Badge>
+                </span>
+              )}
+            </Link>
+            <button
+              type="button"
+              onClick={() => removeRow(a)}
+              aria-label={t('刪除「{title}」', { title: a.title })}
+              title={t('刪除')}
+              className="m-press absolute right-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-muted transition-[opacity,color,background-color] hover:bg-bad-soft hover:text-bad focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0"
+            >
+              <IconTrash size={16} />
+            </button>
+          </SwipeToDelete>
         </li>
       ))}
     </ul>

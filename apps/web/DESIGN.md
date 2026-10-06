@@ -124,3 +124,11 @@ sidebar. The wordmark is lowercase `sheetloop` in Bricolage Grotesque ExtraBold.
 `data-theme="light" | "dark"` on `<html>` forces a theme; without it the device setting
 decides. The choice is made on the settings page (外觀) and remembered in the browser
 (`src/shared/theme`). An inline script applies it before the first paint.
+
+## Phones and touch
+
+- Under 640px the main sections sit in a bottom bar (`shared/chrome/BottomNav.tsx`), within thumb reach. The header keeps only the logo and the account.
+- While a quiz is being taken (`.quiz-play`), the bottom bar steps aside. The quiz pins its own 上一題 / 看答案 / 下一題 row to the bottom edge instead.
+- Swiping the question sheet left goes to the next question and right goes back (`shared/motion/useSwipe.ts`). Strokes that start on writing, typing, formulas, tables, or within 24px of a screen edge never count as swipes, because those belong to the element or to the phone's own back gesture. The sheet follows the finger at most 28px.
+- List rows a person can delete also delete with a left drag (`shared/motion/SwipeToDelete.tsx`). Past a third of the width it slides away and the usual 復原 note appears; short of that it springs back. Desktop keeps the trash button.
+- Gestures are touch-only. Mouse and pen never trigger them, so desktop and stylus writing behave as before.
