@@ -21,6 +21,8 @@ export class OpenAICompatibleProvider implements VisionProvider {
   readonly model: string
   private readonly client: OpenAI
   private schemaInPrompt = false
+  /** Services that leave it unset often stop at 4,096 tokens, which a full exam page passes. */
+  private maxTokens = 32_000
 
   constructor(opts: CompatibleOptions) {
     if (!opts.model) throw new Error(`Choose a model for ${opts.id}`)
@@ -29,13 +31,23 @@ export class OpenAICompatibleProvider implements VisionProvider {
     this.client = opts.client ?? new OpenAI({ apiKey: opts.apiKey || 'none', baseURL: opts.baseUrl })
   }
 
+  /**
+   * Some services (relays in front of Claude, for one) take the strict JSON Schema without
+   * applying it, so the model never sees it; after one off-schema reply it goes into the prompt.
+   */
+  invalidReply(): void {
+    this.schemaInPrompt = true
+  }
+
   async complete(req: PageRequest): Promise<ProviderReply> {
-    try {
-      return await this.send(req)
-    } catch (err) {
-      if (this.schemaInPrompt || !rejectsSchema(err)) throw err
-      this.schemaInPrompt = true
-      return this.send(req)
+    for (;;) {
+      try {
+        return await this.send(req)
+      } catch (err) {
+        if (!this.schemaInPrompt && rejectsSchema(err)) this.schemaInPrompt = true
+        else if (this.maxTokens > 8_192 && rejectsMaxTokens(err)) this.maxTokens = 8_192
+        else throw err
+      }
     }
   }
 
@@ -43,6 +55,7 @@ export class OpenAICompatibleProvider implements VisionProvider {
     const prompt = this.schemaInPrompt ? `${req.prompt}\n\nReply with one JSON object only, matching this JSON Schema:\n${JSON.stringify(req.jsonSchema)}` : req.prompt
     const response = await this.client.chat.completions.create({
       model: this.model,
+      max_tokens: this.maxTokens,
       messages: [
         { role: 'system', content: req.system },
         {
@@ -78,6 +91,13 @@ function rejectsSchema(err: unknown): boolean {
   const status = (err as { status?: number } | null)?.status
   const message = err instanceof Error ? err.message : ''
   return (status === 400 || status === 422) && /response_format|json_schema|schema|structured/i.test(message)
+}
+
+/** A 400 saying the model can't write that many tokens. */
+function rejectsMaxTokens(err: unknown): boolean {
+  const status = (err as { status?: number } | null)?.status
+  const message = err instanceof Error ? err.message : ''
+  return status === 400 && /max_tokens|max_completion_tokens|maximum.*tokens|output tokens/i.test(message)
 }
 
 /** Some services wrap JSON in a Markdown fence even when asked not to. */

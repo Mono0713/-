@@ -1126,5 +1126,9 @@
   "這個網址沒有列出任何模型，可能不是 API 網址。API 網址通常以 /v1 結尾，可以在該服務的「接入教程」或 API 文件裡找到 Base URL，移除後用正確網址重新接上。": "Địa chỉ này không liệt kê mô hình nào, có thể không phải địa chỉ API. Địa chỉ API thường kết thúc bằng /v1; hãy tìm Base URL trong hướng dẫn kết nối hoặc tài liệu API của dịch vụ, gỡ mục này rồi kết nối lại bằng địa chỉ đúng.",
   "找到 {n} 個模型。API 網址已改成 {url}。": "Tìm thấy {n} mô hình. Địa chỉ API đã được đổi thành {url}.",
   "API 網址可能填錯了": "Địa chỉ API có thể bị sai",
-  "這個服務回的不是 AI 的回答，通常是 API 網址填成了網站的頁面。到設定按這個服務的「更新清單」，會自動改成正確的 /v1 網址；還是不行就移除後用正確網址重新接上。": "Dịch vụ này không trả lời như AI; thường là địa chỉ API đang là một trang web của họ. Vào cài đặt, bấm Cập nhật danh sách của dịch vụ này, địa chỉ sẽ tự đổi sang địa chỉ /v1; nếu vẫn không được, hãy gỡ rồi kết nối lại bằng địa chỉ đúng."
+  "這個服務回的不是 AI 的回答，通常是 API 網址填成了網站的頁面。到設定按這個服務的「更新清單」，會自動改成正確的 /v1 網址；還是不行就移除後用正確網址重新接上。": "Dịch vụ này không trả lời như AI; thường là địa chỉ API đang là một trang web của họ. Vào cài đặt, bấm Cập nhật danh sách của dịch vụ này, địa chỉ sẽ tự đổi sang địa chỉ /v1; nếu vẫn không được, hãy gỡ rồi kết nối lại bằng địa chỉ đúng.",
+  "AI 回的格式不對": "AI trả lời sai định dạng",
+  "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "Mô hình đã đọc trang nhưng câu trả lời không theo định dạng ứng dụng hiểu được. Bấm Nhận dạng lại; nếu vẫn lỗi, hãy chọn mô hình khác.",
+  "AI 的回答太長被截斷了": "Câu trả lời của AI quá dài nên bị cắt",
+  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Trang này có nhiều câu hỏi nên mô hình chạm giới hạn độ dài giữa chừng. Bấm Nhận dạng lại; nếu vẫn lỗi, hãy chọn mô hình viết được câu trả lời dài hơn."
 }

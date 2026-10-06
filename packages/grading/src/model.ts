@@ -92,6 +92,8 @@ function compatible(provider: string, { apiKey, model, baseUrl, onUsage }: TextM
     async complete(system, prompt, images = []) {
       const response = await new OpenAI({ apiKey: apiKey || 'none', baseURL: baseUrl }).chat.completions.create({
         model,
+        // Left unset, many services stop at 4,096 tokens.
+        max_tokens: 8_192,
         messages: [
           { role: 'system', content: system },
           {
