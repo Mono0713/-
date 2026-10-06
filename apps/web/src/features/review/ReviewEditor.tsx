@@ -25,6 +25,7 @@ import { iconButton, ReviewToolbar } from './ReviewToolbar'
 import { ActiveOverlay, alongList, EdgeScroll, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 import { StrengthPanel } from './StrengthPanel'
 import { useDraftSaving } from './useDraftSaving'
+import { SolveAnswers } from './SolveAnswers'
 import { isFlagged, useReviewDraft } from './useReviewDraft'
 import { clampSplit, DEFAULT_LAYOUT, OUTLINE_SPACE, SPLITTER, useWorkspaceLayout } from './useWorkspaceLayout'
 
@@ -86,6 +87,7 @@ export function ReviewEditor({
     duplicateQuestion,
     setMeta,
     setGroupStem,
+    patchQuestion,
   } = useReviewDraft(initial, () => setMobileView('questions'))
   const { saveState, published, inSync, publish, publishing } = useDraftSaving(importId, draft, initial, start, savedExam)
   const { layout, setLayout, row, viewer, bar, barHeight, startResize } = useWorkspaceLayout()
@@ -290,6 +292,7 @@ export function ReviewEditor({
               </summary>
               <div className="m-expand grid gap-3 px-4 pb-4 sm:grid-cols-2">{metaFields(false)}</div>
             </details>
+            <SolveAnswers importId={importId} draft={draft} keys={keys.current} onSolved={patchQuestion} />
 
             <DndContext
               id="review-cards"

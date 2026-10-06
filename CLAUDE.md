@@ -41,6 +41,7 @@ Packages never import from apps.
 | ↳ 題目大綱、分隔線、版面記憶 | | `review/Outline.tsx`, `review/useWorkspaceLayout.ts` |
 | ↳ 題組/小題共用卡片 | | `review/GroupCard.tsx` |
 | ↳ 懸浮球 AI 強度 | | `review/StrengthPanel.tsx` |
+| ↳ 卷上沒答案時讓 AI 作答（AI 解答） | | `review/SolveAnswers.tsx`, `solveAnswer` in `review/actions.ts`; `needsAnswer` in `packages/core/src/answers.ts`; AI `packages/grading/src/solver.ts` |
 | 題目卡（看）/ 題目編輯表單 | | `features/questions/QuestionView.tsx` (配合題 as a table: `MatchingTable.tsx`), `QuestionEditor.tsx` → `OptionsEditor.tsx`, `AnswerEditor.tsx`, `editorParts.tsx` |
 | 圖片空格清理 | | `features/questions/FigureBlanksEditor.tsx`, `packages/figures` |
 | 圖片選項（選項是圖） | | figure `option` field in `packages/core/src/schema.ts`, `questionFigures`/`optionFigures` in `core/src/figures.ts`; shown by `shared/FigureView.tsx` (`OptionPictures`); assigned in `QuestionEditor.tsx` (這張圖是) |
@@ -102,14 +103,14 @@ Packages never import from apps.
 
 | Package | What it does |
 |---|---|
-| `core` | Question/exam schema and types (`schema.ts`), box untangling (`boxes.ts`), figure helpers, 配合題 item count (`matching.ts`) |
+| `core` | Question/exam schema and types (`schema.ts`), box untangling (`boxes.ts`), figure helpers, 配合題 item count (`matching.ts`), which questions lack a key (`answers.ts`) |
 | `extraction` | AI recognition of pages: prompt (`prompt.ts`), providers, merging pages (`merge.ts`) |
 | `importer` | Upload → pages → recognition → draft pipeline, background runs, original-file expiry |
 | `ingest` | PDF and image → page images |
 | `figures` | Cropping figures, cleaning handwriting out of blanks, moving AI question boxes onto their text lines (`snap.ts`) |
 | `bank` | Question bank storage (`sqlite.ts`, `postgres.ts`), drafts |
 | `quiz` | Attempts storage, marking rules (`logic.ts`), answer equivalence (`equivalence.ts`) |
-| `grading` | AI teacher, handwriting reader, tutor, translation, their caches |
+| `grading` | AI teacher, handwriting reader, tutor, translation, answer solver (`solver.ts`), their caches |
 | `models` | Model catalog, prices, routing by AI strength (see `packages/models/SPEC.md`) |
 | `settings` | Per-user settings and their stores, locales list |
 | `sharing`, `classes`, `usage` | Share links; classes and assignments (`types.ts`, stores `sqlite.ts`/`postgres.ts`, `rows.ts`, `stats.ts`, `analysis.ts`, `grid.ts`, `exceptions.ts`); AI usage log |

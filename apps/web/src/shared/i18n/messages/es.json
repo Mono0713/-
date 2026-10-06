@@ -1131,5 +1131,15 @@
   "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "El modelo leyó la página, pero su respuesta no está en un formato que la app entienda. Pulsa Volver a reconocer; si sigue fallando, elige otro modelo.",
   "AI 的回答太長被截斷了": "La respuesta de la IA era demasiado larga y se cortó",
   "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Esta página tiene muchas preguntas y el modelo llegó a su límite de longitud a mitad. Pulsa Volver a reconocer; si sigue fallando, elige un modelo que escriba respuestas más largas.",
-  "配對": "Pareja"
+  "配對": "Pareja",
+  "AI 解答": "Respuesta de la IA",
+  "答案由 AI 作答，請確認是否正確。": "La IA resolvió esta respuesta. Revísala.",
+  "AI 正在作答…（{done} / {total}）": "La IA está respondiendo… ({done} / {total})",
+  "還有 {n} 題沒有答案，其中 {failed} 題 AI 沒答出來。": "Aún faltan respuestas en {n} preguntas; la IA no pudo con {failed}.",
+  "有 {n} 題卷上沒有答案。": "{n} preguntas no tienen respuesta en el papel.",
+  "再試一次": "Intentar de nuevo",
+  "讓 AI 作答": "Que responda la IA",
+  "這題已經有答案了。": "Esta pregunta ya tiene respuesta.",
+  "還沒有 API 金鑰：先到設定加上任一家的金鑰。": "Aún no hay clave de API: añade una de cualquier proveedor en Ajustes.",
+  "AI 這題沒有答出來，可以再試一次或自己填答案。": "La IA no pudo responder esta. Inténtalo de nuevo o escribe la respuesta tú."
 }

@@ -1,6 +1,6 @@
 import { DEFAULT_MODELS, type ModelTier } from '@exam/extraction'
 import { AUTO } from '@exam/importer'
-import { AiTeacher, AiTranslator, FreeTranslator, AiTutor, createTextModel, type TextModel } from '@exam/grading'
+import { AiSolver, AiTeacher, AiTranslator, FreeTranslator, AiTutor, createTextModel, type TextModel } from '@exam/grading'
 import { BUILTIN_LABELS, BUILTIN_MODELS, route, type ModelChoice, type ProviderInfo, type Route, type Strength, type Task } from '@exam/models'
 import type { Settings } from '@exam/settings'
 import { authEnabled } from './auth'
@@ -168,6 +168,14 @@ export async function tutorFor(ownerId: string): Promise<AiTutor | null> {
   const tutoring = await routeFor(ownerId, 'tutoring')
   if (!tutoring) return null
   return new AiTutor(await chain(s, ownerId, 'tutoring', [tutoring.primary, ...tutoring.fallbacks]))
+}
+
+/** Works out answers for questions printed without a key, on the user's own keys and the tutor's route (it explains as a tutor does); null without a key. */
+export async function solverFor(ownerId: string): Promise<AiSolver | null> {
+  const s = await services().settings.get(ownerId)
+  const tutoring = await routeFor(ownerId, 'tutoring')
+  if (!tutoring) return null
+  return new AiSolver(await chain(s, ownerId, 'tutoring', [tutoring.primary, ...tutoring.fallbacks]))
 }
 
 /**

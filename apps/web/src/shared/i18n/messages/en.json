@@ -1131,5 +1131,15 @@
   "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "The model read the page, but its answer wasn't in a format the app understands. Press Re-run to try again; if it still fails, pick another model.",
   "AI 的回答太長被截斷了": "The AI's answer was too long and got cut off",
   "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "This page has many questions and the model hit its length limit halfway. Press Re-run to try again; if it still fails, pick a model that writes longer answers.",
-  "配對": "Match"
+  "配對": "Match",
+  "AI 解答": "AI answer",
+  "答案由 AI 作答，請確認是否正確。": "This answer was worked out by AI. Please check it.",
+  "AI 正在作答…（{done} / {total}）": "AI is answering… ({done} / {total})",
+  "還有 {n} 題沒有答案，其中 {failed} 題 AI 沒答出來。": "{n} questions still have no answer; AI couldn't answer {failed} of them.",
+  "有 {n} 題卷上沒有答案。": "{n} questions have no answer on the paper.",
+  "再試一次": "Try again",
+  "讓 AI 作答": "Let AI answer",
+  "這題已經有答案了。": "This question already has an answer.",
+  "還沒有 API 金鑰：先到設定加上任一家的金鑰。": "No API key yet: add one from any provider in Settings first.",
+  "AI 這題沒有答出來，可以再試一次或自己填答案。": "AI couldn't answer this one. Try again or fill in the answer yourself."
 }

@@ -38,6 +38,8 @@ export const AnswerSource = z.enum([
   'handwritten',
   /** No answer visible. */
   'none',
+  /** Worked out by the AI because the paper printed none; for the person to check. */
+  'ai',
 ])
 export type AnswerSource = z.infer<typeof AnswerSource>
 

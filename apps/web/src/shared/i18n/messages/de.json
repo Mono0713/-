@@ -1131,5 +1131,15 @@
   "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "Das Modell hat die Seite gelesen, aber nicht in einem Format geantwortet, das die App versteht. Tippe auf Neu erkennen; klappt es wieder nicht, wähle ein anderes Modell.",
   "AI 的回答太長被截斷了": "Die Antwort der KI war zu lang und wurde abgeschnitten",
   "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Diese Seite hat viele Fragen, und das Modell hat mittendrin sein Längenlimit erreicht. Tippe auf Neu erkennen; klappt es wieder nicht, wähle ein Modell, das längere Antworten schreibt.",
-  "配對": "Zuordnung"
+  "配對": "Zuordnung",
+  "AI 解答": "KI-Lösung",
+  "答案由 AI 作答，請確認是否正確。": "Diese Antwort hat die KI erarbeitet. Bitte prüfen.",
+  "AI 正在作答…（{done} / {total}）": "KI löst… ({done} / {total})",
+  "還有 {n} 題沒有答案，其中 {failed} 題 AI 沒答出來。": "{n} Fragen haben noch keine Antwort; {failed} davon konnte die KI nicht lösen.",
+  "有 {n} 題卷上沒有答案。": "{n} Fragen haben auf dem Blatt keine Antwort.",
+  "再試一次": "Erneut versuchen",
+  "讓 AI 作答": "KI lösen lassen",
+  "這題已經有答案了。": "Diese Frage hat schon eine Antwort.",
+  "還沒有 API 金鑰：先到設定加上任一家的金鑰。": "Noch kein API-Schlüssel: Füge zuerst in den Einstellungen einen beliebigen hinzu.",
+  "AI 這題沒有答出來，可以再試一次或自己填答案。": "Die KI konnte diese Frage nicht lösen. Versuche es erneut oder trage die Antwort selbst ein."
 }

@@ -11,6 +11,7 @@ import { RemoveButton, SectionHead } from './editorParts'
 const SOURCES: [Answer['source'], string][] = [
   ['printed', msg('印刷')],
   ['handwritten', msg('手寫')],
+  ['ai', msg('AI 解答')],
   ['none', msg('無')],
 ]
 
