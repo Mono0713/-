@@ -1130,5 +1130,6 @@
   "AI 回的格式不對": "La IA respondió en un formato incorrecto",
   "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "El modelo leyó la página, pero su respuesta no está en un formato que la app entienda. Pulsa Volver a reconocer; si sigue fallando, elige otro modelo.",
   "AI 的回答太長被截斷了": "La respuesta de la IA era demasiado larga y se cortó",
-  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Esta página tiene muchas preguntas y el modelo llegó a su límite de longitud a mitad. Pulsa Volver a reconocer; si sigue fallando, elige un modelo que escriba respuestas más largas."
+  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Esta página tiene muchas preguntas y el modelo llegó a su límite de longitud a mitad. Pulsa Volver a reconocer; si sigue fallando, elige un modelo que escriba respuestas más largas.",
+  "配對": "Pareja"
 }

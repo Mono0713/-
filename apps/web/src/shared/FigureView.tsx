@@ -55,9 +55,6 @@ export function FigureView({
           </div>
         ))}
       </div>
-      <figcaption className="mt-1 text-xs text-muted">
-        <Markdown>{figure.description}</Markdown>
-      </figcaption>
     </figure>
   )
 }

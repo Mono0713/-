@@ -1130,5 +1130,6 @@
   "AI 回的格式不對": "Die KI hat im falschen Format geantwortet",
   "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "Das Modell hat die Seite gelesen, aber nicht in einem Format geantwortet, das die App versteht. Tippe auf Neu erkennen; klappt es wieder nicht, wähle ein anderes Modell.",
   "AI 的回答太長被截斷了": "Die Antwort der KI war zu lang und wurde abgeschnitten",
-  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Diese Seite hat viele Fragen, und das Modell hat mittendrin sein Längenlimit erreicht. Tippe auf Neu erkennen; klappt es wieder nicht, wähle ein Modell, das längere Antworten schreibt."
+  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Diese Seite hat viele Fragen, und das Modell hat mittendrin sein Längenlimit erreicht. Tippe auf Neu erkennen; klappt es wieder nicht, wähle ein Modell, das längere Antworten schreibt.",
+  "配對": "Zuordnung"
 }

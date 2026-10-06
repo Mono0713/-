@@ -13,6 +13,7 @@ import { IconAlert, IconCheck, IconChevronDown, IconCopy, IconEdit, IconGrip, Ic
 import { msg } from '@/shared/i18n/format'
 import { useT } from '@/shared/i18n/client'
 import { Toast } from '@/shared/Toast'
+import { markSymbols } from '@/shared/markSymbols'
 import { Button, inputClass } from '@/shared/ui'
 import { DragPreview } from './DragPreview'
 import { GroupCard } from './GroupCard'
@@ -313,7 +314,7 @@ export function ReviewEditor({
                     <Sortable key={key} id={key}>
                       {(handle, dragging) => (
                         <>
-                          {showSection && <h3 className="mb-2 mt-7 text-[13px] font-semibold tracking-wide text-muted">{q.section}</h3>}
+                          {showSection && <h3 className="mb-2 mt-7 text-[13px] font-semibold tracking-wide text-muted">{markSymbols(q.section ?? '')}</h3>}
                           {group && (
                             <GroupCard
                               group={group}

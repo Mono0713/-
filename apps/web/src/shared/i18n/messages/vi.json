@@ -1130,5 +1130,6 @@
   "AI 回的格式不對": "AI trả lời sai định dạng",
   "模型有讀頁面，但回答不是程式看得懂的格式。按重新辨識再試一次；還是不行就換一個模型。": "Mô hình đã đọc trang nhưng câu trả lời không theo định dạng ứng dụng hiểu được. Bấm Nhận dạng lại; nếu vẫn lỗi, hãy chọn mô hình khác.",
   "AI 的回答太長被截斷了": "Câu trả lời của AI quá dài nên bị cắt",
-  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Trang này có nhiều câu hỏi nên mô hình chạm giới hạn độ dài giữa chừng. Bấm Nhận dạng lại; nếu vẫn lỗi, hãy chọn mô hình viết được câu trả lời dài hơn."
+  "這一頁題目很多，模型寫到一半就達到長度上限。按重新辨識再試一次；還是不行就換一個能寫更長回答的模型。": "Trang này có nhiều câu hỏi nên mô hình chạm giới hạn độ dài giữa chừng. Bấm Nhận dạng lại; nếu vẫn lỗi, hãy chọn mô hình viết được câu trả lời dài hơn.",
+  "配對": "Ghép"
 }

@@ -6,6 +6,7 @@ import type { DraftQuestion } from '@exam/core'
 import { IconCheck, IconPlus, IconX } from '@/shared/icons'
 import { useT } from '@/shared/i18n/client'
 import { TYPE_LABELS } from '@/shared/labels'
+import { markSymbols } from '@/shared/markSymbols'
 import { Glide } from '@/shared/motion/Glide'
 import { alongList, listMeasuring, Sortable, underPointer, type useDragSensors } from './sortable'
 
@@ -77,7 +78,7 @@ export function Outline({
                 const section = q.section && q.section !== questions[index - 1]?.section ? q.section : null
                 return (
                   <li key={keys[index]}>
-                    {section && <p className="mb-1 mt-3 truncate px-2 text-[11px] text-muted/80">{section}</p>}
+                    {section && <p className="mb-1 mt-3 truncate px-2 text-[11px] text-muted/80">{markSymbols(section)}</p>}
                     <Sortable id={keys[index]!}>
                       {(handle, dragging) => (
                         <button

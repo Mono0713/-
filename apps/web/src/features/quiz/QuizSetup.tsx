@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react'
 import { QuestionView } from '@/features/questions/QuestionView'
 import { useT } from '@/shared/i18n/client'
 import { TYPE_LABELS } from '@/shared/labels'
+import { markSymbols } from '@/shared/markSymbols'
 import { Badge, Button, Card, inputBase } from '@/shared/ui'
 import { createQuiz } from './actions'
 
@@ -102,7 +103,7 @@ export function QuizSetup({ exams, preselected }: { exams: SetupExam[]; preselec
                 <ul className="mt-3 space-y-1 border-t border-line pt-2">
                   {e.questions.map(({ id, question: q, preview, hasKey }, i) => (
                     <li key={id}>
-                      {q.section && q.section !== e.questions[i - 1]?.question.section && <p className="mt-2 mb-1 px-1 text-xs font-medium text-muted">{q.section}</p>}
+                      {q.section && q.section !== e.questions[i - 1]?.question.section && <p className="mt-2 mb-1 px-1 text-xs font-medium text-muted">{markSymbols(q.section)}</p>}
                       <div className="flex items-start gap-2 rounded-md px-1 py-1.5 text-sm hover:bg-paper">
                         <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2 sm:gap-3">
                           <input type="checkbox" checked={selected.has(id)} onChange={(ev) => toggle([id], ev.target.checked)} className="m-check mt-px" />
