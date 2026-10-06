@@ -1,4 +1,4 @@
-import { needsAnswer, type DraftQuestion } from '@exam/core'
+import { needsAnswer, needsExplanation, type DraftQuestion } from '@exam/core'
 import { describe, expect, it } from 'vitest'
 import { AiSolver, type TextModel } from '../src/index.ts'
 
@@ -21,21 +21,33 @@ describe('needsAnswer', () => {
     expect(needsAnswer({ ...base, answer: { values: [' '], source: 'none' } })).toBe(true)
     expect(needsAnswer({ ...base, type: 'composition' })).toBe(false)
   })
+
+  it('offers an explanation only for a question with a key and none written', () => {
+    const keyed = { ...base, answer: { values: ['B'], source: 'printed' as const } }
+    expect(needsExplanation(base)).toBe(false)
+    expect(needsExplanation(keyed)).toBe(true)
+    expect(needsExplanation({ ...keyed, explanation: '7 是質數。' })).toBe(false)
+  })
 })
 
 describe('AiSolver', () => {
-  it('maps choice labels back to the paper and writes the explanation in the chosen language', async () => {
-    const { solver, calls } = fake('Here: {"values": ["(b)"], "explanation": "7 只有 1 和 7 兩個因數。"}')
-    const solved = await solver.solve({ question: base, images: [], language: 'zh-Hant' })
-    expect(solved).toEqual({ values: ['B'], explanation: '7 只有 1 和 7 兩個因數。' })
-    expect(calls[0]!.system).toContain('Traditional Chinese')
+  it('maps choice labels back to the paper', async () => {
+    const { solver, calls } = fake('Here: {"values": ["(b)"]}')
+    expect(await solver.solve({ question: base, images: [], language: 'zh-Hant' })).toEqual(['B'])
     expect(calls[0]!.prompt).toContain('(B) 7')
   })
 
+  it('explains the given key in the chosen language', async () => {
+    const { solver, calls } = fake('{"explanation": "7 只有 1 和 7 兩個因數。"}')
+    const question = { ...base, answer: { values: ['B'], source: 'printed' as const } }
+    expect(await solver.explain({ question, images: [], language: 'zh-Hant' })).toBe('7 只有 1 和 7 兩個因數。')
+    expect(calls[0]!.system).toContain('Traditional Chinese')
+    expect(calls[0]!.prompt).toMatch(/Answer key:\nB$/)
+  })
+
   it('reads true/false and retries once after a reply it cannot use', async () => {
-    const { solver, calls } = fake('not json', '{"values": ["O"], "explanation": ""}')
-    const solved = await solver.solve({ question: { ...base, type: 'true_false', options: [] }, images: [], language: 'en' })
-    expect(solved.values).toEqual(['true'])
+    const { solver, calls } = fake('not json', '{"values": ["O"]}')
+    expect(await solver.solve({ question: { ...base, type: 'true_false', options: [] }, images: [], language: 'en' })).toEqual(['true'])
     expect(calls).toHaveLength(2)
   })
 })

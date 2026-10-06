@@ -170,12 +170,12 @@ export async function tutorFor(ownerId: string): Promise<AiTutor | null> {
   return new AiTutor(await chain(s, ownerId, 'tutoring', [tutoring.primary, ...tutoring.fallbacks]))
 }
 
-/** Works out answers for questions printed without a key, on the user's own keys and the tutor's route (it explains as a tutor does); null without a key. */
-export async function solverFor(ownerId: string): Promise<AiSolver | null> {
+/** Works out the answers the paper left out (`solving`) or writes explanations (`explaining`), each on its own route and the user's keys; null without a key. */
+export async function solverFor(ownerId: string, task: 'solving' | 'explaining'): Promise<AiSolver | null> {
   const s = await services().settings.get(ownerId)
-  const tutoring = await routeFor(ownerId, 'tutoring')
-  if (!tutoring) return null
-  return new AiSolver(await chain(s, ownerId, 'tutoring', [tutoring.primary, ...tutoring.fallbacks]))
+  const r = await routeFor(ownerId, task)
+  if (!r) return null
+  return new AiSolver(await chain(s, ownerId, task, [r.primary, ...r.fallbacks]))
 }
 
 /**

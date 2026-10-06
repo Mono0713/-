@@ -41,7 +41,7 @@ Packages never import from apps.
 | ↳ 題目大綱、分隔線、版面記憶 | | `review/Outline.tsx`, `review/useWorkspaceLayout.ts` |
 | ↳ 題組/小題共用卡片 | | `review/GroupCard.tsx` |
 | ↳ 懸浮球 AI 強度 | | `review/StrengthPanel.tsx` |
-| ↳ 卷上沒答案時讓 AI 作答（AI 解答） | | `review/SolveAnswers.tsx`, `solveAnswer` in `review/actions.ts`; `needsAnswer` in `packages/core/src/answers.ts`; AI `packages/grading/src/solver.ts` |
+| ↳ AI 作答（卷上沒答案）、AI 詳解（有答案沒詳解） | | `review/SolveAnswers.tsx`, `solveQuestion` in `review/actions.ts`; `needsAnswer`/`needsExplanation` in `packages/core/src/answers.ts`; models: tasks `solving`/`explaining` in `packages/models/src/routing.ts`; AI `packages/grading/src/solver.ts` |
 | 題目卡（看）/ 題目編輯表單 | | `features/questions/QuestionView.tsx` (配合題 as a table: `MatchingTable.tsx`), `QuestionEditor.tsx` → `OptionsEditor.tsx`, `AnswerEditor.tsx`, `editorParts.tsx` |
 | 圖片空格清理 | | `features/questions/FigureBlanksEditor.tsx`, `packages/figures` |
 | 圖片選項（選項是圖） | | figure `option` field in `packages/core/src/schema.ts`, `questionFigures`/`optionFigures` in `core/src/figures.ts`; shown by `shared/FigureView.tsx` (`OptionPictures`); assigned in `QuestionEditor.tsx` (這張圖是) |

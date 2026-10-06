@@ -2,7 +2,7 @@ import type { Strength as StrengthId, Task as TaskId, Tier } from '@exam/models'
 import { z } from 'zod'
 
 const Strength = z.enum(['save', 'balanced', 'best'] as const satisfies readonly StrengthId[])
-const Task = z.enum(['recognition', 'handwriting', 'grading', 'tutoring', 'translation'] as const satisfies readonly TaskId[])
+const Task = z.enum(['recognition', 'handwriting', 'grading', 'tutoring', 'translation', 'solving', 'explaining'] as const satisfies readonly TaskId[])
 const TierEnum = z.enum(['fast', 'balanced', 'best'] as const satisfies readonly Tier[])
 
 /** A service the person added: anything that speaks the OpenAI Chat Completions format. Its key is in apiKeys under `id`. */

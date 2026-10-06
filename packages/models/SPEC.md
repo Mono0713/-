@@ -13,7 +13,7 @@ It calls no API and has no dependencies, so the server and the browser use the s
 
 ## Rules
 
-- Tasks: `recognition` (exam pages), `handwriting` (handwritten answers), `grading` (marking open answers), `tutoring` and `translation` (planned). Reading tasks only use models that read images.
+- Tasks: `recognition` (exam pages), `handwriting` (handwritten answers), `grading` (marking open answers), `tutoring` (問 AI), `translation`, `solving` (AI 作答: a key the paper left out) and `explaining` (AI 詳解). Reading tasks only use models that read images.
 - Without an override, the cheapest service at the task's tier goes first; the others follow as fallbacks in price order. A service lacking that tier uses its nearest one, the more capable on a tie.
 - A model picked by hand for a task wins while its service has a key. It does not escalate, and it still has the other services as fallbacks.
 - Unknown prices rank last and make estimates say "unknown" rather than guess.

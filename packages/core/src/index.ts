@@ -4,4 +4,4 @@ export { fillLeftOut, toStrictJsonSchema, withOptionalEmpties } from './json-sch
 export { defaultPrintedText, optionFigures, questionFigures } from './figures.ts'
 export { untangleBoxes } from './boxes.ts'
 export { isPickAnswer, matchingItemCount } from './matching.ts'
-export { needsAnswer, SOLVABLE } from './answers.ts'
+export { needsAnswer, needsExplanation, SOLVABLE } from './answers.ts'
