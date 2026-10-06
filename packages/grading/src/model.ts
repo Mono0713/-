@@ -101,6 +101,7 @@ function compatible(provider: string, { apiKey, model, baseUrl, onUsage }: TextM
         ],
       })
       onUsage?.({ inputTokens: response.usage?.prompt_tokens ?? null, outputTokens: response.usage?.completion_tokens ?? null })
+      if (!Array.isArray(response?.choices)) throw new Error(`${provider} did not answer like an OpenAI-compatible API (no "choices"). Check the API address: it usually ends in /v1.`)
       return response.choices[0]?.message.content ?? ''
     },
   }

@@ -1124,5 +1124,7 @@
   "檔案沒有存進去：存放檔案的空間這次沒有接受。請再按一次開始辨識。": "No se guardó el archivo: el almacenamiento no lo aceptó esta vez. Pulsa de nuevo Empezar a reconocer.",
   "翻譯的模型": "Modelo de traducción",
   "這個網址沒有列出任何模型，可能不是 API 網址。API 網址通常以 /v1 結尾，可以在該服務的「接入教程」或 API 文件裡找到 Base URL，移除後用正確網址重新接上。": "Esta dirección no muestra ningún modelo; quizá no sea la dirección de la API. Suelen terminar en /v1: busca la Base URL en la guía de conexión o la documentación de la API del servicio, quita esta y vuelve a conectar con ella.",
-  "找到 {n} 個模型。API 網址已改成 {url}。": "Se encontraron {n} modelos. La dirección de la API se cambió a {url}."
+  "找到 {n} 個模型。API 網址已改成 {url}。": "Se encontraron {n} modelos. La dirección de la API se cambió a {url}.",
+  "API 網址可能填錯了": "Puede que la dirección de la API sea incorrecta",
+  "這個服務回的不是 AI 的回答，通常是 API 網址填成了網站的頁面。到設定按這個服務的「更新清單」，會自動改成正確的 /v1 網址；還是不行就移除後用正確網址重新接上。": "Este servicio no respondió como una IA; normalmente la dirección de la API es una página de su web. En ajustes, pulsa Actualizar lista en este servicio y la dirección se cambia a la de /v1; si no funciona, quítalo y vuelve a conectar con la dirección correcta."
 }

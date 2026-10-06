@@ -57,6 +57,8 @@ export class OpenAICompatibleProvider implements VisionProvider {
         ? { type: 'json_object' }
         : { type: 'json_schema', json_schema: { name: 'extracted_page', schema: req.jsonSchema, strict: true } },
     })
+    // A web page instead of an API (a wrong address) still answers 200, with no choices in it.
+    if (!Array.isArray(response?.choices)) throw new ProviderStopError(this.id, 'empty', `${this.id} did not answer like an OpenAI-compatible API (no "choices"). Check the API address: it usually ends in /v1.`)
     const choice = response.choices[0]
     if (!choice) throw new ProviderStopError(this.id, 'empty', `${this.id} returned no reply`)
     if (choice.message.refusal) throw new ProviderStopError(this.id, 'refusal', `${this.id} refused: ${choice.message.refusal}`)
