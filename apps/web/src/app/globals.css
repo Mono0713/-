@@ -274,7 +274,12 @@ body:has(.auth-screen) :is(.app-sidebar, .app-header, .app-bottomnav) {
 body:has(.landing) :is(.app-sidebar, .app-header, .app-bottomnav) {
   display: none;
 }
-main:has(.landing) {
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.landing) {
+    scroll-behavior: smooth;
+  }
+}
+body main:has(.landing) {
   max-width: none;
   padding: 0;
 }

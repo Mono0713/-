@@ -204,19 +204,50 @@
 }
 .m-found { outline: 2px solid transparent; outline-offset: 1px; animation: m-found 1.4s var(--m-ease-out) calc(var(--i, 0) * 140ms + 250ms) backwards; }
 
-/* product page (features/landing): the sample sheet is scanned once and its questions boxed one by one,
-   sections fade up once as they scroll into view, and the start arrow leans toward where it goes */
-.m-scan-once { animation-iteration-count: 1; animation-fill-mode: forwards; }
+/* product page (features/landing)
+   The sample sheet plays once: a scan line runs down it and wipes the student's pencil off as it
+   goes (.m-wipe clips the pencil copy from the top in step with the line: same keyframe stops, same
+   timing), then the questions are boxed one by one, the answer is highlighted and the note pops up.
+   Each animation starts from its first frame and ends on the element's own style, so with motion off,
+   or on a sheet that is only holding the pile's height, the clean, boxed sheet is what shows.
+   The moments are set on .landing (--m-scan-at, --m-box-at, --m-mark-at, --m-note-at). */
+.landing { --m-scan-at: 700ms; --m-box-at: 2.2s; --m-mark-at: 2.95s; --m-note-at: 3.25s; }
+@keyframes m-scan-down { from { top: -18px; opacity: 1; } 88% { top: calc(100% - 18px); opacity: 1; } to { top: calc(100% - 18px); opacity: 0; } }
+@keyframes m-wipe { from { clip-path: inset(0 0 0 0); } 88%, to { clip-path: inset(100% 0 0 0); } }
+.m-scan-once {
+  position: absolute; inset-inline: 0; top: calc(100% - 18px); height: 18px; opacity: 0; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-accent) 30%, transparent));
+  border-bottom: 2px solid var(--color-accent);
+  animation: m-scan-down 1.7s cubic-bezier(0.45, 0, 0.3, 1) var(--m-scan-at, 0ms) backwards;
+}
+.m-wipe { clip-path: inset(100% 0 0 0); animation: m-wipe 1.7s cubic-bezier(0.45, 0, 0.3, 1) var(--m-scan-at, 0ms) backwards; }
 @keyframes m-box-in { from { opacity: 0; transform: scale(1.04); } }
-.m-box-in { animation: m-box-in 420ms var(--m-spring) calc(var(--i, 0) * 260ms + 800ms) backwards; }
+.m-box-in { animation: m-box-in 420ms var(--m-spring) calc(var(--i, 0) * 200ms + var(--m-box-at, 0ms)) backwards; }
+.m-note-in { animation: m-fade-up var(--m-slow) var(--m-ease-out) var(--m-note-at, 0ms) backwards; }
+@keyframes m-drop { from { opacity: 0; transform: translateY(-10px); } }
+.m-drop { animation: m-drop var(--m-slow) var(--m-spring) calc(var(--i, 0) * 160ms + 250ms) backwards; }
+.m-tile { animation: m-fade-up var(--m-slow) var(--m-ease-out) calc(var(--i, 0) * 70ms + 150ms) backwards; }
+@keyframes m-grow { from { transform: scaleY(0.15); } }
+.m-grow { transform-origin: bottom; animation: m-grow 600ms var(--m-spring) calc(var(--i, 0) * 60ms + 300ms) backwards; }
+
+/* Sections fade up once as they scroll into view (RevealObserver sets data-in); pictures inside
+   marked .m-play hold their first frame until then. The start arrow leans toward where it goes. */
 .m-reveal { transition: opacity var(--m-slow) var(--m-ease-out), transform var(--m-slow) var(--m-ease-out); transition-delay: calc(var(--i, 0) * 70ms); }
 @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
   .m-reveal:not([data-in]) { opacity: 0; transform: translateY(14px); }
+}
+@media (scripting: enabled) {
+  .m-reveal:not([data-in]) :is(.m-play, .m-play *) { animation-play-state: paused; }
 }
 .m-nudge-right { transition: transform var(--m-base) var(--m-spring); }
 @media (hover: hover) {
   :hover > .m-nudge-right { transform: translateX(3px); }
 }
+
+/* questions answered on the product page: the answer folds open under its question */
+details[open] > .m-answer { transform-origin: top; animation: m-expand var(--m-base) var(--m-ease-out); }
+details > summary .m-chevron { transition: transform var(--m-base) var(--m-spring); }
+details[open] > summary .m-chevron { transform: rotate(180deg); }
 
 /* pen checkbox (input.m-check): ticked in ballpoint, the tick drawn left to right; unticking is quick */
 .m-check {

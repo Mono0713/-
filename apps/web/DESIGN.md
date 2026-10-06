@@ -37,7 +37,7 @@ Rules:
 | --- | --- | --- |
 | Display | Bricolage Grotesque (`font-display`) | page titles, the wordmark, numbers (`.num`) |
 | Body | Atkinson Hyperlegible Next, then the system Chinese face (`font-sans`) | everything else |
-| Hand | LXGW WenKai TC (`font-hand`, `.pen`) | short AI/teacher comments only |
+| Hand | LXGW WenKai TC (`font-hand`, `.pen`) | short AI/teacher comments only; on the product page's sample exams also the student's pencil, in muted grey |
 | Code | JetBrains Mono (`font-mono`) | code in questions |
 
 All fonts are served by the app itself (SIL Open Font License).
@@ -77,7 +77,7 @@ to an instant change under `prefers-reduced-motion`.
 | Pen checkbox | Things 3, Todoist | quiz setup | `input.m-check`: tick drawn in 320 ms, unticked in 120 ms |
 | Last-minute timer | Duolingo | timed exams, last 60 s | `.m-last-minute`: red pen, beats once a second, colon blinks |
 | Corner curl | iBooks, the logo | exam cards in the bank | `.m-curl` lifts on hover to show `開始練習 →`; the corner itself also opens the practice setup (always shown on touch). The rest of the card opens the exam |
-| Product page | Linear, Stripe | `/` for signed-out visitors, `/welcome` | The sample sheet plays once: `.m-scan-once` scan line, `.m-box-in` question boxes 260 ms apart, then the highlighter, tick and red-pen note. Sections fade up 14 px once as they scroll in (`.m-reveal` + `RevealObserver`). Nothing loops |
+| Product page | Linear, Stripe | `/` for signed-out visitors, `/welcome` | A pile of ten sample exams; each visit opens on one this browser has not seen yet and 換一張 brings another (`.m-leaf-out`, then `.m-leaf-in`). A sheet is printed twice in one place: the copy with the student's pencil on top, wiped away by `.m-wipe` in step with the `.m-scan-once` line, then the clean copy's `.m-box-in` boxes 200 ms apart, the highlighter on the answer and the found note. Every sheet is as tall as the longest (a short one spreads its questions a little), so nothing moves when it changes. Pictures play once they scroll in (`.m-play`), sections fade up 14 px once (`.m-reveal` + `RevealObserver`). Nothing loops |
 | Punch confetti | Stripe, Linear | 100% on quiz results | `Confetti`: one burst of binder-hole dots in the four ink colors |
 
 Controls with a moving part must not change the layout around them: the sliding pill of

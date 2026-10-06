@@ -28,7 +28,8 @@ export const metadata: Metadata = {
   description: brandTagline(),
   // Installed on a phone's home screen it opens like an app, without the browser bar.
   appleWebApp: { capable: true, title: BRAND.name, statusBarStyle: 'default' },
-  icons: { apple: '/icons/apple-touch-icon.png' },
+  // Listing icons here turns off app/icon.svg, so the tab icon is named too.
+  icons: { icon: [{ url: '/icon.svg', type: 'image/svg+xml' }, { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }], apple: '/icons/apple-touch-icon.png' },
 }
 
 export const viewport: Viewport = {
