@@ -20,6 +20,8 @@ const TASKS: { id: Task; label: string; unit: string; units: number }[] = [
   { id: 'recognition', label: msg('辨識考卷'), unit: msg('一份 4 頁考卷'), units: 4 },
   { id: 'handwriting', label: msg('讀手寫作答'), unit: msg('每題'), units: 1 },
   { id: 'grading', label: msg('批改問答題'), unit: msg('每次交卷'), units: 1 },
+  { id: 'solving', label: msg('AI 作答'), unit: msg('每題'), units: 1 },
+  { id: 'explaining', label: msg('AI 詳解'), unit: msg('每題'), units: 1 },
 ]
 
 const AUTO = ''

@@ -7,3 +7,7 @@ export const SOLVABLE: ReadonlySet<DraftQuestion['type']> = new Set([
 
 /** A question without a key that has an answer to work out. */
 export const needsAnswer = (q: Pick<DraftQuestion, 'type' | 'answer'>) => SOLVABLE.has(q.type) && !q.answer.values.some((v) => v.trim())
+
+/** A question with a key but no worked explanation, one the AI can write. */
+export const needsExplanation = (q: Pick<DraftQuestion, 'type' | 'answer' | 'explanation'>) =>
+  SOLVABLE.has(q.type) && q.answer.values.some((v) => v.trim()) && !q.explanation?.trim()
