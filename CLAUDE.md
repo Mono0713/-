@@ -59,6 +59,8 @@ Packages never import from apps.
 | 測驗紀錄列表 | `app/quiz/page.tsx` | `features/quiz/QuizList.tsx` |
 | 分享連結 | `app/s/[token]` | `features/sharing/*`, `packages/sharing`, `server/shared.ts` |
 | 班級、作業、交卷、老師批閱 | `app/classes/**` | `features/classes/*`, `server/classes.ts`, `packages/classes` |
+| 派作業（選考卷、派給一或多個班級；題庫考卷頁的「派給班級」） | `app/classes/assign` | `features/classes/AssignForm.tsx`, `ExamPicker.tsx` (搜尋＋科目篩選), `createAssignments` in `features/classes/actions.ts` |
+| 多選題部分給分（考卷設定） | `app/bank/exams/[id]` | `features/bank/ExamMetaForm.tsx`; `multiplePartial` on `BankExam` (`packages/bank`, column `multiple_partial`) |
 | 設定頁 | `app/settings/page.tsx` | `features/settings/SettingsForm.tsx` (API 金鑰 rows), `StrengthSettings`, `ModelPicker`, `CustomProviders`, `TranslationSettings`, `StorageCard`, `ProfileEditor`/`ProfileCard` |
 | 側邊欄、帳號選單、頁首、手機導覽 | | `shared/chrome/` (`Sidebar`, `SideNav`, `rail.ts` fold state, `AccountMenu`, `Header`, `NavLinks`, `nav.ts` items) |
 | 懸浮球 (FAB) | | `shared/chrome/Fab.tsx` |

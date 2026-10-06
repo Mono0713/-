@@ -1,6 +1,7 @@
 'use server'
 
-import type { DraftQuestion, ExamMeta } from '@exam/core'
+import type { ExamPatch } from '@exam/bank'
+import type { DraftQuestion } from '@exam/core'
 import { revalidatePath } from 'next/cache'
 import { services } from '@/server/context'
 import { ownedExam, ownedQuestion } from '@/server/owned'
@@ -31,9 +32,10 @@ export async function deleteBankQuestion(id: string) {
   revalidatePath(`/bank/exams/${q.examId}`)
 }
 
-export async function updateExamMeta(id: string, meta: Partial<ExamMeta>) {
+export async function updateExamMeta(id: string, patch: ExamPatch) {
   await requireExam(id)
-  await services().bank.updateExam(id, meta)
+  const { multiplePartial, ...meta } = patch
+  await services().bank.updateExam(id, { ...meta, ...(multiplePartial !== undefined && { multiplePartial: Boolean(multiplePartial) }) })
   revalidatePath('/bank')
   revalidatePath(`/bank/exams/${id}`)
 }

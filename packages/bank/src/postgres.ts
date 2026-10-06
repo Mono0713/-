@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { DraftExam, DraftQuestion, ExamMeta } from '@exam/core'
 import { iso, isUuid, likePattern, type Sql, type TransactionSql } from '@exam/db'
 import { draftFields, META_KEYS, searchText, type Bank, type ImportPatch } from './bank.ts'
-import type { BankExam, BankQuestion, ExamQuery, ImportRecord, NewExam, NewImport, QuestionQuery } from './types.ts'
+import type { BankExam, BankQuestion, ExamPatch, ExamQuery, ImportRecord, NewExam, NewImport, QuestionQuery } from './types.ts'
 
 type Row = Record<string, unknown>
 
@@ -137,8 +137,8 @@ export class PostgresBank implements Bank {
     return row ? toExam(row) : null
   }
 
-  async updateExam(id: string, meta: Partial<ExamMeta>): Promise<BankExam | null> {
-    await this.setColumns(this.sql, 'exams', id, metaColumns(meta))
+  async updateExam(id: string, patch: ExamPatch): Promise<BankExam | null> {
+    await this.setColumns(this.sql, 'exams', id, { ...metaColumns(patch), ...(patch.multiplePartial !== undefined && { multiple_partial: patch.multiplePartial }) })
     return this.getExam(id)
   }
 
@@ -229,6 +229,8 @@ function toExam(row: Row): BankExam {
     term: text(row.term),
     language: text(row.language),
     groups: (row.groups ?? []) as DraftExam['groups'],
+    // Missing before the 20261006 migration: on, as it was for every exam.
+    multiplePartial: row.multiple_partial !== false,
     questionCount: Number(row.question_count ?? 0),
     createdAt: iso(row.created_at as Date)!,
     updatedAt: iso(row.updated_at as Date)!,

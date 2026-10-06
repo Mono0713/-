@@ -35,6 +35,12 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
   ].filter(Boolean)
   const times = (
     <p className="text-sm text-muted">
+      {teaches && (
+        <>
+          {rich(t('派發 <time></time>'), { time: () => <LocalTime at={a.createdAt} /> })}
+          <br />
+        </>
+      )}
       {a.opensAt && (
         <>
           {rich(t('開始 <time></time>'), { time: () => <LocalTime at={a.opensAt!} /> })}
@@ -116,7 +122,6 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
   const [members, tries] = await Promise.all([classes.members(classroom.id), classes.attempts(a.id)])
   const attempts = (await Promise.all(tries.filter((x) => !x.preview).map((x) => quizzes.get(x.attemptId)))).filter((x) => x !== null)
   const stats = assignmentStats(a.sources, members, attempts)
-  const missing = stats.students.filter((r) => !r.left && !r.counted?.handedIn)
   const pending = stats.students.reduce((n, r) => n + (r.counted?.handedIn ? r.counted.pending : 0), 0)
 
   return (
@@ -219,7 +224,6 @@ export default async function AssignmentPage({ params }: { params: Promise<{ id:
               </tbody>
             </table>
           </Card>
-          {missing.length > 0 && stats.students.length > 0 && <p className="text-sm text-muted">{t('還沒交：{names}', { names: missing.map((r) => r.name).join(t('、')) })}</p>}
 
           <Card className="p-5">
             <h2 className="mb-3 text-sm font-semibold">{t('每題得分率')}</h2>

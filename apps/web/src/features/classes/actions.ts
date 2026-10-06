@@ -118,7 +118,7 @@ export async function setMemberRole(classId: string, userId: string, role: Class
 export interface NewAssignmentInput {
   examId: string
   title: string
-  settings: AssignmentSettings
+  settings: Omit<AssignmentSettings, 'multiplePartial'>
   opensAt: string | null
   closesAt: string | null
 }
@@ -132,13 +132,16 @@ const when = (v: string | null): string | null => {
 const count = (n: number | null): number | null => (n && Number.isFinite(n) && n >= 1 ? Math.min(999, Math.round(n)) : null)
 
 /**
- * Gives one of the teacher's exams to the class. Its questions and figures are copied
- * now, so editing or deleting the exam later does not change what students get.
+ * Gives one of the teacher's exams to one or more of their classes. Its questions and
+ * figures are copied now, so editing or deleting the exam later does not change what
+ * students get. Multiple choice is counted the way the exam is set in the bank.
  */
-export async function createAssignment(classId: string, input: NewAssignmentInput): Promise<{ error: string } | undefined> {
-  const { classroom, me } = await requireTeaching(classId)
-  const exam = await ownedExam(input.examId)
+export async function createAssignments(classIds: string[], input: NewAssignmentInput): Promise<{ error: string } | undefined> {
   const t = await getT()
+  const ids = [...new Set(classIds)]
+  if (!ids.length) return { error: t('請至少選一個班級') }
+  const taught = await Promise.all(ids.map((id) => requireTeaching(id)))
+  const exam = await ownedExam(input.examId)
   if (!exam) return { error: t('請選一份自己題庫裡的考卷') }
   const { items } = await services().bank.listQuestions({ ownerId: exam.ownerId, examId: exam.id, limit: 1000 })
   if (!items.length) return { error: t('這份考卷還沒有題目') }
@@ -151,17 +154,23 @@ export async function createAssignment(classId: string, input: NewAssignmentInpu
     shuffleQuestions: Boolean(s.shuffleQuestions),
     shuffleOptions: Boolean(s.shuffleOptions),
     timeLimitMinutes: s.mode === 'exam' ? count(s.timeLimitMinutes) : null,
-    multiplePartial: Boolean(s.multiplePartial),
+    multiplePartial: exam.multiplePartial,
     maxAttempts: count(s.maxAttempts),
     // Practice shows each answer once it is written, so its answers cannot wait.
     answers: s.mode !== 'practice' && ANSWERS.includes(s.answers) ? s.answers : 'after_submit',
   }
-  const id = randomUUID()
   const { sources } = await sourcesOf(items)
-  const frozen = await freezeFigures(sources, me.userId, id)
-  await services().classes.assign({ id, classId: classroom.id, examId: exam.id, title: clean(input.title) || exam.title || t('未命名作業'), settings, sources: frozen, opensAt, closesAt })
-  revalidatePath(`/classes/${classroom.id}`)
-  redirect(`/classes/${classroom.id}/a/${id}`)
+  const title = clean(input.title) || exam.title || t('未命名作業')
+  let last = ''
+  for (const { classroom, me } of taught) {
+    const id = randomUUID()
+    const frozen = await freezeFigures(sources, me.userId, id)
+    await services().classes.assign({ id, classId: classroom.id, examId: exam.id, title, settings, sources: frozen, opensAt, closesAt })
+    revalidatePath(`/classes/${classroom.id}`)
+    last = `/classes/${classroom.id}/a/${id}`
+  }
+  revalidatePath('/classes')
+  redirect(taught.length === 1 ? last : '/classes')
 }
 
 /** Changes when an assignment opens or closes, and when its answers show. Applies to attempts already made, too. */

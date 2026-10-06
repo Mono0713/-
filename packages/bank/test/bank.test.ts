@@ -77,7 +77,9 @@ describe.each(banks)('%s', (_name, open) => {
     expect(await bank.subjects('local')).toEqual(['數學'])
 
     await bank.updateExam(exam.id, { subject: '物理', term: '113-1' })
-    expect(await bank.getExam(exam.id)).toMatchObject({ subject: '物理', term: '113-1', title: '期中考' })
+    expect(await bank.getExam(exam.id)).toMatchObject({ subject: '物理', term: '113-1', title: '期中考', multiplePartial: true })
+    await bank.updateExam(exam.id, { multiplePartial: false })
+    expect(await bank.getExam(exam.id)).toMatchObject({ subject: '物理', multiplePartial: false })
     expect((await bank.listQuestions({ ownerId: 'local', subject: '物理' })).total).toBe(2)
 
     const q = (await bank.listQuestions({ ownerId: 'local', type: 'essay' })).items[0]!

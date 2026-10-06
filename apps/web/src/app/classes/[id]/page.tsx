@@ -63,7 +63,7 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
         <>
           <ClassMenu classId={classroom.id} name={classroom.name} role={role} />
           {teaches && (
-            <ButtonLink href={`/classes/${classroom.id}/assign`} variant="primary" icon={<IconPlus size={16} />}>
+            <ButtonLink href={`/classes/assign?class=${classroom.id}`} variant="primary" icon={<IconPlus size={16} />}>
               {t('派作業')}
             </ButtonLink>
           )}
@@ -144,7 +144,8 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
                           {rich(t('已交 <n>{done}</n> / {total}', { done: handedIn[i]!, total: students.length }), { n: (c) => <span className="num text-ink">{c}</span> })}
                         </span>
                         <span className="w-full text-xs text-muted">
-                          {a.settings.mode === 'exam' ? t('考試') : t('練習')} · {t('{n} 題', { n: a.sources.length })} · <Due a={a} t={t} />
+                          {a.settings.mode === 'exam' ? t('考試') : t('練習')} · {t('{n} 題', { n: a.sources.length })} · <Due a={a} t={t} /> ·{' '}
+                          {rich(t('派發 <time></time>'), { time: () => <LocalTime at={a.createdAt} /> })}
                         </span>
                       </Card>
                     </Link>

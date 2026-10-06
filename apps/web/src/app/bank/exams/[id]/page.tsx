@@ -1,3 +1,4 @@
+import { canTeach } from '@exam/classes'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ExamMetaForm } from '@/features/bank/ExamMetaForm'
@@ -18,7 +19,12 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
   const exam = await ownedExam(id)
   if (!exam) notFound()
   const t = await getT()
-  const [{ items: questions }, share] = await Promise.all([services().bank.listQuestions({ ownerId: exam.ownerId, examId: id, limit: 1000 }), services().shares.forExam(id)])
+  const [{ items: questions }, share, classes] = await Promise.all([
+    services().bank.listQuestions({ ownerId: exam.ownerId, examId: id, limit: 1000 }),
+    services().shares.forExam(id),
+    services().classes.of(exam.ownerId),
+  ])
+  const teaches = classes.some((c) => canTeach(c.role))
   const groups = new Map(exam.groups.map((g) => [g.id, g]))
   const points = questions.reduce((sum, q) => sum + (q.points ?? 0), 0)
 
@@ -30,6 +36,7 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
         actions={
           <>
             {exam.importId && <ButtonLink href={`/imports/${exam.importId}`}>{t('看原始考卷')}</ButtonLink>}
+            {teaches && questions.length > 0 && <ButtonLink href={`/classes/assign?exam=${exam.id}`}>{t('派給班級')}</ButtonLink>}
             <ShareMenu examId={exam.id} initial={share && { token: share.token, answers: share.answers, allowCopy: share.allowCopy }} />
             <ButtonLink href={`/quiz/new?exam=${exam.id}`} variant="primary">
               {t('用這份考卷測驗')}

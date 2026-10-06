@@ -1,5 +1,5 @@
-import type { DraftExam, DraftQuestion, ExamMeta } from '@exam/core'
-import type { BankExam, BankQuestion, ExamQuery, ImportRecord, NewExam, NewImport, QuestionQuery } from './types.ts'
+import type { DraftExam, DraftQuestion } from '@exam/core'
+import type { BankExam, BankQuestion, ExamPatch, ExamQuery, ImportRecord, NewExam, NewImport, QuestionQuery } from './types.ts'
 
 export type ImportPatch = Partial<Pick<ImportRecord, 'status' | 'progress' | 'error' | 'title' | 'subject' | 'provider' | 'model' | 'keepOriginal' | 'originalDeletedAt'>>
 
@@ -29,7 +29,7 @@ export interface Bank {
   examForImport(importId: string): Promise<BankExam | null>
   listExams(query: ExamQuery): Promise<BankExam[]>
   getExam(id: string): Promise<BankExam | null>
-  updateExam(id: string, meta: Partial<ExamMeta>): Promise<BankExam | null>
+  updateExam(id: string, patch: ExamPatch): Promise<BankExam | null>
   /** Deletes the exam and its questions. */
   deleteExam(id: string): Promise<void>
   listQuestions(query: QuestionQuery): Promise<{ items: BankQuestion[]; total: number }>

@@ -1,7 +1,6 @@
 'use client'
 
-import type { BankExam } from '@exam/bank'
-import type { ExamMeta } from '@exam/core'
+import type { BankExam, ExamPatch } from '@exam/bank'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { msg } from '@/shared/i18n/format'
@@ -17,10 +16,10 @@ const FIELDS = [
   ['term', msg('學期')],
 ] as const
 
-/** Title, subject and the rest of an exam's details, saved on demand. */
+/** Title, subject and the rest of an exam's details, and how it is scored, saved on demand. */
 export function ExamMetaForm({ exam }: { exam: BankExam }) {
   const t = useT()
-  const [meta, setMeta] = useState<Partial<ExamMeta>>(() => Object.fromEntries(FIELDS.map(([k]) => [k, exam[k]])))
+  const [meta, setMeta] = useState<ExamPatch>(() => ({ ...Object.fromEntries(FIELDS.map(([k]) => [k, exam[k]])), multiplePartial: exam.multiplePartial }))
   const [dirty, setDirty] = useState(false)
   const [pending, start] = useTransition()
   const router = useRouter()
@@ -44,6 +43,22 @@ export function ExamMetaForm({ exam }: { exam: BankExam }) {
           </label>
         ))}
       </div>
+      {/* Scoring belongs to the exam, so every quiz, assignment and share link of it counts the same way. */}
+      <label className="mt-3 flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="m-check mt-0.5"
+          checked={meta.multiplePartial ?? true}
+          onChange={(e) => {
+            setMeta((m) => ({ ...m, multiplePartial: e.target.checked }))
+            setDirty(true)
+          }}
+        />
+        <span>
+          {t('多選題部分給分')}
+          <span className="block text-xs text-muted">{t('每錯一個選項扣 2/n 的分數，扣完為止（學測規則）')}</span>
+        </span>
+      </label>
       <div className="mt-3 flex items-center justify-between gap-3">
         <Button
           variant="danger"

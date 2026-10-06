@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
 import type { DraftExam, DraftQuestion, ExamMeta } from '@exam/core'
 import { draftFields, META_KEYS, searchText, type Bank, type ImportPatch } from './bank.ts'
-import type { BankExam, BankQuestion, ExamQuery, ImportRecord, NewExam, NewImport, QuestionQuery } from './types.ts'
+import type { BankExam, BankQuestion, ExamPatch, ExamQuery, ImportRecord, NewExam, NewImport, QuestionQuery } from './types.ts'
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS imports (
@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS exams (
   term TEXT,
   language TEXT,
   groups TEXT NOT NULL DEFAULT '[]',
+  multiple_partial INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -67,6 +68,7 @@ class SqliteBankSync {
     this.db.exec(SCHEMA)
     this.migrate()
     this.addImportColumns()
+    this.addExamColumns()
   }
 
   createImport(input: NewImport): ImportRecord {
@@ -197,8 +199,8 @@ class SqliteBankSync {
     return row ? toExam(row) : null
   }
 
-  updateExam(id: string, meta: Partial<ExamMeta>): BankExam | null {
-    this.setColumns('exams', id, metaColumns(meta))
+  updateExam(id: string, patch: ExamPatch): BankExam | null {
+    this.setColumns('exams', id, { ...metaColumns(patch), ...(patch.multiplePartial !== undefined && { multiple_partial: patch.multiplePartial ? 1 : 0 }) })
     return this.getExam(id)
   }
 
@@ -322,6 +324,11 @@ class SqliteBankSync {
     if (!columns.includes('page_format')) this.db.exec("ALTER TABLE imports ADD COLUMN page_format TEXT NOT NULL DEFAULT 'png'")
   }
 
+  private addExamColumns() {
+    const columns = (this.db.prepare('PRAGMA table_info(exams)').all() as Row[]).map((c) => String(c.name))
+    if (!columns.includes('multiple_partial')) this.db.exec('ALTER TABLE exams ADD COLUMN multiple_partial INTEGER NOT NULL DEFAULT 1')
+  }
+
   private setColumns(table: 'imports' | 'exams' | 'questions', id: string, columns: Record<string, string | number | null>) {
     const keys = Object.keys(columns)
     if (!keys.length) return
@@ -352,6 +359,7 @@ function toExam(row: Row): BankExam {
     term: text(row.term),
     language: text(row.language),
     groups: JSON.parse(String(row.groups ?? '[]')) as DraftExam['groups'],
+    multiplePartial: row.multiple_partial === undefined || row.multiple_partial === null || Number(row.multiple_partial) !== 0,
     questionCount: Number(row.question_count ?? 0),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -417,7 +425,7 @@ export class SqliteBank implements Bank {
   async examForImport(importId: string) { return this.db.examForImport(importId) }
   async listExams(query: ExamQuery) { return this.db.listExams(query) }
   async getExam(id: string) { return this.db.getExam(id) }
-  async updateExam(id: string, meta: Partial<ExamMeta>) { return this.db.updateExam(id, meta) }
+  async updateExam(id: string, patch: ExamPatch) { return this.db.updateExam(id, patch) }
   async deleteExam(id: string) { this.db.deleteExam(id) }
   async listQuestions(query: QuestionQuery) { return this.db.listQuestions(query) }
   async getQuestion(id: string) { return this.db.getQuestion(id) }
