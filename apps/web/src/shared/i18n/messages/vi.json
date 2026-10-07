@@ -1175,5 +1175,7 @@
   "AI 強度：{strength}・{model}": "Mức AI: {strength} · {model}",
   "正在原卷上框選…": "Đang chọn trên bản gốc…",
   "幫選項 {label} 加圖片": "Thêm hình cho đáp án {label}",
-  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Kéo khung để chỉnh vùng hình, hoặc vẽ khung mới trên trang."
+  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Kéo khung để chỉnh vùng hình, hoặc vẽ khung mới trên trang.",
+  "第 {n} 題還沒有框：在頁面上拖曳畫一個。": "Câu {n} chưa có khung: kéo trên trang để vẽ một khung.",
+  "放一個框": "Đặt một khung"
 }

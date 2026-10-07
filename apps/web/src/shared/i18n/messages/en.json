@@ -1175,5 +1175,7 @@
   "AI 強度：{strength}・{model}": "AI strength: {strength} · {model}",
   "正在原卷上框選…": "Framing on the original page…",
   "幫選項 {label} 加圖片": "Add a picture to option {label}",
-  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Drag the frame to adjust the picture, or draw a new box on the page."
+  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Drag the frame to adjust the picture, or draw a new box on the page.",
+  "第 {n} 題還沒有框：在頁面上拖曳畫一個。": "Question {n} has no box yet: drag on a page to draw one.",
+  "放一個框": "Place a box"
 }

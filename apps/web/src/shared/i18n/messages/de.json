@@ -1175,5 +1175,7 @@
   "AI 強度：{strength}・{model}": "KI-Stärke: {strength} · {model}",
   "正在原卷上框選…": "Auswahl auf dem Original…",
   "幫選項 {label} 加圖片": "Bild zu Option {label} hinzufügen",
-  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Ziehen Sie den Rahmen, um das Bild anzupassen, oder zeichnen Sie einen neuen auf der Seite."
+  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Ziehen Sie den Rahmen, um das Bild anzupassen, oder zeichnen Sie einen neuen auf der Seite.",
+  "第 {n} 題還沒有框：在頁面上拖曳畫一個。": "Frage {n} hat noch keinen Rahmen: Ziehe auf einer Seite, um einen zu zeichnen.",
+  "放一個框": "Rahmen setzen"
 }

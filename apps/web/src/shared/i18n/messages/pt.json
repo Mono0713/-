@@ -1175,5 +1175,7 @@
   "AI 強度：{strength}・{model}": "Intensidade da IA: {strength} · {model}",
   "正在原卷上框選…": "Enquadrando no original…",
   "幫選項 {label} 加圖片": "Adicionar imagem à opção {label}",
-  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Arraste o quadro para ajustar a imagem ou desenhe uma nova caixa na página."
+  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Arraste o quadro para ajustar a imagem ou desenhe uma nova caixa na página.",
+  "第 {n} 題還沒有框：在頁面上拖曳畫一個。": "A questão {n} ainda não tem caixa: arraste numa página para desenhar uma.",
+  "放一個框": "Colocar uma caixa"
 }

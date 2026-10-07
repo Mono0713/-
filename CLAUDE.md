@@ -37,7 +37,7 @@ Packages never import from apps.
 | ↳ 工具列、題號列、存入題庫鈕 | | `review/ReviewToolbar.tsx`, `review/NumberBar.tsx` |
 | ↳ 新增/複製/刪除/復原/重做/拖曳排序/拆小題/合併 | | `review/useReviewDraft.ts` (all draft edits, Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y), `review/useHistory.ts` (multi-step undo/redo, typing joins one step), `review/parts.ts` (sub-question logic; `canMerge` = 合併 only where 拆小題 brings it back), `review/sortable.tsx` (drag) |
 | ↳ 自動儲存、存入題庫 | | `review/useDraftSaving.ts`, `review/actions.ts` |
-| ↳ 原卷、題目框、放大縮小 | | `review/PageViewer.tsx` (also frames pictures: `review/useFigureFraming.ts`, `FramingBar.tsx` 套用/取消), `review/useBoxEditing.ts` (move/resize/draw boxes), `review/boxGeometry.ts`; box placement from AI: `packages/core/src/boxes.ts` |
+| ↳ 原卷、題目框、放大縮小 | | `review/PageViewer.tsx` (also frames pictures: `review/useFigureFraming.ts`, `FramingBar.tsx` 套用/取消), `review/useBoxEditing.ts` (move/resize/draw boxes; a question added by hand draws its first box, or 放一個框), `review/boxGeometry.ts`; box placement from AI: `packages/core/src/boxes.ts` |
 | ↳ 題目大綱、分隔線、版面記憶 | | `review/Outline.tsx`, `review/useWorkspaceLayout.ts` |
 | ↳ 題組/小題共用卡片 | | `review/GroupCard.tsx` |
 | ↳ 懸浮球（全部生成答案/詳解、新增、複製、AI 強度和目前模型、復原） | | `review/useReviewFab.tsx` (what the FAB holds), `review/StrengthPanel.tsx` (AI 強度; models from `modelsByStrength` in `server/ai.ts`) |

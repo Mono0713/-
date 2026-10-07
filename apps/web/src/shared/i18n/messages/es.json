@@ -1175,5 +1175,7 @@
   "AI 強度：{strength}・{model}": "Intensidad de la IA: {strength} · {model}",
   "正在原卷上框選…": "Encuadrando en el original…",
   "幫選項 {label} 加圖片": "Añadir imagen a la opción {label}",
-  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Arrastra el marco para ajustar la imagen o dibuja un nuevo recuadro en la página."
+  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Arrastra el marco para ajustar la imagen o dibuja un nuevo recuadro en la página.",
+  "第 {n} 題還沒有框：在頁面上拖曳畫一個。": "La pregunta {n} aún no tiene recuadro: arrastra sobre una página para dibujarlo.",
+  "放一個框": "Poner un recuadro"
 }

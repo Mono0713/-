@@ -1175,5 +1175,7 @@
   "AI 強度：{strength}・{model}": "Kekuatan AI: {strength} · {model}",
   "正在原卷上框選…": "Memilih di halaman asli…",
   "幫選項 {label} 加圖片": "Tambah gambar ke opsi {label}",
-  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Seret bingkai untuk menyesuaikan gambar, atau gambar kotak baru di halaman."
+  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Seret bingkai untuk menyesuaikan gambar, atau gambar kotak baru di halaman.",
+  "第 {n} 題還沒有框：在頁面上拖曳畫一個。": "Soal {n} belum punya kotak: seret di halaman untuk menggambarnya.",
+  "放一個框": "Taruh kotak"
 }

@@ -154,7 +154,11 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     const key = latest().keys[index]
     edit((d) => {
       const q = d.questions[index]!
-      return replaceAt(d, index, { ...q, locations: q.locations.map((l, i) => (i === location ? { ...l, bbox, manual: true, ...(pageNumber !== undefined && { pageNumber }) } : l)) })
+      // a question added by hand has no box until one is drawn for it
+      const locations = q.locations[location]
+        ? q.locations.map((l, i) => (i === location ? { ...l, bbox, manual: true, ...(pageNumber !== undefined && { pageNumber }) } : l))
+        : [...q.locations, { pageNumber: pageNumber ?? 1, bbox, manual: true }]
+      return replaceAt(d, index, { ...q, locations })
     }, { focus: key })
   }
 

@@ -1175,5 +1175,7 @@
   "AI 強度：{strength}・{model}": "Niveau de l'IA : {strength} · {model}",
   "正在原卷上框選…": "Cadrage sur l'original…",
   "幫選項 {label} 加圖片": "Ajouter une image à l'option {label}",
-  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Faites glisser le cadre pour ajuster l'image ou dessinez un nouveau cadre sur la page."
+  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Faites glisser le cadre pour ajuster l'image ou dessinez un nouveau cadre sur la page.",
+  "第 {n} 題還沒有框：在頁面上拖曳畫一個。": "La question {n} n’a pas encore de cadre : faites glisser sur une page pour en tracer un.",
+  "放一個框": "Placer un cadre"
 }
