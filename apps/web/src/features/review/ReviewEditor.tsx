@@ -369,7 +369,7 @@ export function ReviewEditor({
       </Toast>
 
       <SolveStatus solver={solver} />
-      <Fab actions={fabActions} badge={flagged || undefined} />
+      <Fab actions={fabActions} />
       {strength && <StrengthPanel open={strengthOpen} initial={shownStrength} models={models} onChange={setShownStrength} onClose={() => setStrengthOpen(false)} />}
     </div>
   )

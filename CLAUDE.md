@@ -75,7 +75,7 @@ Packages never import from apps.
 | 多選題部分給分（考卷設定） | `app/bank/exams/[id]` | `features/bank/ExamMetaForm.tsx`; `multiplePartial` on `BankExam` (`packages/bank`, column `multiple_partial`) |
 | 設定頁 | `app/settings/page.tsx` | `features/settings/SettingsForm.tsx` (API 金鑰 rows), `StrengthSettings`, `TaskModelPicker` (每種工作與翻譯的模型選單), `ModelPicker`, `CustomProviders` (API 網址自動找 /v1: `apiBase.ts`), `TranslationSettings`, `StorageCard`, `ProfileEditor`/`ProfileCard` |
 | 側邊欄、帳號選單、頁首、手機導覽 | | `shared/chrome/` (`Sidebar`, `SideNav`, `rail.ts` fold state, `AccountMenu`, `Header`, `NavLinks`, `nav.ts` items) |
-| 懸浮球 (FAB) | | `shared/chrome/Fab.tsx` |
+| 懸浮球 (FAB)、收到右邊 | | `shared/chrome/Fab.tsx` (swipe right or 收到右邊 tucks it into a tab on the right edge, remembered per device) |
 | 宣傳頁、首頁介紹（未登入看到的 `/`，任何人可開 `/welcome`） | `app/page.tsx`, `app/welcome/page.tsx` | `features/landing/Landing.tsx` → `LandingNav`, `Hero`, `Steps` (四步驟), `Audience` (適合誰), `Features`, `Faq`, `Closing`, `Footer`; pictures in `art/` (`StepArt`, `FeatureArt`, `Frame`); `StartButton` (Google 登入／前往題庫), `LanguagePick`, `RevealObserver`, `metadata.ts` (頁面標題與連結預覽); public paths in `proxy.ts` |
 | ↳ 示範考卷（每次換一張、換一張鈕） | | `landing/samples/` (one file per subject, listed in `index.ts`; `types.ts`; `seen.ts` = the `lp_seen` cookie that picks one not seen yet), `landing/sheet/` (`SampleDeck` pile + 換一張, `Sheet` printed page and found note, `Question` per kind, `figures` drawings, `parts` pencil/blank/box, `Printed` text with formulas) |
 | 登入 | `app/login`, `app/auth/callback` | `features/auth/actions.ts`, `server/auth.ts` |
