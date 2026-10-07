@@ -3,7 +3,7 @@
 import type { Strength } from '@exam/models'
 import { STRENGTH_LABELS } from '@/features/settings/strengths'
 import type { FabAction } from '@/shared/chrome/Fab'
-import { IconCopy, IconPlus, IconSparkles, IconStrength, IconUndo } from '@/shared/icons'
+import { IconCopy, IconPlus, IconPrint, IconSparkles, IconStrength, IconUndo } from '@/shared/icons'
 import { useT } from '@/shared/i18n/client'
 import { msg } from '@/shared/i18n/format'
 import type { useReviewDraft } from './useReviewDraft'
@@ -14,9 +14,25 @@ type Draft = ReturnType<typeof useReviewDraft>
 /**
  * What the floating button holds, nearest the button first: AI 作答 and AI 詳解 for the questions
  * still missing them or for every question (each card has its own AI buttons), add a question after
- * the selected one, copy it, the AI strength with the model it uses, and undo. Nothing else.
+ * the selected one, copy it, 匯出 PDF for an exam written from scratch (without and with the answers),
+ * the AI strength with the model it uses, and undo. Nothing else.
  */
-export function useReviewFab({ d, solver, strength, model, onStrength }: { d: Draft; solver: Solver; strength?: Strength; model?: string | null; onStrength: () => void }): FabAction[] {
+export function useReviewFab({
+  d,
+  solver,
+  strength,
+  model,
+  onStrength,
+  onExport,
+}: {
+  d: Draft
+  solver: Solver
+  strength?: Strength
+  model?: string | null
+  onStrength: () => void
+  /** Given (an exam with no original pages), prints its A4 pages as PDF, with or without the answers. */
+  onExport?: (withAnswers: boolean) => void
+}): FabAction[] {
   const t = useT()
   const { draft, selected } = d
   const { missing, all, running, runAll } = solver
@@ -41,6 +57,12 @@ export function useReviewFab({ d, solver, strength, model, onStrength }: { d: Dr
       ? { id: 'insert', label: t('在第 {n} 題後面新增一題', { n: chosen.number }), icon: <IconPlus size={20} />, onClick: () => d.addQuestion(selected!) }
       : { id: 'add', label: t('新增題目'), icon: <IconPlus size={20} />, onClick: () => d.addQuestion() },
     ...(chosen ? [{ id: 'copy', label: t('複製第 {n} 題', { n: chosen.number }), icon: <IconCopy size={19} />, onClick: () => d.duplicateQuestion(selected!) }] : []),
+    ...(onExport
+      ? [
+          { id: 'pdf', label: t('匯出 PDF'), icon: <IconPrint size={19} />, onClick: () => onExport(false) },
+          { id: 'pdf-key', label: t('匯出 PDF（附答案）'), icon: <IconPrint size={19} />, onClick: () => onExport(true) },
+        ]
+      : []),
     ...(strength
       ? [{ id: 'strength', label: model ? t('AI 強度：{strength}・{model}', { strength: strengthLabel!, model }) : t('AI 強度：{strength}', { strength: strengthLabel! }), icon: <IconStrength size={19} />, onClick: onStrength }]
       : []),

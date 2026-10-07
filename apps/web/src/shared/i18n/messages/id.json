@@ -1138,16 +1138,12 @@
   "姓名": "Nama",
   "第 {from}～{to} 題": "Soal {from}–{to}",
   "第 {page} 頁，共 {pages} 頁": "Halaman {page} dari {pages}",
-  "學生版": "Versi siswa",
-  "共 {n} 頁": "{n} halaman",
   "匯出 PDF": "Ekspor PDF",
   "（{points} 分）": "({points} poin)",
   "答：": "Jawab:",
   "印出班級、座號、姓名和得分欄": "Cetak kolom kelas, nomor, nama, dan nilai",
   "作答說明": "Petunjuk",
   "例如：本卷共兩頁，選擇題請將答案填入括號內。": "Contoh: Soal terdiri dari dua halaman. Tulis jawaban pilihan di dalam kurung.",
-  "附答案": "Dengan jawaban",
-  "教師版": "Versi guru",
   "第 {n} 題還沒有框：在頁面上拖曳畫一個。": "Soal {n} belum punya kotak: seret di halaman untuk menggambarnya.",
   "放一個框": "Taruh kotak",
   "收到右邊": "Simpan ke kanan",
@@ -1201,5 +1197,6 @@
   "有圖時": "Bergambar",
   "{task}遇到有圖的題目時的模型": "Model {task} untuk soal bergambar",
   "上面的模型看得懂圖就用它": "Memakai model di atas jika bisa membaca gambar",
-  "拖曳調整作答空間": "Seret untuk mengubah ruang jawaban"
+  "拖曳調整作答空間": "Seret untuk mengubah ruang jawaban",
+  "匯出 PDF（附答案）": "Ekspor PDF (dengan jawaban)"
 }
