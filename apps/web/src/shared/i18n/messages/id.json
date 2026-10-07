@@ -1200,5 +1200,6 @@
   "題目有圖時改用這個模型；只列看得懂圖的模型。": "Dipakai untuk soal bergambar; hanya model yang bisa membaca gambar yang ditampilkan.",
   "有圖時": "Bergambar",
   "{task}遇到有圖的題目時的模型": "Model {task} untuk soal bergambar",
-  "上面的模型看得懂圖就用它": "Memakai model di atas jika bisa membaca gambar"
+  "上面的模型看得懂圖就用它": "Memakai model di atas jika bisa membaca gambar",
+  "拖曳調整作答空間": "Seret untuk mengubah ruang jawaban"
 }

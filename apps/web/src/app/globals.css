@@ -498,3 +498,44 @@ body {
     break-after: auto;
   }
 }
+/* the bottom edge of a question's answer room on the preview: drag to make it taller or shorter */
+.sheet-grip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.45em;
+  z-index: 1;
+  cursor: ns-resize;
+  touch-action: none;
+}
+.sheet-grip::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2.4em;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition: opacity var(--m-fast, 140ms) ease-out;
+}
+.a4-block:hover .sheet-grip::after,
+.a4-block[data-selected] .sheet-grip::after,
+.sheet-room-active .sheet-grip::after {
+  opacity: 0.85;
+}
+.a4-block:hover .sheet-grip:hover::after {
+  opacity: 1;
+}
+/* while dragged, the room shows its extent */
+.sheet-room-active > div:first-child {
+  outline: 1px dashed color-mix(in srgb, var(--color-accent) 60%, transparent);
+  outline-offset: 2px;
+}
+@media print {
+  .sheet-grip {
+    display: none;
+  }
+}

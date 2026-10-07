@@ -32,6 +32,8 @@ export interface DraftQuestion extends Omit<ExtractedQuestion, 'continuesFromPre
   /** Where the question sits on the source pages, one entry per page it spans. */
   /** `manual`: the person drew or moved this box themselves, so it is kept exactly as they left it. */
   locations: { pageNumber: number; bbox: ExtractedQuestion['bbox']; manual?: boolean }[]
+  /** Room to answer in on the printed sheet, in lines, as dragged on the A4 preview; missing means the type's usual room. */
+  space?: number
 }
 
 export interface DraftExam {

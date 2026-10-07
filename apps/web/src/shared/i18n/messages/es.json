@@ -1200,5 +1200,6 @@
   "題目有圖時改用這個模型；只列看得懂圖的模型。": "Se usa en preguntas con imágenes; solo aparecen modelos que ven imágenes.",
   "有圖時": "Con imágenes",
   "{task}遇到有圖的題目時的模型": "Modelo de {task} en preguntas con imágenes",
-  "上面的模型看得懂圖就用它": "Usa el modelo de arriba si ve imágenes"
+  "上面的模型看得懂圖就用它": "Usa el modelo de arriba si ve imágenes",
+  "拖曳調整作答空間": "Arrastra para ajustar el espacio de respuesta"
 }

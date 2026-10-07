@@ -4,7 +4,7 @@ import { DndContext } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { sheetOf, type DraftExam } from '@exam/core'
 import type { Strength } from '@exam/models'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
 import { QuestionView } from '@/features/questions/QuestionView'
 import { SheetPreview } from '@/features/sheet/SheetPreview'
@@ -108,6 +108,15 @@ export function ReviewEditor({
   } = reviewDraft
   // An exam written from scratch has no original pages: the A4 paper it prints as takes their place.
   const paper = pages.length === 0
+  // a question's answer room dragged on the paper; stable, so the paper is not laid out again on every render
+  const patchRef = useRef(patchQuestion)
+  useEffect(() => {
+    patchRef.current = patchQuestion
+  })
+  const setSpace = useCallback((index: number, lines: number) => {
+    const key = keys.current[index]
+    if (key) patchRef.current(key, (q) => ({ ...q, space: lines }))
+  }, [keys])
   const { saveState, published, inSync, publish, publishing } = useDraftSaving(importId, draft, initial, start, savedExam)
   // A picture framed for a form that closes (or another opens) is dropped.
   useEffect(() => {
@@ -208,7 +217,7 @@ export function ReviewEditor({
             className={`lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:h-[calc(100dvh-var(--bar)-1.5rem)] lg:w-[calc((100%_-_var(--side))_*_var(--split))] lg:shrink-0 lg:self-start ${mobileView === 'page' ? '' : 'hidden'}`}
           >
             {paper ? (
-              <SheetPreview draft={draft} selected={selected} onSelect={(i) => select(i, true)} className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]" />
+              <SheetPreview draft={draft} selected={selected} onSelect={(i) => select(i, true)} onSpace={setSpace} className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]" />
             ) : (
               <PageViewer
                 pages={pages}

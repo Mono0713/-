@@ -6,6 +6,7 @@ import { FigureView, OptionPictures } from '@/shared/FigureView'
 import { useT } from '@/shared/i18n/client'
 import { Markdown } from '@/shared/Markdown'
 import { splitNumber } from '@/shared/questionNumber'
+import { AnswerRoom } from './AnswerRoom'
 import { optionColumns } from './layout'
 
 /** 學生版 leaves the answers out; 教師版 writes them in red, where the student would. */
@@ -13,16 +14,16 @@ export type SheetCopy = 'student' | 'teacher'
 
 const COLUMNS = { 1: 'grid-cols-1', 2: 'grid-cols-2', 4: 'grid-cols-4' } as const
 
-/** Types answered with working out (算式) rather than sentences: their room is left blank, not ruled. */
-const OPEN_SPACE = new Set<DraftQuestion['type']>(['calculation'])
-/** Writing room by type, in lines: what a teacher would leave on paper. */
+/** Types answered in sentences get ruled lines; the rest (working out, drawing) get blank room. */
+const RULED = new Set<DraftQuestion['type']>(['short_answer', 'essay', 'composition', 'other'])
+/** Writing room by type, in lines: what a teacher would leave on paper; other types get none until it is dragged out. */
 const LINES: Partial<Record<DraftQuestion['type'], number>> = { short_answer: 3, calculation: 8, essay: 8, composition: 16, other: 2 }
 
 /**
  * One question as printed on paper: the answer bracket for choices, the number, the text with its blanks
  * as lines, pictures, options set in columns by their length, and room to write for open questions.
  */
-export function SheetQuestion({ q, copy }: { q: DraftQuestion; copy: SheetCopy }) {
+export function SheetQuestion({ q, copy, onSpace }: { q: DraftQuestion; copy: SheetCopy; onSpace?: (lines: number) => void }) {
   const t = useT()
   const teacher = copy === 'teacher'
   const { main, part } = splitNumber(q.number)
@@ -35,7 +36,9 @@ export function SheetQuestion({ q, copy }: { q: DraftQuestion; copy: SheetCopy }
   const inlineBlank = (i: number) => <span className="sheet-blank">{teacher && q.type === 'fill_in_blank' ? <span className="sheet-key">{values[i] ?? ''}</span> : null}</span>
   const body = matching && matching.items.length ? matching.lead : q.stem
   const pictures = q.options.some((o) => optionFigures(q, o.label).length > 0)
-  const lines = LINES[q.type]
+  // the room to answer in: the person's own size (dragged on the preview), else what the type usually gets
+  const lines = q.space ?? LINES[q.type] ?? 0
+  const key = teacher && values.length && (LINES[q.type] !== undefined || q.type === 'drawing') ? values.join('\n\n') : null
 
   return (
     <div className="flex gap-1.5">
@@ -75,8 +78,9 @@ export function SheetQuestion({ q, copy }: { q: DraftQuestion; copy: SheetCopy }
 
         {q.type === 'fill_in_blank' && !body.match(/_{3,}/) && <AnswerLine label={t('答：')} answer={teacher ? values.join('、') : null} />}
         {q.type === 'writing' && <WritingGrid characters={values.join('')} />}
-        {lines !== undefined && (teacher && values.length ? <Key>{values.join('\n\n')}</Key> : <Ruled lines={lines} blank={OPEN_SPACE.has(q.type)} />)}
-        {teacher && q.type === 'drawing' && values.length > 0 && <Key>{values.join('\n\n')}</Key>}
+        <AnswerRoom lines={lines} ruled={RULED.has(q.type)} onResize={onSpace}>
+          {key && <Key>{key}</Key>}
+        </AnswerRoom>
       </div>
       {/* choices take their points from the section heading, as on paper; open questions say their own */}
       {q.points !== null && !bracketed && <span className="shrink-0 pl-2 text-[0.85em] text-ink/70">{t('（{points} 分）', { points: q.points })}</span>}
@@ -96,11 +100,6 @@ function AnswerLine({ label, answer }: { label: string; answer: string | null })
 /** The answer key on 教師版, in red. */
 function Key({ children }: { children: string }) {
   return <Markdown className="sheet-key">{children}</Markdown>
-}
-
-/** Room to write in, `lines` lines high: ruled for sentences, `blank` for working out. */
-function Ruled({ lines, blank = false }: { lines: number; blank?: boolean }) {
-  return <div aria-hidden className={blank ? undefined : 'sheet-ruled'} style={{ height: `${lines * 2}em` }} />
 }
 
 /** 寫字練習: a row of squares per character, the first holding it in pale ink to trace. */
