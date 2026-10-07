@@ -8,7 +8,7 @@ const GRIP_EM = 0.9
 
 /**
  * The room left to answer in, `lines` lines high (a line is 2em): ruled for sentences, blank for working out.
- * With `onResize`, its bottom edge can be dragged on the preview to make it taller or shorter, half a line at a
+ * With `onResize`, the bottom edge of the question's box can be dragged on the preview to make it taller or shorter, half a line at a
  * time down to nothing; the paper is laid out again when the drag ends. The handle never prints.
  */
 export function AnswerRoom({ lines, ruled, onResize, children }: { lines: number; ruled: boolean; onResize?: (lines: number) => void; children?: React.ReactNode }) {
@@ -39,7 +39,8 @@ export function AnswerRoom({ lines, ruled, onResize, children }: { lines: number
     window.addEventListener('pointercancel', end)
   }
   return (
-    <div className={`relative ${dragging !== null ? 'sheet-room-active' : ''}`}>
+    // no position of its own: the handle lies on the bottom edge of the whole question's box (.a4-block)
+    <div className={dragging !== null ? 'sheet-room-active' : undefined}>
       <div className={ruled ? 'sheet-ruled' : undefined} style={{ minHeight: `${shown * 2}em` }}>
         {children}
       </div>
