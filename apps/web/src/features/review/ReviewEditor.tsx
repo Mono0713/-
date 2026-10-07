@@ -2,11 +2,13 @@
 
 import { DndContext } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import type { DraftExam, DraftQuestion } from '@exam/core'
+import { sheetOf, type DraftExam } from '@exam/core'
 import type { Strength } from '@exam/models'
 import { useEffect, useState } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
 import { QuestionView } from '@/features/questions/QuestionView'
+import { SheetPreview } from '@/features/sheet/SheetPreview'
+import { SheetSettings } from '@/features/sheet/SheetSettings'
 import type { StrengthModels } from '@/server/ai'
 import { Fab } from '@/shared/chrome/Fab'
 import { IconCheck, IconChevronDown, IconPlus, IconTrash } from '@/shared/icons'
@@ -99,9 +101,12 @@ export function ReviewEditor({
     addQuestion,
     duplicateQuestion,
     setMeta,
+    setSheet,
     setGroupStem,
     patchQuestion,
   } = reviewDraft
+  // An exam written from scratch has no original pages: the A4 paper it prints as takes their place.
+  const paper = pages.length === 0
   const { saveState, published, inSync, publish, publishing } = useDraftSaving(importId, draft, initial, start, savedExam)
   // A picture framed for a form that closes (or another opens) is dropped.
   useEffect(() => {
@@ -122,8 +127,8 @@ export function ReviewEditor({
   const solver = useSolver(importId, draft, keys.current, patchQuestion)
   const fabActions = useReviewFab({ d: reviewDraft, solver, strength: strength && shownStrength, model: models?.[shownStrength].solving, onStrength: () => setStrengthOpen(true) })
 
-  const metaFields = (compact: boolean) =>
-    (
+  const metaFields = (compact: boolean) => [
+    ...(
       [
         ['title', msg('考卷名稱')],
         ['subject', msg('科目')],
@@ -135,7 +140,9 @@ export function ReviewEditor({
         <span className={`block font-medium text-muted ${compact ? 'mb-0.5 text-[11px]' : 'mb-1 text-xs'}`}>{t(label)}</span>
         <input autoComplete="off" value={meta[key] ?? ''} onChange={(e) => setMeta(key, e.target.value)} className={`${inputClass} ${compact ? 'py-1.5 text-[13px]' : ''}`} />
       </label>
-    ))
+    )),
+    ...(paper ? [<SheetSettings key="sheet" sheet={sheetOf(draft)} onChange={setSheet} compact={compact} />] : []),
+  ]
 
   const visibleKeys = keys.current.filter((_, i) => !flaggedOnly || isFlagged(draft.questions[i]!))
 
@@ -148,7 +155,8 @@ export function ReviewEditor({
         inSync={inSync}
         outline={layout.outline}
         onToggleOutline={() => setLayout({ outline: !layout.outline })}
-        hasPages={pages.length > 0}
+        hasPages
+        pageLabel={paper ? t('A4 預覽') : t('原卷')}
         mobileView={mobileView}
         onMobileView={setMobileView}
         numbers={
@@ -194,46 +202,45 @@ export function ReviewEditor({
             />
           )}
 
-          {/* An exam written from scratch has no original pages: the questions take the room. */}
-          {pages.length > 0 && (
-            <>
-              <div
-                ref={viewer}
-                className={`lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:h-[calc(100dvh-var(--bar)-1.5rem)] lg:w-[calc((100%_-_var(--side))_*_var(--split))] lg:shrink-0 lg:self-start ${mobileView === 'page' ? '' : 'hidden'}`}
-              >
-                <PageViewer
-                  pages={pages}
-                  questions={draft.questions}
-                  selected={selected}
-                  onSelect={(i) => select(i, true)}
-                  onBoxChange={moveBox}
-                  framing={framing}
-                  className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]"
-                />
-              </div>
+          <div
+            ref={viewer}
+            className={`lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:h-[calc(100dvh-var(--bar)-1.5rem)] lg:w-[calc((100%_-_var(--side))_*_var(--split))] lg:shrink-0 lg:self-start ${mobileView === 'page' ? '' : 'hidden'}`}
+          >
+            {paper ? (
+              <SheetPreview draft={draft} selected={selected} onSelect={(i) => select(i, true)} className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]" />
+            ) : (
+              <PageViewer
+                pages={pages}
+                questions={draft.questions}
+                selected={selected}
+                onSelect={(i) => select(i, true)}
+                onBoxChange={moveBox}
+                framing={framing}
+                className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]"
+              />
+            )}
+          </div>
 
-              <div
-                role="separator"
-                aria-orientation="vertical"
-                aria-label={t('調整原卷寬度')}
-                aria-valuenow={Math.round(layout.split * 100)}
-                aria-valuemin={30}
-                aria-valuemax={72}
-                tabIndex={0}
-                title={t('拖曳調整原卷寬度，點兩下還原')}
-                onPointerDown={startResize}
-                onDoubleClick={() => setLayout({ split: DEFAULT_LAYOUT.split })}
-                onKeyDown={(e) => {
-                  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') setLayout({ split: clampSplit(layout.split + (e.key === 'ArrowLeft' ? -0.02 : 0.02)) })
-                }}
-                className="group sticky top-[calc(var(--bar)+1rem)] hidden h-[calc(100dvh-var(--bar)-1.5rem)] w-5 shrink-0 cursor-col-resize touch-none items-center justify-center self-start outline-none lg:flex"
-              >
-                <span className="h-14 w-1 rounded-full bg-ink/10 transition-colors group-hover:bg-accent/60 group-focus-visible:bg-accent group-active:bg-accent" />
-              </div>
-            </>
-          )}
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label={paper ? t('調整預覽寬度') : t('調整原卷寬度')}
+            aria-valuenow={Math.round(layout.split * 100)}
+            aria-valuemin={30}
+            aria-valuemax={72}
+            tabIndex={0}
+            title={paper ? t('拖曳調整預覽寬度，點兩下還原') : t('拖曳調整原卷寬度，點兩下還原')}
+            onPointerDown={startResize}
+            onDoubleClick={() => setLayout({ split: DEFAULT_LAYOUT.split })}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') setLayout({ split: clampSplit(layout.split + (e.key === 'ArrowLeft' ? -0.02 : 0.02)) })
+            }}
+            className="group sticky top-[calc(var(--bar)+1rem)] hidden h-[calc(100dvh-var(--bar)-1.5rem)] w-5 shrink-0 cursor-col-resize touch-none items-center justify-center self-start outline-none lg:flex"
+          >
+            <span className="h-14 w-1 rounded-full bg-ink/10 transition-colors group-hover:bg-accent/60 group-focus-visible:bg-accent group-active:bg-accent" />
+          </div>
 
-          <div className={`min-w-0 flex-1 space-y-4 pb-24 lg:block ${pages.length ? '' : 'mx-auto max-w-3xl'} ${mobileView === 'questions' ? '' : 'hidden'}`}>
+          <div className={`min-w-0 flex-1 space-y-4 pb-24 lg:block ${mobileView === 'questions' ? '' : 'hidden'}`}>
             {notice}
             {/* a new exam written from scratch starts with its details open: the title comes first */}
             <details open={(!pages.length && !initial.meta.title) || undefined} className={`group rounded-2xl bg-surface shadow-sheet ${layout.outline ? 'lg:hidden' : ''}`}>
