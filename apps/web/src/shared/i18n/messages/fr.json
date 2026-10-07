@@ -1192,5 +1192,7 @@
   "作答說明": "Consignes",
   "例如：本卷共兩頁，選擇題請將答案填入括號內。": "Ex. : l’épreuve compte deux pages. Écrivez les réponses aux QCM entre parenthèses.",
   "附答案": "Avec réponses",
-  "教師版": "Version enseignant"
+  "教師版": "Version enseignant",
+  "第 {n} 題還沒有框：在頁面上拖曳畫一個。": "La question {n} n’a pas encore de cadre : faites glisser sur une page pour en tracer un.",
+  "放一個框": "Placer un cadre"
 }

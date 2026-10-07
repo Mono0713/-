@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerE
 import { fileUrl } from '@/shared/files'
 import { useT } from '@/shared/i18n/client'
 import { IconChevronLeft, IconChevronRight, IconExternal, IconLoader, IconMinus, IconPlus } from '@/shared/icons'
-import { GRIPS, type Box } from './boxGeometry'
+import { clamp, GRIPS, type Box } from './boxGeometry'
 import { FramingBar } from './FramingBar'
 import { useBoxEditing } from './useBoxEditing'
 import type { Framing } from './useFigureFraming'
@@ -13,6 +13,7 @@ import type { Framing } from './useFigureFraming'
 const ZOOMS = [1, 1.25, 1.5, 2, 2.5]
 // The box of a picture being framed, told apart from the questions' boxes.
 const FRAME = -1
+const spot = ({ x, y, width, height }: Box) => ({ left: `${x * 100}%`, top: `${y * 100}%`, width: `${width * 100}%`, height: `${height * 100}%` })
 
 /**
  * Every source page, one under the other, with a box around each question: the selected one is
@@ -20,7 +21,8 @@ const FRAME = -1
  * over the bottom of the pages, so the pages get all the room. The root is the scroll container
  * where the layout gives it a height (`className`); otherwise the pages flow with the window.
  * While a picture is `framing`, the pages show only its box, the same box as a selected question's:
- * moved and resized the same way, or drawn anew anywhere on a page.
+ * moved and resized the same way, or drawn anew anywhere on a page. A selected question with no box
+ * yet (added by hand) gets one drawn on a page, or placed on the page in view.
  */
 export function PageViewer({
   pages,
@@ -188,6 +190,17 @@ export function PageViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [framing?.id])
   const frameLive = live?.index === FRAME ? live : null
+  // The selected question has no box yet: a press on a page draws one, or the bar places one.
+  const boxless = !framing && onBoxChange && selected !== null && questions[selected]?.locations.length === 0 ? selected : null
+  const drawLive = boxless !== null && live?.index === boxless ? live : null
+  const placeBox = () => {
+    if (boxless === null) return
+    const r = scroller.current?.querySelector<HTMLElement>(`figure[data-page="${current}"]`)?.getBoundingClientRect()
+    const view = scrolls() ? scroller.current!.getBoundingClientRect() : { top: 0, bottom: innerHeight }
+    // across the middle of what shows of the page
+    const middle = r ? ((view.top + view.bottom) / 2 - r.top) / r.height : 0.15
+    onBoxChange!(boxless, 0, { x: 0.08, y: clamp(middle - 0.05, 0, 0.9), width: 0.84, height: 0.1 }, current)
+  }
 
   if (!pages.length) return null
   const scale = ZOOMS[zoom]!
@@ -197,7 +210,15 @@ export function PageViewer({
   return (
     // A column, so the controls sit at the bottom of the viewer even before the pages fill it.
     <div ref={scroller} onScroll={onScroll} onPointerMove={nearControls} onPointerDown={nearControls} className={`relative flex flex-col ${className}`}>
-      {framing && <FramingBar onApply={framing.onApply} onCancel={framing.onCancel} />}
+      {framing && <FramingBar hint={t('拖曳框線調整圖片範圍，或在頁面上重畫一個框。')} onApply={framing.onApply} onCancel={framing.onCancel} />}
+      {boxless !== null && (
+        <FramingBar
+          hint={t('第 {n} 題還沒有框：在頁面上拖曳畫一個。', { n: questions[boxless]!.number })}
+          apply={t('放一個框')}
+          icon={<IconPlus size={14} strokeWidth={2.6} />}
+          onApply={placeBox}
+        />
+      )}
       {/* Zoomed pages scroll sideways here on phones; wider screens scroll the whole viewer. */}
       <div ref={strip} className="flex-1 overflow-x-auto lg:overflow-visible">
         <div
@@ -213,9 +234,10 @@ export function PageViewer({
             <figure
               key={page.pageNumber}
               data-page={page.pageNumber}
-              className={`group relative overflow-hidden rounded-lg bg-surface shadow-sheet ${framing ? 'cursor-crosshair' : ''}`}
-              // framing: a press on the page (mouse or pen) draws the picture's box anew
+              className={`group relative overflow-hidden rounded-lg bg-surface shadow-sheet ${framing || boxless !== null ? 'cursor-crosshair' : ''}`}
+              // a press on the page (mouse or pen) draws the picture's box anew, or the box of a question without one
               {...(framing && { onPointerDown: (e: ReactPointerEvent) => e.pointerType !== 'touch' && startEdit(e, FRAME, 0, framing.bbox, 'draw') })}
+              {...(boxless !== null && { onPointerDown: (e: ReactPointerEvent) => e.pointerType !== 'touch' && startEdit(e, boxless, 0, { x: 0, y: 0, width: 0, height: 0 }, 'draw') })}
               // An A4-shaped page holds the place until the image arrives, so nothing jumps around much.
               style={loaded[page.pageNumber] ? undefined : { aspectRatio: '1 / 1.414' }}
             >
@@ -248,7 +270,7 @@ export function PageViewer({
               {loaded[page.pageNumber] === 'ok' && framing && (frameLive ? frameLive.pageNumber : framing.pageNumber) === page.pageNumber && (
                 <div
                   data-frame
-                  style={(({ x, y, width, height }) => ({ left: `${x * 100}%`, top: `${y * 100}%`, width: `${width * 100}%`, height: `${height * 100}%` }))(frameLive ? frameLive.bbox : framing.bbox)}
+                  style={spot(frameLive ? frameLive.bbox : framing.bbox)}
                   onPointerDown={(e) => startEdit(e, FRAME, 0, framing.bbox, 'move')}
                   className={`absolute z-[1] touch-none rounded-sm bg-accent/15 ring-2 ring-accent ${frameLive ? 'cursor-grabbing' : 'cursor-move'}`}
                 >
@@ -256,6 +278,12 @@ export function PageViewer({
                     <span key={grip} aria-hidden onPointerDown={(e) => startEdit(e, FRAME, 0, framing.bbox, grip)} className={`absolute ${className} ${grip.length === 2 ? 'h-3.5 w-3.5' : ''}`} />
                   ))}
                 </div>
+              )}
+              {drawLive?.pageNumber === page.pageNumber && (
+                <div
+                  style={spot(drawLive.bbox)}
+                  className="pointer-events-none absolute z-[1] rounded-sm bg-accent/15 ring-2 ring-accent"
+                />
               )}
               {loaded[page.pageNumber] === 'ok' &&
                 !framing &&

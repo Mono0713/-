@@ -1192,5 +1192,7 @@
   "作答說明": "Hinweise",
   "例如：本卷共兩頁，選擇題請將答案填入括號內。": "z. B.: Die Arbeit hat zwei Seiten. Antworten bei Auswahlfragen in die Klammern schreiben.",
   "附答案": "Mit Lösungen",
-  "教師版": "Lehrerfassung"
+  "教師版": "Lehrerfassung",
+  "第 {n} 題還沒有框：在頁面上拖曳畫一個。": "Frage {n} hat noch keinen Rahmen: Ziehe auf einer Seite, um einen zu zeichnen.",
+  "放一個框": "Rahmen setzen"
 }

@@ -1192,5 +1192,7 @@
   "作答說明": "Instrucciones",
   "例如：本卷共兩頁，選擇題請將答案填入括號內。": "Ej.: el examen tiene dos páginas. Escribe las respuestas de opción entre paréntesis.",
   "附答案": "Con respuestas",
-  "教師版": "Para docentes"
+  "教師版": "Para docentes",
+  "第 {n} 題還沒有框：在頁面上拖曳畫一個。": "La pregunta {n} aún no tiene recuadro: arrastra sobre una página para dibujarlo.",
+  "放一個框": "Poner un recuadro"
 }
