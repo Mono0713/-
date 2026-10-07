@@ -1196,9 +1196,9 @@
   "拖曳調整作答空間": "Drag to resize the answer space",
   "匯出 PDF（附答案）": "Export PDF (with answers)",
   "清理空間：從佔最多的開始": "Free up space: biggest first",
-  "頁面圖與資料": "Page images and data",
-  "上傳的原檔": "Uploaded originals",
   "刪除「{title}」的原檔": "Delete the originals of “{title}”",
   "已刪除原檔，頁面圖仍保留": "Originals deleted; page images are kept",
-  "開始練習 →": "Start practice →"
+  "開始練習 →": "Start practice →",
+  "刪原檔 {size}": "Delete original {size}",
+  "顯示全部 {n} 筆": "Show all {n}"
 }

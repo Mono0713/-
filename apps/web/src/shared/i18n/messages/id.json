@@ -1196,9 +1196,9 @@
   "拖曳調整作答空間": "Seret untuk mengubah ruang jawaban",
   "匯出 PDF（附答案）": "Ekspor PDF (dengan jawaban)",
   "清理空間：從佔最多的開始": "Bersihkan ruang: yang terbesar dulu",
-  "頁面圖與資料": "Gambar halaman dan data",
-  "上傳的原檔": "File asli yang diunggah",
   "刪除「{title}」的原檔": "Hapus file asli “{title}”",
   "已刪除原檔，頁面圖仍保留": "File asli dihapus; gambar halaman tetap ada",
-  "開始練習 →": "Mulai latihan →"
+  "開始練習 →": "Mulai latihan →",
+  "刪原檔 {size}": "Hapus asli {size}",
+  "顯示全部 {n} 筆": "Tampilkan semua {n}"
 }

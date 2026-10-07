@@ -1196,9 +1196,9 @@
   "拖曳調整作答空間": "Ziehen, um den Antwortbereich anzupassen",
   "匯出 PDF（附答案）": "Als PDF exportieren (mit Lösungen)",
   "清理空間：從佔最多的開始": "Platz schaffen: das Größte zuerst",
-  "頁面圖與資料": "Seitenbilder und Daten",
-  "上傳的原檔": "Hochgeladene Originale",
   "刪除「{title}」的原檔": "Originale von „{title}“ löschen",
   "已刪除原檔，頁面圖仍保留": "Originale gelöscht; die Seitenbilder bleiben",
-  "開始練習 →": "Üben starten →"
+  "開始練習 →": "Üben starten →",
+  "刪原檔 {size}": "Original löschen {size}",
+  "顯示全部 {n} 筆": "Alle {n} anzeigen"
 }

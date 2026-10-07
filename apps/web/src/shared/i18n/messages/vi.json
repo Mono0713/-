@@ -1196,9 +1196,9 @@
   "拖曳調整作答空間": "Kéo để chỉnh khoảng trả lời",
   "匯出 PDF（附答案）": "Xuất PDF (kèm đáp án)",
   "清理空間：從佔最多的開始": "Dọn dung lượng: mục lớn nhất trước",
-  "頁面圖與資料": "Ảnh trang và dữ liệu",
-  "上傳的原檔": "Tệp gốc đã tải lên",
   "刪除「{title}」的原檔": "Xóa tệp gốc của “{title}”",
   "已刪除原檔，頁面圖仍保留": "Đã xóa tệp gốc; ảnh trang vẫn được giữ",
-  "開始練習 →": "Bắt đầu luyện tập →"
+  "開始練習 →": "Bắt đầu luyện tập →",
+  "刪原檔 {size}": "Xóa tệp gốc {size}",
+  "顯示全部 {n} 筆": "Hiện tất cả {n} mục"
 }
