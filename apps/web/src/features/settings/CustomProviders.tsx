@@ -1,14 +1,15 @@
 'use client'
 
-import type { Tier } from '@exam/models'
+import { TIERS, type Tier } from '@exam/models'
 import { useState, useTransition } from 'react'
 import { msg } from '@/shared/i18n/format'
 import { useT } from '@/shared/i18n/client'
 import { IconKey, IconPlus, IconRefresh, IconX } from '@/shared/icons'
 import { Listbox } from '@/shared/Listbox'
 import { useRemoval } from '@/shared/removal'
-import { Badge, Button, inputBase, inputClass } from '@/shared/ui'
+import { Button, inputBase, inputClass } from '@/shared/ui'
 import { addCustomProvider, refreshModels, removeCustomProvider, saveApiKey, saveCustomModels } from './actions'
+import { TIER_LABELS } from './strengths'
 
 export interface CustomModel {
   id: string
@@ -40,40 +41,9 @@ const PRESETS = [
   { name: 'LM Studio', url: 'http://localhost:1234/v1', local: true },
 ]
 
-const TIERS: [Tier, string][] = [
-  ['fast', msg('省錢級')],
-  ['balanced', msg('平衡級')],
-  ['best', msg('最準級')],
-]
 
-/** Services added by the person: any OpenAI-compatible API, with the models picked from it. */
-export function CustomProviders({ providers, hosted, onSaved }: { providers: CustomProviderView[]; hosted: boolean; onSaved: () => void }) {
-  const t = useT()
-  const [adding, setAdding] = useState(false)
-  const [note, setNote] = useState<string | null>(null)
-  const { isRemoved } = useRemoval()
-  return (
-    <>
-      {providers.filter((p) => !isRemoved(`provider:${p.id}`)).map((p) => (
-        <ProviderCard key={p.id} provider={p} onSaved={onSaved} />
-      ))}
-      <div className="border-t border-line/70 px-5 py-4 first:border-t-0">
-        {adding ? (
-          <AddForm hosted={hosted} onDone={(n) => (setAdding(false), setNote(n ?? null), onSaved())} onCancel={() => setAdding(false)} />
-        ) : (
-          <>
-            {note && <p className="mb-3 text-sm text-muted">{note}</p>}
-            <Button onClick={() => (setAdding(true), setNote(null))} icon={<IconPlus size={15} />}>
-              {t('接上其他 AI 服務')}
-            </Button>
-          </>
-        )}
-      </div>
-    </>
-  )
-}
-
-function AddForm({ hosted, onDone, onCancel }: { hosted: boolean; onDone: (note?: string) => void; onCancel: () => void }) {
+/** Adds a service that speaks the OpenAI format: a known one in one tap, or any address. `onDone` gets its id to open it. */
+export function AddService({ hosted, onDone, onCancel }: { hosted: boolean; onDone: (id: string | undefined, note?: string) => void; onCancel: () => void }) {
   const t = useT()
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
@@ -89,7 +59,7 @@ function AddForm({ hosted, onDone, onCancel }: { hosted: boolean; onDone: (note?
         start(async () => {
           const result = await addCustomProvider({ name, baseUrl: url, apiKey: key })
           if (!result.ok) return setError(result.error)
-          onDone(result.note)
+          onDone(result.id, result.note)
         })
       }}
     >
@@ -124,50 +94,25 @@ function AddForm({ hosted, onDone, onCancel }: { hosted: boolean; onDone: (note?
   )
 }
 
-function ProviderCard({ provider: p, onSaved }: { provider: CustomProviderView; onSaved: () => void }) {
+/** An added service, opened: its key, the models it is used with (tier, pictures, price), and removing it. */
+export function CustomService({ provider: p }: { provider: CustomProviderView }) {
   const t = useT()
   const [models, setModels] = useState(p.models)
-  const [editingKey, setEditingKey] = useState(false)
+  const [editingKey, setEditingKey] = useState(p.keyHint === null)
   const [key, setKey] = useState('')
   const [message, setMessage] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null)
   const [pending, start] = useTransition()
   const { remove } = useRemoval()
   const commit = (next: CustomModel[]) => {
     setModels(next)
-    start(async () => (await saveCustomModels(p.id, next), onSaved()))
+    start(async () => void (await saveCustomModels(p.id, next)))
   }
   const change = (i: number, patch: Partial<CustomModel>) => commit(models.map((m, j) => (j === i ? { ...m, ...patch } : m)))
   const addable = p.known.filter((id) => !models.some((m) => m.id === id))
 
   return (
-    <div className="space-y-3 border-t border-line/70 px-5 py-4 first:border-t-0">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-medium">{p.name}</span>
-        <span className="min-w-0 truncate font-mono text-xs text-muted">{p.baseUrl}</span>
-        {p.keyHint !== null ? <Badge tone="good">{p.keyHint ? t('已設定金鑰（…{hint}）', { hint: p.keyHint }) : t('已設定金鑰')}</Badge> : <Badge>{t('沒有金鑰')}</Badge>}
-        <span className="ml-auto flex gap-1">
-          <Button variant="ghost" onClick={() => setEditingKey(!editingKey)} icon={<IconKey size={15} />}>
-            {t('金鑰')}
-          </Button>
-          <Button
-            variant="ghost"
-            icon={<IconRefresh size={15} />}
-            onClick={() =>
-              start(async () => {
-                const result = await refreshModels(p.id)
-                setMessage(result.ok ? { tone: 'good', text: result.note ?? '' } : { tone: 'bad', text: result.error })
-              })
-            }
-          >
-            {t('更新清單')}
-          </Button>
-          <Button variant="danger" onClick={() => remove({ id: `provider:${p.id}`, note: t('已移除 {name}', { name: p.name }), commit: async () => (await removeCustomProvider(p.id), onSaved()) })}>
-            {t('移除')}
-          </Button>
-        </span>
-      </div>
-
-      {editingKey && (
+    <>
+      {editingKey ? (
         <form
           className="flex flex-wrap gap-2"
           onSubmit={(e) => {
@@ -177,47 +122,86 @@ function ProviderCard({ provider: p, onSaved }: { provider: CustomProviderView; 
               if (!result.ok) return setMessage({ tone: 'bad', text: result.error })
               setKey('')
               setEditingKey(false)
-              onSaved()
             })
           }}
         >
-          <input type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder={t('貼上新的 API 金鑰')} autoComplete="off" spellCheck={false} className={`${inputClass} min-w-0 flex-1 basis-56 font-mono`} aria-label={t('{name} 金鑰', { name: p.name })} />
-          <Button type="submit" variant="primary" disabled={!key.trim() || pending} loading={pending}>
+          <input type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder={t('貼上 API 金鑰')} autoComplete="off" spellCheck={false} className={`${inputClass} min-w-0 flex-1 basis-56 font-mono`} aria-label={t('{name} 金鑰', { name: p.name })} />
+          <Button type="submit" variant="primary" disabled={!key.trim() || pending} loading={pending} icon={<IconKey size={15} />}>
             {t('儲存')}
           </Button>
+          {p.keyHint !== null && (
+            <Button variant="ghost" onClick={() => setEditingKey(false)}>
+              {t('取消')}
+            </Button>
+          )}
         </form>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted">{p.keyHint ? t('金鑰 …{hint}', { hint: p.keyHint }) : t('已設定金鑰')}</span>
+          <Button variant="ghost" onClick={() => setEditingKey(true)} icon={<IconKey size={15} />}>
+            {t('更換金鑰')}
+          </Button>
+        </div>
       )}
 
-      {models.length > 0 ? (
-        <ul className="space-y-2">
-          {models.map((m, i) => (
-            <li key={m.id} className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="min-w-0 flex-1 basis-40 truncate font-mono text-xs">{m.id}</span>
-              <select value={m.tier} onChange={(e) => change(i, { tier: e.target.value as Tier })} className={inputBase} aria-label={t('{model} 等級', { model: m.id })}>
-                {TIERS.map(([v, label]) => (
-                  <option key={v} value={v}>
-                    {t(label)}
-                  </option>
-                ))}
-              </select>
-              <label className="flex items-center gap-1.5 text-xs text-muted">
-                <input type="checkbox" className="m-check" checked={m.vision} onChange={(e) => change(i, { vision: e.target.checked })} />
-                {t('會看圖')}
-              </label>
-              <PriceInput value={m.price} onChange={(price) => change(i, { price })} />
-              <button type="button" onClick={() => commit(models.filter((_, j) => j !== i))} className="m-press grid h-7 w-7 place-items-center rounded-md text-muted hover:bg-bad-soft hover:text-bad" aria-label={t('移除 {model}', { model: m.id })}>
-                <IconX size={15} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm text-muted">{t('還沒有加入模型。加入後，自動模式和 AI 強度就會把它算進去。')}</p>
-      )}
-      <AddModel known={addable} onAdd={(id) => commit([...models, { id, tier: 'balanced', vision: true, price: null }])} />
-      <p className="text-xs text-muted">{t('「等級」決定 AI 強度拉到哪一格時用它；只有勾「會看圖」的模型會拿來讀考卷和手寫。價格（每百萬 token 的美元）選填，只用來估費用。')}</p>
+      <div>
+        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-medium">{t('要用的模型')}</p>
+          <Button
+            variant="ghost"
+            icon={<IconRefresh size={15} />}
+            title={t('向服務查詢這把金鑰能用的模型，加到清單裡')}
+            onClick={() =>
+              start(async () => {
+                const result = await refreshModels(p.id)
+                setMessage(result.ok ? { tone: 'good', text: result.note ?? '' } : { tone: 'bad', text: result.error })
+              })
+            }
+          >
+            {t('更新模型清單')}
+          </Button>
+        </div>
+        {models.length > 0 ? (
+          <ul className="divide-y divide-line/70 rounded-lg border border-line/70">
+            {models.map((m, i) => (
+              <li key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 text-sm">
+                <span className="min-w-0 flex-1 truncate font-mono text-xs sm:basis-40">{m.id}</span>
+                {/* on a phone: name and × on one line, the settings below; wider: all on one line, × last */}
+                <button type="button" onClick={() => commit(models.filter((_, j) => j !== i))} className="m-press grid h-7 w-7 place-items-center rounded-md text-muted hover:bg-bad-soft hover:text-bad sm:order-last" aria-label={t('移除 {model}', { model: m.id })}>
+                  <IconX size={15} />
+                </button>
+                <span className="flex basis-full flex-wrap items-center gap-x-3 gap-y-2 sm:basis-auto">
+                  <label className="flex items-center gap-1.5 text-xs text-muted" title={t('勾了才會拿來讀考卷、手寫和有圖的題目')}>
+                    <input type="checkbox" className="m-check" checked={m.vision} onChange={(e) => change(i, { vision: e.target.checked })} />
+                    {t('看得懂圖')}
+                  </label>
+                  <select value={m.tier} onChange={(e) => change(i, { tier: e.target.value as Tier })} className={`${inputBase} py-1 text-xs`} aria-label={t('{model} 在自動時算哪一級', { model: m.id })} title={t('一鍵套用選這一級時，自動會挑它')}>
+                    {TIERS.map((tier) => (
+                      <option key={tier} value={tier}>
+                        {t(TIER_LABELS[tier])}
+                      </option>
+                    ))}
+                  </select>
+                  <PriceInput value={m.price} onChange={(price) => change(i, { price })} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="rounded-lg bg-ink/[0.035] px-3 py-2 text-sm text-muted">{t('還沒有加入模型。加入後就能在下面選它。')}</p>
+        )}
+        <div className="mt-2">
+          <AddModel known={addable} onAdd={(id) => commit([...models, { id, tier: 'balanced', vision: true, price: null }])} />
+        </div>
+        <p className="mt-2 text-xs text-muted">{t('「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。')}</p>
+      </div>
       {message && <p className={`text-sm ${message.tone === 'good' ? 'text-good' : 'text-bad'}`}>{message.text}</p>}
-    </div>
+      <div>
+        <Button variant="danger" onClick={() => remove({ id: `provider:${p.id}`, note: t('已移除 {name}', { name: p.name }), commit: () => removeCustomProvider(p.id) })}>
+          {t('移除這個服務')}
+        </Button>
+      </div>
+    </>
   )
 }
 

@@ -32,8 +32,17 @@ export async function createImport(formData: FormData): Promise<{ error: string 
     if (reason.startsWith('File store could not')) return { error: t('檔案沒有存進去：存放檔案的空間這次沒有接受。請再按一次開始辨識。') }
     return { error: t('無法讀取檔案：{reason}', { reason }) }
   }
+  await rememberMethod(owner, provider, model)
   revalidatePath('/imports')
   redirect(`/imports/${id}`)
+}
+
+/** The next upload starts with the recognition method (and its model) used this time. */
+async function rememberMethod(owner: string, provider: string, model: string | null) {
+  const { settings } = services()
+  const s = await settings.get(owner)
+  if (s.defaultProvider === provider && (!model || s.models[provider] === model)) return
+  await settings.update(owner, { defaultProvider: provider, ...(model ? { models: { ...s.models, [provider]: model } } : {}) }).catch(() => {})
 }
 
 /** Opens an empty exam in the editor, to be written question by question. */

@@ -47,6 +47,24 @@ describe('route', () => {
     expect(route('recognition', 'save', [custom])?.primary.model).toBe('sees')
     expect(route('grading', 'save', [custom])?.primary.model).toBe('text-only')
   })
+
+  it('sends a question with pictures only to a model that sees them, passing over a text-only pick', () => {
+    const relay: ProviderInfo = {
+      id: 'c-1',
+      label: 'Relay',
+      ready: true,
+      models: [
+        { id: 'qwen', label: 'qwen', tier: 'fast', vision: false, price: null },
+        { id: 'gemini', label: 'gemini', tier: 'fast', vision: true, price: null },
+      ],
+    }
+    const pick = { provider: 'c-1', model: 'qwen' }
+    expect(route('solving', 'save', [relay], { override: pick })?.primary.model).toBe('qwen')
+    expect(route('solving', 'save', [relay], { override: pick, pictures: true })?.primary.model).toBe('gemini')
+    expect(route('solving', 'save', [relay], { override: { provider: 'c-1', model: 'gemini' }, pictures: true })?.primary.model).toBe('gemini')
+    // a model typed in by hand that the list does not know is trusted to see
+    expect(route('explaining', 'save', [relay], { override: { provider: 'c-1', model: 'typed' }, pictures: true })?.primary.model).toBe('typed')
+  })
 })
 
 describe('nearest', () => {

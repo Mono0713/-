@@ -72,7 +72,7 @@ export function StrengthPanel({ open, initial, models, onChange, onClose }: { op
         )}
         <p className="mt-3 flex items-center justify-between gap-3 text-xs text-muted">
           <span>{saving ? t('儲存中…') : t('自動選模型時，辨識、讀手寫和批改都照這個強度。')}</span>
-          <Link href="/settings" className="shrink-0 text-accent hover:underline">
+          <Link href="/settings#ai" className="shrink-0 text-accent hover:underline">
             {t('進階設定')}
           </Link>
         </p>

@@ -35,12 +35,13 @@ export async function solveQuestion(importId: string, job: 'answer' | 'explain',
   if (!again && (job === 'answer' ? !needsAnswer(question) : !needsExplanation(question))) return { error: t('這題不需要了。') }
   if (job === 'explain' && !question.answer.values.some((v) => v.trim())) return { error: t('先填好答案，或先讓 AI 作答，再寫詳解。') }
   const owner = await currentOwner()
-  const solver = await solverFor(owner, job === 'answer' ? 'solving' : 'explaining')
-  if (!solver) return { error: t('還沒有 API 金鑰：先到設定加上任一家的金鑰。') }
   const prefix = keyPrefixOf(owner)
   const { files } = services()
   const keys = question.figures.flatMap((f) => (f.image && f.image.file.startsWith(prefix) ? [f.image.file] : []))
   const images = (await Promise.all(keys.map((k) => files.read(k)))).filter((b): b is Buffer => Boolean(b))
+  // a question with pictures goes to a model that sees them (settings: 有圖的題目)
+  const solver = await solverFor(owner, job === 'answer' ? 'solving' : 'explaining', images.length > 0)
+  if (!solver) return { error: t('還沒有 API 金鑰：先到設定加上任一家的金鑰。') }
   const req = { question, shared, images, language: await localeOf(owner) }
   try {
     return job === 'answer' ? { values: await solver.solve(req) } : { explanation: await solver.explain(req) }

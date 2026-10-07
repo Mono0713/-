@@ -1,7 +1,7 @@
 'use server'
 
 import { MAX_MESSAGE, markOpenAnswers, translationKey, unreadHandwriting } from '@exam/grading'
-import { gradeItem, isOver, needsTeacher, type QuizAttempt, type QuizResponse, type QuizSettings, type TutorTurn } from '@exam/quiz'
+import { gradeItem, isOver, needsTeacher, type QuizAttempt, type QuizItem, type QuizResponse, type QuizSettings, type TutorTurn } from '@exam/quiz'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { graderFor, keyRule, selfMarks } from '@/server/classes'
@@ -149,6 +149,16 @@ export async function askTeacher(id: string): Promise<{ error: string } | undefi
   revalidatePath(`/quiz/${id}`)
 }
 
+/** Pictures sent with one question to 問 AI, at most; a question rarely has more. */
+const MAX_PICTURES = 6
+
+/** The pictures of a question in an attempt, its group's first, as stored files. */
+async function pictures(item: QuizItem): Promise<Buffer[]> {
+  const { files } = services()
+  const keys = [...(item.group?.figures ?? []), ...item.question.figures].flatMap((f) => (f.image ? [f.image.file] : [])).slice(0, MAX_PICTURES)
+  return (await Promise.all(keys.map((k) => files.read(k).catch(() => null)))).filter((b): b is Buffer => Boolean(b))
+}
+
 /** Messages one question's conversation keeps; then it starts over. */
 const MAX_TURNS = 40
 
@@ -166,13 +176,14 @@ export async function askTutor(id: string, index: number, message: string): Prom
   if (!keyShown(await keyRule(attempt))) return { error: attempt.assignment ? t('老師公開答案後才能問 AI。') : t('這份考卷的答案沒有公開，不能問 AI。') }
   const text = message.trim().slice(0, MAX_MESSAGE)
   if (!text) return { error: t('請輸入問題') }
-  const tutor = await tutorFor(attempt.ownerId)
+  const images = await pictures(item)
+  const tutor = await tutorFor(attempt.ownerId, images.length > 0)
   if (!tutor) return { error: t('還沒有可用的 AI：請到設定加上 API 金鑰。') }
   const earlier = attempt.tutoring?.[index] ?? []
   const asked: TutorTurn = { from: 'student', text, at: new Date().toISOString() }
   let reply: string
   try {
-    reply = await tutor.reply({ item, response: attempt.responses[index] ?? null, marking: attempt.markings[index] ?? null, turns: [...earlier, asked], language: await localeOf(attempt.ownerId) })
+    reply = await tutor.reply({ item, response: attempt.responses[index] ?? null, marking: attempt.markings[index] ?? null, turns: [...earlier, asked], language: await localeOf(attempt.ownerId), images })
   } catch {
     return { error: t('AI 暫時沒有回應，請再試一次。') }
   }
