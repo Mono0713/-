@@ -267,6 +267,14 @@ export class Importer {
     return due.length
   }
 
+  /** Deletes the uploaded files of one import now, whatever its age; page images stay. */
+  async removeOriginals(id: string, now = new Date()): Promise<void> {
+    await this.settled(id)
+    const imp = await this.require(id)
+    await this.files.remove(await this.files.list(`${this.base(imp)}/sources/`))
+    await this.bank.updateImport(id, { originalDeletedAt: now.toISOString() })
+  }
+
   /** Deletes the import and its files. Questions already in the bank stay, and so do the figure images they show. */
   async remove(id: string): Promise<void> {
     await this.settled(id)

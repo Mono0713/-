@@ -118,7 +118,7 @@ export async function setMemberRole(classId: string, userId: string, role: Class
 export interface NewAssignmentInput {
   examId: string
   title: string
-  settings: Omit<AssignmentSettings, 'multiplePartial' | 'exceptions'>
+  settings: Omit<AssignmentSettings, 'exceptions'>
   opensAt: string | null
   closesAt: string | null
 }
@@ -134,7 +134,7 @@ const count = (n: number | null): number | null => (n && Number.isFinite(n) && n
 /**
  * Gives one of the teacher's exams to one or more of their classes. Its questions and
  * figures are copied now, so editing or deleting the exam later does not change what
- * students get. Multiple choice is counted the way the exam is set in the bank.
+ * students get. Multiple choice is counted the way the teacher sets it here.
  */
 export async function createAssignments(classIds: string[], input: NewAssignmentInput): Promise<{ error: string } | undefined> {
   const t = await getT()
@@ -154,7 +154,7 @@ export async function createAssignments(classIds: string[], input: NewAssignment
     shuffleQuestions: Boolean(s.shuffleQuestions),
     shuffleOptions: Boolean(s.shuffleOptions),
     timeLimitMinutes: s.mode === 'exam' ? count(s.timeLimitMinutes) : null,
-    multiplePartial: exam.multiplePartial,
+    multiplePartial: s.multiplePartial !== false,
     maxAttempts: count(s.maxAttempts),
     // Practice shows each answer once it is written, so its answers cannot wait.
     answers: s.mode !== 'practice' && ANSWERS.includes(s.answers) ? s.answers : 'after_submit',

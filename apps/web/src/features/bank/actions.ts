@@ -3,7 +3,7 @@
 import type { ExamPatch } from '@exam/bank'
 import type { DraftQuestion } from '@exam/core'
 import { revalidatePath } from 'next/cache'
-import { services } from '@/server/context'
+import { currentOwner, services } from '@/server/context'
 import { ownedExam, ownedQuestion } from '@/server/owned'
 
 async function requireQuestion(id: string) {
@@ -41,6 +41,11 @@ export async function updateExamMeta(id: string, patch: ExamPatch) {
 }
 
 /** Deletes for good; the 復原 note calls it once it has run out. */
+/** Saves the order the person dragged their cards into. */
+export async function reorderExams(ids: string[]) {
+  await services().bank.reorderExams(await currentOwner(), ids)
+}
+
 export async function deleteExam(id: string) {
   await requireExam(id)
   await services().bank.deleteExam(id)

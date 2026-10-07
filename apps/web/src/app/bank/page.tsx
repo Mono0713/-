@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import { BankFilters } from '@/features/bank/BankFilters'
 import { ExamCard } from '@/features/bank/ExamCard'
+import { SortableExams } from '@/features/bank/SortableExams'
 import { SwipeDeleteExam } from '@/features/bank/SwipeDeleteExam'
 import { QuestionView } from '@/features/questions/QuestionView'
 import { currentOwner, services } from '@/server/context'
 import { getT } from '@/shared/i18n/server'
 import { IconQuiz, IconUpload } from '@/shared/icons'
-import { Removable } from '@/shared/removal'
 import { ButtonLink, EmptyState, PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -48,17 +48,19 @@ export default async function BankPage({ searchParams }: { searchParams: Promise
           {empty ? t('匯入考卷、校對後按「存入題庫」，考卷就會出現在這裡。') : t('換個關鍵字或篩選條件試試。')}
         </EmptyState>
       ) : (
-        <ul className="m-stagger grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {exams.map((exam) => (
-            <Removable key={exam.id} id={exam.id}>
-              <li>
-                <SwipeDeleteExam id={exam.id}>
-                  <ExamCard exam={exam} />
-                </SwipeDeleteExam>
-              </li>
-            </Removable>
-          ))}
-        </ul>
+        <SortableExams
+          // the cards are placed among all of them, so only the whole list can be rearranged
+          key={exams.map((e) => e.id).join()}
+          enabled={!search && !subject}
+          items={exams.map((exam) => ({
+            id: exam.id,
+            node: (
+              <SwipeDeleteExam id={exam.id}>
+                <ExamCard exam={exam} />
+              </SwipeDeleteExam>
+            ),
+          }))}
+        />
       )}
 
       {matches && matches.total > 0 && (

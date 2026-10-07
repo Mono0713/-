@@ -22,6 +22,8 @@ export interface FileIndex {
   /** Whether any key still points at the blob. */
   used(blob: string): Promise<boolean>
   list(prefix: string): Promise<string[]>
+  /** Every key under the prefix with its size. */
+  sizes(prefix: string): Promise<{ key: string; size: number }[]>
   /** Bytes the owner's keys hold, each key counted in full even when its bytes are shared; null: keys outside any account. */
   usage(owner: string | null): Promise<number>
 }
@@ -76,6 +78,11 @@ export class DedupFileStore implements FileStore {
   async signedUrl(key: string, seconds?: number): Promise<string | null> {
     const ref = await this.index.get(checkKey(key))
     return this.inner.signedUrl(ref ? ref.blob : key, seconds)
+  }
+
+  /** Every file under a prefix with its size in bytes, for showing what takes the room. */
+  sizes(prefix: string): Promise<{ key: string; size: number }[]> {
+    return this.index.sizes(prefix)
   }
 
   /** Bytes an account's files hold; null: files outside any account (the single local user). */
@@ -137,6 +144,11 @@ export class SqliteFileIndex implements FileIndex {
     return rows.map((r) => String(r.key))
   }
 
+  async sizes(prefix: string): Promise<{ key: string; size: number }[]> {
+    const rows = this.db.prepare("SELECT key, size FROM file_refs WHERE key LIKE ? ESCAPE '\\'").all(likePrefix(prefix)) as Row[]
+    return rows.map((r) => ({ key: String(r.key), size: Number(r.size) }))
+  }
+
   async usage(owner: string | null): Promise<number> {
     const row = (
       owner === null ? this.db.prepare('SELECT COALESCE(SUM(size), 0) AS n FROM file_refs WHERE owner IS NULL').get() : this.db.prepare('SELECT COALESCE(SUM(size), 0) AS n FROM file_refs WHERE owner = ?').get(owner)
@@ -176,6 +188,11 @@ export class PostgresFileIndex implements FileIndex {
   async list(prefix: string): Promise<string[]> {
     const rows = await this.sql`select key from file_refs where key like ${likePrefix(prefix)} order by key`
     return rows.map((r) => String(r.key))
+  }
+
+  async sizes(prefix: string): Promise<{ key: string; size: number }[]> {
+    const rows = await this.sql`select key, size from file_refs where key like ${likePrefix(prefix)}`
+    return rows.map((r) => ({ key: String(r.key), size: Number(r.size) }))
   }
 
   async usage(owner: string | null): Promise<number> {

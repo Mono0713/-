@@ -132,7 +132,6 @@
   "刪除「{title}」": "Xóa “{title}”",
   "未分類": "Chưa phân loại",
   "題": "câu",
-  "開始練習 →": "Bắt đầu luyện tập →",
   "考卷名稱": "Tên đề thi",
   "學校": "Trường",
   "學期": "Học kỳ",
@@ -816,9 +815,6 @@
   "還沒有自己的班級": "Bạn chưa có lớp nào",
   "先開一個班級，學生用加入碼加入後，就能把題庫裡的考卷派給他們。": "Hãy tạo lớp trước. Khi học sinh tham gia bằng mã, bạn có thể giao đề trong ngân hàng cho họ.",
   "派給": "Giao cho",
-  "多選題部分給分（學測規則），照考卷的設定。": "Câu nhiều đáp án được chấm điểm từng phần (quy tắc GSAT), theo cài đặt của đề.",
-  "多選題全對才給分，照考卷的設定。": "Câu nhiều đáp án chỉ có điểm khi đúng hết, theo cài đặt của đề.",
-  "到題庫修改": "Sửa trong ngân hàng",
   "派給 {n} 個班級": "Giao cho {n} lớp",
   "派出作業": "Giao bài",
   "搜尋考卷名稱、科目、學校": "Tìm theo tên đề, môn, trường",
@@ -1198,5 +1194,10 @@
   "{task}遇到有圖的題目時的模型": "Mô hình {task} cho câu hỏi có hình",
   "上面的模型看得懂圖就用它": "Dùng mô hình ở trên nếu nó đọc được hình",
   "拖曳調整作答空間": "Kéo để chỉnh khoảng trả lời",
-  "匯出 PDF（附答案）": "Xuất PDF (kèm đáp án)"
+  "匯出 PDF（附答案）": "Xuất PDF (kèm đáp án)",
+  "清理空間：從佔最多的開始": "Dọn dung lượng: mục lớn nhất trước",
+  "頁面圖與資料": "Ảnh trang và dữ liệu",
+  "上傳的原檔": "Tệp gốc đã tải lên",
+  "刪除「{title}」的原檔": "Xóa tệp gốc của “{title}”",
+  "已刪除原檔，頁面圖仍保留": "Đã xóa tệp gốc; ảnh trang vẫn được giữ"
 }
