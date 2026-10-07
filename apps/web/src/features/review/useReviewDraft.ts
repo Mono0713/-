@@ -2,7 +2,7 @@
 
 import type { DragEndEvent } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
-import type { DraftExam, DraftQuestion } from '@exam/core'
+import { sheetOf, type DraftExam, type DraftQuestion, type ExamSheet } from '@exam/core'
 import { useEffect, useRef, useState } from 'react'
 import { attachToPrevious, detachPart, groupLooseParts, mergeParts, nextPart, splitNumber, splitParts } from './parts'
 import { useHistory } from './useHistory'
@@ -263,6 +263,8 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
   }
 
   const setMeta = (key: keyof DraftExam['meta'], value: string) => edit((d) => ({ draft: { ...d, meta: { ...d.meta, [key]: value.trim() ? value : null } } }), { tag: `type:meta:${key}` })
+  /** `typing` names a text box, so its keystrokes join one undo step; a switch is a step of its own. */
+  const setSheet = (patch: Partial<ExamSheet>, typing?: string) => edit((d) => ({ draft: { ...d, sheet: { ...sheetOf(d), ...patch } } }), typing ? { tag: `type:sheet:${typing}` } : undefined)
   const setGroupStem = (id: string, stem: string) => edit((d) => ({ draft: { ...d, groups: d.groups.map((g) => (g.id === id ? { ...g, stem } : g)) } }), { tag: `type:group:${id}` })
 
   return {
@@ -293,6 +295,7 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     addQuestion,
     duplicateQuestion,
     setMeta,
+    setSheet,
     setGroupStem,
   }
 }

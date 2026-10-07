@@ -102,6 +102,10 @@ A zoomed exam page can be grabbed and moved with the mouse; a press that does no
 click on a question's box. The selected question's box can be moved by its body and resized by
 its edges and corners; a moved box is marked `manual` and never trimmed again, and Ctrl+Z puts it back.
 
+The printed exam (A4 preview, 匯出 PDF) is real paper: black ink on white in both themes, no
+accent color except the outline of the picked question on screen; 教師版 writes the answers in red
+handwriting where the student would. Its styles are the `.a4-*` and `.sheet-*` rules in `globals.css`.
+
 Tables that follow one another in a question sit side by side (`.table-row`), wrapping when the
 column is too narrow. The ink pad's pen is the ink color (white in dark mode) and its width is a
 wedge slider (`.m-wedge`) with a live dot preview.

@@ -21,6 +21,7 @@ export function ReviewToolbar({
   outline,
   onToggleOutline,
   hasPages,
+  pageLabel,
   mobileView,
   onMobileView,
   numbers,
@@ -39,6 +40,8 @@ export function ReviewToolbar({
   outline: boolean
   onToggleOutline: () => void
   hasPages: boolean
+  /** What the other side is called on phones: 原卷, or the A4 preview of an exam written from scratch. */
+  pageLabel: string
   mobileView: 'questions' | 'page'
   onMobileView: (view: 'questions' | 'page') => void
   numbers: React.ReactNode
@@ -108,7 +111,7 @@ export function ReviewToolbar({
             {(
               [
                 ['questions', t('題目')],
-                ['page', t('原卷')],
+                ['page', pageLabel],
               ] as const
             ).map(([value, label]) => (
               <button

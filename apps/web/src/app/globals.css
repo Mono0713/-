@@ -343,3 +343,159 @@ body {
 :lang(ko) {
   word-break: keep-all;
 }
+
+/* ---- The printed exam (features/sheet): A4 pages, always black ink on white paper, in both themes. ---- */
+.a4-page {
+  --color-ink: #111111;
+  --color-muted: #555555;
+  --color-line: #9a9a9a;
+  --color-paper: #f2f2f2;
+  --color-surface: #ffffff;
+  color-scheme: light;
+  box-sizing: border-box;
+  width: 210mm;
+  height: 297mm;
+  padding: 15mm 16mm 8mm;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background: #ffffff;
+  color: var(--color-ink);
+  font-size: 11pt;
+  line-height: 1.65;
+  box-shadow: var(--shadow-sheet);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.a4-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.a4-body > * {
+  flex-shrink: 0;
+}
+.a4-foot {
+  padding-top: 3mm;
+  text-align: center;
+  font-size: 8.5pt;
+  color: var(--color-muted);
+}
+.a4-page figure img {
+  max-height: 85mm;
+  width: auto;
+}
+/* on screen: a question can be picked; the picked one is outlined in ballpoint blue */
+.a4-block {
+  border-radius: 4px;
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  transition: outline-color var(--m-fast, 140ms) ease-out;
+}
+.a4-block:hover {
+  outline-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
+}
+.a4-block[data-selected] {
+  outline-color: var(--color-accent);
+}
+.sheet-blank {
+  display: inline-block;
+  min-width: 5.5em;
+  height: 1.35em;
+  margin: 0 0.15em;
+  border-bottom: 1px solid currentColor;
+  text-align: center;
+  vertical-align: bottom;
+}
+.sheet-bracket {
+  display: inline-flex;
+  flex-shrink: 0;
+  justify-content: space-between;
+  gap: 0.2em;
+  min-width: 3.2em;
+}
+.sheet-bracket::before {
+  content: '(';
+}
+.sheet-bracket::after {
+  content: ')';
+}
+.sheet-key {
+  color: #d63a2f;
+  font-family: var(--font-hand);
+}
+.sheet-ruled {
+  background-image: linear-gradient(transparent calc(2em - 1px), #b5b5b5 calc(2em - 1px));
+  background-size: 100% 2em;
+}
+.sheet-square {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4em;
+  height: 2.4em;
+  margin-left: -1px;
+  border: 1px solid #777;
+  color: #c8c8c8;
+  font-family: var(--font-hand);
+  font-size: 1.15em;
+  background-image: linear-gradient(90deg, transparent calc(50% - 0.5px), #ddd calc(50% - 0.5px), #ddd calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    linear-gradient(transparent calc(50% - 0.5px), #ddd calc(50% - 0.5px), #ddd calc(50% + 0.5px), transparent calc(50% + 0.5px));
+}
+.sheet-figure-blank {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  height: 100%;
+  padding: 0 2px;
+  border: 1px solid #111;
+  background: #fff;
+  font-size: 7pt;
+  line-height: 1.2;
+}
+.sheet-score {
+  display: flex;
+  flex-shrink: 0;
+  width: 5.5em;
+  height: 3.4em;
+  padding: 1px 5px;
+  border: 1.5px solid currentColor;
+}
+.sheet-rule {
+  border-top: 3px double currentColor;
+}
+.sheet-passage {
+  padding: 2.5mm 3.5mm;
+  border: 1px solid var(--color-line);
+}
+/* 匯出 PDF: only the pages print, one per sheet of paper, edge to edge (they carry their own margins) */
+.a4-print {
+  display: none;
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  html,
+  body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body > :not(.a4-print) {
+    display: none !important;
+  }
+  .a4-print {
+    display: block;
+  }
+  .a4-print .a4-page {
+    box-shadow: none;
+    break-after: page;
+  }
+  .a4-print .a4-page:last-child {
+    break-after: auto;
+  }
+}
