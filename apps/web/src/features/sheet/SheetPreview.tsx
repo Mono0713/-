@@ -4,9 +4,7 @@ import type { DraftExam } from '@exam/core'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useT } from '@/shared/i18n/client'
-import { IconPrint } from '@/shared/icons'
-import { Segmented } from '@/shared/Segmented'
-import { Button } from '@/shared/ui'
+import { IconLoader, IconPrint } from '@/shared/icons'
 import { sheetBlocks, type SheetBlock } from './blocks'
 import { paginate } from './layout'
 import type { SheetCopy } from './SheetQuestion'
@@ -65,23 +63,40 @@ export function SheetPreview({ draft, selected, onSelect, className = '' }: { dr
 
   return (
     <div className={`flex flex-col ${className}`}>
-      <div className="sticky top-[var(--bar)] z-10 flex flex-wrap items-center gap-2 bg-paper/90 py-2 backdrop-blur-md lg:top-0 lg:pt-0">
-        <Segmented
-          value={copy}
-          onChange={setCopy}
-          options={[
-            ['student', t('學生版')],
-            ['teacher', <span key="teacher" title={t('附答案')}>{t('教師版')}</span>],
-          ]}
-        />
-        <span className="num hidden text-xs text-muted sm:inline">{t('共 {n} 頁', { n: pages.length })}</span>
-        <Button variant="primary" className="ml-auto" icon={<IconPrint size={16} />} loading={printing} onClick={print}>
+      {/* one slim row, so the paper gets the room */}
+      <div className="sticky top-[var(--bar)] z-10 flex items-center gap-2 bg-paper/90 py-1.5 backdrop-blur-md lg:top-0 lg:pt-0">
+        <div className="flex rounded-md bg-ink/[0.06] p-0.5 text-xs">
+          {(
+            [
+              ['student', t('學生版')],
+              ['teacher', t('教師版')],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              title={value === 'teacher' ? t('附答案') : undefined}
+              onClick={() => setCopy(value)}
+              className={`rounded px-2 py-0.5 transition-colors ${copy === value ? 'bg-surface font-medium shadow-sm' : 'text-muted hover:text-ink'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <span className="num text-xs text-muted">{t('共 {n} 頁', { n: pages.length })}</span>
+        <button
+          type="button"
+          onClick={print}
+          disabled={printing}
+          className="m-press ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-accent transition-colors hover:bg-accent-soft disabled:opacity-60"
+        >
+          {printing ? <IconLoader size={14} className="m-spin" /> : <IconPrint size={14} />}
           {t('匯出 PDF')}
-        </Button>
+        </button>
       </div>
 
       <div ref={pane} className="min-w-0">
-        <div className="flex flex-col items-center gap-4 pb-6" style={{ zoom }}>
+        <div className="flex flex-col items-center gap-3 pb-6" style={{ zoom }}>
           {sheets(true)}
         </div>
       </div>
