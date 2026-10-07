@@ -9,7 +9,7 @@ import { AccountCard } from '@/features/account/AccountCard'
 import { accountControls } from '@/server/account'
 import { authEnabled, currentOwner, services } from '@/server/context'
 import { keySource, providersOf } from '@/server/ai'
-import { storageOf } from '@/server/storage'
+import { storageItems, storageOf } from '@/server/storage'
 import { currentProfile } from '@/server/profile'
 import { getLocale, getT } from '@/shared/i18n/server'
 import { PageHeader } from '@/shared/ui'
@@ -28,12 +28,13 @@ export default async function SettingsPage() {
   const owner = await currentOwner()
   const { settings: store, usage } = services()
   // Only the public view reaches the browser: API keys stay on the server.
-  const [saved, locale, recent, thisMonth, storage, user] = await Promise.all([
+  const [saved, locale, recent, thisMonth, storage, items, user] = await Promise.all([
     store.get(owner),
     getLocale(),
     usage.summary(owner, new Date(Date.now() - ESTIMATE_WINDOW_DAYS * 86_400_000)),
     usage.summary(owner, monthStart()),
     storageOf(owner),
+    storageItems(owner),
     authEnabled() ? currentProfile() : null,
   ])
   const settings = publicView(saved)
@@ -64,7 +65,7 @@ export default async function SettingsPage() {
         usage={recent}
         month={month && { usd: formatUsd(month.usd), unpriced: month.unpriced }}
       />
-      <StorageCard used={storage.used} quota={storage.quota} />
+      <StorageCard used={storage.used} quota={storage.quota} rows={items} />
       {user && accountControls() && <AccountCard />}
       <p className="mt-8 mb-2 text-center text-xs text-muted">
         <Link href="/privacy" className="hover:text-ink hover:underline">

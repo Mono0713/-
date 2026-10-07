@@ -2,7 +2,6 @@
 
 import type { AssignmentAnswers } from '@exam/classes'
 import type { QuizMode } from '@exam/quiz'
-import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useT } from '@/shared/i18n/client'
 import { msg } from '@/shared/i18n/format'
@@ -54,6 +53,7 @@ export function AssignForm({ classes, chosen, exams, preselected }: { classes: A
   const [closesAt, setClosesAt] = useState('')
   const [answers, setAnswers] = useState<AssignmentAnswers>('after_close')
   const [fullscreen, setFullscreen] = useState(false)
+  const [multiplePartial, setMultiplePartial] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pending, start] = useTransition()
 
@@ -70,7 +70,7 @@ export function AssignForm({ classes, chosen, exams, preselected }: { classes: A
       const result = await createAssignments(classIds, {
         examId,
         title: title || exam?.title || '',
-        settings: { mode, shuffleQuestions, shuffleOptions, timeLimitMinutes: timeLimit ? Number(timeLimit) : null, maxAttempts: maxAttempts ? Number(maxAttempts) : null, answers, fullscreen },
+        settings: { mode, shuffleQuestions, shuffleOptions, timeLimitMinutes: timeLimit ? Number(timeLimit) : null, maxAttempts: maxAttempts ? Number(maxAttempts) : null, answers, fullscreen, multiplePartial },
         opensAt: toIso(opensAt),
         closesAt: toIso(closesAt),
       })
@@ -168,6 +168,10 @@ export function AssignForm({ classes, chosen, exams, preselected }: { classes: A
             <input type="checkbox" className="m-check" checked={shuffleOptions} onChange={(e) => setShuffleOptions(e.target.checked)} />
             {t('每個人的選項順序不同')}
           </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" className="m-check" checked={multiplePartial} onChange={(e) => setMultiplePartial(e.target.checked)} />
+            {t('多選題部分給分')}
+          </label>
           {mode === 'exam' && (
             <label className="flex items-center gap-2">
               <input type="checkbox" className="m-check" checked={fullscreen} onChange={(e) => setFullscreen(e.target.checked)} />
@@ -179,14 +183,6 @@ export function AssignForm({ classes, chosen, exams, preselected }: { classes: A
           <p className="text-xs text-muted">
             {t('考試時題目不能選取、複製或列印，並記錄學生離開畫面、切換視窗、按截圖鍵和複製貼上的次數，老師在成績表看得到。')}
             {fullscreen && ` ${t('全螢幕時離開全螢幕也會記錄；iPhone 不支援全螢幕，只記錄離開畫面。')}`}
-          </p>
-        )}
-        {exam && (
-          <p className="text-xs text-muted">
-            {exam.multiplePartial ? t('多選題部分給分（學測規則），照考卷的設定。') : t('多選題全對才給分，照考卷的設定。')}{' '}
-            <Link href={`/bank/exams/${exam.id}`} className="text-accent hover:underline">
-              {t('到題庫修改')}
-            </Link>
           </p>
         )}
       </div>

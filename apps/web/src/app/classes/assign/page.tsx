@@ -54,7 +54,6 @@ export default async function AssignPage({ searchParams }: { searchParams: Promi
             count: e.questionCount,
             subject: e.subject,
             hint: [e.institution, e.term, t('{date} 加入', { date: new Date(e.createdAt).toLocaleDateString(intlTag(locale)) })].filter(Boolean).join(' · '),
-            multiplePartial: e.multiplePartial,
           }))}
           preselected={exams.some((e) => e.id === exam) ? exam! : null}
         />

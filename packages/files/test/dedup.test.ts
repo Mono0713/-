@@ -35,6 +35,10 @@ describe.each(indexes)('DedupFileStore with %s', (_name, open) => {
     expect((await store.read(`u/${me}/copies/2/figure-1.png`))?.toString()).toBe('same picture')
     expect(await store.list(`u/${me}/imports/1/`)).toEqual([`u/${me}/imports/1/figures/a.png`, `u/${me}/imports/1/pages/page-1.png`])
     expect(await store.usage(me)).toBe(2 * 12 + 6)
+    expect((await store.sizes(`u/${me}/imports/1/`)).sort((a, b) => a.key.localeCompare(b.key))).toEqual([
+      { key: `u/${me}/imports/1/figures/a.png`, size: 12 },
+      { key: `u/${me}/imports/1/pages/page-1.png`, size: 6 },
+    ])
 
     await store.remove([`u/${me}/imports/1/figures/a.png`])
     expect((await store.read(`u/${me}/copies/2/figure-1.png`))?.toString()).toBe('same picture')

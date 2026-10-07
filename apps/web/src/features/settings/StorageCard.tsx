@@ -1,10 +1,10 @@
 import { getT } from '@/shared/i18n/server'
 import { Card } from '@/shared/ui'
-
-const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(bytes < 100 * 1024 * 1024 ? 1 : 0)} MB`
+import { mb } from './bytes'
+import { StorageList, type StorageRow } from './StorageList'
 
 /** How much the account keeps: uploads, page images and figures, each distinct file counted once per place it is used. */
-export async function StorageCard({ used, quota }: { used: number; quota: number | null }) {
+export async function StorageCard({ used, quota, rows }: { used: number; quota: number | null; rows: StorageRow[] }) {
   const t = await getT()
   const share = quota ? Math.min(1, used / quota) : null
   return (
@@ -22,6 +22,7 @@ export async function StorageCard({ used, quota }: { used: number; quota: number
         </div>
       )}
       <p className="text-xs text-muted">{t('上傳的原檔存 30 天（勾「永久保留原檔」的除外），頁面圖片和題目附圖會一直保留。同一張圖不管用在幾個地方，都只存一份。')}</p>
+      <StorageList rows={rows} />
     </Card>
   )
 }

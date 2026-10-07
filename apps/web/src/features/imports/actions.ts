@@ -81,6 +81,14 @@ export async function deleteImport(importId: string) {
   revalidatePath('/imports')
 }
 
+/** Deletes the uploaded files for good, from the storage list; page images stay. */
+export async function deleteOriginals(importId: string): Promise<void> {
+  await requireImport(importId)
+  await services().importer.removeOriginals(importId)
+  revalidatePath('/settings')
+  revalidatePath(`/imports/${importId}`)
+}
+
 /** Keeps the uploaded files past the 30 days after saving, or lets them go again. */
 export async function keepOriginal(importId: string, keep: boolean): Promise<void> {
   await requireImport(importId)

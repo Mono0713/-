@@ -132,7 +132,6 @@
   "刪除「{title}」": "Supprimer « {title} »",
   "未分類": "Non classé",
   "題": "questions",
-  "開始練習 →": "Commencer l'entraînement →",
   "考卷名稱": "Titre de l'examen",
   "學校": "École",
   "學期": "Période",
@@ -816,9 +815,6 @@
   "還沒有自己的班級": "Vous n’avez pas encore de classe",
   "先開一個班級，學生用加入碼加入後，就能把題庫裡的考卷派給他們。": "Créez d’abord une classe. Une fois les élèves inscrits avec le code, vous pourrez leur attribuer des examens de votre banque.",
   "派給": "Attribuer à",
-  "多選題部分給分（學測規則），照考卷的設定。": "Les questions à réponses multiples donnent des points partiels (règle GSAT), selon l’examen.",
-  "多選題全對才給分，照考卷的設定。": "Les questions à réponses multiples ne comptent que si tout est juste, selon l’examen.",
-  "到題庫修改": "Modifier dans la banque",
   "派給 {n} 個班級": "Attribuer à {n} classes",
   "派出作業": "Attribuer",
   "搜尋考卷名稱、科目、學校": "Rechercher par titre, matière ou école",
@@ -1198,5 +1194,10 @@
   "{task}遇到有圖的題目時的模型": "Modèle de {task} pour les questions avec images",
   "上面的模型看得懂圖就用它": "Utilise le modèle ci-dessus s’il voit les images",
   "拖曳調整作答空間": "Faites glisser pour ajuster l’espace de réponse",
-  "匯出 PDF（附答案）": "Exporter en PDF (avec les réponses)"
+  "匯出 PDF（附答案）": "Exporter en PDF (avec les réponses)",
+  "清理空間：從佔最多的開始": "Libérer de l’espace : les plus gros d’abord",
+  "頁面圖與資料": "Images des pages et données",
+  "上傳的原檔": "Originaux envoyés",
+  "刪除「{title}」的原檔": "Supprimer les originaux de « {title} »",
+  "已刪除原檔，頁面圖仍保留": "Originaux supprimés ; les images des pages sont conservées"
 }
