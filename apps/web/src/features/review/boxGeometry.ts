@@ -3,8 +3,8 @@ import type { DraftQuestion } from '@exam/core'
 // A question's box on its page, as fractions of the page, and how dragging a grip changes it.
 
 export type Box = DraftQuestion['locations'][number]['bbox']
-/** What a press on the selected box changes: the whole box, or the edges named (n s e w). */
-export type Grip = 'move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
+/** What a press on the selected box changes: the whole box, or the edges named (n s e w); 'draw' makes a new box. */
+export type Grip = 'move' | 'draw' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
 export const GRIPS: { grip: Grip; className: string }[] = [
   // edges: a 12px band centred on the outline, so a press meant to resize never moves the box
   { grip: 'n', className: '-top-1.5 inset-x-2 h-3 cursor-ns-resize' },
@@ -22,7 +22,7 @@ export const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.ma
 
 /** The box after a grip moved by (dx, dy), as fractions of the page; it never leaves the page or turns inside out. */
 export function dragged(b: Box, grip: Grip, dx: number, dy: number): Box {
-  if (grip === 'move') return { ...b, x: clamp(b.x + dx, 0, 1 - b.width), y: clamp(b.y + dy, 0, 1 - b.height) }
+  if (grip === 'move' || grip === 'draw') return { ...b, x: clamp(b.x + dx, 0, 1 - b.width), y: clamp(b.y + dy, 0, 1 - b.height) }
   let { x, y } = b
   let right = b.x + b.width
   let bottom = b.y + b.height

@@ -1142,7 +1142,6 @@
   "微積分": "Cálculo",
   "希臘字母": "Grego",
   "化學": "Química",
-  "拖曳框線調整範圍，或在頁面上重畫一個框。": "Arraste o quadro para ajustá-lo ou desenhe uma nova caixa na página.",
   "套用": "Aplicar",
   "裁切失敗，再試一次。": "Falha ao recortar. Tente novamente.",
   "上傳失敗，再試一次。": "Falha no envio. Tente novamente.",
@@ -1173,5 +1172,8 @@
   "生成全部 {n} 題的答案": "Gerar respostas para todas as {n} questões",
   "生成全部 {n} 題的詳解": "Gerar explicações para todas as {n} questões",
   "在第 {n} 題後面新增一題": "Adicionar uma questão após a questão {n}",
-  "AI 強度：{strength}・{model}": "Intensidade da IA: {strength} · {model}"
+  "AI 強度：{strength}・{model}": "Intensidade da IA: {strength} · {model}",
+  "正在原卷上框選…": "Enquadrando no original…",
+  "幫選項 {label} 加圖片": "Adicionar imagem à opção {label}",
+  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Arraste o quadro para ajustar a imagem ou desenhe uma nova caixa na página."
 }

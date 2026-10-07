@@ -60,7 +60,8 @@ export function useSolver(
   importId: string,
   draft: DraftExam,
   keys: string[],
-  onSolved: (key: string, patch: Patch, undo: boolean | string) => void,
+  /** Lands a reply in its card; replies with the same `tag` are undone together. */
+  onSolved: (key: string, patch: Patch, tag: string) => void,
 ): Solver {
   const [running, setRunning] = useState<Solver['running']>(null)
   const [result, setResult] = useState<Solver['result']>(null)
@@ -94,8 +95,8 @@ export function useSolver(
     if (running) return
     const indices = (scope === 'all' ? all : missing)[job]
     const again = scope === 'all'
-    // a run that redoes answers already there is undone in one step
-    const undo = again && `${job}-${Date.now()}`
+    // the whole run is undone in one step
+    const tag = `ai-${job}-${Date.now()}`
     let done = 0, failed = 0, next = 0
     setResult(null)
     setRunning({ job, scope, done, total: indices.length })
@@ -106,7 +107,7 @@ export function useSolver(
         const reply = await request
         mark(key, null)
         if ('error' in reply) failed++
-        else onSolved(key, patchFor(job, reply, again), undo)
+        else onSolved(key, patchFor(job, reply, again), tag)
         setRunning({ job, scope, done: ++done, total: indices.length })
       }
     }
@@ -122,7 +123,7 @@ export function useSolver(
     const reply = await request
     mark(key, null)
     if ('error' in reply) setResult({ job, failed: 1, total: 1, error: reply.error })
-    else onSolved(key, patchFor(job, reply, true), true)
+    else onSolved(key, patchFor(job, reply, true), `ai-one-${Date.now()}`)
   }
 
   const dismiss = useCallback(() => setResult(null), [])

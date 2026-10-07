@@ -3,7 +3,6 @@
 import { QuestionType, type Answer, type DraftQuestion } from '@exam/core'
 import { useState, type ReactNode } from 'react'
 import { useT } from '@/shared/i18n/client'
-import type { CropPage } from './FigureCropper'
 import { FiguresEditor } from './FiguresEditor'
 import { IconAlert, IconChevronDown, IconX } from '@/shared/icons'
 import { TYPE_LABELS } from '@/shared/labels'
@@ -12,6 +11,9 @@ import { MathTextInput } from '@/shared/math/MathTextInput'
 import { AnswerEditor } from './AnswerEditor'
 import { AddChip, AiButton, chip, RemoveButton, type QuestionAi } from './editorParts'
 import { OptionsEditor } from './OptionsEditor'
+import { useFigureTools, type FrameFigure } from './useFigureTools'
+
+export type { FrameArea, FrameFigure } from './useFigureTools'
 
 const TYPES = QuestionType.options
 
@@ -27,7 +29,7 @@ export function QuestionEditor({
   importId = null,
   actions,
   ai,
-  pages = [],
+  frame,
 }: {
   value: DraftQuestion
   onChange: (q: DraftQuestion) => void
@@ -35,8 +37,8 @@ export function QuestionEditor({
   actions?: ReactNode
   /** AI 作答 / AI 詳解 for this question, where the page offers them. */
   ai?: QuestionAi
-  /** The original pages, so a picture can be framed again on its page (review only). */
-  pages?: CropPage[]
+  /** Frames a picture on the original pages (review only). */
+  frame?: FrameFigure
 }) {
   const t = useT()
   const set = <K extends keyof DraftQuestion>(key: K, v: DraftQuestion[K]) => onChange({ ...q, [key]: v })
@@ -48,6 +50,7 @@ export function QuestionEditor({
   const showExplanation = extra.explanation || Boolean(q.explanation)
   const showRule = extra.rule || Boolean(q.markingRule)
   const hasKey = q.answer.values.some((v) => v.trim())
+  const figures = useFigureTools({ q, onChange, importId, frame })
 
   return (
     <div className="space-y-3">
@@ -106,9 +109,10 @@ export function QuestionEditor({
 
       <MathTextInput label={t('題幹')} value={q.stem} onChange={(v) => set('stem', v)} />
 
-      <FiguresEditor q={q} onChange={onChange} importId={importId} pages={pages} />
+      <FiguresEditor q={q} onChange={onChange} importId={importId} tools={figures} />
+      {figures.input}
 
-      {hasChoices && <OptionsEditor q={q} onChange={onChange} />}
+      {hasChoices && <OptionsEditor q={q} onChange={onChange} tools={figures} />}
 
       <AnswerEditor
         q={q}

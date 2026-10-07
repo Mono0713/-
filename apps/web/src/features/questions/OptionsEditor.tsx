@@ -2,12 +2,18 @@
 
 import { optionFigures, type DraftQuestion } from '@exam/core'
 import { OptionPictures } from '@/shared/FigureView'
-import { IconPlus } from '@/shared/icons'
+import { IconImageAdd, IconLoader, IconPlus } from '@/shared/icons'
 import { useT } from '@/shared/i18n/client'
 import { MathTextInput } from '@/shared/math/MathTextInput'
-import { RemoveButton, SectionHead } from './editorParts'
+import { iconButton, RemoveButton, SectionHead } from './editorParts'
+import { FigureTile } from './FigureTile'
+import type { FigureTools } from './useFigureTools'
 
-export function OptionsEditor({ q, onChange }: { q: DraftQuestion; onChange: (q: DraftQuestion) => void }) {
+/**
+ * The options, each with its text and, for picture options, its picture right under it with the
+ * picture's tools (`tools`, where pictures can be edited). An option without one can get one.
+ */
+export function OptionsEditor({ q, onChange, tools }: { q: DraftQuestion; onChange: (q: DraftQuestion) => void; tools?: FigureTools }) {
   const t = useT()
   const setOptions = (options: DraftQuestion['options']) => onChange({ ...q, options })
   // A renamed option keeps its pictures.
@@ -51,11 +57,34 @@ export function OptionsEditor({ q, onChange }: { q: DraftQuestion; onChange: (q:
                   title={t('選項代號')}
                 />
               }
-              actions={<RemoveButton label={t('刪除選項 {label}', { label: o.label })} onClick={() => setOptions(q.options.filter((_, j) => j !== i))} />}
+              actions={
+                <>
+                  {tools && !optionFigures(q, o.label).length && (tools.canFrame || tools.canUpload) && (
+                    <button
+                      type="button"
+                      onClick={() => (tools.canFrame ? tools.reframe(o.label) : tools.pick(o.label))}
+                      className={`${iconButton} h-6 w-6 ${tools.framing === o.label ? '!text-accent' : ''}`}
+                      aria-label={t('幫選項 {label} 加圖片', { label: o.label })}
+                      title={t('幫選項 {label} 加圖片', { label: o.label })}
+                    >
+                      {tools.working === o.label ? <IconLoader size={14} className="m-spin" /> : <IconImageAdd size={14} />}
+                    </button>
+                  )}
+                  <RemoveButton label={t('刪除選項 {label}', { label: o.label })} onClick={() => setOptions(q.options.filter((_, j) => j !== i))} />
+                </>
+              }
             />
-            {/* a picture option shows its picture under the text; which figure it is is set on the figure */}
+            {/* a picture option shows its picture under the text, with its tools */}
             <div className="pl-11">
-              <OptionPictures figures={optionFigures(q, o.label)} />
+              {tools ? (
+                optionFigures(q, o.label).map((f, j) => (
+                  <div key={j} className="mt-1">
+                    <FigureTile figure={f} tools={tools} option />
+                  </div>
+                ))
+              ) : (
+                <OptionPictures figures={optionFigures(q, o.label)} />
+              )}
             </div>
           </div>
         ))}

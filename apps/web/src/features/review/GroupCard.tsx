@@ -26,8 +26,8 @@ export function GroupCard({
   onChange: (stem: string) => void
   /** Clicking the card picks its first question, so its box shows on the page. */
   onSelect: () => void
-  /** Sub-questions of one number can be joined back into one question. */
-  onMerge: () => void
+  /** Given, the sub-questions of one number can be joined back into one question. */
+  onMerge?: () => void
 }) {
   const t = useT()
   const [editing, setEditing] = useState(false)
@@ -41,7 +41,7 @@ export function GroupCard({
         <Badge>{main !== null ? t('{n} 小題', { n: parts.length }) : t('{n} 題', { n: parts.length })}</Badge>
         {main !== null && points !== null && <Badge>{t('{points} 分', { points: Math.round(points * 100) / 100 })}</Badge>}
         <span className="ml-auto flex items-center gap-3">
-          {main !== null && !editing && (
+          {main !== null && onMerge && !editing && (
             <button
               type="button"
               onClick={(e) => (e.stopPropagation(), onMerge())}

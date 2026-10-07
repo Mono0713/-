@@ -3,10 +3,13 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react'
 import { clamp, dragged, type Box, type Grip } from './boxGeometry'
 
+const MIN_DRAWN = 0.012
+
 /**
  * Moving and resizing the selected question's box on the page viewer. `live` is the box while it is
  * being dragged; `carried` names boxes moved to another page (they skip the reveal animation);
- * `startEdit` goes on the box body (grip 'move') and on each edge and corner grip.
+ * `startEdit` goes on the box body (grip 'move') and on each edge and corner grip, or on a page
+ * to draw a new box there (grip 'draw').
  * `scrolls` says whether the viewer itself scrolls (wide screens) or the window does (phones).
  */
 export function useBoxEditing({
@@ -52,6 +55,14 @@ export function useBoxEditing({
     document.elementsFromPoint(x, y).map((el) => el.closest<HTMLElement>('figure[data-page]')).find((f) => f !== null) ?? null
   const placed = (x: number, y: number) => {
     const d = edit.current!
+    if (d.grip === 'draw') {
+      // a new box from where the press began to the pointer, on that page
+      const r = scroller.current?.querySelector<HTMLElement>(`figure[data-page="${d.pageNumber}"]`)?.getBoundingClientRect()
+      if (!r) return { bbox: d.start, pageNumber: d.pageNumber }
+      const px = clamp((x - r.left) / r.width, 0, 1)
+      const py = clamp((y - r.top) / r.height, 0, 1)
+      return { bbox: { x: Math.min(d.fx, px), y: Math.min(d.fy, py), width: Math.abs(px - d.fx), height: Math.abs(py - d.fy) }, pageNumber: d.pageNumber }
+    }
     if (d.grip !== 'move') {
       // measured against where the page is now, so a page that scrolls meanwhile does not pull the edge along
       const r = scroller.current?.querySelector<HTMLElement>(`figure[data-page="${d.pageNumber}"]`)?.getBoundingClientRect()
@@ -142,6 +153,11 @@ export function useBoxEditing({
     const { bbox, pageNumber } = placed(e.clientX, e.clientY)
     edit.current = null
     setLive(null)
+    if (d.grip === 'draw') {
+      // a click without a drag draws nothing
+      if (bbox.width >= MIN_DRAWN && bbox.height >= MIN_DRAWN) onBoxChange?.(d.index, d.location, bbox, pageNumber)
+      return
+    }
     if (pageNumber !== d.pageNumber) {
       carried.current.add(`${d.index}-${d.location}`)
       onBoxChange?.(d.index, d.location, bbox, pageNumber)

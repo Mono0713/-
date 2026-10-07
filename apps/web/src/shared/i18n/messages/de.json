@@ -1142,7 +1142,6 @@
   "微積分": "Analysis",
   "希臘字母": "Griechisch",
   "化學": "Chemie",
-  "拖曳框線調整範圍，或在頁面上重畫一個框。": "Ziehen Sie den Rahmen, um ihn anzupassen, oder zeichnen Sie einen neuen auf der Seite.",
   "套用": "Übernehmen",
   "裁切失敗，再試一次。": "Zuschneiden fehlgeschlagen. Bitte erneut versuchen.",
   "上傳失敗，再試一次。": "Hochladen fehlgeschlagen. Bitte erneut versuchen.",
@@ -1173,5 +1172,8 @@
   "生成全部 {n} 題的答案": "Antworten für alle {n} Fragen erstellen",
   "生成全部 {n} 題的詳解": "Erklärungen für alle {n} Fragen erstellen",
   "在第 {n} 題後面新增一題": "Frage nach Frage {n} hinzufügen",
-  "AI 強度：{strength}・{model}": "KI-Stärke: {strength} · {model}"
+  "AI 強度：{strength}・{model}": "KI-Stärke: {strength} · {model}",
+  "正在原卷上框選…": "Auswahl auf dem Original…",
+  "幫選項 {label} 加圖片": "Bild zu Option {label} hinzufügen",
+  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Ziehen Sie den Rahmen, um das Bild anzupassen, oder zeichnen Sie einen neuen auf der Seite."
 }

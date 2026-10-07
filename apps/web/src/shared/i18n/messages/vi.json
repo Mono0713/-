@@ -1142,7 +1142,6 @@
   "微積分": "Giải tích",
   "希臘字母": "Chữ Hy Lạp",
   "化學": "Hóa học",
-  "拖曳框線調整範圍，或在頁面上重畫一個框。": "Kéo khung để điều chỉnh, hoặc vẽ khung mới trên trang.",
   "套用": "Áp dụng",
   "裁切失敗，再試一次。": "Cắt ảnh thất bại. Vui lòng thử lại.",
   "上傳失敗，再試一次。": "Tải lên thất bại. Vui lòng thử lại.",
@@ -1173,5 +1172,8 @@
   "生成全部 {n} 題的答案": "Tạo đáp án cho cả {n} câu",
   "生成全部 {n} 題的詳解": "Tạo lời giải cho cả {n} câu",
   "在第 {n} 題後面新增一題": "Thêm một câu sau câu {n}",
-  "AI 強度：{strength}・{model}": "Mức AI: {strength} · {model}"
+  "AI 強度：{strength}・{model}": "Mức AI: {strength} · {model}",
+  "正在原卷上框選…": "Đang chọn trên bản gốc…",
+  "幫選項 {label} 加圖片": "Thêm hình cho đáp án {label}",
+  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Kéo khung để chỉnh vùng hình, hoặc vẽ khung mới trên trang."
 }

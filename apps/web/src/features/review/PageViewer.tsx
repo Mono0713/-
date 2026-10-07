@@ -6,15 +6,21 @@ import { fileUrl } from '@/shared/files'
 import { useT } from '@/shared/i18n/client'
 import { IconChevronLeft, IconChevronRight, IconExternal, IconLoader, IconMinus, IconPlus } from '@/shared/icons'
 import { GRIPS, type Box } from './boxGeometry'
+import { FramingBar } from './FramingBar'
 import { useBoxEditing } from './useBoxEditing'
+import type { Framing } from './useFigureFraming'
 
 const ZOOMS = [1, 1.25, 1.5, 2, 2.5]
+// The box of a picture being framed, told apart from the questions' boxes.
+const FRAME = -1
 
 /**
  * Every source page, one under the other, with a box around each question: the selected one is
  * highlighted and scrolled into view, clicking a box selects it. Page and zoom controls float
  * over the bottom of the pages, so the pages get all the room. The root is the scroll container
  * where the layout gives it a height (`className`); otherwise the pages flow with the window.
+ * While a picture is `framing`, the pages show only its box, the same box as a selected question's:
+ * moved and resized the same way, or drawn anew anywhere on a page.
  */
 export function PageViewer({
   pages,
@@ -22,6 +28,7 @@ export function PageViewer({
   selected,
   onSelect,
   onBoxChange,
+  framing,
   className = '',
 }: {
   pages: { pageNumber: number; image: string }[]
@@ -30,6 +37,7 @@ export function PageViewer({
   onSelect: (index: number) => void
   /** Given, the selected question's box can be moved and resized, and dragged onto another page (`pageNumber`). */
   onBoxChange?: (index: number, location: number, bbox: Box, pageNumber?: number) => void
+  framing?: Framing | null
   className?: string
 }) {
   const t = useT()
@@ -169,7 +177,17 @@ export function PageViewer({
     setPanning(false)
   }
 
-  const { live, carried, startEdit } = useBoxEditing({ scroller, scrolls, onBoxChange })
+  const { live, carried, startEdit } = useBoxEditing({
+    scroller,
+    scrolls,
+    onBoxChange: framing ? (index, _location, bbox, pageNumber) => index === FRAME && framing.onChange(bbox, pageNumber ?? framing.pageNumber) : onBoxChange,
+  })
+  // Each picture framed comes into view once.
+  useEffect(() => {
+    if (framing) requestAnimationFrame(() => scroller.current?.querySelector('[data-frame]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [framing?.id])
+  const frameLive = live?.index === FRAME ? live : null
 
   if (!pages.length) return null
   const scale = ZOOMS[zoom]!
@@ -179,6 +197,7 @@ export function PageViewer({
   return (
     // A column, so the controls sit at the bottom of the viewer even before the pages fill it.
     <div ref={scroller} onScroll={onScroll} onPointerMove={nearControls} onPointerDown={nearControls} className={`relative flex flex-col ${className}`}>
+      {framing && <FramingBar onApply={framing.onApply} onCancel={framing.onCancel} />}
       {/* Zoomed pages scroll sideways here on phones; wider screens scroll the whole viewer. */}
       <div ref={strip} className="flex-1 overflow-x-auto lg:overflow-visible">
         <div
@@ -194,7 +213,9 @@ export function PageViewer({
             <figure
               key={page.pageNumber}
               data-page={page.pageNumber}
-              className="group relative overflow-hidden rounded-lg bg-surface shadow-sheet"
+              className={`group relative overflow-hidden rounded-lg bg-surface shadow-sheet ${framing ? 'cursor-crosshair' : ''}`}
+              // framing: a press on the page (mouse or pen) draws the picture's box anew
+              {...(framing && { onPointerDown: (e: ReactPointerEvent) => e.pointerType !== 'touch' && startEdit(e, FRAME, 0, framing.bbox, 'draw') })}
               // An A4-shaped page holds the place until the image arrives, so nothing jumps around much.
               style={loaded[page.pageNumber] ? undefined : { aspectRatio: '1 / 1.414' }}
             >
@@ -224,7 +245,20 @@ export function PageViewer({
                   {t('這一頁的圖片載入失敗')}
                 </div>
               )}
+              {loaded[page.pageNumber] === 'ok' && framing && (frameLive ? frameLive.pageNumber : framing.pageNumber) === page.pageNumber && (
+                <div
+                  data-frame
+                  style={(({ x, y, width, height }) => ({ left: `${x * 100}%`, top: `${y * 100}%`, width: `${width * 100}%`, height: `${height * 100}%` }))(frameLive ? frameLive.bbox : framing.bbox)}
+                  onPointerDown={(e) => startEdit(e, FRAME, 0, framing.bbox, 'move')}
+                  className={`absolute z-[1] touch-none rounded-sm bg-accent/15 ring-2 ring-accent ${frameLive ? 'cursor-grabbing' : 'cursor-move'}`}
+                >
+                  {GRIPS.map(({ grip, className }) => (
+                    <span key={grip} aria-hidden onPointerDown={(e) => startEdit(e, FRAME, 0, framing.bbox, grip)} className={`absolute ${className} ${grip.length === 2 ? 'h-3.5 w-3.5' : ''}`} />
+                  ))}
+                </div>
+              )}
               {loaded[page.pageNumber] === 'ok' &&
+                !framing &&
                 boxes
                   .flatMap((q, index) =>
                     q.locations

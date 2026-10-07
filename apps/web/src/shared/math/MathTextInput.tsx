@@ -1,12 +1,11 @@
 'use client'
 
-import katex from 'katex'
-import 'katex/contrib/mhchem'
 import type { MathfieldElement } from 'mathlive'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useT } from '@/shared/i18n/client'
 import { IconCode, IconFormula } from '@/shared/icons'
-import { splitMath, withMathDelimiters } from './delimiters'
+import { chipOf, fill, fillChip, makeChip, render, serialize } from './chips'
+import { fromPaste, splitMath, withMathDelimiters } from './delimiters'
 import { FormulaToolbar } from './FormulaToolbar'
 import { loadMathLive, plain } from './mathlive'
 import { configureKeyboard, keepAboveKeyboard } from './mathKeyboard'
@@ -105,8 +104,6 @@ export function MathTextInput({
     field.value = chip.dataset.latex ?? ''
     field.smartFence = true
     field.mathVirtualKeyboardPolicy = 'auto'
-    // Typed -> draws the same long arrow as chemistry equations (\ce), so arrows in one exam match.
-    field.inlineShortcuts = { ...field.inlineShortcuts, '->': '\\longrightarrow' }
     field.className = 'inline-formula'
     field.addEventListener('input', () => {
       chip.dataset.latex = plain(field)
@@ -126,6 +123,9 @@ export function MathTextInput({
     )
     chip.dataset.editing = '1'
     chip.replaceChildren(field)
+    // Typed -> draws the same long arrow as chemistry equations (\ce), so arrows in one exam match.
+    // (Its shortcuts can be read only once the field is on the page.)
+    field.inlineShortcuts = { ...field.inlineShortcuts, '->': '\\longrightarrow' }
     editingRef.current = { chip, field }
     setEditing({ chip, field, id: ++opened })
     if (box.current) releaseKeyboard.current = keepAboveKeyboard(box.current)
@@ -136,13 +136,65 @@ export function MathTextInput({
   const insert = () => {
     const el = root.current
     if (!el) return
+    // A formula still open closes first, and the new one goes right after it (not inside it).
+    if (editingRef.current) close('after')
+    remember()
     const chip = makeChip('', false, chipTitle)
     const r = range.current && el.contains(range.current.startContainer) ? range.current : null
+    const inside = r && chipOf(r.startContainer)
+    if (r && inside) r.setStartAfter(inside), r.collapse(true)
     if (r) {
       r.deleteContents()
       r.insertNode(chip)
     } else el.append(chip)
     void open(chip)
+  }
+
+  /** Pasted text keeps its formulas: they show as formulas at once, not as LaTeX to click twice. */
+  const paste = (text: string) => {
+    const el = root.current
+    const sel = window.getSelection()
+    if (!el || !sel?.rangeCount) return
+    const typed = multiline ? text.replace(/\r\n?/g, '\n') : text.replace(/\s*\n\s*/g, ' ')
+    const segments = splitMath(fromPaste(typed))
+    if (!segments.some((seg) => seg.kind === 'math')) return void document.execCommand('insertText', false, typed)
+    const r = sel.getRangeAt(0)
+    if (!el.contains(r.startContainer)) return
+    r.deleteContents()
+    const pieces = document.createDocumentFragment()
+    fill(pieces, segments, chipTitle)
+    const end = pieces.lastChild
+    r.insertNode(pieces)
+    if (end) {
+      const after = document.createRange()
+      after.setStartAfter(end)
+      after.collapse(true)
+      sel.removeAllRanges()
+      sel.addRange(after)
+    }
+    emit()
+  }
+
+  /** Copying (or cutting) puts the text with its formulas as LaTeX on the clipboard. */
+  const copy = (e: React.ClipboardEvent, cut: boolean) => {
+    const el = root.current
+    const sel = window.getSelection()
+    if (!el || !sel?.rangeCount || sel.isCollapsed || (e.target as HTMLElement).closest('math-field')) return
+    const r = sel.getRangeAt(0)
+    if (!el.contains(r.commonAncestorContainer)) return
+    // a formula partly selected goes whole
+    const first = chipOf(r.startContainer)
+    const last = chipOf(r.endContainer)
+    if (first) r.setStartBefore(first)
+    if (last) r.setEndAfter(last)
+    const holder = document.createElement('div')
+    holder.append(r.cloneContents())
+    e.preventDefault()
+    e.stopPropagation()
+    e.clipboardData.setData('text/plain', serialize(holder))
+    if (!cut) return
+    r.deleteContents()
+    emit()
   }
 
   const header = Boolean(label || multiline)
@@ -152,10 +204,7 @@ export function MathTextInput({
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => {
-            remember()
-            insert()
-          }}
+          onClick={insert}
           className="m-press flex h-6 items-center gap-0.5 rounded-md px-1.5 text-xs text-accent hover:bg-accent-soft"
           title={t('插入公式')}
           aria-label={t('插入公式')}
@@ -225,6 +274,12 @@ export function MathTextInput({
                     }
                     render(el, withMathDelimiters(value), chipTitle)
                     shown.current = value
+                    // changed while typing in it (undo): the caret goes to the end instead of nowhere
+                    if (document.activeElement === el) {
+                      const sel = window.getSelection()
+                      sel?.selectAllChildren(el)
+                      sel?.collapseToEnd()
+                    }
                   }
                 }}
                 contentEditable
@@ -244,9 +299,13 @@ export function MathTextInput({
                   if (multiline) document.execCommand('insertLineBreak')
                 }}
                 onPaste={(e) => {
+                  // the formula being edited pastes into itself
+                  if ((e.target as HTMLElement).closest('math-field')) return
                   e.preventDefault()
-                  document.execCommand('insertText', false, e.clipboardData.getData('text/plain'))
+                  paste(e.clipboardData.getData('text/plain'))
                 }}
+                onCopy={(e) => copy(e, false)}
+                onCut={(e) => copy(e, true)}
                 onClick={(e) => {
                   const chip = (e.target as HTMLElement).closest<HTMLElement>('[data-latex]')
                   if (chip && root.current?.contains(chip)) void open(chip)
@@ -289,62 +348,5 @@ export function MathTextInput({
   )
 }
 
-/** `chipTitle` is the tooltip on each formula (translated by the caller). */
 // Each opened formula gets fresh tools.
 let opened = 0
-
-function render(el: HTMLElement, text: string, chipTitle: string) {
-  el.replaceChildren()
-  for (const seg of splitMath(text)) {
-    if (seg.kind === 'math') el.append(makeChip(seg.latex, seg.display, chipTitle))
-    else
-      seg.text.split('\n').forEach((line, i) => {
-        if (i > 0) el.append(document.createElement('br'))
-        if (line) el.append(document.createTextNode(line))
-      })
-  }
-  // A trailing line break needs one more <br> to show as an empty line (serialize drops it).
-  if (text.endsWith('\n')) el.append(document.createElement('br'))
-}
-
-function makeChip(latex: string, display: boolean, title: string): HTMLElement {
-  const chip = document.createElement('span')
-  chip.contentEditable = 'false'
-  fillChip(chip, latex, display, title)
-  return chip
-}
-
-function fillChip(chip: HTMLElement, latex: string, display: boolean, title: string) {
-  chip.dataset.latex = latex
-  chip.dataset.display = display ? '1' : '0'
-  chip.title = title
-  chip.innerHTML = katex.renderToString(latex, { throwOnError: false, strict: false, displayMode: false })
-}
-
-/** Turns the edited DOM back into text with $…$ formulas. */
-function serialize(el: HTMLElement): string {
-  let out = ''
-  const walk = (node: Node, first: boolean) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      out += (node.nodeValue ?? '').replace(/ /g, ' ')
-      return
-    }
-    if (!(node instanceof HTMLElement)) return
-    if (node.dataset.latex !== undefined) {
-      // A formula emptied while editing leaves nothing behind.
-      if (node.dataset.latex.trim()) out += node.dataset.display === '1' ? `$$${node.dataset.latex}$$` : `$${node.dataset.latex}$`
-      return
-    }
-    if (node.tagName === 'BR') {
-      out += '\n'
-      return
-    }
-    // Some browsers wrap new lines in <div>s instead of inserting <br>s.
-    const block = node.tagName === 'DIV' || node.tagName === 'P'
-    if (block && !first && !out.endsWith('\n')) out += '\n'
-    node.childNodes.forEach((child, i) => walk(child, i === 0))
-  }
-  el.childNodes.forEach((child, i) => walk(child, i === 0))
-  // A last <br> only makes the line before it visible; it is not an extra line.
-  return el.lastChild?.nodeName === 'BR' ? out.replace(/\n$/, '') : out
-}

@@ -133,6 +133,12 @@ export function mergeParts(group: Group, parts: DraftQuestion[]): DraftQuestion 
   }
 }
 
+/**
+ * Whether merging can be taken back with 拆成小題: only open questions split again, so choice
+ * parts (whose options would merge into one list) are not offered a merge.
+ */
+export const canMerge = (parts: DraftQuestion[]) => parts.length > 0 && parts.every((p) => OPEN_TYPES.includes(p.type))
+
 /** The label after `part` in its sequence: a → b, 2 → 3, ii → iii. */
 export function nextPart(part: string | null): string {
   if (part === null) return '2'

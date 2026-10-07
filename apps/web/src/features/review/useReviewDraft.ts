@@ -5,6 +5,7 @@ import { arrayMove } from '@dnd-kit/sortable'
 import type { DraftExam, DraftQuestion } from '@exam/core'
 import { useEffect, useRef, useState } from 'react'
 import { attachToPrevious, detachPart, groupLooseParts, mergeParts, nextPart, splitNumber, splitParts } from './parts'
+import { useHistory } from './useHistory'
 
 // Questions have no ids of their own while in review; these keep each one's identity while it is dragged around.
 let lastKey = 0
@@ -12,18 +13,13 @@ const newKey = () => `q${++lastKey}`
 
 export const isFlagged = (q: DraftQuestion) => q.confidence !== 'high' || q.issues.length > 0
 
-// Deleting asks nothing; Ctrl+Z (or 復原 on the note) puts questions back, last deleted first.
-// A box moved on the original page goes on the same stack, so Ctrl+Z also puts it back.
-// An AI answer or explanation that replaced one already there goes on it too; a whole-exam AI run is one step.
-type Undo =
-  | { kind: 'delete'; index: number; question: DraftQuestion; key: string }
-  | { kind: 'box'; key: string; locations: DraftQuestion['locations'] }
-  | { kind: 'replace'; batch?: string; before: { key: string; question: DraftQuestion }[] }
+type State = { draft: DraftExam; keys: string[] }
 
 /**
  * The draft being reviewed and every edit to it: which question is selected or being edited,
- * adding, copying, moving, splitting into sub-questions and back, deleting with undo.
- * `showQuestions` brings the question list into view (phones show one side at a time).
+ * adding, copying, moving, splitting into sub-questions and back, deleting. Every edit can be
+ * undone and redone (Ctrl+Z, Ctrl+Shift+Z or Ctrl+Y, or 復原上一步), many steps back; typing in one
+ * box is one step until it pauses. `showQuestions` brings the question list into view (phones show one side at a time).
  */
 export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
   // Sub-questions read as separate questions (1(1), 1(2)) start out grouped, so they merge like split ones.
@@ -33,7 +29,23 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
   const [editing, setEditing] = useState<number | null>(null)
   const cards = useRef(new Map<number, HTMLElement>())
   const keys = useRef<string[]>([])
-  if (keys.current.length !== draft.questions.length) keys.current = draft.questions.map((_, i) => keys.current[i] ?? newKey())
+  const history = useHistory<State>(
+    () => {
+      keys.current = start.questions.map(() => newKey())
+      return { draft: start, keys: keys.current }
+    },
+    (state) => {
+      keys.current = state.keys
+      setDraft(state.draft)
+    },
+  )
+  /** Every edit goes through here, from the latest draft (AI replies land while other edits happen). */
+  const edit = (next: (d: DraftExam, k: string[]) => Partial<State> | null, step?: { tag?: string; focus?: string }) =>
+    history.change((s) => {
+      const result = next(s.draft, s.keys)
+      return result ? { draft: result.draft ?? s.draft, keys: result.keys ?? s.keys } : s
+    }, step)
+  const latest = () => history.now.current
 
   const select = (index: number, scroll: boolean) => {
     setSelected(index)
@@ -49,72 +61,80 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     requestAnimationFrame(() => document.querySelector(`[data-group="${CSS.escape(groupId)}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
-  const updateQuestion = (index: number, q: DraftQuestion) => setDraft((d) => ({ ...d, questions: d.questions.map((x, i) => (i === index ? q : x)) }))
-  // Changes the question with this card key wherever it is now (it may have moved meanwhile), keeping later edits to the others.
-  // `undo`: Ctrl+Z (or 復原上一步) brings back the question as it was before the patch; patches
-  // sharing a batch name (one AI run over the whole exam) come back together in one step.
-  const patchQuestion = (key: string, patch: (q: DraftQuestion) => DraftQuestion, undo: boolean | string = false) =>
-    setDraft((d) => {
-      const index = keys.current.indexOf(key)
-      if (index < 0) return d
-      const question = d.questions[index]!
-      // (the checks keep a doubled updater call in development from saving the same step twice)
-      const top = trash.current.at(-1)
-      if (typeof undo === 'string' && top?.kind === 'replace' && top.batch === undo) {
-        if (!top.before.some((b) => b.key === key)) top.before.push({ key, question })
-      } else if (undo && !trash.current.some((u) => u.kind === 'replace' && u.before.some((b) => b.question === question))) {
-        trash.current.push({ kind: 'replace', batch: typeof undo === 'string' ? undo : undefined, before: [{ key, question }] })
-      }
-      return { ...d, questions: d.questions.map((x, i) => (i === index ? patch(x) : x)) }
-    })
-  const confirmQuestion = (index: number) => updateQuestion(index, { ...draft.questions[index]!, confidence: 'high', issues: [] })
+  const replaceAt = (d: DraftExam, index: number, q: DraftQuestion) => ({ draft: { ...d, questions: d.questions.map((x, i) => (i === index ? q : x)) } })
+  // From the question form: typing in it is one undo step until it pauses.
+  const updateQuestion = (index: number, q: DraftQuestion) => {
+    const key = latest().keys[index]
+    edit((d) => replaceAt(d, index, q), { tag: `type:q:${key}`, focus: key })
+  }
+  // Changes the question with this card key wherever it is now (it may have moved meanwhile).
+  // Patches with the same `tag` (one AI run over the whole exam) are undone together.
+  const patchQuestion = (key: string, patch: (q: DraftQuestion) => DraftQuestion, tag?: string) =>
+    edit(
+      (d, k) => {
+        const index = k.indexOf(key)
+        const q = index < 0 ? null : patch(d.questions[index]!)
+        return q && q !== d.questions[index] ? replaceAt(d, index, q) : null
+      },
+      { tag, focus: key },
+    )
+  const confirmQuestion = (index: number) => {
+    const key = latest().keys[index]
+    edit((d) => replaceAt(d, index, { ...d.questions[index]!, confidence: 'high', issues: [] }), { focus: key })
+  }
   // "(a) … (b) …" in one question becomes one question per part under a shared group.
   const splitQuestion = (index: number) => {
-    const result = splitParts(draft.questions[index]!, `split-${Date.now().toString(36)}`)
+    const { draft: d, keys: k } = latest()
+    const result = splitParts(d.questions[index]!, `split-${Date.now().toString(36)}`)
     if (!result) return
-    keys.current = [...keys.current.slice(0, index), ...result.parts.map(() => newKey()), ...keys.current.slice(index + 1)]
-    setDraft((d) => ({
-      ...d,
-      groups: [...d.groups, result.group],
-      questions: [...d.questions.slice(0, index), ...result.parts, ...d.questions.slice(index + 1)],
-    }))
+    edit(
+      () => ({
+        keys: [...k.slice(0, index), ...result.parts.map(() => newKey()), ...k.slice(index + 1)],
+        draft: { ...d, groups: [...d.groups, result.group], questions: [...d.questions.slice(0, index), ...result.parts, ...d.questions.slice(index + 1)] },
+      }),
+      { focus: k[index] },
+    )
     setEditing(null)
     setSelected(index)
   }
   // The sub-questions of one number go back to being one question (undoes splitQuestion).
   const mergeGroup = (groupId: string) => {
-    const indices = draft.questions.flatMap((q, i) => (q.groupId === groupId ? [i] : []))
-    const group = draft.groups.find((g) => g.id === groupId)
-    const merged = group && mergeParts(group, indices.map((i) => draft.questions[i]!))
+    const { draft: d, keys: k } = latest()
+    const indices = d.questions.flatMap((q, i) => (q.groupId === groupId ? [i] : []))
+    const group = d.groups.find((g) => g.id === groupId)
+    const merged = group && mergeParts(group, indices.map((i) => d.questions[i]!))
     if (!merged || !indices.length) return
     const at = indices[0]!
-    const key = keys.current[at]!
-    keys.current = [...keys.current.slice(0, at), key, ...keys.current.slice(at + 1).filter((_, j) => !indices.includes(at + 1 + j))]
-    setDraft((d) => ({
-      ...d,
-      groups: d.groups.filter((g) => g.id !== groupId),
-      questions: [...d.questions.slice(0, at), merged, ...d.questions.slice(at + 1).filter((q) => q.groupId !== groupId)],
-    }))
+    edit(
+      () => ({
+        keys: k.filter((_, i) => i === at || !indices.includes(i)),
+        draft: {
+          ...d,
+          groups: d.groups.filter((g) => g.id !== groupId),
+          questions: [...d.questions.slice(0, at), merged, ...d.questions.slice(at + 1).filter((q) => q.groupId !== groupId)],
+        },
+      }),
+      { focus: k[at] },
+    )
     setEditing(null)
     setSelected(at)
   }
   // By hand: a question becomes a sub-question of the one before it, or leaves its group again.
   const attachPart = (index: number) => {
-    const next = attachToPrevious(draft, index, `parts-${Date.now().toString(36)}`)
+    const next = attachToPrevious(latest().draft, index, `parts-${Date.now().toString(36)}`)
     if (!next) return
-    setDraft(next)
+    edit(() => ({ draft: next }), { focus: latest().keys[index] })
     setSelected(index)
   }
   const detachQuestion = (index: number) => {
-    const result = detachPart(draft, index)
+    const { draft: d, keys: k } = latest()
+    const result = detachPart(d, index)
     if (!result) return
-    keys.current = arrayMove(keys.current, index, result.at)
-    setDraft(result.draft)
+    edit(() => ({ draft: result.draft, keys: arrayMove(k, index, result.at) }), { focus: k[index] })
     setEditing(null)
     setSelected(result.at)
   }
 
-  const trash = useRef<Undo[]>([])
   const [deletedNote, setDeletedNote] = useState<string | null>(null)
   const noteTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const showDeleted = (number: string | null) => {
@@ -123,55 +143,60 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     if (number !== null) noteTimer.current = setTimeout(() => setDeletedNote(null), 5000)
   }
   const removeQuestion = (index: number) => {
-    const question = draft.questions[index]!
-    trash.current.push({ kind: 'delete', index, question, key: keys.current[index]! })
-    keys.current = keys.current.filter((_, i) => i !== index)
-    setDraft((d) => ({ ...d, questions: d.questions.filter((_, i) => i !== index) }))
+    const { draft: d, keys: k } = latest()
+    const question = d.questions[index]!
+    edit(() => ({ keys: k.filter((_, i) => i !== index), draft: { ...d, questions: d.questions.filter((_, i) => i !== index) } }), { focus: k[index] })
     setEditing(null)
     setSelected(null)
     showDeleted(question.number)
   }
   const moveBox = (index: number, location: number, bbox: DraftQuestion['locations'][number]['bbox'], pageNumber?: number) => {
-    const q = draft.questions[index]!
-    trash.current.push({ kind: 'box', key: keys.current[index]!, locations: q.locations })
-    updateQuestion(index, { ...q, locations: q.locations.map((l, i) => (i === location ? { ...l, bbox, manual: true, ...(pageNumber !== undefined && { pageNumber }) } : l)) })
+    const key = latest().keys[index]
+    edit((d) => {
+      const q = d.questions[index]!
+      return replaceAt(d, index, { ...q, locations: q.locations.map((l, i) => (i === location ? { ...l, bbox, manual: true, ...(pageNumber !== undefined && { pageNumber }) } : l)) })
+    }, { focus: key })
   }
-  const undo = () => {
-    const last = trash.current.pop()
-    if (!last) return
-    if (last.kind === 'replace') {
-      const back = new Map(last.before.map((b) => [keys.current.indexOf(b.key), b.question]))
-      back.delete(-1)
-      if (back.size) {
-        setDraft((d) => ({ ...d, questions: d.questions.map((q, i) => back.get(i) ?? q) }))
-        setSelected(Math.min(...back.keys()))
-      }
-      return
+
+  // After undo or redo: the step's question is selected and brought into view; selection and the
+  // open form stay on their question if it is still there.
+  const land = (step: { focus?: string } | null, before: string[]) => {
+    if (!step) return
+    const now = latest().keys
+    const follow = (i: number | null) => {
+      const at = i === null ? -1 : now.indexOf(before[i] ?? '')
+      return at >= 0 ? at : null
     }
-    if (last.kind === 'box') {
-      const index = keys.current.indexOf(last.key)
-      if (index >= 0) {
-        setDraft((d) => ({ ...d, questions: d.questions.map((q, i) => (i === index ? { ...q, locations: last.locations } : q)) }))
-        setSelected(index)
-      }
-      return
-    }
-    const at = Math.min(last.index, keys.current.length)
-    keys.current = [...keys.current.slice(0, at), last.key, ...keys.current.slice(at)]
-    setDraft((d) => ({ ...d, questions: [...d.questions.slice(0, at), last.question, ...d.questions.slice(at)] }))
-    setSelected(at)
+    setEditing(follow)
+    const at = step.focus ? now.indexOf(step.focus) : -1
+    if (at >= 0) {
+      setSelected(at)
+      requestAnimationFrame(() => cards.current.get(at)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
+    } else setSelected(follow)
     showDeleted(null)
   }
-  const undoRef = useRef(undo)
-  undoRef.current = undo
+  const undo = () => {
+    const before = latest().keys
+    land(history.undo(), before)
+  }
+  const redo = () => {
+    const before = latest().keys
+    land(history.redo(), before)
+  }
+  const keysRef = useRef({ undo, redo })
+  keysRef.current = { undo, redo }
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'z' || !trash.current.length) return
-      // typing fields keep their own undo
-      const target = e.target as HTMLElement | null
-      if (target?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"], math-field')) return
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return
+      const key = e.key.toLowerCase()
+      const back = key === 'z' && !e.shiftKey
+      const forward = (key === 'z' && e.shiftKey) || key === 'y'
+      if (!back && !forward) return
+      // a formula being edited keeps its own undo
+      if ((e.target as HTMLElement | null)?.closest?.('math-field')) return
       e.preventDefault()
-      undoRef.current()
+      if (back) keysRef.current.undo()
+      else keysRef.current.redo()
     }
     addEventListener('keydown', onKey)
     return () => {
@@ -184,25 +209,26 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     // Selection and editing follow the question that moved.
     const follow = (i: number | null) =>
       i === null ? null : i === from ? to : from < to && i > from && i <= to ? i - 1 : from > to && i >= to && i < from ? i + 1 : i
-    keys.current = arrayMove(keys.current, from, to)
-    setDraft((d) => ({ ...d, questions: arrayMove(d.questions, from, to) }))
+    edit((d, k) => ({ keys: arrayMove(k, from, to), draft: { ...d, questions: arrayMove(d.questions, from, to) } }), { focus: latest().keys[from] })
     setSelected(follow)
     setEditing(follow)
   }
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return
-    moveQuestion(keys.current.indexOf(String(active.id)), keys.current.indexOf(String(over.id)))
+    const k = latest().keys
+    moveQuestion(k.indexOf(String(active.id)), k.indexOf(String(over.id)))
   }
   // A blank question at the end, or right after `after` with the next number.
   const addQuestion = (after?: number) => {
-    const at = after ?? draft.questions.length - 1
-    const ref = draft.questions[at]
-    const next = ref && /^\d+$/.test(splitNumber(ref.number).main) ? String(Number(splitNumber(ref.number).main) + 1) : String(draft.questions.length + 1)
+    const d = latest().draft
+    const at = after ?? d.questions.length - 1
+    const ref = d.questions[at]
+    const next = ref && /^\d+$/.test(splitNumber(ref.number).main) ? String(Number(splitNumber(ref.number).main) + 1) : String(d.questions.length + 1)
     // added after a sub-question, it is the next sub-question of the same number
-    const group = after !== undefined && ref?.groupId && draft.groups.some((g) => g.id === ref.groupId) ? ref.groupId : null
+    const group = after !== undefined && ref?.groupId && d.groups.some((g) => g.id === ref.groupId) ? ref.groupId : null
     const { main, part } = splitNumber(ref?.number ?? '')
     const q: DraftQuestion = {
-      number: after === undefined ? String(draft.questions.length + 1) : group ? `${main}(${nextPart(part)})` : next,
+      number: after === undefined ? String(d.questions.length + 1) : group ? `${main}(${nextPart(part)})` : next,
       section: ref?.section ?? null,
       groupId: group,
       type: 'single_choice',
@@ -221,19 +247,19 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
   }
   // A copy right after the question, for one that differs only a little.
   const duplicateQuestion = (index: number) => {
-    const q = draft.questions[index]!
+    const q = latest().draft.questions[index]!
     insertAt(index + 1, { ...structuredClone(q), groupId: q.groupId })
   }
   const insertAt = (at: number, q: DraftQuestion) => {
-    keys.current = [...keys.current.slice(0, at), newKey(), ...keys.current.slice(at)]
-    setDraft((d) => ({ ...d, questions: [...d.questions.slice(0, at), q, ...d.questions.slice(at)] }))
+    const key = newKey()
+    edit((d, k) => ({ keys: [...k.slice(0, at), key, ...k.slice(at)], draft: { ...d, questions: [...d.questions.slice(0, at), q, ...d.questions.slice(at)] } }), { focus: key })
     setSelected(at)
     setEditing(at)
     requestAnimationFrame(() => cards.current.get(at)?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   }
 
-  const setMeta = (key: keyof DraftExam['meta'], value: string) => setDraft((d) => ({ ...d, meta: { ...d.meta, [key]: value.trim() ? value : null } }))
-  const setGroupStem = (id: string, stem: string) => setDraft((d) => ({ ...d, groups: d.groups.map((g) => (g.id === id ? { ...g, stem } : g)) }))
+  const setMeta = (key: keyof DraftExam['meta'], value: string) => edit((d) => ({ draft: { ...d, meta: { ...d.meta, [key]: value.trim() ? value : null } } }), { tag: `type:meta:${key}` })
+  const setGroupStem = (id: string, stem: string) => edit((d) => ({ draft: { ...d, groups: d.groups.map((g) => (g.id === id ? { ...g, stem } : g)) } }), { tag: `type:group:${id}` })
 
   return {
     /** The draft as first shown (sub-questions grouped), before any edit. */
@@ -256,7 +282,8 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     removeQuestion,
     moveBox,
     undo,
-    canUndo: trash.current.length > 0,
+    redo,
+    canUndo: history.canUndo,
     deletedNote,
     onDragEnd,
     addQuestion,

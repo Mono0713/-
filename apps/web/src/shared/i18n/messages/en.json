@@ -1142,7 +1142,6 @@
   "微積分": "Calculus",
   "希臘字母": "Greek",
   "化學": "Chemistry",
-  "拖曳框線調整範圍，或在頁面上重畫一個框。": "Drag the frame to adjust it, or draw a new box on the page.",
   "套用": "Apply",
   "裁切失敗，再試一次。": "Cropping failed. Please try again.",
   "上傳失敗，再試一次。": "Upload failed. Please try again.",
@@ -1173,5 +1172,8 @@
   "生成全部 {n} 題的答案": "Generate answers for all {n} questions",
   "生成全部 {n} 題的詳解": "Generate explanations for all {n} questions",
   "在第 {n} 題後面新增一題": "Add a question after question {n}",
-  "AI 強度：{strength}・{model}": "AI strength: {strength} · {model}"
+  "AI 強度：{strength}・{model}": "AI strength: {strength} · {model}",
+  "正在原卷上框選…": "Framing on the original page…",
+  "幫選項 {label} 加圖片": "Add a picture to option {label}",
+  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Drag the frame to adjust the picture, or draw a new box on the page."
 }
