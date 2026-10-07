@@ -132,6 +132,20 @@ describe.each(banks)('%s', (_name, open) => {
     expect(await bank.getImport(running.id)).toMatchObject({ status: 'failed', error: 'restarted' })
     expect((await bank.getImport(done.id))?.status).toBe('review')
   })
+  it('lists exams in the order the person placed them, new ones first', async () => {
+    const bank = await open()
+    // created a moment apart, so "newest first" is not a tie
+    const make = async (title: string) => (await new Promise((r) => setTimeout(r, 5)), await bank.createExam('local', { meta: { ...meta, title }, groups: [], questions: [draftQuestion()] })).id
+    const [a, b, c] = [await make('甲'), await make('乙'), await make('丙')]
+    expect((await bank.listExams({ ownerId: 'local' })).map((e) => e.title)).toEqual(['丙', '乙', '甲'])
+    await bank.reorderExams('local', [a, c, b])
+    expect((await bank.listExams({ ownerId: 'local' })).map((e) => e.title)).toEqual(['甲', '丙', '乙'])
+    const d = await make('丁')
+    expect((await bank.listExams({ ownerId: 'local' })).map((e) => e.id)).toEqual([d, a, c, b])
+    // someone else's order is not touched
+    await bank.reorderExams('other', [b, a])
+    expect((await bank.listExams({ ownerId: 'local' })).map((e) => e.id)).toEqual([d, a, c, b])
+  })
 })
 
 describe('SqliteBank', () => {
@@ -159,5 +173,4 @@ describe('SqliteBank', () => {
     await bank.close()
     // A second open does not migrate again.
     expect(await new SqliteBank(path).listExams({ ownerId: 'local' })).toHaveLength(2)
-  })
-})
+  })})

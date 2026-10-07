@@ -39,6 +39,8 @@ export function SwipeToDelete({ onDelete, className = '', children }: { onDelete
     const move = (e: TouchEvent) => {
       const touch = e.touches[0]
       if (!start || !touch) return
+      // a card being rearranged follows the finger; it is not a swipe to delete
+      if (document.documentElement.hasAttribute('data-sorting')) return (start = null)
       const x = touch.clientX - start.x
       const y = touch.clientY - start.y
       if (!sideways) {

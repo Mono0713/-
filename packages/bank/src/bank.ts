@@ -30,6 +30,8 @@ export interface Bank {
   listExams(query: ExamQuery): Promise<BankExam[]>
   getExam(id: string): Promise<BankExam | null>
   updateExam(id: string, patch: ExamPatch): Promise<BankExam | null>
+  /** Puts the owner's exams in this order in the bank; exams not listed come first. */
+  reorderExams(ownerId: string, ids: string[]): Promise<void>
   /** Deletes the exam and its questions. */
   deleteExam(id: string): Promise<void>
   listQuestions(query: QuestionQuery): Promise<{ items: BankQuestion[]; total: number }>

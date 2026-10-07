@@ -14,7 +14,7 @@ export function DeleteExamButton({ id, title }: { id: string; title: string }) {
       type="button"
       onClick={() => remove({ id, note: t('已刪除考卷'), commit: () => deleteExam(id) })}
       aria-label={t('刪除「{title}」', { title })}
-      className="m-press relative z-10 -my-1 grid h-7 w-7 place-items-center rounded-md text-muted transition-[opacity,color,background-color] hover:bg-bad-soft hover:text-bad focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0"
+      className="m-press relative z-10 -my-1.5 grid h-7 w-7 place-items-center rounded-md text-muted transition-[opacity,color,background-color] hover:bg-bad-soft hover:text-bad focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0"
     >
       <IconTrash size={15} />
     </button>

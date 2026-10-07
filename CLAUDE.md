@@ -48,7 +48,7 @@ Packages never import from apps.
 | 題目圖片：重新框選、換圖、上傳、刪除 | | `features/questions/useFigureTools.tsx` (frame on the left page viewer, replace, upload, delete), `FigureTile.tsx` (picture + its tools), `FiguresEditor.tsx` (the question's own pictures; option pictures sit under each option in `OptionsEditor.tsx`); `recropFigure`/`uploadFigureImage` in `questions/actions.ts`; `packages/figures/src/upload.ts` |
 | 圖片空格清理 | | `features/questions/FigureBlanksEditor.tsx`, `packages/figures` |
 | 圖片選項（選項是圖） | | figure `option` field in `packages/core/src/schema.ts`, `questionFigures`/`optionFigures` in `core/src/figures.ts`; shown by `shared/FigureView.tsx` (`OptionPictures`); assigned in `QuestionEditor.tsx` (這張圖是) |
-| 題庫、考卷卡、篩選 | `app/bank/page.tsx`, `bank/exams/[id]`, `bank/[id]` | `features/bank/*` (`ExamCard`, `BankFilters`, `ExamMetaForm`, `BankQuestionEditor`) |
+| 題庫、考卷卡、篩選 | `app/bank/page.tsx`, `bank/exams/[id]`, `bank/[id]` | `features/bank/*` (`ExamCard`, `BankFilters`, `ExamMetaForm`, `BankQuestionEditor`; `SortableExams.tsx` = drag the cards into your own order, saved as `position` on exams via `reorderExams` in `bank/actions.ts`, off while a filter is on) |
 | 開始測驗、選題 | `app/quiz/new` | `features/quiz/QuizSetup.tsx`, `start.ts` |
 | 作答頁（考試/單題練習、計時） | `app/quiz/[id]` | `features/quiz/QuizPlayer.tsx` |
 | 一題的作答區（選項、填空、手寫、書寫模式） | | `features/quiz/QuizQuestion.tsx`, `PracticeSheet.tsx` (寫字練習 田字格), `MatchingPicker.tsx` (配合題 點選), `Passage.tsx` (閱讀題組 文章) |
@@ -72,8 +72,8 @@ Packages never import from apps.
 | ↳ 學生待辦清單 | `app/classes` | `classes/TodoList.tsx` |
 | ↳ 考試防作弊（離開畫面、截圖鍵、全螢幕、禁止選取複製列印） | `app/quiz/[id]` | `classes/Proctor.tsx` (records), `integrity.ts` (saves), `integrityCounts.ts`, `IntegrityLog.tsx` (老師看紀錄); `IntegrityEvent` in `packages/quiz/src/types.ts` |
 | 派作業（選考卷、派給一或多個班級；題庫考卷頁的「派給班級」） | `app/classes/assign` | `features/classes/AssignForm.tsx`, `ExamPicker.tsx` (搜尋＋科目篩選), `createAssignments` in `features/classes/actions.ts` |
-| 多選題部分給分（考卷設定） | `app/bank/exams/[id]` | `features/bank/ExamMetaForm.tsx`; `multiplePartial` on `BankExam` (`packages/bank`, column `multiple_partial`) |
-| 設定頁 | `app/settings/page.tsx` | `features/settings/SettingsForm.tsx` (一般 + AI 兩步), `StorageCard`, `ProfileEditor`/`ProfileCard`; `ModelPicker` is the import page's method/model picker |
+| 多選題部分給分（派作業時勾選；自己練習在開始測驗頁） | `app/classes/assign` | `features/classes/AssignForm.tsx` → `multiplePartial` in `createAssignments`; `QuizSetup.tsx` for practice; share links use `BankExam.multiplePartial` (column `multiple_partial`, no longer edited in the bank) |
+| 設定頁 | `app/settings/page.tsx` | `features/settings/SettingsForm.tsx` (一般 + AI 兩步), `StorageCard` + `StorageList.tsx` (one line per import, biggest first, first 5 then 顯示全部; 刪原檔 or the whole import with 復原; data `storageItems` in `server/storage.ts`, sizes from `files.sizes`), `ProfileEditor`/`ProfileCard`; `ModelPicker` is the import page's method/model picker |
 | ↳ 接上 AI 服務（金鑰、自訂服務、模型看不看得懂圖） | | `settings/AiServices.tsx` (one row per service), `CustomProviders.tsx` (`CustomService` models, `AddService`; API 網址自動找 /v1: `apiBase.ts`) |
 | ↳ 每項工作用哪個模型、一鍵套用、有圖時改用、翻譯、AI 批改開關 | | `settings/TaskModels.tsx`, `TaskModelPicker.tsx`; routing `packages/models/src/routing.ts` (`PICTURE_TASKS`, `pictures`), `server/ai.ts` (`routeFor`); saved as `taskModels`/`pictureModels` in `packages/settings` |
 | 側邊欄、帳號選單、頁首、手機導覽 | | `shared/chrome/` (`Sidebar`, `SideNav`, `rail.ts` fold state, `AccountMenu`, `Header`, `NavLinks`, `nav.ts` items) |

@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS exams (
   language TEXT,
   groups TEXT NOT NULL DEFAULT '[]',
   multiple_partial INTEGER NOT NULL DEFAULT 1,
+  position INTEGER,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -190,8 +191,14 @@ class SqliteBankSync {
       where.push('e.subject = ?')
       params.push(query.subject)
     }
-    const rows = this.db.prepare(`${EXAM_SELECT} WHERE ${where.join(' AND ')} ORDER BY e.created_at DESC`).all(...params) as Row[]
+    // exams the person has placed keep their order; new ones, not placed yet, come first, newest first
+    const rows = this.db.prepare(`${EXAM_SELECT} WHERE ${where.join(' AND ')} ORDER BY e.position IS NOT NULL, e.position, e.created_at DESC`).all(...params) as Row[]
     return rows.map(toExam)
+  }
+
+  reorderExams(ownerId: string, ids: string[]): void {
+    const set = this.db.prepare('UPDATE exams SET position = ? WHERE id = ? AND owner_id = ?')
+    ids.forEach((id, i) => set.run(i, id, ownerId))
   }
 
   getExam(id: string): BankExam | null {
@@ -327,6 +334,7 @@ class SqliteBankSync {
   private addExamColumns() {
     const columns = (this.db.prepare('PRAGMA table_info(exams)').all() as Row[]).map((c) => String(c.name))
     if (!columns.includes('multiple_partial')) this.db.exec('ALTER TABLE exams ADD COLUMN multiple_partial INTEGER NOT NULL DEFAULT 1')
+    if (!columns.includes('position')) this.db.exec('ALTER TABLE exams ADD COLUMN position INTEGER')
   }
 
   private setColumns(table: 'imports' | 'exams' | 'questions', id: string, columns: Record<string, string | number | null>) {
@@ -426,6 +434,7 @@ export class SqliteBank implements Bank {
   async listExams(query: ExamQuery) { return this.db.listExams(query) }
   async getExam(id: string) { return this.db.getExam(id) }
   async updateExam(id: string, patch: ExamPatch) { return this.db.updateExam(id, patch) }
+  async reorderExams(ownerId: string, ids: string[]) { this.db.reorderExams(ownerId, ids) }
   async deleteExam(id: string) { this.db.deleteExam(id) }
   async listQuestions(query: QuestionQuery) { return this.db.listQuestions(query) }
   async getQuestion(id: string) { return this.db.getQuestion(id) }

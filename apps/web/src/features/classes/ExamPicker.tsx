@@ -13,7 +13,6 @@ export interface AssignExam {
   /** School, term and when it was added, to tell apart exams with the same title. */
   hint?: string
   /** Set on the exam in the bank; the assignment counts multiple choice the same way. */
-  multiplePartial: boolean
 }
 
 /**
