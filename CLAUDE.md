@@ -73,7 +73,9 @@ Packages never import from apps.
 | ↳ 考試防作弊（離開畫面、截圖鍵、全螢幕、禁止選取複製列印） | `app/quiz/[id]` | `classes/Proctor.tsx` (records), `integrity.ts` (saves), `integrityCounts.ts`, `IntegrityLog.tsx` (老師看紀錄); `IntegrityEvent` in `packages/quiz/src/types.ts` |
 | 派作業（選考卷、派給一或多個班級；題庫考卷頁的「派給班級」） | `app/classes/assign` | `features/classes/AssignForm.tsx`, `ExamPicker.tsx` (搜尋＋科目篩選), `createAssignments` in `features/classes/actions.ts` |
 | 多選題部分給分（考卷設定） | `app/bank/exams/[id]` | `features/bank/ExamMetaForm.tsx`; `multiplePartial` on `BankExam` (`packages/bank`, column `multiple_partial`) |
-| 設定頁 | `app/settings/page.tsx` | `features/settings/SettingsForm.tsx` (API 金鑰 rows), `StrengthSettings`, `TaskModelPicker` (每種工作與翻譯的模型選單), `ModelPicker`, `CustomProviders` (API 網址自動找 /v1: `apiBase.ts`), `TranslationSettings`, `StorageCard`, `ProfileEditor`/`ProfileCard` |
+| 設定頁 | `app/settings/page.tsx` | `features/settings/SettingsForm.tsx` (一般 + AI 兩步), `StorageCard`, `ProfileEditor`/`ProfileCard`; `ModelPicker` is the import page's method/model picker |
+| ↳ 接上 AI 服務（金鑰、自訂服務、模型看不看得懂圖） | | `settings/AiServices.tsx` (one row per service), `CustomProviders.tsx` (`CustomService` models, `AddService`; API 網址自動找 /v1: `apiBase.ts`) |
+| ↳ 每項工作用哪個模型、一鍵套用、有圖時改用、翻譯、AI 批改開關 | | `settings/TaskModels.tsx`, `TaskModelPicker.tsx`; routing `packages/models/src/routing.ts` (`PICTURE_TASKS`, `pictures`), `server/ai.ts` (`routeFor`); saved as `taskModels`/`pictureModels` in `packages/settings` |
 | 側邊欄、帳號選單、頁首、手機導覽 | | `shared/chrome/` (`Sidebar`, `SideNav`, `rail.ts` fold state, `AccountMenu`, `Header`, `NavLinks`, `nav.ts` items) |
 | 懸浮球 (FAB) | | `shared/chrome/Fab.tsx` |
 | 宣傳頁、首頁介紹（未登入看到的 `/`，任何人可開 `/welcome`） | `app/page.tsx`, `app/welcome/page.tsx` | `features/landing/Landing.tsx` → `LandingNav`, `Hero`, `Steps` (四步驟), `Audience` (適合誰), `Features`, `Faq`, `Closing`, `Footer`; pictures in `art/` (`StepArt`, `FeatureArt`, `Frame`); `StartButton` (Google 登入／前往題庫), `LanguagePick`, `RevealObserver`, `metadata.ts` (頁面標題與連結預覽); public paths in `proxy.ts` |

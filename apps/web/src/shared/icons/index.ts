@@ -69,6 +69,7 @@ export {
   House as IconHome,
   Link as IconLink,
   FileImage as IconFileImage,
+  Image as IconImage,
   Crop as IconCrop,
   ImageUp as IconImageReplace,
   ImagePlus as IconImageAdd,

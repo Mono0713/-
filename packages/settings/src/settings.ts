@@ -4,6 +4,7 @@ import { z } from 'zod'
 const Strength = z.enum(['save', 'balanced', 'best'] as const satisfies readonly StrengthId[])
 const Task = z.enum(['recognition', 'handwriting', 'grading', 'tutoring', 'translation', 'solving', 'explaining'] as const satisfies readonly TaskId[])
 const TierEnum = z.enum(['fast', 'balanced', 'best'] as const satisfies readonly Tier[])
+const Choice = z.object({ provider: z.string(), model: z.string() })
 
 /** A service the person added: anything that speaks the OpenAI Chat Completions format. Its key is in apiKeys under `id`. */
 export const CustomProvider = z.object({
@@ -44,12 +45,15 @@ export const Settings = z.object({
     .default({ enabled: true, provider: null, model: null }),
   /** How questions get translated: free services with no key, or the AI on the translation route. */
   translationEngine: z.enum(['free', 'ai']).default('free'),
-  /** How hard the AI tries, for every task: save money, balanced, or most accurate. */
+  /** Which models 自動 picks for every task: the cheapest, balanced, or the most accurate. */
   strength: Strength.default('balanced'),
-  /** Per-task strength that differs from `strength` (advanced settings). */
-  taskStrength: z.partialRecord(Task, Strength).default({}),
   /** Per-task model picked by hand; it wins over the strength while its provider has a key. */
-  taskModels: z.partialRecord(Task, z.object({ provider: z.string(), model: z.string() })).default({}),
+  taskModels: z.partialRecord(Task, Choice).default({}),
+  /**
+   * For tasks about one question (AI 作答, 詳解, 問 AI): the model for questions with pictures, when the
+   * one in `taskModels` cannot see them or the person wants another. Unset: a model that sees, picked as 自動.
+   */
+  pictureModels: z.partialRecord(Task, Choice).default({}),
   /** Services added by the person, beside Claude, OpenAI and Gemini. */
   customProviders: z.array(CustomProvider).default([]),
   /** Model ids the provider's API reported last time they were fetched. */

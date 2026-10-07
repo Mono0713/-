@@ -2,8 +2,8 @@
 
 import { randomBytes } from 'node:crypto'
 import { listModels } from '@exam/extraction'
-import type { Strength, Task, Tier } from '@exam/models'
-import type { CustomProvider } from '@exam/settings'
+import { PICTURE_TASKS, type Strength, type Task, type Tier } from '@exam/models'
+import type { CustomProvider, Settings } from '@exam/settings'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { authEnabled, currentOwner, currentUser, services } from '@/server/context'
@@ -43,17 +43,6 @@ export async function saveProfile(patch: { name?: string | null; avatar?: string
   if (patch.name !== undefined) next.name = [...(patch.name?.trim() ?? '')].slice(0, NAME_MAX).join('') || null
   if (patch.avatar !== undefined) next.avatar = patch.avatar && /^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(patch.avatar) && patch.avatar.length <= 100_000 ? patch.avatar : null
   await save({ profile: next })
-}
-
-export async function saveDefaultProvider(provider: string) {
-  await save({ defaultProvider: provider })
-}
-
-export async function saveModel(provider: string, model: string) {
-  const models = { ...(await mine()).models }
-  if (model.trim()) models[provider] = model.trim()
-  else delete models[provider]
-  await save({ models })
 }
 
 const rejected = (err: unknown) => {
@@ -133,15 +122,6 @@ export async function saveTranslationEngine(engine: 'free' | 'ai') {
   if (engine === 'free' || engine === 'ai') await save({ translationEngine: engine })
 }
 
-/** One task's own strength; null follows the overall one again. */
-export async function saveTaskStrength(task: Task, strength: Strength | null) {
-  if (!TASKS.includes(task) || (strength && !STRENGTHS.includes(strength))) return
-  const taskStrength = { ...(await mine()).taskStrength }
-  if (strength) taskStrength[task] = strength
-  else delete taskStrength[task]
-  await save({ taskStrength })
-}
-
 /** A model picked by hand for one task; null lets the strength choose again. */
 export async function saveTaskModel(task: Task, choice: { provider: string; model: string } | null) {
   if (!TASKS.includes(task)) return
@@ -151,6 +131,37 @@ export async function saveTaskModel(task: Task, choice: { provider: string; mode
   else delete taskModels[task]
   // the older AI-marking model choice now lives here
   await save({ taskModels, ...(task === 'grading' ? { aiGrading: { ...s.aiGrading, provider: null, model: null } } : {}) })
+}
+
+/** The model for questions with pictures in one of AI 作答, 詳解 and 問 AI; null picks one that sees, automatically. */
+export async function savePictureModel(task: Task, choice: { provider: string; model: string } | null) {
+  if (!PICTURE_TASKS.includes(task)) return
+  const pictureModels = { ...(await mine()).pictureModels }
+  if (choice?.provider && choice.model.trim()) pictureModels[task] = { provider: choice.provider, model: choice.model.trim() }
+  else delete pictureModels[task]
+  await save({ pictureModels })
+}
+
+/** Every task's models, as the settings page keeps them; what 一鍵套用 replaces and 復原 puts back. */
+export interface ModelChoices {
+  strength: Strength
+  taskModels: Partial<Record<Task, { provider: string; model: string }>>
+  pictureModels: Partial<Record<Task, { provider: string; model: string }>>
+}
+
+/** 一鍵套用: one strength for every task, the models picked by hand dropped, so 自動 picks them all. */
+export async function applyStrength(strength: Strength) {
+  if (!STRENGTHS.includes(strength)) return
+  const { aiGrading } = await mine()
+  await save({ strength, taskModels: {}, pictureModels: {}, aiGrading: { ...aiGrading, provider: null, model: null } })
+}
+
+/** Puts back the choices 一鍵套用 replaced (its 復原). */
+export async function restoreChoices(choices: ModelChoices) {
+  const clean = (record: ModelChoices['taskModels'], tasks: readonly Task[]) =>
+    Object.fromEntries(Object.entries(record).filter(([task, c]) => tasks.includes(task as Task) && c?.provider && c.model)) as ModelChoices['taskModels']
+  if (!STRENGTHS.includes(choices.strength)) return
+  await save({ strength: choices.strength, taskModels: clean(choices.taskModels, TASKS), pictureModels: clean(choices.pictureModels, PICTURE_TASKS) })
 }
 
 /**
@@ -199,13 +210,14 @@ export async function saveCustomModels(id: string, models: { id: string; tier: T
 export async function removeCustomProvider(id: string) {
   const s = await mine()
   const drop = <T,>(record: Partial<Record<string, T>>) => Object.fromEntries(Object.entries(record).filter(([k]) => k !== id)) as Record<string, T>
-  const taskModels = Object.fromEntries(Object.entries(s.taskModels).filter(([, v]) => v?.provider !== id))
+  const keep = (record: Settings['taskModels']) => Object.fromEntries(Object.entries(record).filter(([, v]) => v?.provider !== id))
   await save({
     customProviders: s.customProviders.filter((c) => c.id !== id),
     apiKeys: drop(s.apiKeys),
     models: drop(s.models),
     knownModels: drop(s.knownModels),
-    taskModels,
+    taskModels: keep(s.taskModels),
+    pictureModels: keep(s.pictureModels),
     ...(s.defaultProvider === id ? { defaultProvider: 'auto' } : {}),
   })
 }

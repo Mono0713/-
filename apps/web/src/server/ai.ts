@@ -69,12 +69,9 @@ export async function serviceUrlOf(s: Settings, providerId: string): Promise<str
   return checkServiceUrl(custom.baseUrl, authEnabled(), t)
 }
 
-/** The strength a task runs at for this user: its own, or the overall one. */
-export const strengthOf = (s: Settings, task: Task): Strength => s.taskStrength[task] ?? s.strength
-
-/** A model picked by hand for a task, if any; AI marking's older setting still counts. */
-function overrideOf(s: Settings, task: Task): ModelChoice | null {
-  const picked = s.taskModels[task]
+/** A model picked by hand for a task, if any; AI marking's older setting still counts. With pictures, the one picked for questions with pictures comes first. */
+function overrideOf(s: Settings, task: Task, pictures = false): ModelChoice | null {
+  const picked = (pictures && s.pictureModels[task]) || s.taskModels[task]
   if (picked) return picked
   if (task === 'grading' && s.aiGrading.provider) {
     const model = s.aiGrading.model || route('grading', s.strength, providersOf(s).filter((p) => p.id === s.aiGrading.provider))?.primary.model
@@ -83,10 +80,13 @@ function overrideOf(s: Settings, task: Task): ModelChoice | null {
   return null
 }
 
-/** The models a task uses for this user right now; null when no service with a key can do it. */
-export async function routeFor(ownerId: string, task: Task): Promise<Route | null> {
+/**
+ * The models a task uses for this user right now; null when no service with a key can do it.
+ * `pictures`: the request carries a question's pictures, so only models that see them qualify.
+ */
+export async function routeFor(ownerId: string, task: Task, pictures = false): Promise<Route | null> {
   const s = await services().settings.get(ownerId)
-  return route(task, strengthOf(s, task), providersOf(s), { override: overrideOf(s, task) })
+  return route(task, s.strength, providersOf(s), { override: overrideOf(s, task, pictures), pictures })
 }
 
 /** The model each task would run on at each strength (null: no service with a key can do it). */
@@ -99,8 +99,7 @@ export async function modelsByStrength(ownerId: string, tasks: Task[]): Promise<
   const name = (c: ModelChoice) => providers.find((p) => p.id === c.provider)?.models.find((m) => m.id === c.model)?.label ?? c.model
   const at = (strength: Strength) =>
     Object.fromEntries(tasks.map((task) => {
-      // a task given its own strength in settings keeps it whatever the overall one is
-      const r = route(task, s.taskStrength[task] ?? strength, providers, { override: overrideOf(s, task) })
+      const r = route(task, strength, providers, { override: overrideOf(s, task) })
       return [task, r ? name(r.primary) : null]
     }))
   return Object.fromEntries(STRENGTHS.map((strength) => [strength, at(strength)])) as StrengthModels
@@ -126,7 +125,7 @@ export async function availableProviders(ownerId: string): Promise<ProviderOptio
   const t = await getT()
   const s = await services().settings.get(ownerId)
   const providers = providersOf(s)
-  const plan = route('recognition', strengthOf(s, 'recognition'), providers, { override: overrideOf(s, 'recognition') })
+  const plan = route('recognition', s.strength, providers, { override: overrideOf(s, 'recognition') })
   const name = (c: ModelChoice) => providers.find((p) => p.id === c.provider)?.models.find((m) => m.id === c.model)?.label ?? c.model
   const auto: ProviderOption = {
     id: AUTO,
@@ -156,11 +155,6 @@ function planNote(t: T, primary: string, escalate: string | null | undefined, fa
 
 export type Teacher = { teacher: AiTeacher; reader: TextModel; provider: string; model: string }
 
-/** The provider and model AI marking would use, whether or not it is switched on (null: no key yet). */
-export async function teacherChoice(ownerId: string): Promise<ModelChoice | null> {
-  return (await routeFor(ownerId, 'grading'))?.primary ?? null
-}
-
 /**
  * The AI teacher for this user, or null when AI marking is off or no service has a key.
  * Marking and reading handwriting each follow their own route, fallbacks included,
@@ -179,18 +173,21 @@ export async function teacherFor(ownerId: string, opts: { scope?: string; always
   return { teacher: new AiTeacher(marker), reader, provider: grading.primary.provider, model: grading.primary.model }
 }
 
-/** The AI tutor for this user, on their own keys and the tutoring route; null when no service has a key. */
-export async function tutorFor(ownerId: string): Promise<AiTutor | null> {
+/** The AI tutor for this user, on their own keys and the tutoring route (one that sees, for a question with pictures); null when no service has a key. */
+export async function tutorFor(ownerId: string, pictures = false): Promise<AiTutor | null> {
   const s = await services().settings.get(ownerId)
-  const tutoring = await routeFor(ownerId, 'tutoring')
+  const tutoring = await routeFor(ownerId, 'tutoring', pictures)
   if (!tutoring) return null
   return new AiTutor(await chain(s, ownerId, 'tutoring', [tutoring.primary, ...tutoring.fallbacks]))
 }
 
-/** Works out the answers the paper left out (`solving`) or writes explanations (`explaining`), each on its own route and the user's keys; null without a key. */
-export async function solverFor(ownerId: string, task: 'solving' | 'explaining'): Promise<AiSolver | null> {
+/**
+ * Works out the answers the paper left out (`solving`) or writes explanations (`explaining`), each on its
+ * own route and the user's keys, on a model that sees for a question with pictures; null without a key.
+ */
+export async function solverFor(ownerId: string, task: 'solving' | 'explaining', pictures = false): Promise<AiSolver | null> {
   const s = await services().settings.get(ownerId)
-  const r = await routeFor(ownerId, task)
+  const r = await routeFor(ownerId, task, pictures)
   if (!r) return null
   return new AiSolver(await chain(s, ownerId, task, [r.primary, ...r.fallbacks]))
 }
