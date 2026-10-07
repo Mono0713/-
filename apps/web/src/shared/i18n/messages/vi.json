@@ -963,7 +963,6 @@
   "功能": "Tính năng",
   "練習、考試、批改和分享，都在同一個地方。": "Luyện tập, kiểm tra, chấm bài và chia sẻ, tất cả ở cùng một nơi.",
   "還有": "Còn có",
-  "看不懂題目？一鍵翻譯": "Không hiểu đề? Dịch ngay",
   "題目和選項一起翻成你的語言。預設用免費翻譯，不需要金鑰。": "Đề và các lựa chọn được dịch sang ngôn ngữ của bạn. Mặc định dùng bản dịch miễn phí, không cần khóa.",
   "還沒有金鑰？手動模式可以把考卷交給 ChatGPT、Claude 或 Gemini 的聊天 App 辨識。": "Chưa có khóa? Chế độ thủ công cho phép ứng dụng chat ChatGPT, Claude hoặc Gemini nhận diện đề của bạn.",
   "拍照、掃描或上傳 PDF，AI 會把每一題框出來，認出題型和答案，寫過的筆跡也不會留在題目上。校對一下存進題庫，就能隨時練習、限時考試，讓 AI 幫你批改。": "Chụp ảnh, scan hoặc tải PDF lên, AI khoanh từng câu, nhận ra dạng câu hỏi và đáp án, nét chữ đã viết cũng không còn trên đề. Kiểm tra lại rồi lưu vào ngân hàng câu hỏi là có thể luyện tập bất cứ lúc nào, thi có giới hạn giờ và để AI chấm bài.",
@@ -971,8 +970,6 @@
   "{n} 種介面語言": "{n} ngôn ngữ giao diện",
   "怎麼運作": "Cách hoạt động",
   "不用重新打字，也不用一題一題剪下來。": "Không cần gõ lại, cũng không cần cắt từng câu.",
-  "原文": "Bản gốc",
-  "下列何者是質數？": "Số nào sau đây là số nguyên tố?",
   "已交卷 {done} / {total}": "Đã nộp {done} / {total}",
   "數學段考.pdf": "de-kiem-tra-toan.pdf",
   "英文講義.jpg": "tai-lieu-tieng-anh.jpg",
@@ -1198,5 +1195,13 @@
   "{task}遇到有圖的題目時的模型": "Mô hình {task} cho câu hỏi có hình",
   "上面的模型看得懂圖就用它": "Dùng mô hình ở trên nếu nó đọc được hình",
   "拖曳調整作答空間": "Kéo để chỉnh khoảng trả lời",
-  "匯出 PDF（附答案）": "Xuất PDF (kèm đáp án)"
+  "匯出 PDF（附答案）": "Xuất PDF (kèm đáp án)",
+  "試一題": "Thử một câu",
+  "拖曳對照原卷": "Kéo để so sánh",
+  "辨識後": "Đã nhận dạng",
+  "對照原卷": "So sánh với bản gốc",
+  "選一個答案試試看": "Chọn một đáp án để thử.",
+  "十八世紀的英國先用蒸汽機帶動紡織工廠，工業革命從這裡開始。": "Thế kỷ 18, nước Anh lần đầu dùng máy hơi nước chạy các xưởng dệt, và cách mạng công nghiệp bắt đầu từ đó.",
+  "位移有大小也有方向；質量、時間和溫度只有大小。": "Độ dời có cả độ lớn và hướng; khối lượng, thời gian và nhiệt độ chỉ có độ lớn.",
+  "原核生物沒有核膜和粒線體，但有 70S 核糖體。": "Sinh vật nhân sơ không có màng nhân và ti thể, nhưng có ribôxôm 70S."
 }

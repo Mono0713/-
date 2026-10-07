@@ -20,6 +20,7 @@ export {
   ChevronDown as IconChevronDown,
   ChevronLeft as IconChevronLeft,
   ChevronRight as IconChevronRight,
+  ChevronsLeftRight as IconCompare,
   ChevronsLeft as IconFold,
   CircleGauge as IconStrength,
   ClipboardCheck as IconQuiz,

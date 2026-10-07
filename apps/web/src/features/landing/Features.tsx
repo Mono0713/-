@@ -1,21 +1,25 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { getLocale, getT } from '@/shared/i18n/server'
+import { getLocale, getT, getTIn } from '@/shared/i18n/server'
 import { TYPE_LABELS } from '@/shared/labels'
-import { ClassArt, GradeArt, KeysArt, PracticeModesArt, TranslateArt, TypesArt } from './art/FeatureArt'
+import { ClassArt, GradeArt, KeysArt, TypesArt } from './art/FeatureArt'
 import { Heading } from './Heading'
+import { TRY_QUESTIONS } from './try/questions'
+import { TryQuestion } from './try/TryQuestion'
 import { WRAP } from './wrap'
 
 const SHOWN = new Set(['single_choice', 'matching', 'writing', 'drawing', 'fill_in_blank', 'calculation', 'other'])
 
-/** What a recognised exam can do, each card with a small picture of it. */
+/** What a recognised exam can do, each card with a small picture of it, and a question to try. */
 export async function Features() {
   const t = await getT()
-  const locale = await getLocale()
+  // The questions to try are printed in English, or in Chinese for readers of English.
+  const printed = getTIn((await getLocale()) === 'en' ? 'zh-Hant' : 'en')
   const more = Object.entries(TYPE_LABELS).filter(([type]) => !SHOWN.has(type))
   return (
     <section id="features" className={`${WRAP} scroll-mt-16 pb-20 lg:pb-28`}>
       <Heading n={3} kicker={t('功能')} title={t('存進題庫之後')} lead={t('練習、考試、批改和分享，都在同一個地方。')} />
-      <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* dense: on two columns the card after the wide 試一題 moves up beside 批改 */}
+      <div className="mt-12 grid grid-cols-1 gap-4 md:grid-flow-dense md:grid-cols-2 lg:grid-cols-3">
         <Card i={0} wide title={t('認得各種題型')} text={t('連表格裡、圖上的空格，閱讀題組和圖片選項都能辨識，作答方式跟著題型走。')}>
           <TypesArt t={t} />
           <p className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted">
@@ -30,13 +34,24 @@ export async function Features() {
         <Card i={1} fill title={t('AI 幫你批改')} text={t('簡答、計算和手寫作答交給 AI 打分，用紅筆寫下哪裡要改。')}>
           <GradeArt t={t} />
         </Card>
-        <Card i={2} title={t('限時考試，也能逐題練')} text={t('考試模式計時計分；練習模式每題看解析，看不懂就問 AI，還能一鍵翻譯。')}>
-          <PracticeModesArt t={t} />
-        </Card>
-        <Card i={3} title={t('看不懂題目？一鍵翻譯')} text={t('題目和選項一起翻成你的語言。預設用免費翻譯，不需要金鑰。')}>
-          <TranslateArt t={t} locale={locale} />
-        </Card>
-        <Card i={4} title={t('分享與班級')} text={t('一個連結就能分享考卷。老師開班級、派作業，學生交卷後再公布答案。')}>
+        <article className="m-reveal grid grid-cols-1 gap-6 rounded-2xl bg-surface p-6 shadow-sheet md:col-span-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)] md:items-start" style={{ '--i': 2 } as CSSProperties}>
+          <div>
+            <p className="text-sm font-medium text-accent">{t('試一題')}</p>
+            <h3 className="mt-1 text-lg font-bold">{t('限時考試，也能逐題練')}</h3>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted">{t('考試模式計時計分；練習模式每題看解析，看不懂就問 AI，還能一鍵翻譯。')}</p>
+            <p className="mt-3 text-sm leading-relaxed text-muted">{t('題目和選項一起翻成你的語言。預設用免費翻譯，不需要金鑰。')}</p>
+          </div>
+          <TryQuestion
+            items={TRY_QUESTIONS.map((q) => ({
+              text: printed(q.text),
+              options: q.options.map((o) => printed(o)),
+              answer: q.answer,
+              read: { text: t(q.text), options: q.options.map((o) => t(o)) },
+              why: t(q.why),
+            }))}
+          />
+        </article>
+        <Card i={3} fill title={t('分享與班級')} text={t('一個連結就能分享考卷。老師開班級、派作業，學生交卷後再公布答案。')}>
           <ClassArt t={t} />
         </Card>
         <article className="m-reveal grid gap-5 rounded-2xl bg-surface p-6 shadow-sheet md:col-span-2 lg:col-span-3 lg:grid-cols-[1fr_auto] lg:items-center">

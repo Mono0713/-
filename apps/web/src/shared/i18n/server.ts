@@ -23,3 +23,6 @@ export const getLocale = cache(async (): Promise<Locale> => {
 
 /** `t` for server components and server actions. */
 export const getT = cache(async (): Promise<T> => makeT(CATALOGS[await getLocale()]))
+
+/** `t` for a language other than the reader's, e.g. the printed wording of a sample question shown with its translation. */
+export const getTIn = (locale: Locale): T => makeT(CATALOGS[locale])
