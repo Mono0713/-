@@ -1,6 +1,6 @@
 import type { DraftQuestion } from '@exam/core'
 import { describe, expect, it } from 'vitest'
-import { attachToPrevious, detachPart, groupLooseParts, mergeParts, nextPart, splitNumber, splitParts } from '../src/features/review/parts.ts'
+import { attachToPrevious, canMerge, detachPart, groupLooseParts, mergeParts, nextPart, splitNumber, splitParts } from '../src/features/review/parts.ts'
 
 const q = (overrides: Partial<DraftQuestion>): DraftQuestion => ({
   number: '11', section: null, groupId: null, type: 'calculation', stem: '', translation: null, options: [],
@@ -58,6 +58,13 @@ describe('mergeParts', () => {
     expect(merged).toMatchObject({ confidence: 'low', issues: [], answer: { values: ['(1) both'] } })
     expect(mergeParts(group, [parts[0]!, { ...parts[1]!, number: '12(b)' }])).toBeNull()
     expect(mergeParts(group, [{ ...parts[0]!, number: '11' }])).toBeNull()
+  })
+
+  it('offers a merge only for parts that split again', () => {
+    const { parts } = splitParts(q({ stem: '(1) x (2) y' }), 'g4')!
+    expect(canMerge(parts)).toBe(true)
+    expect(canMerge([parts[0]!, { ...parts[1]!, type: 'single_choice' }])).toBe(false)
+    expect(canMerge([])).toBe(false)
   })
 })
 

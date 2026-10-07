@@ -1142,7 +1142,6 @@
   "微積分": "Kalkulus",
   "希臘字母": "Yunani",
   "化學": "Kimia",
-  "拖曳框線調整範圍，或在頁面上重畫一個框。": "Seret bingkai untuk menyesuaikan, atau gambar kotak baru di halaman.",
   "套用": "Terapkan",
   "裁切失敗，再試一次。": "Gagal memotong. Coba lagi.",
   "上傳失敗，再試一次。": "Gagal mengunggah. Coba lagi.",
@@ -1173,5 +1172,8 @@
   "生成全部 {n} 題的答案": "Buat jawaban untuk semua {n} soal",
   "生成全部 {n} 題的詳解": "Buat pembahasan untuk semua {n} soal",
   "在第 {n} 題後面新增一題": "Tambah soal setelah soal {n}",
-  "AI 強度：{strength}・{model}": "Kekuatan AI: {strength} · {model}"
+  "AI 強度：{strength}・{model}": "Kekuatan AI: {strength} · {model}",
+  "正在原卷上框選…": "Memilih di halaman asli…",
+  "幫選項 {label} 加圖片": "Tambah gambar ke opsi {label}",
+  "拖曳框線調整圖片範圍，或在頁面上重畫一個框。": "Seret bingkai untuk menyesuaikan gambar, atau gambar kotak baru di halaman."
 }

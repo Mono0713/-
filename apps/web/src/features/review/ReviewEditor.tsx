@@ -4,7 +4,7 @@ import { DndContext } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { DraftExam, DraftQuestion } from '@exam/core'
 import type { Strength } from '@exam/models'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
 import { QuestionView } from '@/features/questions/QuestionView'
 import type { StrengthModels } from '@/server/ai'
@@ -21,10 +21,12 @@ import { GroupCard } from './GroupCard'
 import { NumberBar } from './NumberBar'
 import { Outline } from './Outline'
 import { PageViewer } from './PageViewer'
+import { canMerge } from './parts'
 import { iconButton, ReviewToolbar } from './ReviewToolbar'
 import { ActiveOverlay, alongList, EdgeScroll, listMeasuring, Sortable, underPointer, useDragSensors, type DragHandle } from './sortable'
 import { StrengthPanel } from './StrengthPanel'
 import { useDraftSaving } from './useDraftSaving'
+import { useFigureFraming } from './useFigureFraming'
 import { SolveStatus } from './SolveStatus'
 import { useReviewFab } from './useReviewFab'
 import { useSolver } from './useSolver'
@@ -67,6 +69,11 @@ export function ReviewEditor({
   // Phones show one side at a time.
   const [mobileView, setMobileView] = useState<'questions' | 'page'>('questions')
   const reviewDraft = useReviewDraft(initial, () => setMobileView('questions'))
+  // A picture is framed on the page viewer; phones show the page meanwhile.
+  const { frame, framing, cancel: cancelFraming } = useFigureFraming(
+    () => setMobileView('page'),
+    () => setMobileView('questions'),
+  )
   const {
     start,
     draft,
@@ -96,6 +103,11 @@ export function ReviewEditor({
     patchQuestion,
   } = reviewDraft
   const { saveState, published, inSync, publish, publishing } = useDraftSaving(importId, draft, initial, start, savedExam)
+  // A picture framed for a form that closes (or another opens) is dropped.
+  useEffect(() => {
+    cancelFraming()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing])
   const { layout, setLayout, row, viewer, bar, barHeight, startResize } = useWorkspaceLayout()
   const [flaggedOnly, setFlaggedOnly] = useState(false)
   const cardSensors = useDragSensors(true, true)
@@ -195,6 +207,7 @@ export function ReviewEditor({
                   selected={selected}
                   onSelect={(i) => select(i, true)}
                   onBoxChange={moveBox}
+                  framing={framing}
                   className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]"
                 />
               </div>
@@ -251,6 +264,7 @@ export function ReviewEditor({
                   const inGroup = q.groupId !== null && draft.groups.some((g) => g.id === q.groupId)
                   const isEditing = editing === index
                   const key = keys.current[index]!
+                  const parts = group ? draft.questions.filter((x) => x.groupId === group.id) : []
                   return (
                     <Sortable key={key} id={key}>
                       {(handle, dragging) => (
@@ -259,10 +273,10 @@ export function ReviewEditor({
                           {group && (
                             <GroupCard
                               group={group}
-                              parts={draft.questions.filter((x) => x.groupId === group.id)}
+                              parts={parts}
                               onChange={(stem) => setGroupStem(group.id, stem)}
                               onSelect={() => select(index, false)}
-                              onMerge={() => mergeGroup(group.id)}
+                              onMerge={canMerge(parts) ? () => mergeGroup(group.id) : undefined}
                             />
                           )}
                           <section
@@ -286,7 +300,7 @@ export function ReviewEditor({
                                 value={q}
                                 onChange={(v) => updateQuestion(index, v)}
                                 importId={importId}
-                                pages={pages}
+                                frame={pages.length ? frame : undefined}
                                 ai={{ answer: () => solver.runOne(index, 'answer'), explain: () => solver.runOne(index, 'explain'), busy: solver.busy.get(key) }}
                                 actions={
                                   // the same places as the card's own buttons: done where edit was, then delete and the grip

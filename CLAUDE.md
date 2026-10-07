@@ -35,16 +35,16 @@ Packages never import from apps.
 | 原檔保存 | `app/imports/[id]/original` | `features/imports/OriginalFiles.tsx`, `packages/importer` (expiry) |
 | 校對頁 / 編輯頁 (whole workspace) | `app/imports/[id]/page.tsx` | `features/review/ReviewEditor.tsx` (composes the pieces below) |
 | ↳ 工具列、題號列、存入題庫鈕 | | `review/ReviewToolbar.tsx`, `review/NumberBar.tsx` |
-| ↳ 新增/複製/刪除/復原/拖曳排序/拆小題/合併 | | `review/useReviewDraft.ts` (all draft edits + Ctrl+Z), `review/parts.ts` (sub-question logic), `review/sortable.tsx` (drag) |
+| ↳ 新增/複製/刪除/復原/重做/拖曳排序/拆小題/合併 | | `review/useReviewDraft.ts` (all draft edits, Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y), `review/useHistory.ts` (multi-step undo/redo, typing joins one step), `review/parts.ts` (sub-question logic; `canMerge` = 合併 only where 拆小題 brings it back), `review/sortable.tsx` (drag) |
 | ↳ 自動儲存、存入題庫 | | `review/useDraftSaving.ts`, `review/actions.ts` |
-| ↳ 原卷、題目框、放大縮小 | | `review/PageViewer.tsx`, `review/useBoxEditing.ts` (move/resize boxes), `review/boxGeometry.ts`; box placement from AI: `packages/core/src/boxes.ts` |
+| ↳ 原卷、題目框、放大縮小 | | `review/PageViewer.tsx` (also frames pictures: `review/useFigureFraming.ts`, `FramingBar.tsx` 套用/取消), `review/useBoxEditing.ts` (move/resize/draw boxes), `review/boxGeometry.ts`; box placement from AI: `packages/core/src/boxes.ts` |
 | ↳ 題目大綱、分隔線、版面記憶 | | `review/Outline.tsx`, `review/useWorkspaceLayout.ts` |
 | ↳ 題組/小題共用卡片 | | `review/GroupCard.tsx` |
 | ↳ 懸浮球（全部生成答案/詳解、新增、複製、AI 強度和目前模型、復原） | | `review/useReviewFab.tsx` (what the FAB holds), `review/StrengthPanel.tsx` (AI 強度; models from `modelsByStrength` in `server/ai.ts`) |
 | ↳ 題目卡上的按鈕（拆小題、設為小題/移出小題、編輯、刪除、拖曳） | | `review/CardActions.tsx` |
 | ↳ AI 作答、AI 詳解（全部在懸浮球，單題在題目卡上） | | `review/useSolver.ts` (runs + undoable single-question redo), `review/SolveStatus.tsx` (progress toast), `solveQuestion` in `review/actions.ts`; `needsAnswer`/`needsExplanation` in `packages/core/src/answers.ts`; models: tasks `solving`/`explaining` in `packages/models/src/routing.ts`; AI `packages/grading/src/solver.ts` |
 | 題目卡（看）/ 題目編輯表單 | | `features/questions/QuestionView.tsx` (配合題 as a table: `MatchingTable.tsx`), `QuestionEditor.tsx` → `OptionsEditor.tsx`, `AnswerEditor.tsx`, `editorParts.tsx` |
-| 題目圖片：重新框選、換圖、上傳、刪除 | | `features/questions/FiguresEditor.tsx`, `FigureCropper.tsx` (框選原卷); `recropFigure`/`uploadFigureImage` in `questions/actions.ts`; `packages/figures/src/upload.ts` |
+| 題目圖片：重新框選、換圖、上傳、刪除 | | `features/questions/useFigureTools.tsx` (frame on the left page viewer, replace, upload, delete), `FigureTile.tsx` (picture + its tools), `FiguresEditor.tsx` (the question's own pictures; option pictures sit under each option in `OptionsEditor.tsx`); `recropFigure`/`uploadFigureImage` in `questions/actions.ts`; `packages/figures/src/upload.ts` |
 | 圖片空格清理 | | `features/questions/FigureBlanksEditor.tsx`, `packages/figures` |
 | 圖片選項（選項是圖） | | figure `option` field in `packages/core/src/schema.ts`, `questionFigures`/`optionFigures` in `core/src/figures.ts`; shown by `shared/FigureView.tsx` (`OptionPictures`); assigned in `QuestionEditor.tsx` (這張圖是) |
 | 題庫、考卷卡、篩選 | `app/bank/page.tsx`, `bank/exams/[id]`, `bank/[id]` | `features/bank/*` (`ExamCard`, `BankFilters`, `ExamMetaForm`, `BankQuestionEditor`) |
@@ -83,7 +83,7 @@ Packages never import from apps.
 | 安全標頭 (CSP、HSTS…) | | `apps/web/next.config.ts` |
 | 找不到頁面 (404) | `app/not-found.tsx` | uses `shared/ui` `EmptyState` |
 | 刪除＋5 秒復原 | | `shared/removal.tsx`, `shared/Toast.tsx` |
-| 公式輸入 | | `shared/math/` (`MathTextInput` 文字框裡的公式, `FormulaToolbar` 電腦版公式工具列, `formulaKeys.ts` 各分類按鍵（常用／代數／幾何／微積分／希臘字母／化學）, `mathKeyboard.ts` 手機平板的螢幕數學鍵盤, `mathlive.ts`; 鍵盤配色在 `app/globals.css`) |
+| 公式輸入 | | `shared/math/` (`MathTextInput` 文字框裡的公式, `FormulaToolbar` 電腦版公式工具列, `formulaKeys.ts` 各分類按鍵（常用／代數／幾何／微積分／希臘字母／化學）, `mathKeyboard.ts` 手機平板的螢幕數學鍵盤, `mathlive.ts`, `chips.ts` 公式小塊與存回文字, `delimiters.ts` (`fromPaste` 貼上的 LaTeX 變公式), `CopyFormulas.tsx` 複製題目時剪貼簿拿到 LaTeX; 鍵盤配色在 `app/globals.css`) |
 | 手寫板、稿紙 | | `shared/ink/InkPad.tsx`, `packages/ink` (`paper.ts`) |
 | 動畫 | | `shared/motion/` (`motion.css` holds every keyframe and `m-*` class) |
 | 深色/淺色 | | `shared/theme/`, color tokens in `app/globals.css` |

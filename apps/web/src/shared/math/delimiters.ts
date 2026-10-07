@@ -82,3 +82,12 @@ export function splitMath(text: string): Segment[] {
   if (last < text.length) out.push({ kind: 'text', text: text.slice(last) })
   return out
 }
+
+/**
+ * Pasted text as stored text: formulas written \( … \) or \[ … \] (as chat apps and documents
+ * copy them) get $ delimiters, and bare LaTeX is wrapped like everywhere else.
+ */
+export function fromPaste(text: string): string {
+  const marked = text.replace(/\\\[([\s\S]+?)\\\]/g, (_, f: string) => `$$${f.trim()}$$`).replace(/\\\(([\s\S]+?)\\\)/g, (_, f: string) => `$${f.trim()}$`)
+  return withMathDelimiters(marked)
+}

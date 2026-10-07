@@ -6,6 +6,7 @@ import { Header } from '@/shared/chrome/Header'
 import { Sidebar } from '@/shared/chrome/Sidebar'
 import { MOTION_SCRIPT } from '@/shared/motion/preference'
 import { ServiceWorker } from '@/shared/pwa/ServiceWorker'
+import { CopyFormulas } from '@/shared/math/CopyFormulas'
 import { CATALOGS } from '@/shared/i18n/catalogs'
 import { saveLocale } from '@/features/settings/actions'
 import { I18nProvider } from '@/shared/i18n/client'
@@ -68,6 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </RemovalProvider>
         </I18nProvider>
         <ServiceWorker />
+        <CopyFormulas />
       </body>
     </html>
   )
