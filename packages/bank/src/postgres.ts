@@ -122,19 +122,34 @@ export class PostgresBank implements Bank {
   }
 
   async listExams(query: ExamQuery): Promise<BankExam[]> {
+    // A database not migrated yet has no `position`: the bank still opens, newest first, until it is.
+    try {
+      return await this.listExamsBy(query, true)
+    } catch (err) {
+      if (!isMissingColumn(err)) throw err
+      return this.listExamsBy(query, false)
+    }
+  }
+
+  private async listExamsBy(query: ExamQuery, placed: boolean): Promise<BankExam[]> {
     const sql = this.sql
     const term = query.search?.trim().toLowerCase()
     const rows = await sql`${this.examSelect()} where e.owner_id = ${query.ownerId}
       ${term ? sql`and (coalesce(e.title, '') ilike ${likePattern(term)} or exists (select 1 from questions q where q.exam_id = e.id and q.search_text like ${likePattern(term)}))` : sql``}
       ${query.subject ? sql`and e.subject = ${query.subject}` : sql``}
-      order by e.position nulls first, e.created_at desc`
+      order by ${placed ? sql`e.position nulls first,` : sql``} e.created_at desc`
     return rows.map(toExam)
   }
 
   async reorderExams(ownerId: string, ids: string[]): Promise<void> {
-    await this.sql.begin(async (tx) => {
-      for (const [i, id] of ids.entries()) if (isUuid(id)) await tx`update exams set position = ${i} where id = ${id} and owner_id = ${ownerId}`
-    })
+    try {
+      await this.sql.begin(async (tx) => {
+        for (const [i, id] of ids.entries()) if (isUuid(id)) await tx`update exams set position = ${i} where id = ${id} and owner_id = ${ownerId}`
+      })
+    } catch (err) {
+      // not migrated yet: the order cannot be kept, which is not worth an error page
+      if (!isMissingColumn(err)) throw err
+    }
   }
 
   async getExam(id: string): Promise<BankExam | null> {
@@ -223,6 +238,9 @@ function metaColumns(meta: Partial<ExamMeta>): Record<string, string | null> {
 }
 
 const text = (v: unknown) => (v === null || v === undefined ? null : String(v))
+
+/** Postgres error 42703: a column the query names does not exist (the migration has not run). */
+const isMissingColumn = (err: unknown) => typeof err === 'object' && err !== null && (err as { code?: unknown }).code === '42703'
 
 function toExam(row: Row): BankExam {
   return {
