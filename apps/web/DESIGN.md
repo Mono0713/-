@@ -76,7 +76,7 @@ to an instant change under `prefers-reduced-motion`.
 | Pencil progress | Stripe | import progress | `PencilProgress`: pencil tip on the line's end, blue stroke behind it |
 | Pen checkbox | Things 3, Todoist | quiz setup | `input.m-check`: tick drawn in 320 ms, unticked in 120 ms |
 | Last-minute timer | Duolingo | timed exams, last 60 s | `.m-last-minute`: red pen, beats once a second, colon blinks |
-| Corner curl | iBooks, the logo | exam cards in the bank | `.m-curl` lifts on hover to show `練習`; the corner itself also opens the practice setup (always shown on touch). The rest of the card opens the exam |
+| Corner curl | iBooks, the logo | exam cards in the bank | `.m-curl` lifts on hover to show `開始練習 →`; the corner itself also opens the practice setup (always shown on touch). The rest of the card opens the exam |
 | Product page | Linear, Stripe | `/` for signed-out visitors, `/welcome` | A pile of ten sample exams; each visit opens on one this browser has not seen yet and 換一張 brings another (`.m-leaf-out`, then `.m-leaf-in`). A sheet is printed twice in one place: the copy with the student's pencil on top, wiped away by `.m-wipe` in step with the `.m-scan-once` line, then the clean copy's `.m-box-in` boxes 200 ms apart, the highlighter on the answer and the found note. Every sheet is as tall as the longest (a short one spreads its questions a little), so nothing moves when it changes. Pictures play once they scroll in (`.m-play`), sections fade up 14 px once (`.m-reveal` + `RevealObserver`). Nothing loops |
 | Punch confetti | Stripe, Linear | 100% on quiz results | `Confetti`: one burst of binder-hole dots in the four ink colors |
 

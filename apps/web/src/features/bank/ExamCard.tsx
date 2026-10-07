@@ -2,13 +2,12 @@ import type { BankExam } from '@exam/bank'
 import Link from 'next/link'
 import { getLocale, getT } from '@/shared/i18n/server'
 import { intlTag } from '@/shared/i18n/locales'
-import { IconArrowRight } from '@/shared/icons'
 import { Badge } from '@/shared/ui'
 import { DeleteExamButton } from './DeleteExamButton'
 
 /**
  * One exam in the bank list, drawn as a sheet. Its bottom-right corner rests slightly curled,
- * like the logo, and lifts on hover to show a quiet 練習 link straight into practice; the corner itself is
+ * like the logo, and lifts on hover to show a 開始練習 link straight into practice; the corner itself is
  * that link too. The rest of the card opens the exam.
  */
 export async function ExamCard({ exam }: { exam: BankExam }) {
@@ -28,16 +27,15 @@ export async function ExamCard({ exam }: { exam: BankExam }) {
         {exam.title ?? t('未命名考卷')}
       </Link>
       {details && <p className="mt-1 text-sm text-muted">{details}</p>}
-      {/* one line, centred: the date and the trash share a baseline; the way into practice is quiet until the corner lifts */}
+      {/* one line, centred: the date and the trash share a baseline; the way into practice shows as the corner lifts */}
       <div className="mt-auto flex h-7 items-center justify-between gap-3 pt-0">
         <span className="flex items-center gap-1.5 text-xs leading-none text-muted">
           <span>{t('{date} 加入', { date: new Date(exam.createdAt).toLocaleDateString(intlTag(locale)) })}</span>
           <DeleteExamButton id={exam.id} title={exam.title ?? t('未命名考卷')} />
         </span>
         {exam.questionCount > 0 && (
-          <Link href={`/quiz/new?exam=${exam.id}`} className="m-curl-label relative z-10 mr-10 flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium text-muted outline-none transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-accent">
-            {t('練習')}
-            <IconArrowRight size={13} />
+          <Link href={`/quiz/new?exam=${exam.id}`} className="m-curl-label relative z-10 mr-10 rounded-md px-1.5 py-1 text-[13px] font-bold text-accent outline-none focus-visible:ring-2 focus-visible:ring-accent">
+            {t('開始練習 →')}
           </Link>
         )}
       </div>
