@@ -28,6 +28,7 @@ export {
   Split as IconSplit,
   Eraser as IconEraser,
   FileText as IconFile,
+  Printer as IconPrint,
   GripVertical as IconGrip,
   HardDrive as IconStorage,
   Flag as IconFinish,
