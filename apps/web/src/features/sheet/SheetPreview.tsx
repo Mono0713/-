@@ -4,7 +4,7 @@ import type { DraftExam } from '@exam/core'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useT } from '@/shared/i18n/client'
-import { IconLoader, IconPrint } from '@/shared/icons'
+import { PageBadge, PageControls, usePageControls, ZOOMS } from '@/shared/PageControls'
 import { sheetBlocks, type SheetBlock } from './blocks'
 import { paginate } from './layout'
 import type { SheetCopy } from './SheetQuestion'
@@ -14,16 +14,20 @@ import { usePrint } from './usePrint'
 const GAP = 14
 
 /**
- * The exam as printed A4 pages, following every edit. The blocks are measured at print size on an
- * unseen page and packed onto pages without splitting a question; the pages are drawn scaled to the
- * pane. Clicking a question picks it, and the picked one is outlined and kept in view.
- * 匯出 PDF prints the same pages at full size (the browser's print dialog saves them as PDF).
+ * The exam as printed A4 pages, following every edit, in a viewer like the original pages': each page has its
+ * number in the corner and the zoom and page controls float at the bottom. The blocks are measured at print size
+ * on an unseen page and packed onto pages without splitting a question. Answers show in red, as on a teacher's
+ * copy. Clicking a question picks it, and the picked one is outlined and kept in view.
+ * `printing` prints the same pages at full size, with or without the answers (the floating button's 匯出 PDF):
+ * the browser's print dialog saves them as PDF.
  */
 export function SheetPreview({
   draft,
   selected,
   onSelect,
   onSpace,
+  printing,
+  onPrinted,
   className = '',
 }: {
   draft: DraftExam
@@ -31,29 +35,35 @@ export function SheetPreview({
   onSelect: (index: number) => void
   /** Sets a question's answer room, in lines, dragged on the paper. */
   onSpace?: (index: number, lines: number) => void
+  /** The copy being exported as PDF, until `onPrinted`. */
+  printing: SheetCopy | null
+  onPrinted: () => void
   className?: string
 }) {
   const t = useT()
-  const [copy, setCopy] = useState<SheetCopy>('student')
+  const copy = printing ?? 'teacher'
   const blocks = useMemo(
     () => sheetBlocks(draft, copy, { range: (from, to) => (from === to ? t('第 {n} 題', { n: from }) : t('第 {from}～{to} 題', { from, to })) }, onSpace),
     [draft, copy, t, onSpace],
   )
   const { measurer, pages } = usePagination(blocks)
 
+  const root = useRef<HTMLDivElement>(null)
   const pane = useRef<HTMLDivElement>(null)
-  const [zoom, setZoom] = useState(1)
+  const [fit, setFit] = useState(1)
+  const [step, setStep] = useState(0)
   useLayoutEffect(() => {
     const el = pane.current
     const page = measurer.current
     if (!el || !page) return
     // a hidden pane (the other side on phones) has no width; it is fitted once shown
-    const fit = () => el.clientWidth && page.offsetWidth && setZoom(Math.min(1.25, el.clientWidth / page.offsetWidth))
-    fit()
-    const watch = new ResizeObserver(fit)
+    const measure = () => el.clientWidth && page.offsetWidth && setFit(Math.min(1.25, el.clientWidth / page.offsetWidth))
+    measure()
+    const watch = new ResizeObserver(measure)
     watch.observe(el)
     return () => watch.disconnect()
   }, [measurer])
+  const zoom = fit * ZOOMS[step]!
 
   // keep the picked question in view as it is picked from the list
   useEffect(() => {
@@ -61,7 +71,25 @@ export function SheetPreview({
     pane.current?.querySelector(`[data-question="${selected}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
   }, [selected])
 
-  const { print, printing } = usePrint(draft.meta.title || t('未命名考卷'))
+  // the page a third of the way down the view is the current one (the pane scrolls on wide screens, the window on phones)
+  const [current, setCurrent] = useState(1)
+  const onScroll = () => {
+    const el = root.current
+    if (!el) return
+    const scrolls = el.scrollHeight > el.clientHeight + 1
+    const line = scrolls ? el.getBoundingClientRect().top + el.clientHeight / 3 : innerHeight / 3
+    let page = 1
+    for (const p of el.querySelectorAll<HTMLElement>('[data-page]')) if (p.getBoundingClientRect().top <= line) page = Number(p.dataset.page)
+    setCurrent(page)
+  }
+  useEffect(() => {
+    addEventListener('scroll', onScroll, { passive: true })
+    return () => removeEventListener('scroll', onScroll)
+  })
+  const goTo = (n: number) => root.current?.querySelector(`[data-page="${n}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const controls = usePageControls()
+
+  usePrint(draft.meta.title || t('未命名考卷'), printing !== null, onPrinted)
   const sheets = (interactive: boolean) =>
     pages.map((page, p) => (
       <div key={p} className="a4-page">
@@ -75,44 +103,21 @@ export function SheetPreview({
     ))
 
   return (
-    <div className={`flex flex-col ${className}`}>
-      {/* one slim row, so the paper gets the room */}
-      <div className="sticky top-[var(--bar)] z-10 flex items-center gap-2 bg-paper/90 py-1.5 backdrop-blur-md lg:top-0 lg:pt-0">
-        <div className="flex rounded-md bg-ink/[0.06] p-0.5 text-xs">
-          {(
-            [
-              ['student', t('學生版')],
-              ['teacher', t('教師版')],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              title={value === 'teacher' ? t('附答案') : undefined}
-              onClick={() => setCopy(value)}
-              className={`rounded px-2 py-0.5 transition-colors ${copy === value ? 'bg-surface font-medium shadow-sm' : 'text-muted hover:text-ink'}`}
-            >
-              {label}
-            </button>
+    // a column, so the controls sit at the bottom of the viewer even before the pages fill it
+    <div ref={root} onScroll={onScroll} onPointerMove={controls.near} onPointerDown={controls.near} className={`relative flex flex-col ${className}`}>
+      <div ref={pane} className="min-w-0 flex-1 overflow-x-auto lg:overflow-visible">
+        {/* zoomed in, the pages grow wider than the pane and scroll sideways from their left edge */}
+        <div className="flex w-max min-w-full flex-col items-center gap-3 pb-1">
+          {sheets(true).map((sheet, p) => (
+            <div key={p} data-page={p + 1} className="relative">
+              <div style={{ zoom }}>{sheet}</div>
+              <PageBadge n={p + 1} />
+            </div>
           ))}
         </div>
-        <span className="num text-xs text-muted">{t('共 {n} 頁', { n: pages.length })}</span>
-        <button
-          type="button"
-          onClick={print}
-          disabled={printing}
-          className="m-press ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-accent transition-colors hover:bg-accent-soft disabled:opacity-60"
-        >
-          {printing ? <IconLoader size={14} className="m-spin" /> : <IconPrint size={14} />}
-          {t('匯出 PDF')}
-        </button>
       </div>
 
-      <div ref={pane} className="min-w-0">
-        <div className="flex flex-col items-center gap-3 pb-6" style={{ zoom }}>
-          {sheets(true)}
-        </div>
-      </div>
+      <PageControls state={controls} current={Math.min(current, pages.length)} total={pages.length} onPage={goTo} zoom={step} onZoom={setStep} />
 
       {/* the unseen page the blocks are measured on, at print size */}
       <div aria-hidden className="pointer-events-none fixed left-[-10000px] top-0 invisible">

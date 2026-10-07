@@ -1138,16 +1138,12 @@
   "姓名": "Họ tên",
   "第 {from}～{to} 題": "Câu {from}–{to}",
   "第 {page} 頁，共 {pages} 頁": "Trang {page}/{pages}",
-  "學生版": "Bản học sinh",
-  "共 {n} 頁": "{n} trang",
   "匯出 PDF": "Xuất PDF",
   "（{points} 分）": "({points} điểm)",
   "答：": "Trả lời:",
   "印出班級、座號、姓名和得分欄": "In lớp, số TT, họ tên và ô điểm",
   "作答說明": "Hướng dẫn làm bài",
   "例如：本卷共兩頁，選擇題請將答案填入括號內。": "Ví dụ: Đề gồm hai trang. Ghi đáp án trắc nghiệm vào trong ngoặc.",
-  "附答案": "Kèm đáp án",
-  "教師版": "Bản giáo viên",
   "第 {n} 題還沒有框：在頁面上拖曳畫一個。": "Câu {n} chưa có khung: kéo trên trang để vẽ một khung.",
   "放一個框": "Đặt một khung",
   "收到右邊": "Thu sang phải",
@@ -1201,5 +1197,6 @@
   "有圖時": "Khi có hình",
   "{task}遇到有圖的題目時的模型": "Mô hình {task} cho câu hỏi có hình",
   "上面的模型看得懂圖就用它": "Dùng mô hình ở trên nếu nó đọc được hình",
-  "拖曳調整作答空間": "Kéo để chỉnh khoảng trả lời"
+  "拖曳調整作答空間": "Kéo để chỉnh khoảng trả lời",
+  "匯出 PDF（附答案）": "Xuất PDF (kèm đáp án)"
 }

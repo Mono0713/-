@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
 import { QuestionView } from '@/features/questions/QuestionView'
 import { SheetPreview } from '@/features/sheet/SheetPreview'
+import type { SheetCopy } from '@/features/sheet/SheetQuestion'
 import { SheetSettings } from '@/features/sheet/SheetSettings'
 import type { StrengthModels } from '@/server/ai'
 import { Fab } from '@/shared/chrome/Fab'
@@ -135,7 +136,15 @@ export function ReviewEditor({
   // what the panel last saved, so the floating button's label follows it without a reload
   const [shownStrength, setShownStrength] = useState(strength ?? 'balanced')
   const solver = useSolver(importId, draft, keys.current, patchQuestion)
-  const fabActions = useReviewFab({ d: reviewDraft, solver, strength: strength && shownStrength, model: models?.[shownStrength].solving, onStrength: () => setStrengthOpen(true) })
+  const [printing, setPrinting] = useState<SheetCopy | null>(null)
+  const fabActions = useReviewFab({
+    d: reviewDraft,
+    solver,
+    strength: strength && shownStrength,
+    model: models?.[shownStrength].solving,
+    onStrength: () => setStrengthOpen(true),
+    onExport: paper ? (withAnswers) => setPrinting(withAnswers ? 'teacher' : 'student') : undefined,
+  })
 
   const metaFields = (compact: boolean) => [
     ...(
@@ -217,7 +226,7 @@ export function ReviewEditor({
             className={`lg:sticky lg:top-[calc(var(--bar)+1rem)] lg:block lg:h-[calc(100dvh-var(--bar)-1.5rem)] lg:w-[calc((100%_-_var(--side))_*_var(--split))] lg:shrink-0 lg:self-start ${mobileView === 'page' ? '' : 'hidden'}`}
           >
             {paper ? (
-              <SheetPreview draft={draft} selected={selected} onSelect={(i) => select(i, true)} onSpace={setSpace} className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]" />
+              <SheetPreview draft={draft} selected={selected} onSelect={(i) => select(i, true)} onSpace={setSpace} printing={printing} onPrinted={() => setPrinting(null)} className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]" />
             ) : (
               <PageViewer
                 pages={pages}

@@ -1138,16 +1138,12 @@
   "姓名": "Nom",
   "第 {from}～{to} 題": "Questions {from} à {to}",
   "第 {page} 頁，共 {pages} 頁": "Page {page} sur {pages}",
-  "學生版": "Version élève",
-  "共 {n} 頁": "{n} pages",
   "匯出 PDF": "Exporter en PDF",
   "（{points} 分）": "({points} pts)",
   "答：": "Réponse :",
   "印出班級、座號、姓名和得分欄": "Imprimer classe, numéro, nom et note",
   "作答說明": "Consignes",
   "例如：本卷共兩頁，選擇題請將答案填入括號內。": "Ex. : l’épreuve compte deux pages. Écrivez les réponses aux QCM entre parenthèses.",
-  "附答案": "Avec réponses",
-  "教師版": "Version enseignant",
   "第 {n} 題還沒有框：在頁面上拖曳畫一個。": "La question {n} n’a pas encore de cadre : faites glisser sur une page pour en tracer un.",
   "放一個框": "Placer un cadre",
   "收到右邊": "Ranger sur le côté",
@@ -1201,5 +1197,6 @@
   "有圖時": "Avec images",
   "{task}遇到有圖的題目時的模型": "Modèle de {task} pour les questions avec images",
   "上面的模型看得懂圖就用它": "Utilise le modèle ci-dessus s’il voit les images",
-  "拖曳調整作答空間": "Faites glisser pour ajuster l’espace de réponse"
+  "拖曳調整作答空間": "Faites glisser pour ajuster l’espace de réponse",
+  "匯出 PDF（附答案）": "Exporter en PDF (avec les réponses)"
 }

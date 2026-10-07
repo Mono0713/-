@@ -1138,16 +1138,12 @@
   "姓名": "Name",
   "第 {from}～{to} 題": "Fragen {from}–{to}",
   "第 {page} 頁，共 {pages} 頁": "Seite {page} von {pages}",
-  "學生版": "Schülerfassung",
-  "共 {n} 頁": "{n} Seiten",
   "匯出 PDF": "Als PDF exportieren",
   "（{points} 分）": "({points} P.)",
   "答：": "Antwort:",
   "印出班級、座號、姓名和得分欄": "Klasse, Nummer, Name und Punkte drucken",
   "作答說明": "Hinweise",
   "例如：本卷共兩頁，選擇題請將答案填入括號內。": "z. B.: Die Arbeit hat zwei Seiten. Antworten bei Auswahlfragen in die Klammern schreiben.",
-  "附答案": "Mit Lösungen",
-  "教師版": "Lehrerfassung",
   "第 {n} 題還沒有框：在頁面上拖曳畫一個。": "Frage {n} hat noch keinen Rahmen: Ziehe auf einer Seite, um einen zu zeichnen.",
   "放一個框": "Rahmen setzen",
   "收到右邊": "An den Rand schieben",
@@ -1201,5 +1197,6 @@
   "有圖時": "Mit Bildern",
   "{task}遇到有圖的題目時的模型": "Modell für {task} bei Fragen mit Bildern",
   "上面的模型看得懂圖就用它": "Nutzt das Modell oben, wenn es Bilder erkennt",
-  "拖曳調整作答空間": "Ziehen, um den Antwortbereich anzupassen"
+  "拖曳調整作答空間": "Ziehen, um den Antwortbereich anzupassen",
+  "匯出 PDF（附答案）": "Als PDF exportieren (mit Lösungen)"
 }
