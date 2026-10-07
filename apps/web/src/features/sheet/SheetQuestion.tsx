@@ -13,8 +13,10 @@ export type SheetCopy = 'student' | 'teacher'
 
 const COLUMNS = { 1: 'grid-cols-1', 2: 'grid-cols-2', 4: 'grid-cols-4' } as const
 
-/** Writing room by type, in ruled lines: what a teacher would leave on paper. */
-const LINES: Partial<Record<DraftQuestion['type'], number>> = { short_answer: 3, calculation: 6, essay: 8, composition: 16, other: 2 }
+/** Types answered with working out (算式) rather than sentences: their room is left blank, not ruled. */
+const OPEN_SPACE = new Set<DraftQuestion['type']>(['calculation'])
+/** Writing room by type, in lines: what a teacher would leave on paper. */
+const LINES: Partial<Record<DraftQuestion['type'], number>> = { short_answer: 3, calculation: 8, essay: 8, composition: 16, other: 2 }
 
 /**
  * One question as printed on paper: the answer bracket for choices, the number, the text with its blanks
@@ -73,7 +75,7 @@ export function SheetQuestion({ q, copy }: { q: DraftQuestion; copy: SheetCopy }
 
         {q.type === 'fill_in_blank' && !body.match(/_{3,}/) && <AnswerLine label={t('答：')} answer={teacher ? values.join('、') : null} />}
         {q.type === 'writing' && <WritingGrid characters={values.join('')} />}
-        {lines !== undefined && (teacher && values.length ? <Key>{values.join('\n\n')}</Key> : <Ruled lines={lines} />)}
+        {lines !== undefined && (teacher && values.length ? <Key>{values.join('\n\n')}</Key> : <Ruled lines={lines} blank={OPEN_SPACE.has(q.type)} />)}
         {teacher && q.type === 'drawing' && values.length > 0 && <Key>{values.join('\n\n')}</Key>}
       </div>
       {/* choices take their points from the section heading, as on paper; open questions say their own */}
@@ -96,9 +98,9 @@ function Key({ children }: { children: string }) {
   return <Markdown className="sheet-key">{children}</Markdown>
 }
 
-/** Ruled lines to write on. */
-function Ruled({ lines }: { lines: number }) {
-  return <div aria-hidden className="sheet-ruled" style={{ height: `${lines * 2}em` }} />
+/** Room to write in, `lines` lines high: ruled for sentences, `blank` for working out. */
+function Ruled({ lines, blank = false }: { lines: number; blank?: boolean }) {
+  return <div aria-hidden className={blank ? undefined : 'sheet-ruled'} style={{ height: `${lines * 2}em` }} />
 }
 
 /** 寫字練習: a row of squares per character, the first holding it in pale ink to trace. */
