@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { IconCopy, IconLink, IconSparkles, IconTimer } from '@/shared/icons'
+import { IconCopy, IconLink } from '@/shared/icons'
 import type { T } from '@/shared/i18n/format'
 import { TYPE_LABELS } from '@/shared/labels'
 import { Printed } from '../sheet/Printed'
@@ -18,7 +18,7 @@ export function TypesArt({ t }: { t: T }) {
     {
       type: 'calculation',
       art: (
-        <span className="whitespace-nowrap text-[12px] sm:text-[16px]">
+        <span className="whitespace-nowrap text-[10.5px] min-[380px]:text-[12px] sm:text-[16px]">
           <Printed text="$x=\dfrac{-b\pm\sqrt{b^2-4ac}}{2a}$" />
         </span>
       ),
@@ -146,67 +146,17 @@ export function GradeArt({ t }: { t: T }) {
   )
 }
 
-/** Exam or one-at-a-time, the clock, and asking the AI. */
-export function PracticeModesArt({ t }: { t: T }) {
-  return (
-    <div className="rounded-xl bg-paper p-3 ring-1 ring-line/70" aria-hidden>
-      <div className="flex items-center justify-between gap-2">
-        <span className="inline-flex rounded-lg bg-surface p-0.5 text-[11px] ring-1 ring-line">
-          <span className="rounded-md bg-accent px-2 py-0.5 font-medium text-on-accent">{t('考試')}</span>
-          <span className="px-2 py-0.5 text-muted">{t('單題練習')}</span>
-        </span>
-        <span className="num flex items-center gap-1 text-xs text-muted">
-          <IconTimer size={12} />
-          24:58
-        </span>
-      </div>
-      <div className="mt-3 flex gap-1">
-        {Array.from({ length: 10 }, (_, k) => (
-          <span key={k} className={`h-1.5 flex-1 rounded-full ${k < 6 ? 'bg-ink/45' : 'bg-line'}`} />
-        ))}
-      </div>
-      <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 text-[11px] font-medium shadow-sheet">
-        <IconSparkles size={12} className="text-muted" />
-        {t('問 AI')}
-      </span>
-    </div>
-  )
-}
-
-/** A question in another language, and its translation. */
-export function TranslateArt({ t, locale }: { t: T; locale: string }) {
-  // Shown in English, or in Chinese to readers of English.
-  const original = locale === 'en' ? '下列何者是質數？' /* i18n-ignore */ : 'Which of the following is a prime number?'
-  return (
-    <div className="rounded-xl bg-paper p-3 ring-1 ring-line/70" aria-hidden>
-      <span className="inline-flex rounded-lg bg-surface p-0.5 text-[11px] ring-1 ring-line">
-        <span className="px-2 py-0.5 text-muted">{t('原文')}</span>
-        <span className="rounded-md bg-accent px-2 py-0.5 font-medium text-on-accent">{t('翻譯')}</span>
-      </span>
-      <p className="mt-2.5 text-xs text-muted">{original}</p>
-      <p className="mt-1 text-sm font-medium">{t('下列何者是質數？')}</p>
-      <div className="mt-2 flex gap-1.5 text-[11px]">
-        {['21', '27', '29', '33'].map((n, k) => (
-          <span key={n} className={`rounded-md border px-2 py-0.5 ${k === 2 ? 'border-good/60 bg-good-soft' : 'border-line bg-surface'}`}>
-            {n}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/** A share link, and a class handing in an assignment. */
+/** A share link, and a class handing in an assignment. Its chart grows to fill the card. */
 export function ClassArt({ t }: { t: T }) {
   const bars = [2, 4, 7, 9, 6, 3]
   return (
-    <div className="space-y-2" aria-hidden>
+    <div className="flex flex-1 flex-col gap-2" aria-hidden>
       <div className="flex items-center gap-2 rounded-lg bg-paper px-2.5 py-1.5 text-xs ring-1 ring-line/70">
         <IconLink size={13} className="shrink-0 text-muted" />
         <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted">/s/7fK2qX</span>
         <IconCopy size={13} className="shrink-0 text-muted" />
       </div>
-      <div className="rounded-lg bg-paper p-2.5 ring-1 ring-line/70">
+      <div className="flex flex-1 flex-col rounded-lg bg-paper p-2.5 ring-1 ring-line/70">
         <div className="flex items-center justify-between gap-2">
           <div className="flex -space-x-1.5">
             {['A', 'B', 'C', 'D', 'E'].map((l, k) => (
@@ -217,7 +167,7 @@ export function ClassArt({ t }: { t: T }) {
           </div>
           <span className="text-[11px] text-muted">{t('已交卷 {done} / {total}', { done: 18, total: 24 })}</span>
         </div>
-        <div className="mt-2.5 flex h-8 items-end gap-1">
+        <div className="mt-2.5 flex min-h-8 flex-1 items-end gap-1">
           {bars.map((h, k) => (
             <span key={k} className="m-play m-grow flex-1 rounded-sm bg-ink/25" style={{ height: `${h * 10}%`, '--i': k } as CSSProperties} />
           ))}

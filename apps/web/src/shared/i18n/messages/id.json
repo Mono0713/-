@@ -959,7 +959,6 @@
   "功能": "Fitur",
   "練習、考試、批改和分享，都在同一個地方。": "Latihan, ujian, penilaian, dan berbagi, semua di satu tempat.",
   "還有": "Juga",
-  "看不懂題目？一鍵翻譯": "Tidak paham soalnya? Terjemahkan",
   "題目和選項一起翻成你的語言。預設用免費翻譯，不需要金鑰。": "Soal dan pilihannya diterjemahkan ke bahasamu. Bawaan memakai terjemahan gratis, tanpa kunci.",
   "還沒有金鑰？手動模式可以把考卷交給 ChatGPT、Claude 或 Gemini 的聊天 App 辨識。": "Belum punya kunci? Dengan mode manual, aplikasi chat ChatGPT, Claude, atau Gemini bisa membaca ujianmu.",
   "拍照、掃描或上傳 PDF，AI 會把每一題框出來，認出題型和答案，寫過的筆跡也不會留在題目上。校對一下存進題庫，就能隨時練習、限時考試，讓 AI 幫你批改。": "Foto, pindai, atau unggah PDF. AI memberi kotak pada setiap soal, mengenali jenis dan jawabannya, dan tulisan tangan lama tidak ikut terbawa. Periksa sebentar, simpan ke bank soal, lalu latihan kapan saja, ujian berwaktu, dan biarkan AI menilai.",
@@ -967,8 +966,6 @@
   "{n} 種介面語言": "{n} bahasa antarmuka",
   "怎麼運作": "Cara kerja",
   "不用重新打字，也不用一題一題剪下來。": "Tanpa mengetik ulang atau menggunting soal satu per satu.",
-  "原文": "Asli",
-  "下列何者是質數？": "Manakah yang merupakan bilangan prima?",
   "已交卷 {done} / {total}": "Terkumpul {done} / {total}",
   "數學段考.pdf": "ulangan-matematika.pdf",
   "英文講義.jpg": "modul-inggris.jpg",
@@ -1200,5 +1197,10 @@
   "已刪除原檔，頁面圖仍保留": "File asli dihapus; gambar halaman tetap ada",
   "開始練習 →": "Mulai latihan →",
   "刪原檔 {size}": "Hapus asli {size}",
-  "顯示全部 {n} 筆": "Tampilkan semua {n}"
+  "顯示全部 {n} 筆": "Tampilkan semua {n}",
+  "試一題": "Coba satu soal",
+  "選一個答案試試看": "Pilih satu jawaban untuk mencoba.",
+  "十八世紀的英國先用蒸汽機帶動紡織工廠，工業革命從這裡開始。": "Pada abad ke-18, Inggris pertama kali memakai mesin uap untuk menggerakkan pabrik tekstil, dan Revolusi Industri dimulai di sana.",
+  "位移有大小也有方向；質量、時間和溫度只有大小。": "Perpindahan punya besar dan arah; massa, waktu, dan suhu hanya punya besar.",
+  "原核生物沒有核膜和粒線體，但有 70S 核糖體。": "Prokariota tidak punya membran inti dan mitokondria, tetapi punya ribosom 70S."
 }

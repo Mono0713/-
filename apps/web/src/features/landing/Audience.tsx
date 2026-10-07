@@ -21,7 +21,7 @@ export async function Audience() {
       <Heading n={2} kicker={t('適合誰')} title={t('從國小生字到大學原文書')} lead={t('只要是印在紙上的題目，都能變成自己的題庫。')} />
       <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {groups.map(({ Icon, title, text, papers }, i) => (
-          <li key={i} className="m-reveal flex flex-col rounded-2xl bg-surface p-4 shadow-sheet" style={{ '--i': i % 3 } as CSSProperties}>
+          <li key={i} className="m-reveal m-fan-host flex flex-col rounded-2xl bg-surface p-4 shadow-sheet" style={{ '--i': i % 3 } as CSSProperties}>
             <PaperStack papers={papers} />
             <h3 className="mt-5 flex items-center gap-2 px-1 text-lg font-bold">
               <Icon size={18} className="shrink-0 text-muted" aria-hidden />
@@ -38,16 +38,20 @@ export async function Audience() {
 /** Each paper turns a little the other way from the one under it, so every title stays readable. */
 const TILT = [2, 0.5, -1.5]
 
-/** Three of the group's papers dropped on the desk in a cascade, each title showing; the front one already has a question boxed. */
+/**
+ * Three of the group's papers dropped on the desk in a cascade, each title showing; the front one already
+ * has a question boxed. They slide out of one pile as the card comes into view and fan out a little
+ * more while it is pointed at (.m-fan, motion.css).
+ */
 function PaperStack({ papers }: { papers: string[] }) {
   return (
     <Frame className="h-[128px]">
-      <div className="absolute left-1/2 top-1/2 h-[112px] w-[224px] -translate-x-1/2 -translate-y-1/2">
+      <div className="m-fan absolute left-1/2 top-1/2 h-[112px] w-[224px] -translate-x-1/2 -translate-y-1/2">
         {papers.map((name, k) => (
           <div
             key={k}
-            className="absolute h-[76px] w-[168px] rounded-[5px] bg-surface px-2.5 pt-1 shadow-sheet ring-1 ring-line/60"
-            style={{ left: k * 28, top: k * 18, rotate: `${TILT[k]}deg` }}
+            className="m-play absolute h-[76px] w-[168px] rounded-[5px] bg-surface px-2.5 pt-1 shadow-sheet ring-1 ring-line/60"
+            style={{ left: k * 28, top: k * 18, '--k': k, '--tilt': `${TILT[k]}deg` } as CSSProperties}
           >
             <p className="truncate text-[10.5px] font-semibold leading-4">{name}</p>
             <span className="mt-1.5 block h-1 w-4/5 rounded-full bg-ink/10" />

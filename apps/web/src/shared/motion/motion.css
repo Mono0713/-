@@ -239,6 +239,18 @@
 @media (scripting: enabled) {
   .m-reveal:not([data-in]) :is(.m-play, .m-play *) { animation-play-state: paused; }
 }
+/* the papers on a who-it-is-for card (features/landing/Audience.tsx), each with its place in the
+   cascade (--k, 0 at the back) and its tilt: they slide out of one pile as the card comes into view
+   (.m-play) and fan out a little more while the card is pointed at */
+@keyframes m-fan-in { from { translate: calc(var(--k, 0) * -28px) calc(var(--k, 0) * -18px); rotate: 0deg; } }
+.m-fan > * {
+  rotate: var(--tilt, 0deg);
+  transition: translate var(--m-slow) var(--m-spring), rotate var(--m-slow) var(--m-spring);
+  animation: m-fan-in 650ms var(--m-ease-out) calc(var(--i, 0) * 70ms + var(--k, 0) * 90ms + 200ms) backwards;
+}
+@media (hover: hover) {
+  .m-fan-host:hover .m-fan > * { translate: calc((var(--k, 0) - 1) * 9px) calc((var(--k, 0) - 1) * 3px); rotate: calc(var(--tilt, 0deg) * 1.6); }
+}
 .m-nudge-right { transition: transform var(--m-base) var(--m-spring); }
 @media (hover: hover) {
   :hover > .m-nudge-right { transform: translateX(3px); }
