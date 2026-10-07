@@ -12,6 +12,7 @@ import { fileUrl } from '@/shared/files'
 import { InkPad } from '@/shared/ink/InkPad'
 import { TYPE_LABELS } from '@/shared/labels'
 import { blankCount, Markdown } from '@/shared/Markdown'
+import { withoutRule } from '@/shared/markingRule'
 import { IconKeyboard, IconLanguages, IconLoader, IconPen, IconScratch } from '@/shared/icons'
 import { PenTick } from '@/shared/motion/PenMarks'
 import { Segmented } from '@/shared/Segmented'
@@ -218,7 +219,7 @@ export function QuizQuestion({
 
       {answerOnly ? null : stemShown ? (
         <div className={focus ? 'flex items-start gap-2' : undefined}>
-          <Markdown className={focus ? 'min-w-0 flex-1' : undefined} renderBlank={stemBlank}>{q.stem}</Markdown>
+          <Markdown className={focus ? 'min-w-0 flex-1' : undefined} renderBlank={stemBlank}>{withoutRule(q.stem, q.markingRule)}</Markdown>
           {focus && (
             <button type="button" onClick={() => setStemFolded(true)} className="m-press shrink-0 rounded-md px-2 py-1 text-xs text-muted hover:bg-ink/[0.06] hover:text-ink">
               {t('收合題目')}

@@ -9,6 +9,7 @@ import { Markdown } from '@/shared/Markdown'
 import { MathTextInput } from '@/shared/math/MathTextInput'
 import { Badge } from '@/shared/ui'
 import { splitNumber } from './parts'
+import { sharedRule, withoutRule } from '@/shared/markingRule'
 
 /**
  * A passage, figure or instruction shared by the questions after it, which hang under it. When they are
@@ -33,6 +34,8 @@ export function GroupCard({
   const [editing, setEditing] = useState(false)
   const numbers = parts.map((p) => splitNumber(p.number))
   const main = numbers.length && numbers.every((n) => n.part !== null && n.main === numbers[0]!.main) ? numbers[0]!.main : null
+  // a rule all its sub-questions share shows once here, not on each of them
+  const rule = sharedRule(parts)
   const points = parts.every((p) => p.points !== null) ? parts.reduce((sum, p) => sum + p.points!, 0) : null
   return (
     <div data-group={group.id} onClick={() => !editing && onSelect()} className="relative mb-3 scroll-mt-40 rounded-2xl bg-surface/70 p-4 ring-1 ring-ink/[0.07]">
@@ -57,7 +60,13 @@ export function GroupCard({
           </button>
         </span>
       </div>
-      {editing ? <MathTextInput value={group.stem} onChange={onChange} /> : group.stem.trim() ? <Markdown>{group.stem}</Markdown> : <p className="text-sm text-muted">{t('（沒有共用內容）')}</p>}
+      {editing ? <MathTextInput value={group.stem} onChange={onChange} /> : group.stem.trim() ? <Markdown>{withoutRule(group.stem, rule)}</Markdown> : <p className="text-sm text-muted">{t('（沒有共用內容）')}</p>}
+      {rule && !editing && (
+        <p className="mt-2 text-xs text-muted">
+          {t('評分規則：')}
+          <span className="rounded bg-warn-soft px-1 text-ink/80">{rule}</span>
+        </p>
+      )}
       {group.figures.map((f, i) => (
         <FigureView key={i} figure={f} />
       ))}

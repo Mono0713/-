@@ -9,6 +9,7 @@ import { ConfirmNote } from './ConfirmNote'
 import { MatchingTable, matchingParts } from './MatchingTable'
 import { CONFIDENCE_LABELS, TYPE_LABELS } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
+import { sameRule, withoutRule } from '@/shared/markingRule'
 import { splitNumber } from '@/shared/questionNumber'
 import { Badge } from '@/shared/ui'
 
@@ -18,16 +19,33 @@ const SOURCE_LABELS = { printed: msg('印刷'), handwritten: msg('手寫'), ai: 
  * Read-only rendering of a question, used in review and in the bank. `actions` sit at the end of its header line.
  * With `onConfirm` (review), what needs checking shows as one note with a button that clears it.
  */
-/** The marking rule, unless the section heading above the card already says it (e.g. 「多選題（答錯一個選項扣 2 分）」). */
-function ownRule(q: DraftQuestion): string | null {
+/**
+ * The marking rule, unless the section heading above the card already says it (e.g. 「多選題（答錯一個選項扣 2 分）」)
+ * or the group card above shows it for all its sub-questions (`above`).
+ */
+function ownRule(q: DraftQuestion, above?: string | null): string | null {
   const rule = q.markingRule?.trim()
-  if (!rule) return null
+  if (!rule || sameRule(rule, above)) return null
   const squash = (s: string) => s.replace(/\s+/g, '')
   return q.section && squash(q.section).includes(squash(rule)) ? null : rule
 }
 
-export function QuestionView({ q, compact = false, actions, onConfirm }: { q: DraftQuestion; compact?: boolean; actions?: React.ReactNode; onConfirm?: () => void }) {
+export function QuestionView({
+  q,
+  compact = false,
+  actions,
+  onConfirm,
+  ruleAbove,
+}: {
+  q: DraftQuestion
+  compact?: boolean
+  actions?: React.ReactNode
+  onConfirm?: () => void
+  /** The marking rule already shown above the card, for the whole group. */
+  ruleAbove?: string | null
+}) {
   const t = useT()
+  const rule = ownRule(q, ruleAbove)
   const blanks = questionFigures(q).flatMap((f) => f.image?.blanks ?? [])
   const answerByBlank = blanks.length > 0 && blanks.length === q.answer.values.length
   const isChoice = q.type === 'single_choice' || q.type === 'multiple_choice'
@@ -38,12 +56,12 @@ export function QuestionView({ q, compact = false, actions, onConfirm }: { q: Dr
     <div className="space-y-3">
       <QuestionHeading q={q} showConfidence={!onConfirm} actions={actions} />
 
-      {table ? <MatchingTable q={q} /> : <Markdown>{q.stem}</Markdown>}
+      {table ? <MatchingTable q={q} /> : <Markdown>{withoutRule(q.stem, q.markingRule)}</Markdown>}
       {q.translation && <Markdown className="border-l-2 border-line pl-3 text-sm text-muted">{q.translation}</Markdown>}
-      {ownRule(q) && (
+      {rule && (
         <p className="text-xs text-muted">
           {t('評分規則：')}
-          <span className="rounded bg-warn-soft px-1 text-ink/80">{ownRule(q)}</span>
+          <span className="rounded bg-warn-soft px-1 text-ink/80">{rule}</span>
         </p>
       )}
 

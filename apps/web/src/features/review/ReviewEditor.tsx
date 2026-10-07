@@ -15,6 +15,7 @@ import { IconCheck, IconChevronDown, IconPlus, IconTrash } from '@/shared/icons'
 import { msg } from '@/shared/i18n/format'
 import { useT } from '@/shared/i18n/client'
 import { Toast } from '@/shared/Toast'
+import { sharedRule } from '@/shared/markingRule'
 import { markSymbols } from '@/shared/markSymbols'
 import { Button, inputClass } from '@/shared/ui'
 import { CardActions, GripButton } from './CardActions'
@@ -326,6 +327,7 @@ export function ReviewEditor({
                             ) : (
                               <QuestionView
                                 q={q}
+                                ruleAbove={inGroup ? sharedRule(draft.questions.filter((x) => x.groupId === q.groupId)) : null}
                                 onConfirm={() => confirmQuestion(index)}
                                 actions={<CardActions d={reviewDraft} q={q} index={index} busy={solver.busy.get(key)} handle={handle} />}
                               />

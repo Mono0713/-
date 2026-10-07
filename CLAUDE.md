@@ -53,7 +53,7 @@ Packages never import from apps.
 | 作答頁（考試/單題練習、計時） | `app/quiz/[id]` | `features/quiz/QuizPlayer.tsx` |
 | 一題的作答區（選項、填空、手寫、書寫模式） | | `features/quiz/QuizQuestion.tsx`, `PracticeSheet.tsx` (寫字練習 田字格), `MatchingPicker.tsx` (配合題 點選), `Passage.tsx` (閱讀題組 文章) |
 | 選項代號填空（點空格選 (A)～(L)、圖上和表格裡） | | `features/quiz/BlankPick.tsx` (空格選單), `packages/core/src/matching.ts` (`isPickAnswer`), `shared/Markdown.tsx` (`renderBlank`/`blankCount`：句子和表格裡的 ___ 原位作答) |
-| 字數上限、評分規則（錯字扣分等） | | `maxLength`/`markingRule` in `packages/core/src/schema.ts`；顯示 `QuizQuestion.tsx`、`questions/QuestionView.tsx`，編輯 `questions/QuestionEditor.tsx`，送給 AI `packages/grading/src/teacher.ts` |
+| 字數上限、評分規則（錯字扣分等） | | `maxLength`/`markingRule` in `packages/core/src/schema.ts`；`shared/markingRule.ts`（題組共用的規則只在題組卡顯示一次、題目文字裡重複的規則不顯示）；顯示 `QuizQuestion.tsx`、`questions/QuestionView.tsx`，編輯 `questions/QuestionEditor.tsx`，送給 AI `packages/grading/src/teacher.ts` |
 | 作圖題（在圖上畫答案） | | `QuizQuestion.tsx` (drawOn), `shared/ink/InkPad.tsx` (`backdrop` 底圖), `packages/grading/src/handwriting.ts` (`drawingToPng`, readDrawing) |
 | 讀圖題容許誤差（98 ± 2、96 ~ 100） | | `packages/quiz/src/equivalence.ts` (`withinTolerance`) |
 | 看答案 | | `features/quiz/Reveal.tsx`, `visible.ts` (what may show before reveal) |
