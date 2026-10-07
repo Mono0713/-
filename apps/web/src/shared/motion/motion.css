@@ -220,14 +220,7 @@
   border-bottom: 2px solid var(--color-accent);
   animation: m-scan-down 1.7s cubic-bezier(0.45, 0, 0.3, 1) var(--m-scan-at, 0ms) backwards;
 }
-.m-wipe { clip-path: inset(0 calc(100% - var(--m-cut)) 0 0); animation: m-wipe 1.7s cubic-bezier(0.45, 0, 0.3, 1) var(--m-scan-at, 0ms) backwards; }
-/* Once read, the sheet can be compared (sheet/Compare.tsx): --m-cut is how far from the left the
-   pencil copy shows again (0% = none, the wiped look), and the line and its handle sit there. It is
-   registered so the handle can peek once on its own, a little after the note. */
-@property --m-cut { syntax: '<percentage>'; inherits: true; initial-value: 0%; }
-@keyframes m-peek { 0%, 100% { --m-cut: 0%; } 40%, 60% { --m-cut: 16%; } }
-.m-peek { animation: m-peek 1.6s var(--m-ease-in-out) calc(var(--m-note-at, 0ms) + 1.3s) backwards; }
-.m-grip-in { animation: m-scale-in var(--m-base) var(--m-spring) calc(var(--m-note-at, 0ms) + 500ms) backwards; }
+.m-wipe { clip-path: inset(100% 0 0 0); animation: m-wipe 1.7s cubic-bezier(0.45, 0, 0.3, 1) var(--m-scan-at, 0ms) backwards; }
 @keyframes m-box-in { from { opacity: 0; transform: scale(1.04); } }
 .m-box-in { animation: m-box-in 420ms var(--m-spring) calc(var(--i, 0) * 200ms + var(--m-box-at, 0ms)) backwards; }
 .m-note-in { animation: m-fade-up var(--m-slow) var(--m-ease-out) var(--m-note-at, 0ms) backwards; }
