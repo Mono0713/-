@@ -70,7 +70,7 @@ export function TryQuestion({ items }: { items: TryItem[] }) {
           const shown = i === at.q
           const look = shown ? (at.turn ? 'm-leaf-in' : '') : i === at.leaving ? 'm-leaf-out' : 'invisible'
           return (
-            <div key={shown ? `${i}.${at.turn}` : i} className={`flex flex-col [grid-area:1/1] ${look}`} aria-hidden={!shown}>
+            <div key={shown ? `${i}.${at.turn}` : i} className={`flex flex-col [grid-area:1/1] ${look}`} aria-hidden={!shown} inert={!shown}>
               <Asked item={item} picked={shown ? picked : null} translated={translated} onPick={pick} />
             </div>
           )
