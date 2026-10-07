@@ -388,6 +388,7 @@ body {
 }
 /* on screen: a question can be picked; the picked one is outlined in ballpoint blue */
 .a4-block {
+  position: relative;
   border-radius: 4px;
   outline: 2px solid transparent;
   outline-offset: 3px;
@@ -498,12 +499,13 @@ body {
     break-after: auto;
   }
 }
-/* the bottom edge of a question's answer room on the preview: drag to make it taller or shorter */
+/* the bottom edge of a question's own box on the preview: drag it to make the answer room taller or shorter.
+   It sits on the box's outline (3px below the question) and shows only with that outline. */
 .sheet-grip {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -0.45em;
+  left: -3px;
+  right: -3px;
+  bottom: calc(-3px - 0.45em);
   z-index: 1;
   cursor: ns-resize;
   touch-action: none;
@@ -524,15 +526,11 @@ body {
 .a4-block:hover .sheet-grip::after,
 .a4-block[data-selected] .sheet-grip::after,
 .sheet-room-active .sheet-grip::after {
-  opacity: 0.85;
-}
-.a4-block:hover .sheet-grip:hover::after {
   opacity: 1;
 }
-/* while dragged, the room shows its extent */
-.sheet-room-active > div:first-child {
-  outline: 1px dashed color-mix(in srgb, var(--color-accent) 60%, transparent);
-  outline-offset: 2px;
+/* while dragged, the question's own box stays outlined */
+.a4-block:has(.sheet-room-active) {
+  outline-color: var(--color-accent);
 }
 @media print {
   .sheet-grip {
