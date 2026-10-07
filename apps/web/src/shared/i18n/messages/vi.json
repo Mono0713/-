@@ -1200,5 +1200,6 @@
   "題目有圖時改用這個模型；只列看得懂圖的模型。": "Dùng cho câu hỏi có hình; chỉ liệt kê mô hình đọc được hình.",
   "有圖時": "Khi có hình",
   "{task}遇到有圖的題目時的模型": "Mô hình {task} cho câu hỏi có hình",
-  "上面的模型看得懂圖就用它": "Dùng mô hình ở trên nếu nó đọc được hình"
+  "上面的模型看得懂圖就用它": "Dùng mô hình ở trên nếu nó đọc được hình",
+  "拖曳調整作答空間": "Kéo để chỉnh khoảng trả lời"
 }

@@ -1200,5 +1200,6 @@
   "題目有圖時改用這個模型；只列看得懂圖的模型。": "Used instead for questions with pictures; only models that see images are listed.",
   "有圖時": "With pictures",
   "{task}遇到有圖的題目時的模型": "Model for {task} on questions with pictures",
-  "上面的模型看得懂圖就用它": "Uses the model above if it sees images"
+  "上面的模型看得懂圖就用它": "Uses the model above if it sees images",
+  "拖曳調整作答空間": "Drag to resize the answer space"
 }

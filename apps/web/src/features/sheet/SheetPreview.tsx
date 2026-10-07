@@ -19,12 +19,25 @@ const GAP = 14
  * pane. Clicking a question picks it, and the picked one is outlined and kept in view.
  * 匯出 PDF prints the same pages at full size (the browser's print dialog saves them as PDF).
  */
-export function SheetPreview({ draft, selected, onSelect, className = '' }: { draft: DraftExam; selected: number | null; onSelect: (index: number) => void; className?: string }) {
+export function SheetPreview({
+  draft,
+  selected,
+  onSelect,
+  onSpace,
+  className = '',
+}: {
+  draft: DraftExam
+  selected: number | null
+  onSelect: (index: number) => void
+  /** Sets a question's answer room, in lines, dragged on the paper. */
+  onSpace?: (index: number, lines: number) => void
+  className?: string
+}) {
   const t = useT()
   const [copy, setCopy] = useState<SheetCopy>('student')
   const blocks = useMemo(
-    () => sheetBlocks(draft, copy, { range: (from, to) => (from === to ? t('第 {n} 題', { n: from }) : t('第 {from}～{to} 題', { from, to })) }),
-    [draft, copy, t],
+    () => sheetBlocks(draft, copy, { range: (from, to) => (from === to ? t('第 {n} 題', { n: from }) : t('第 {from}～{to} 題', { from, to })) }, onSpace),
+    [draft, copy, t, onSpace],
   )
   const { measurer, pages } = usePagination(blocks)
 

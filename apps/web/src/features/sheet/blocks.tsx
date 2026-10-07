@@ -17,7 +17,13 @@ export interface SheetBlock {
 }
 
 /** The printed paper as blocks that never split across pages: header, section headings, shared passages, questions. */
-export function sheetBlocks(draft: DraftExam, copy: SheetCopy, labels: { range: (from: string, to: string) => string }): SheetBlock[] {
+export function sheetBlocks(
+  draft: DraftExam,
+  copy: SheetCopy,
+  labels: { range: (from: string, to: string) => string },
+  /** Given, each question's answer room can be dragged taller or shorter. */
+  onSpace?: (index: number, lines: number) => void,
+): SheetBlock[] {
   const blocks: SheetBlock[] = [{ key: 'header', node: <SheetHeader meta={draft.meta} sheet={sheetOf(draft)} /> }]
   draft.questions.forEach((q, index) => {
     const before = draft.questions[index - 1]
@@ -53,7 +59,7 @@ export function sheetBlocks(draft: DraftExam, copy: SheetCopy, labels: { range: 
       question: index,
       node: (
         <div className={inGroup && splitNumber(q.number).part ? 'pl-5' : ''}>
-          <SheetQuestion q={q} copy={copy} />
+          <SheetQuestion q={q} copy={copy} onSpace={onSpace && ((lines) => onSpace(index, lines))} />
         </div>
       ),
     })
