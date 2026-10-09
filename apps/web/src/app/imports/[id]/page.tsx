@@ -1,4 +1,4 @@
-import { BLANK, ORIGINAL_DAYS, WRITTEN } from '@exam/importer'
+import { BLANK, ORIGINAL_DAYS, WRITTEN, type AfterReading } from '@exam/importer'
 import { notFound } from 'next/navigation'
 import { AutoRefresh } from '@/features/imports/AutoRefresh'
 import { DeleteImportButton } from '@/features/imports/DeleteImportButton'
@@ -81,8 +81,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         <Card className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center">
           {reading > 0 && <Scan image={importer.pageImage(imp, reading)} pageNumber={reading} />}
           <div className="min-w-0 flex-1 space-y-3">
-            {/* after the last page the draft is put together and its figures cut out and stored */}
-            <p className="font-medium">{total && done >= total ? t('頁面都讀完了，正在整理題目、存圖片…') : t('模型正在讀取頁面…')}</p>
+            <p className="font-medium">{runStep(importer.step(id), Boolean(total && done >= total), t)}</p>
             <PencilProgress value={total ? done / total : 0} label={t('已完成 {done} / {total} 頁', { done, total })} />
             <p className="text-sm text-muted">{t('遇到免費額度限制時會自動等待後重試，可以先離開這個頁面。')}</p>
           </div>
@@ -161,4 +160,12 @@ function readBy(imp: { provider: string; model: string | null }, results: { mode
   if (imp.provider === 'manual') return t('手動模式')
   const models = [...new Set(results.filter((r) => r.page).map((r) => r.model))]
   return models.length ? models.join('、') : `${imp.provider}${imp.model ? ` / ${imp.model}` : ''}`
+}
+
+/** What the run is doing now: reading pages, or one of the steps after every page was read. */
+function runStep(step: AfterReading | null, allRead: boolean, t: T): string {
+  if (step?.step === 'rereading') return t('有幾頁請另一個模型再讀一次…')
+  if (step?.step === 'figures' && step.total > 0) return t('正在存圖片 {done} / {total}…', { done: step.done, total: step.total })
+  if (step?.step === 'saving') return t('快好了，正在存檔…')
+  return step || allRead ? t('頁面都讀完了，正在整理題目…') : t('模型正在讀取頁面…')
 }

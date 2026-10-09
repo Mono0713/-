@@ -104,6 +104,8 @@ export async function cropExamFigures(
   exam: DraftExam,
   pages: PageImage[],
   save: (name: string, png: Buffer) => Promise<string>,
+  /** Told after each figure, cropped or not, e.g. to show how far saving the figures got. */
+  onFigure?: (done: number, total: number) => void,
 ): Promise<{ name: string; error: string }[]> {
   const named: [string, DraftFigure][] = [
     ...exam.groups.flatMap((g) => g.figures.map((f, k): [string, DraftFigure] => [`group-${g.id.replace(/\W+/g, '-')}-${k + 1}`, f])),
@@ -112,6 +114,8 @@ export async function cropExamFigures(
   const failures: { name: string; error: string }[] = []
   // A few at a time: saving each one is a round trip or three to the file store, which adds up when it is remote.
   let next = 0
+  let done = 0
+  onFigure?.(0, named.length)
   const worker = async () => {
     while (next < named.length) {
       const [name, figure] = named[next++]!
@@ -123,6 +127,7 @@ export async function cropExamFigures(
       } catch (err) {
         failures.push({ name, error: err instanceof Error ? err.message : String(err) })
       }
+      onFigure?.(++done, named.length)
     }
   }
   await Promise.all(Array.from({ length: Math.min(FIGURE_CONCURRENCY, named.length) }, worker))
