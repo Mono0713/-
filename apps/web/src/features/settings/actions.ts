@@ -3,7 +3,7 @@
 import { randomBytes } from 'node:crypto'
 import { listModels } from '@exam/extraction'
 import { PICTURE_TASKS, type Strength, type Task, type Tier } from '@exam/models'
-import type { CustomProvider, Settings } from '@exam/settings'
+import { keysOf, type CustomProvider, type Settings } from '@exam/settings'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { authEnabled, currentOwner, currentUser, services } from '@/server/context'
@@ -53,13 +53,17 @@ const noModelsHint = (t: Awaited<ReturnType<typeof getT>>) =>
   t('這個網址沒有列出任何模型，可能不是 API 網址。API 網址通常以 /v1 結尾，可以在該服務的「接入教程」或 API 文件裡找到 Base URL，移除後用正確網址重新接上。')
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
 
-/** Checks the key against the provider, then keeps it (and the models it can use) on this computer. */
+/**
+ * Checks the key against the provider, then keeps it (and the models it can use) beside the keys
+ * already saved for it: calls move on to the next key when one runs out (see `withKeys`).
+ */
 export async function saveApiKey(provider: string, key: string): Promise<Result> {
   const t = await getT()
   key = key.trim()
   const s = await mine()
   const custom = s.customProviders.find((c) => c.id === provider)
   if ((!API_PROVIDERS.includes(provider) && !custom) || !key) return { ok: false, error: t('請貼上 API 金鑰。') }
+  if (keysOf(s.apiKeys, provider).includes(key)) return { ok: false, error: t('這把金鑰已經加過了。') }
   let known: string[] | null = null
   let baseUrl = custom?.baseUrl
   let note: string | undefined
@@ -71,14 +75,17 @@ export async function saveApiKey(provider: string, key: string): Promise<Result>
     note = t('已儲存，但暫時連不上服務，無法確認金鑰。（{reason}）', { reason: message(err) })
   }
   const customProviders = custom && baseUrl !== custom.baseUrl ? s.customProviders.map((c) => (c.id === custom.id ? { ...c, baseUrl: baseUrl! } : c)) : undefined
-  await save({ apiKeys: { ...s.apiKeys, [provider]: key }, ...(known ? { knownModels: { ...s.knownModels, [provider]: known } } : {}), ...(customProviders ? { customProviders } : {}) })
+  const slot = s.apiKeys[provider] ? `${provider}#${randomBytes(3).toString('hex')}` : provider
+  await save({ apiKeys: { ...s.apiKeys, [slot]: key }, ...(known ? { knownModels: { ...s.knownModels, [provider]: known } } : {}), ...(customProviders ? { customProviders } : {}) })
   return { ok: true, note }
 }
 
-export async function removeApiKey(provider: string) {
+/** Removes one of a provider's keys, named by its slot (`claude`, `claude#a1b2c3`); the others stay. */
+export async function removeApiKey(provider: string, slot: string = provider) {
   const s = await mine()
+  if (slot !== provider && !slot.startsWith(`${provider}#`)) return
   const apiKeys = { ...s.apiKeys }
-  delete apiKeys[provider]
+  delete apiKeys[slot]
   await save({ apiKeys })
 }
 
@@ -209,7 +216,7 @@ export async function saveCustomModels(id: string, models: { id: string; tier: T
 /** Removes a service the person added, with its key and every choice that used it. */
 export async function removeCustomProvider(id: string) {
   const s = await mine()
-  const drop = <T,>(record: Partial<Record<string, T>>) => Object.fromEntries(Object.entries(record).filter(([k]) => k !== id)) as Record<string, T>
+  const drop = <T,>(record: Partial<Record<string, T>>) => Object.fromEntries(Object.entries(record).filter(([k]) => k !== id && !k.startsWith(`${id}#`))) as Record<string, T>
   const keep = (record: Settings['taskModels']) => Object.fromEntries(Object.entries(record).filter(([, v]) => v?.provider !== id))
   await save({
     customProviders: s.customProviders.filter((c) => c.id !== id),

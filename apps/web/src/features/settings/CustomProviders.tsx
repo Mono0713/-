@@ -4,11 +4,12 @@ import { TIERS, type Tier } from '@exam/models'
 import { useState, useTransition } from 'react'
 import { msg } from '@/shared/i18n/format'
 import { useT } from '@/shared/i18n/client'
-import { IconKey, IconPlus, IconRefresh, IconX } from '@/shared/icons'
+import { IconPlus, IconRefresh, IconX } from '@/shared/icons'
 import { Listbox } from '@/shared/Listbox'
 import { useRemoval } from '@/shared/removal'
 import { Button, inputBase, inputClass } from '@/shared/ui'
-import { addCustomProvider, refreshModels, removeCustomProvider, saveApiKey, saveCustomModels } from './actions'
+import { addCustomProvider, refreshModels, removeCustomProvider, saveCustomModels } from './actions'
+import { ApiKeys, type SavedKey } from './ApiKeys'
 import { TIER_LABELS } from './strengths'
 
 export interface CustomModel {
@@ -22,8 +23,8 @@ export interface CustomProviderView {
   id: string
   name: string
   baseUrl: string
-  /** Last four characters of its saved key, '' when one is saved but short, null without a key. */
-  keyHint: string | null
+  /** Its saved keys, in the order they were added; none for a local service such as Ollama. */
+  keys: SavedKey[]
   models: CustomModel[]
   /** Model ids the service listed last time it was asked. */
   known: string[]
@@ -98,8 +99,6 @@ export function AddService({ hosted, onDone, onCancel }: { hosted: boolean; onDo
 export function CustomService({ provider: p }: { provider: CustomProviderView }) {
   const t = useT()
   const [models, setModels] = useState(p.models)
-  const [editingKey, setEditingKey] = useState(p.keyHint === null)
-  const [key, setKey] = useState('')
   const [message, setMessage] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null)
   const [pending, start] = useTransition()
   const { remove } = useRemoval()
@@ -112,37 +111,7 @@ export function CustomService({ provider: p }: { provider: CustomProviderView })
 
   return (
     <>
-      {editingKey ? (
-        <form
-          className="flex flex-wrap gap-2"
-          onSubmit={(e) => {
-            e.preventDefault()
-            start(async () => {
-              const result = await saveApiKey(p.id, key)
-              if (!result.ok) return setMessage({ tone: 'bad', text: result.error })
-              setKey('')
-              setEditingKey(false)
-            })
-          }}
-        >
-          <input type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder={t('貼上 API 金鑰')} autoComplete="off" spellCheck={false} className={`${inputClass} min-w-0 flex-1 basis-56 font-mono`} aria-label={t('{name} 金鑰', { name: p.name })} />
-          <Button type="submit" variant="primary" disabled={!key.trim() || pending} loading={pending} icon={<IconKey size={15} />}>
-            {t('儲存')}
-          </Button>
-          {p.keyHint !== null && (
-            <Button variant="ghost" onClick={() => setEditingKey(false)}>
-              {t('取消')}
-            </Button>
-          )}
-        </form>
-      ) : (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted">{p.keyHint ? t('金鑰 …{hint}', { hint: p.keyHint }) : t('已設定金鑰')}</span>
-          <Button variant="ghost" onClick={() => setEditingKey(true)} icon={<IconKey size={15} />}>
-            {t('更換金鑰')}
-          </Button>
-        </div>
-      )}
+      <ApiKeys provider={p.id} name={p.name} keys={p.keys} />
 
       <div>
         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">

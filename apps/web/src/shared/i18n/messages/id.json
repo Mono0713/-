@@ -576,7 +576,6 @@
   "貼上 API 金鑰": "Tempel kunci API",
   "確認中…": "Memeriksa…",
   "確認並儲存": "Periksa dan simpan",
-  "更換金鑰": "Ganti kunci",
   "改用自己的金鑰": "Pakai kunciku sendiri",
   "已移除 {name} 的金鑰": "Kunci {name} dihapus",
   "向服務查詢這把金鑰能用的模型，加到清單裡": "Tanya layanan model apa saja yang bisa dipakai kunci ini dan tambahkan ke daftar",
@@ -1148,9 +1147,7 @@
   "還沒接上": "Belum terhubung",
   "OpenRouter、DeepSeek、通義千問、轉接站或本機的 Ollama，只要支援 OpenAI 相容格式都能接。": "OpenRouter, DeepSeek, Qwen, layanan perantara, atau Ollama lokal: apa pun yang mendukung format kompatibel OpenAI bisa dipakai.",
   "更新模型清單": "Perbarui daftar model",
-  "移除金鑰": "Hapus kunci",
   "到 {name} 取得金鑰": "Dapatkan kunci di {name}",
-  "金鑰 …{hint}": "Kunci …{hint}",
   "要用的模型": "Model yang dipakai",
   "勾了才會拿來讀考卷、手寫和有圖的題目": "Hanya model yang dicentang yang membaca lembar ujian, tulisan tangan, dan soal bergambar",
   "看得懂圖": "Bisa membaca gambar",
@@ -1202,5 +1199,11 @@
   "選一個答案試試看": "Pilih satu jawaban untuk mencoba.",
   "十八世紀的英國先用蒸汽機帶動紡織工廠，工業革命從這裡開始。": "Pada abad ke-18, Inggris pertama kali memakai mesin uap untuk menggerakkan pabrik tekstil, dan Revolusi Industri dimulai di sana.",
   "位移有大小也有方向；質量、時間和溫度只有大小。": "Perpindahan punya besar dan arah; massa, waktu, dan suhu hanya punya besar.",
-  "原核生物沒有核膜和粒線體，但有 70S 核糖體。": "Prokariota tidak punya membran inti dan mitokondria, tetapi punya ribosom 70S."
+  "原核生物沒有核膜和粒線體，但有 70S 核糖體。": "Prokariota tidak punya membran inti dan mitokondria, tetapi punya ribosom 70S.",
+  "{n} 把金鑰": "{n} kunci",
+  "已接上 · {n} 把金鑰": "Terhubung · {n} kunci",
+  "移除金鑰 …{hint}": "Hapus kunci …{hint}",
+  "加一把金鑰": "Tambah kunci lain",
+  "可以加好幾把：一把額度用完、被限流或失效時，會自動改用下一把。": "Bisa menambah beberapa: saat satu kehabisan kuota, dibatasi, atau tidak berlaku, kunci berikutnya dipakai otomatis.",
+  "這把金鑰已經加過了。": "Kunci ini sudah ditambahkan."
 }

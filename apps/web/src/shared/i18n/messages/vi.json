@@ -576,7 +576,6 @@
   "貼上 API 金鑰": "Dán khóa API",
   "確認中…": "Đang kiểm tra…",
   "確認並儲存": "Kiểm tra và lưu",
-  "更換金鑰": "Đổi khóa",
   "改用自己的金鑰": "Dùng khóa của riêng tôi",
   "已移除 {name} 的金鑰": "Đã gỡ khóa {name}",
   "向服務查詢這把金鑰能用的模型，加到清單裡": "Hỏi dịch vụ xem khóa này dùng được những mô hình nào và thêm vào danh sách",
@@ -1148,9 +1147,7 @@
   "還沒接上": "Chưa kết nối",
   "OpenRouter、DeepSeek、通義千問、轉接站或本機的 Ollama，只要支援 OpenAI 相容格式都能接。": "OpenRouter, DeepSeek, Qwen, dịch vụ trung chuyển hoặc Ollama trên máy: dịch vụ nào hỗ trợ định dạng tương thích OpenAI đều kết nối được.",
   "更新模型清單": "Cập nhật danh sách mô hình",
-  "移除金鑰": "Xóa khóa",
   "到 {name} 取得金鑰": "Lấy khóa tại {name}",
-  "金鑰 …{hint}": "Khóa …{hint}",
   "要用的模型": "Mô hình sẽ dùng",
   "勾了才會拿來讀考卷、手寫和有圖的題目": "Chỉ mô hình được đánh dấu mới đọc đề, chữ viết tay và câu hỏi có hình",
   "看得懂圖": "Đọc được hình",
@@ -1202,5 +1199,11 @@
   "選一個答案試試看": "Chọn một đáp án để thử.",
   "十八世紀的英國先用蒸汽機帶動紡織工廠，工業革命從這裡開始。": "Thế kỷ 18, nước Anh lần đầu dùng máy hơi nước chạy các xưởng dệt, và cách mạng công nghiệp bắt đầu từ đó.",
   "位移有大小也有方向；質量、時間和溫度只有大小。": "Độ dời có cả độ lớn và hướng; khối lượng, thời gian và nhiệt độ chỉ có độ lớn.",
-  "原核生物沒有核膜和粒線體，但有 70S 核糖體。": "Sinh vật nhân sơ không có màng nhân và ti thể, nhưng có ribôxôm 70S."
+  "原核生物沒有核膜和粒線體，但有 70S 核糖體。": "Sinh vật nhân sơ không có màng nhân và ti thể, nhưng có ribôxôm 70S.",
+  "{n} 把金鑰": "{n} khóa",
+  "已接上 · {n} 把金鑰": "Đã kết nối · {n} khóa",
+  "移除金鑰 …{hint}": "Xóa khóa …{hint}",
+  "加一把金鑰": "Thêm khóa khác",
+  "可以加好幾把：一把額度用完、被限流或失效時，會自動改用下一把。": "Có thể thêm nhiều khóa: khi một khóa hết hạn mức, bị giới hạn hoặc mất hiệu lực, khóa tiếp theo sẽ tự động được dùng.",
+  "這把金鑰已經加過了。": "Khóa này đã được thêm rồi."
 }

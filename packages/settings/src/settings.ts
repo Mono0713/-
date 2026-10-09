@@ -37,7 +37,10 @@ export const Settings = z.object({
   defaultProvider: z.string().default('auto'),
   /** Model preselected for each provider, e.g. { claude: "claude-sonnet-5-5" }. */
   models: z.record(z.string(), z.string()).default({}),
-  /** API keys per provider. Secret: never sent to the browser, see `publicView`. */
+  /**
+   * API keys per provider. Secret: never sent to the browser, see `publicView`. A provider may have
+   * several: the first under its id, more under `<id>#<slot>` (see `keysOf`), stored like any other key.
+   */
   apiKeys: z.record(z.string(), z.string()).default({}),
   /** The AI teacher that marks answers the program cannot check itself. null provider or model: pick automatically. */
   aiGrading: z
@@ -74,4 +77,16 @@ export type PublicSettings = Omit<Settings, 'apiKeys'> & { apiKeys: Record<strin
 export function publicView(s: Settings): PublicSettings {
   const apiKeys = Object.fromEntries(Object.entries(s.apiKeys).map(([id, key]) => [id, { saved: true, hint: key.length > 8 ? key.slice(-4) : null }]))
   return { ...s, apiKeys }
+}
+
+/** The saved keys of one provider as `apiKeys` entries, in the order they were added. */
+export function keySlots<T>(apiKeys: Record<string, T>, provider: string): [string, T][] {
+  return Object.entries(apiKeys).filter(([id]) => id === provider || id.startsWith(`${provider}#`))
+}
+
+/** Every key saved for a provider, in the order they were added. */
+export function keysOf(apiKeys: Record<string, string>, provider: string): string[] {
+  return keySlots(apiKeys, provider)
+    .map(([, key]) => key)
+    .filter(Boolean)
 }

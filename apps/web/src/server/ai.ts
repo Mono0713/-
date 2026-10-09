@@ -1,8 +1,9 @@
 import { DEFAULT_MODELS, type ModelTier } from '@exam/extraction'
 import { AUTO } from '@exam/importer'
-import { AiSolver, AiTeacher, AiTranslator, FreeTranslator, AiTutor, createTextModel, type TextModel } from '@exam/grading'
+import { AiSolver, AiTeacher, AiTranslator, FreeTranslator, AiTutor, createTextModel, type TextModel, type TextModelConfig } from '@exam/grading'
 import { BUILTIN_LABELS, BUILTIN_MODELS, route, STRENGTHS, type ModelChoice, type ProviderInfo, type Route, type Strength, type Task } from '@exam/models'
-import type { Settings } from '@exam/settings'
+import { keySetId, withKeys } from '@exam/core'
+import { keysOf, type Settings } from '@exam/settings'
 import { authEnabled } from './auth'
 import { services } from './context'
 import { checkServiceUrl } from './serviceUrl'
@@ -22,13 +23,13 @@ const BUILTIN = ['claude', 'openai', 'gemini']
 
 /** Where a provider's API key comes from for this user: the settings page, the .env file, or nowhere. */
 export async function keySource(ownerId: string, providerId: string): Promise<'settings' | 'env' | null> {
-  if ((await services().settings.get(ownerId)).apiKeys[providerId]) return 'settings'
+  if (keysOf((await services().settings.get(ownerId)).apiKeys, providerId).length) return 'settings'
   return envKey(providerId) ? 'env' : null
 }
 
 /** The key to call a provider with: the user's own first, then the .env file. */
 export async function apiKeyOf(ownerId: string, providerId: string): Promise<string | undefined> {
-  return (await services().settings.get(ownerId)).apiKeys[providerId] || envKey(providerId)
+  return keysOf((await services().settings.get(ownerId)).apiKeys, providerId)[0] || envKey(providerId)
 }
 
 /**
@@ -46,7 +47,7 @@ function envKey(providerId: string): string | undefined {
  */
 export function providersOf(s: Settings): ProviderInfo[] {
   return [
-    ...BUILTIN.map((id) => ({ id, label: BUILTIN_LABELS[id]!, ready: Boolean(s.apiKeys[id] || envKey(id)), models: BUILTIN_MODELS[id]! })),
+    ...BUILTIN.map((id) => ({ id, label: BUILTIN_LABELS[id]!, ready: Boolean(keysOf(s.apiKeys, id).length || envKey(id)), models: BUILTIN_MODELS[id]! })),
     ...s.customProviders.map((c) => ({
       id: c.id,
       label: c.name,
@@ -206,16 +207,11 @@ export async function translatorFor(ownerId: string): Promise<{ engine: 'free' |
 /** A text model that moves on to the next choice when one fails, logging what each call used. */
 async function chain(s: Settings, ownerId: string, task: Task, choices: ModelChoice[], scope?: string): Promise<TextModel> {
   // A service whose address no longer passes the check is left out; the others still work.
-  const settled = await Promise.allSettled(
-    choices.map(async ({ provider, model }) =>
-      createTextModel(provider, {
-        apiKey: s.apiKeys[provider] || envKey(provider) || '',
-        model,
-        baseUrl: await serviceUrlOf(s, provider),
-        onUsage: (u) => void services().usage.record({ ownerId, task, provider, model, ...u, ...(scope && { scope }) }).catch(() => {}),
-      }),
-    ),
-  )
+  const settled = await Promise.allSettled(choices.map(async ({ provider, model }) => withEachKey(provider, keysOf(s.apiKeys, provider), {
+    model,
+    baseUrl: await serviceUrlOf(s, provider),
+    onUsage: (u) => void services().usage.record({ ownerId, task, provider, model, ...u, ...(scope && { scope }) }).catch(() => {}),
+  })))
   const models = settled.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []))
   if (!models.length) throw (settled[0] as PromiseRejectedResult).reason
   const first = models[0]!
@@ -234,4 +230,13 @@ async function chain(s: Settings, ownerId: string, task: Task, choices: ModelCho
       throw error
     },
   }
+}
+
+/** A text model on every key saved for the service, moving to the next key when one is out of quota or refused. */
+function withEachKey(provider: string, keys: string[], config: Omit<TextModelConfig, 'apiKey'>): TextModel {
+  const fallback = envKey(provider)
+  const each = (keys.length ? keys : [fallback ?? '']).map((apiKey) => createTextModel(provider, { ...config, apiKey }))
+  if (each.length === 1) return each[0]!
+  const id = keySetId(provider, keys)
+  return { provider: each[0]!.provider, model: each[0]!.model, complete: (system, prompt, images) => withKeys(id, each, (m) => m.complete(system, prompt, images)) }
 }

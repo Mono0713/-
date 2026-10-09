@@ -8,7 +8,7 @@ import { DedupFileStore, fileStoreFromEnv, PostgresFileIndex, SqliteFileIndex, t
 import { Importer } from '@exam/importer'
 import { PostgresGradingCache, PostgresTranslationCache, SqliteGradingCache, SqliteTranslationCache, type GradingCache, type TranslationCache } from '@exam/grading'
 import { PostgresQuizStore, SqliteQuizStore, type QuizStore } from '@exam/quiz'
-import { DEFAULT_LOCALE, FileSettingsStore, PostgresSettingsStore, type SettingsStore } from '@exam/settings'
+import { DEFAULT_LOCALE, FileSettingsStore, keysOf, PostgresSettingsStore, type SettingsStore } from '@exam/settings'
 import { PostgresShareStore, SqliteShareStore, type ShareStore } from '@exam/sharing'
 import { PostgresUsageStore, SqliteUsageStore, type UsageStore } from '@exam/usage'
 import { routeFor, serviceUrlOf } from './ai'
@@ -66,7 +66,7 @@ export function services(): Services {
         providerConfig: async (providerId, ownerId) => {
           const s = await stores.settings.get(ownerId)
           const custom = s.customProviders.find((c) => c.id === providerId)
-          return { apiKey: s.apiKeys[providerId] || undefined, model: s.models[providerId] || custom?.models[0]?.id, baseUrl: await serviceUrlOf(s, providerId) }
+          return { apiKeys: keysOf(s.apiKeys, providerId), model: s.models[providerId] || custom?.models[0]?.id, baseUrl: await serviceUrlOf(s, providerId) }
         },
         plan: async (ownerId) => {
           const r = await routeFor(ownerId, 'recognition')
