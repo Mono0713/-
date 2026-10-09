@@ -21,7 +21,8 @@ export async function signInWithGoogle(formData: FormData) {
 
 export async function signOut() {
   if (authEnabled()) await (await supabaseServer()).auth.signOut()
-  redirect('/login')
+  // back to the product page, the site's front door
+  redirect('/')
 }
 
 /** `pnpm dev` without accounts only: acts as another local person (e.g. a student) in this browser. */

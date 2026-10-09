@@ -3,7 +3,7 @@ import { getLocale, getT, getTIn } from '@/shared/i18n/server'
 import { TYPE_LABELS } from '@/shared/labels'
 import { ClassArt, GradeArt, KeysArt, TypesArt } from './art/FeatureArt'
 import { Heading } from './Heading'
-import { TRY_QUESTIONS } from './try/questions'
+import { TRY_QUESTIONS, tryItem } from './try/questions'
 import { TryQuestion } from './try/TryQuestion'
 import { WRAP } from './wrap'
 
@@ -41,15 +41,7 @@ export async function Features() {
             <p className="mt-1.5 text-sm leading-relaxed text-muted">{t('考試模式計時計分；練習模式每題看解析，看不懂就問 AI，還能一鍵翻譯。')}</p>
             <p className="mt-3 text-sm leading-relaxed text-muted">{t('題目和選項一起翻成你的語言。預設用免費翻譯，不需要金鑰。')}</p>
           </div>
-          <TryQuestion
-            items={TRY_QUESTIONS.map((q) => ({
-              text: printed(q.text),
-              options: q.options.map((o) => printed(o)),
-              answer: q.answer,
-              read: { text: t(q.text), options: q.options.map((o) => t(o)) },
-              why: t(q.why),
-            }))}
-          />
+          <TryQuestion items={TRY_QUESTIONS.map((q) => tryItem(q, t, printed))} />
         </article>
         <Card i={3} fill title={t('分享與班級')} text={t('一個連結就能分享考卷。老師開班級、派作業，學生交卷後再公布答案。')}>
           <ClassArt t={t} />

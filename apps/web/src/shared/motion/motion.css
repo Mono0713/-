@@ -38,6 +38,7 @@
 .m-page { animation: m-fade-up var(--m-slow) var(--m-ease-out) backwards; }
 .m-enter { animation: m-fade-up var(--m-slow) var(--m-ease-out) backwards; }
 .m-scale-in { animation: m-scale-in var(--m-base) var(--m-spring) backwards; }
+.m-fade-in { animation: m-fade-in var(--m-base) var(--m-ease-out) backwards; }
 .m-expand { transform-origin: top; animation: m-expand var(--m-base) var(--m-ease-out) backwards; }
 .m-slide-next { animation: m-slide-next var(--m-slow) var(--m-ease-out) backwards; }
 .m-slide-prev { animation: m-slide-prev var(--m-slow) var(--m-ease-out) backwards; }
@@ -238,6 +239,10 @@
 .m-tile { animation: m-fade-up var(--m-slow) var(--m-ease-out) calc(var(--i, 0) * 70ms + 150ms) backwards; }
 @keyframes m-grow { from { transform: scaleY(0.15); } }
 .m-grow { transform-origin: bottom; animation: m-grow 600ms var(--m-spring) calc(var(--i, 0) * 60ms + 300ms) backwards; }
+
+/* the product tour (features/landing/demo) draws its frames from its own clock; while it is paused,
+   the few pieces it borrows that animate with CSS (the sample sheet's scan) hold still too */
+.m-hold, .m-hold * { animation-play-state: paused !important; }
 
 /* Sections fade up once as they scroll into view (RevealObserver sets data-in); pictures inside
    marked .m-play hold their first frame until then. The start arrow leans toward where it goes. */
