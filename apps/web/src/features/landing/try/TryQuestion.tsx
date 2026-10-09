@@ -49,7 +49,7 @@ export function TryQuestion({ items }: { items: TryItem[] }) {
   }
 
   return (
-    <div className="rounded-xl bg-paper p-4 ring-1 ring-line/70 sm:p-5">
+    <div className="@container rounded-xl bg-paper p-4 ring-1 ring-line/70 sm:p-5">
       {/* one row even on a phone: the type label gives way first */}
       <div className="flex items-center gap-2">
         <span className="shrink-0 font-semibold tabular-nums">{t('第 {n} 題', { n: at.q + 1 })}</span>
@@ -100,21 +100,22 @@ function Asked({ item, picked, translated, onPick }: { item: TryItem; picked: nu
     <>
       <p className="text-[15px] font-medium leading-relaxed">{item.text}</p>
       {translated && <p className="m-expand text-sm leading-relaxed text-muted">{item.read.text}</p>}
-      <ul className="mt-3 grid grid-cols-2 gap-2">
+      <ul className="mt-3 grid grid-cols-1 gap-2 @[22rem]:grid-cols-2">
         {item.options.map((option, k) => {
           const correct = done && k === item.answer
           const mine = picked === k
           const tone = correct && mine ? 'border-good bg-good-soft m-pop' : correct ? 'border-dashed border-good bg-surface' : mine ? 'border-bad bg-bad-soft m-nudge' : done ? 'border-line bg-surface text-muted' : 'border-line bg-surface hover:border-accent/50'
           return (
             <li key={k} className="flex">
-              <button type="button" disabled={done} onClick={() => onPick(k)} className={`m-press flex w-full items-start gap-2 rounded-lg border px-3 py-2 text-left text-sm ${tone}`}>
+              <button type="button" disabled={done} onClick={() => onPick(k)} className={`m-press relative flex w-full items-start gap-2 rounded-lg border py-2 pl-3 pr-7 text-left text-sm ${tone}`}>
                 <span className={`num shrink-0 font-semibold leading-relaxed ${mine ? (correct ? 'text-good' : 'text-bad') : 'text-muted'}`}>({LETTERS[k]})</span>
-                <span className="min-w-0 flex-1 leading-relaxed hyphens-auto [overflow-wrap:anywhere]">
+                <span className="min-w-0 flex-1 leading-relaxed hyphens-auto break-words">
                   {option}
                   {translated && <span className="m-expand block text-xs leading-relaxed text-muted">{item.read.options[k]}</span>}
                 </span>
+                {/* the tick sits in room every option keeps free, so marking never re-wraps the text */}
                 {correct && mine && (
-                  <span className="flex h-[1.625em] shrink-0 items-center">
+                  <span className="absolute right-2 top-2 flex h-[1.625em] items-center">
                     <PenTick size={18} />
                   </span>
                 )}
