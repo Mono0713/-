@@ -23,7 +23,8 @@ export function SampleSheet({ sample, t }: { sample: Sample; t: T }) {
   )
 }
 
-function Copy({ sample, t, pencil, className = '' }: { sample: Sample; t: T; pencil: boolean; className?: string }) {
+/** One copy of the sheet: with the student's pencil, or clean with the questions boxed. */
+export function Copy({ sample, t, pencil, className = '' }: { sample: Sample; t: T; pencil: boolean; className?: string }) {
   const say = sayWith(t)
   return (
     // pb leaves the bottom of the page clear for the note that pops up over it (SampleDeck)

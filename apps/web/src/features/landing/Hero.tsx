@@ -3,12 +3,14 @@ import { brandTagline } from '@/shared/brand/brand'
 import { IconCheck } from '@/shared/icons'
 import { rich } from '@/shared/i18n/rich'
 import { LOCALES } from '@/shared/i18n/locales'
-import { getLocale, getT } from '@/shared/i18n/server'
+import { getLocale, getT, getTIn } from '@/shared/i18n/server'
+import { TourButton } from './demo/TourButton'
 import { SAMPLES } from './samples'
 import { pickUnseen, SEEN_COOKIE } from './samples/seen'
 import { SampleDeck } from './sheet/SampleDeck'
 import { FoundCard, SampleSheet } from './sheet/Sheet'
 import { StartButton, type Start } from './StartButton'
+import { TRY_QUESTIONS, tryItem } from './try/questions'
 import { WRAP } from './wrap'
 
 export async function Hero(start: Start) {
@@ -35,9 +37,8 @@ export async function Hero(start: Start) {
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
           <StartButton {...start} />
-          <a href="#how" className="text-sm font-medium text-accent hover:underline">
-            {t('看看怎麼運作')}
-          </a>
+          {/* the tour practises the biology question, printed in another language like the 試一題 card */}
+          <TourButton item={tryItem(TRY_QUESTIONS[2]!, t, getTIn(locale === 'en' ? 'zh-Hant' : 'en'))} cta={<StartButton {...start} />} />
         </div>
         <ul className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-muted">
           {[t('免費使用'), t('用你自己的 AI 金鑰'), t('{n} 種介面語言', { n: LOCALES.length })].map((point) => (

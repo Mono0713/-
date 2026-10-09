@@ -1,4 +1,5 @@
-import { msg } from '@/shared/i18n/format'
+import { msg, type T } from '@/shared/i18n/format'
+import type { TryItem } from './TryQuestion'
 
 /** The questions a visitor can answer on the product page (試一題 card), worded like the sample sheets. */
 export const TRY_QUESTIONS: { text: string; options: string[]; answer: number; why: string }[] = [
@@ -21,3 +22,12 @@ export const TRY_QUESTIONS: { text: string; options: string[]; answer: number; w
     why: msg('原核生物沒有核膜和粒線體，但有 70S 核糖體。'),
   },
 ]
+
+/** A question as the card shows it: printed in `printed`'s language, read in the visitor's (`t`). */
+export const tryItem = (q: (typeof TRY_QUESTIONS)[number], t: T, printed: T): TryItem => ({
+  text: printed(q.text),
+  options: q.options.map((o) => printed(o)),
+  answer: q.answer,
+  read: { text: t(q.text), options: q.options.map((o) => t(o)) },
+  why: t(q.why),
+})
