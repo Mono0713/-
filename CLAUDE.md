@@ -40,7 +40,7 @@ Packages never import from apps.
 | ↳ 自動儲存、存入題庫 | | `review/useDraftSaving.ts`, `review/actions.ts` |
 | ↳ 原卷、題目框、放大縮小 | | `review/PageViewer.tsx` (also frames pictures: `review/useFigureFraming.ts`, `FramingBar.tsx` 套用/取消), `review/useBoxEditing.ts` (move/resize/draw boxes; a question added by hand draws its first box, or 放一個框), `review/boxGeometry.ts`; box placement from AI: `packages/core/src/boxes.ts` |
 | ↳ 題目大綱、分隔線、版面記憶 | | `review/Outline.tsx`, `review/useWorkspaceLayout.ts` |
-| ↳ 題組/小題共用卡片 | | `review/GroupCard.tsx` |
+| ↳ 題組/小題共用卡片（共用文字、主圖：重新框選、換圖、上傳、刪除） | | `review/GroupCard.tsx` (pictures through `questions/useFigureTools.tsx` on a stand-in question; `setGroupFigures` in `review/useReviewDraft.ts`) |
 | ↳ 原卷自動裁切、拉正（拍照的考卷找出紙張四角；四角四邊各自拖曳、自動、整張、復原）、匯出裁切後的 PDF | | found when uploaded (no AI): `packages/ingest/src/crop.ts` (`findPage`, `flattenPage`), kept per page by `packages/importer/src/crops.ts` (`PageCrops`: `crops.json` corners on the photo as taken, `raw-N.webp`; re-runs cut the same way; moving page readings' boxes); corner math `packages/core/src/quad.ts` (`remapBox`, `remapDraftPage`); editor: crop button in the page controls of `review/PageViewer.tsx`, `review/PageCropper.tsx` (the outline and grips), `review/usePageCrops.tsx` (state, 復原 note; draft boxes moved by `remapPage` in `useReviewDraft`, all undo steps rewritten), `review/cropActions.ts`; PDF `app/api/imports/[id]/pdf/route.ts` → `Importer.pagesPdf` → `packages/ingest/src/pdfWrite.ts` |
 | ↳ 懸浮球（全部生成答案/詳解、新增、複製、匯出 PDF、AI 強度和目前模型、復原） | | `review/useReviewFab.tsx` (what the FAB holds), `review/StrengthPanel.tsx` (AI 強度; models from `modelsByStrength` in `server/ai.ts`) |
 | ↳ 題目卡上的按鈕（拆小題、設為小題/移出小題、編輯、刪除、拖曳） | | `review/CardActions.tsx` |

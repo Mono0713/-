@@ -107,6 +107,7 @@ export function ReviewEditor({
     setSheet,
     setGroupStem,
     setGroupOptions,
+    setGroupFigures,
     makeWordBank,
     patchQuestion,
   } = reviewDraft
@@ -312,6 +313,9 @@ export function ReviewEditor({
                               parts={parts}
                               onChange={(stem) => setGroupStem(group.id, stem)}
                               onOptions={(options) => setGroupOptions(group.id, options)}
+                              onFigures={(figures) => setGroupFigures(group.id, figures)}
+                              importId={importId}
+                              frame={pages.length ? frame : undefined}
                               onSelect={() => select(index, false)}
                               onMerge={canMerge(parts) ? () => mergeGroup(group.id) : undefined}
                             />

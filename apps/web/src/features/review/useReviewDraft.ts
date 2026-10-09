@@ -274,6 +274,7 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
   /** `typing` names a text box, so its keystrokes join one undo step; a switch is a step of its own. */
   const setSheet = (patch: Partial<ExamSheet>, typing?: string) => edit((d) => ({ draft: { ...d, sheet: { ...sheetOf(d), ...patch } } }), typing ? { tag: `type:sheet:${typing}` } : undefined)
   const setGroupStem = (id: string, stem: string) => edit((d) => ({ draft: { ...d, groups: d.groups.map((g) => (g.id === id ? { ...g, stem } : g)) } }), { tag: `type:group:${id}` })
+  const setGroupFigures = (id: string, figures: DraftExam['groups'][number]['figures']) => edit((d) => ({ draft: { ...d, groups: d.groups.map((g) => (g.id === id ? { ...g, figures } : g)) } }))
   // A word box: its questions take the new list (see edit); typing in it is one step until it pauses.
   const setGroupOptions = (id: string, options: Option[]) =>
     edit((d) => ({ draft: { ...d, groups: d.groups.map((g) => (g.id === id ? { ...g, options: options.length ? options : null } : g)) } }), { tag: `type:box:${id}` })
@@ -328,6 +329,7 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     setSheet,
     setGroupStem,
     setGroupOptions,
+    setGroupFigures,
     makeWordBank,
   }
 }

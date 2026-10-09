@@ -1,6 +1,6 @@
 'use client'
 
-import { isWordBank, type DraftExam, type DraftQuestion, type Option } from '@exam/core'
+import { isWordBank, type DraftExam, type DraftFigure, type DraftQuestion, type Option } from '@exam/core'
 import { useState } from 'react'
 import { FigureView } from '@/shared/FigureView'
 import { IconMerge } from '@/shared/icons'
@@ -10,7 +10,10 @@ import { MathTextInput } from '@/shared/math/MathTextInput'
 import { Badge } from '@/shared/ui'
 import { WORD_BANK_LABEL } from '@/shared/labels'
 import { WordBox } from '@/shared/WordBox'
+import { FiguresEditor } from '../questions/FiguresEditor'
+import { FigureTile } from '../questions/FigureTile'
 import { OptionsEditor } from '../questions/OptionsEditor'
+import { useFigureTools, type FrameFigure } from '../questions/useFigureTools'
 import { splitNumber } from './parts'
 import { sharedRule, withoutRule } from '@/shared/markingRule'
 
@@ -18,6 +21,8 @@ import { sharedRule, withoutRule } from '@/shared/markingRule'
  * A passage, figure or instruction shared by the questions after it, which hang under it. When they are
  * the sub-questions of one number, e.g. 11(a) and 11(b), it heads them as that question. Its text can be edited in place.
  * A word box (選詞填空) shows once here, above the sentences that pick from it, and is edited here for all of them.
+ * Its shared pictures (主圖) have the same tools as a question's: frame again on the original page, replace,
+ * upload, delete, and in 編輯 add one and write what it shows.
  */
 export function GroupCard({
   group,
@@ -26,6 +31,9 @@ export function GroupCard({
   onOptions,
   onSelect,
   onMerge,
+  onFigures,
+  importId,
+  frame,
 }: {
   group: DraftExam['groups'][number]
   parts: DraftQuestion[]
@@ -36,8 +44,16 @@ export function GroupCard({
   onSelect: () => void
   /** Given, the sub-questions of one number can be joined back into one question. */
   onMerge?: () => void
+  /** Changes the shared pictures. */
+  onFigures: (figures: DraftFigure[]) => void
+  importId: string | null
+  /** Frames a picture on the original pages, when there are pages. */
+  frame?: FrameFigure
 }) {
   const t = useT()
+  // the picture tools work on a question; the group lends them its pictures and its first question's place on the page
+  const holder: DraftQuestion = { ...parts[0]!, options: [], figures: group.figures }
+  const figures = useFigureTools({ q: holder, onChange: (q) => onFigures(q.figures), importId, frame })
   const [editing, setEditing] = useState(false)
   const numbers = parts.map((p) => splitNumber(p.number))
   const main = numbers.length && numbers.every((n) => n.part !== null && n.main === numbers[0]!.main) ? numbers[0]!.main : null
@@ -96,9 +112,14 @@ export function GroupCard({
           <span className="rounded bg-warn-soft px-1 text-ink/80">{rule}</span>
         </p>
       )}
-      {group.figures.map((f, i) => (
-        <FigureView key={i} figure={f} />
-      ))}
+      <div onClick={(e) => e.stopPropagation()} className={group.figures.length || editing ? 'mt-2 space-y-2' : ''}>
+        {editing ? (
+          <FiguresEditor q={holder} onChange={(q) => onFigures(q.figures)} importId={importId} tools={figures} />
+        ) : (
+          group.figures.map((f, i) => (figures.canFrame || figures.canUpload ? <FigureTile key={i} figure={f} tools={figures} /> : <FigureView key={i} figure={f} />))
+        )}
+        {figures.input}
+      </div>
     </div>
   )
 }
