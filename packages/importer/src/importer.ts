@@ -24,7 +24,7 @@ export interface ImporterOptions {
   keyPrefix?: (ownerId: string) => string
   /** Longest edge of page images. Default 2000. */
   maxEdge?: number
-  /** Pages in flight per import. Default 2. */
+  /** Pages in flight per import. Default 4: a phone import of a few pages is read all at once. */
   concurrency?: number
   /** Extra provider settings of the uploader, e.g. API keys and default models from a settings page. */
   providerConfig?: (providerId: string, ownerId: string) => ProviderConfig | Promise<ProviderConfig>
@@ -379,21 +379,27 @@ export class Importer {
 
     const plan = await this.planFor(imp)
     const reviewLanguage = await this.opts.reviewLanguage?.(imp.ownerId)
+    let progressSaved: Promise<void> = Promise.resolve()
     const read = async (pick: ModelPick, list: number[], progress: boolean) => {
       const config = await this.opts.providerConfig?.(pick.provider, imp.ownerId)
       const provider = createProvider(pick.provider, { ...config, model: pick.model ?? config?.model, files: this.manualFiles(imp) })
       const results = await extractDocument(provider, doc, {
-        concurrency: this.opts.concurrency ?? 2,
+        concurrency: this.opts.concurrency ?? 4,
         pages: list,
         reviewLanguage,
         onPage: (r) => {
           if (!(provider instanceof ManualProvider)) this.opts.onPage?.(imp, r)
-          if (progress) void this.bank.updateImport(id, { progress: { done: ++done, total: selected.length } }).catch(() => {})
+          // One after another, so a slower write never shows fewer pages than were read.
+          if (progress) {
+            const shown = { done: ++done, total: selected.length }
+            progressSaved = progressSaved.then(() => this.bank.updateImport(id, { progress: shown })).catch(() => {})
+          }
         },
       })
       return { provider, results }
     }
     const first = await read(plan.primary, selected, true)
+    await progressSaved
     const provider = first.provider
     let fresh = first.results
     // Pages the first model could not read go to the next provider, then the next.
