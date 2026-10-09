@@ -1255,5 +1255,13 @@
   "由上往下使用：上面那把額度用完、被限流或失效時，自動改用下一把。按住左邊的點點上下拖曳可調整順序。": "Se usan de arriba abajo: cuando la de arriba se queda sin cuota, se limita o deja de funcionar, se usa la siguiente. Arrastra los puntos de la izquierda para reordenar.",
   "拖曳調整金鑰 …{hint} 的順序": "Arrastra para reordenar la clave …{hint}",
   "整理題目時卡住了": "Se atascó al ordenar las preguntas",
-  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Se leyeron todas las páginas, pero ordenar las preguntas y guardar las imágenes no terminó. Pulsa Volver a leer para intentarlo de nuevo."
+  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Se leyeron todas las páginas, pero ordenar las preguntas y guardar las imágenes no terminó. Pulsa Volver a leer para intentarlo de nuevo.",
+  "字庫（每題共用）": "Banco de palabras (común a todas las preguntas)",
+  "在上方的題組卡按「編輯」修改字庫。": "Cambia el banco de palabras con Editar en la tarjeta del grupo de arriba.",
+  "把第 {n} 題加入上方字庫": "Añadir la pregunta {n} al banco de palabras de arriba",
+  "把第 {n} 題移出字庫": "Sacar la pregunta {n} del banco de palabras",
+  "加上共用字庫（選詞填空）": "Añadir un banco de palabras común",
+  "選詞填空": "Banco de palabras",
+  "展開字庫": "Mostrar banco de palabras",
+  "收合字庫": "Ocultar banco de palabras"
 }

@@ -1,21 +1,24 @@
 'use client'
 
 import { QuestionType, type Answer, type DraftQuestion } from '@exam/core'
-import { useState, type ReactNode } from 'react'
+import { Fragment, useState, type ReactNode } from 'react'
 import { useT } from '@/shared/i18n/client'
 import { FiguresEditor } from './FiguresEditor'
 import { IconAlert, IconChevronDown, IconX } from '@/shared/icons'
-import { TYPE_LABELS } from '@/shared/labels'
+import { TYPE_LABELS, WORD_BANK_LABEL } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
 import { MathTextInput } from '@/shared/math/MathTextInput'
 import { AnswerEditor } from './AnswerEditor'
-import { AddChip, AiButton, chip, RemoveButton, type QuestionAi } from './editorParts'
+import { AddChip, AiButton, chip, RemoveButton, SectionHead, type QuestionAi } from './editorParts'
+import { WordBox } from '@/shared/WordBox'
 import { OptionsEditor } from './OptionsEditor'
 import { useFigureTools, type FrameFigure } from './useFigureTools'
 
 export type { FrameArea, FrameFigure } from './useFigureTools'
 
 const TYPES = QuestionType.options
+/** Not a stored type: a fill-in under a group's word box. */
+const WORD_BANK = 'word_bank'
 
 
 /**
@@ -30,6 +33,8 @@ export function QuestionEditor({
   actions,
   ai,
   frame,
+  wordBank = false,
+  onWordBank,
 }: {
   value: DraftQuestion
   onChange: (q: DraftQuestion) => void
@@ -39,6 +44,10 @@ export function QuestionEditor({
   ai?: QuestionAi
   /** Frames a picture on the original pages (review only). */
   frame?: FrameFigure
+  /** A sentence of a word box (選詞填空): its options are the box, edited on the group card above. */
+  wordBank?: boolean
+  /** Offers 選詞填空 as a type: the question gets a word box the next sentences share. */
+  onWordBank?: () => void
 }) {
   const t = useT()
   const set = <K extends keyof DraftQuestion>(key: K, v: DraftQuestion[K]) => onChange({ ...q, [key]: v })
@@ -64,11 +73,19 @@ export function QuestionEditor({
           title={t('題號')}
         />
         <label className="relative">
-          <select value={q.type} onChange={(e) => set('type', e.target.value as DraftQuestion['type'])} className={`${chip} cursor-pointer appearance-none pl-3 pr-8`} aria-label={t('題型')} title={t('題型')}>
+          <select
+            value={wordBank ? WORD_BANK : q.type}
+            onChange={(e) => {
+              if (e.target.value === WORD_BANK) return onWordBank?.()
+              // another type takes the sentence out of its word box
+              onChange({ ...q, type: e.target.value as DraftQuestion['type'], ...(wordBank ? { groupId: null } : {}) })
+            }}
+            className={`${chip} cursor-pointer appearance-none pl-3 pr-8`} aria-label={t('題型')} title={t('題型')}>
             {TYPES.map((type) => (
-              <option key={type} value={type}>
-                {t(TYPE_LABELS[type])}
-              </option>
+              <Fragment key={type}>
+                <option value={type}>{t(TYPE_LABELS[type])}</option>
+                {type === 'fill_in_blank' && (wordBank || onWordBank) && <option value={WORD_BANK}>{t(WORD_BANK_LABEL)}</option>}
+              </Fragment>
             ))}
           </select>
           <IconChevronDown size={15} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted" />
@@ -112,7 +129,19 @@ export function QuestionEditor({
       <FiguresEditor q={q} onChange={onChange} importId={importId} tools={figures} />
       {figures.input}
 
-      {hasChoices && <OptionsEditor q={q} onChange={onChange} tools={figures} />}
+      {wordBank ? (
+        // in review the box is right above, on the group card; elsewhere it is shown here
+        onWordBank ? (
+          <p className="text-xs text-muted">{t('在上方的題組卡按「編輯」修改字庫。')}</p>
+        ) : (
+          <div>
+            <SectionHead title={t('字庫（每題共用）')} />
+            <WordBox options={q.options} />
+          </div>
+        )
+      ) : (
+        hasChoices && <OptionsEditor q={q} onChange={onChange} tools={figures} />
+      )}
 
       <AnswerEditor
         q={q}

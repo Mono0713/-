@@ -13,7 +13,7 @@ import type { FigureTools } from './useFigureTools'
  * The options, each with its text and, for picture options, its picture right under it with the
  * picture's tools (`tools`, where pictures can be edited). An option without one can get one.
  */
-export function OptionsEditor({ q, onChange, tools }: { q: DraftQuestion; onChange: (q: DraftQuestion) => void; tools?: FigureTools }) {
+export function OptionsEditor({ q, onChange, tools, title }: { q: DraftQuestion; onChange: (q: DraftQuestion) => void; tools?: FigureTools; title?: string }) {
   const t = useT()
   const setOptions = (options: DraftQuestion['options']) => onChange({ ...q, options })
   // A renamed option keeps its pictures.
@@ -33,7 +33,7 @@ export function OptionsEditor({ q, onChange, tools }: { q: DraftQuestion; onChan
   }
   return (
     <div>
-      <SectionHead title={t('選項')}>
+      <SectionHead title={title ?? t('選項')}>
         <button type="button" onClick={() => setOptions([...q.options, { label: nextLabel(), content: '' }])} className="m-press flex h-7 items-center gap-1 rounded-md px-2 text-xs text-accent hover:bg-accent-soft">
           <IconPlus size={13} strokeWidth={2.4} />
           {t('新增')}

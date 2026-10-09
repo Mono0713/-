@@ -1255,5 +1255,13 @@
   "由上往下使用：上面那把額度用完、被限流或失效時，自動改用下一把。按住左邊的點點上下拖曳可調整順序。": "Used from the top down: when the one above runs out of quota, is rate limited or stops working, the next one is used. Drag the dots on the left to reorder.",
   "拖曳調整金鑰 …{hint} 的順序": "Drag to reorder key …{hint}",
   "整理題目時卡住了": "Got stuck putting the questions together",
-  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Every page was read, but putting the questions together and saving the pictures never finished. Press Read again to try once more."
+  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Every page was read, but putting the questions together and saving the pictures never finished. Press Read again to try once more.",
+  "字庫（每題共用）": "Word box (shared by every question)",
+  "在上方的題組卡按「編輯」修改字庫。": "Change the word box with Edit on the group card above.",
+  "把第 {n} 題加入上方字庫": "Add question {n} to the word box above",
+  "把第 {n} 題移出字庫": "Take question {n} out of the word box",
+  "加上共用字庫（選詞填空）": "Add a shared word box (word bank)",
+  "選詞填空": "Word bank",
+  "展開字庫": "Show word box",
+  "收合字庫": "Hide word box"
 }

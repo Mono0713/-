@@ -1255,5 +1255,13 @@
   "由上往下使用：上面那把額度用完、被限流或失效時，自動改用下一把。按住左邊的點點上下拖曳可調整順序。": "Dùng từ trên xuống: khi khóa phía trên hết hạn mức, bị giới hạn hoặc mất hiệu lực, khóa tiếp theo sẽ được dùng. Kéo dấu chấm bên trái để đổi thứ tự.",
   "拖曳調整金鑰 …{hint} 的順序": "Kéo để đổi thứ tự khóa …{hint}",
   "整理題目時卡住了": "Bị kẹt khi sắp xếp câu hỏi",
-  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Đã đọc xong các trang nhưng bước sắp xếp câu hỏi và lưu hình chưa hoàn tất. Nhấn Đọc lại để thử lại."
+  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Đã đọc xong các trang nhưng bước sắp xếp câu hỏi và lưu hình chưa hoàn tất. Nhấn Đọc lại để thử lại.",
+  "字庫（每題共用）": "Hộp từ (dùng chung cho mọi câu)",
+  "在上方的題組卡按「編輯」修改字庫。": "Sửa hộp từ bằng nút Sửa trên thẻ nhóm phía trên.",
+  "把第 {n} 題加入上方字庫": "Đưa câu {n} vào hộp từ phía trên",
+  "把第 {n} 題移出字庫": "Đưa câu {n} ra khỏi hộp từ",
+  "加上共用字庫（選詞填空）": "Thêm hộp từ dùng chung (chọn từ điền chỗ trống)",
+  "選詞填空": "Chọn từ điền",
+  "展開字庫": "Mở hộp từ",
+  "收合字庫": "Thu gọn hộp từ"
 }

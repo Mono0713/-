@@ -1255,5 +1255,13 @@
   "由上往下使用：上面那把額度用完、被限流或失效時，自動改用下一把。按住左邊的點點上下拖曳可調整順序。": "Dipakai dari atas ke bawah: saat kunci di atas kehabisan kuota, dibatasi, atau tidak berlaku, kunci berikutnya dipakai. Seret titik di kiri untuk mengubah urutan.",
   "拖曳調整金鑰 …{hint} 的順序": "Seret untuk mengubah urutan kunci …{hint}",
   "整理題目時卡住了": "Macet saat menyusun soal",
-  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Semua halaman sudah dibaca, tetapi menyusun soal dan menyimpan gambar tidak selesai. Tekan Baca ulang untuk mencoba lagi."
+  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Semua halaman sudah dibaca, tetapi menyusun soal dan menyimpan gambar tidak selesai. Tekan Baca ulang untuk mencoba lagi.",
+  "字庫（每題共用）": "Kotak kata (dipakai semua soal)",
+  "在上方的題組卡按「編輯」修改字庫。": "Ubah kotak kata lewat Edit di kartu grup di atas.",
+  "把第 {n} 題加入上方字庫": "Masukkan soal {n} ke kotak kata di atas",
+  "把第 {n} 題移出字庫": "Keluarkan soal {n} dari kotak kata",
+  "加上共用字庫（選詞填空）": "Tambah kotak kata bersama (isian pilih kata)",
+  "選詞填空": "Isian pilih kata",
+  "展開字庫": "Tampilkan kotak kata",
+  "收合字庫": "Sembunyikan kotak kata"
 }

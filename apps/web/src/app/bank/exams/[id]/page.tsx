@@ -1,4 +1,5 @@
 import { canTeach } from '@exam/classes'
+import { isWordBank } from '@exam/core'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ExamMetaForm } from '@/features/bank/ExamMetaForm'
@@ -10,6 +11,7 @@ import { getT } from '@/shared/i18n/server'
 import { Markdown } from '@/shared/Markdown'
 import { FigureView } from '@/shared/FigureView'
 import { Removable } from '@/shared/removal'
+import { WordBox } from '@/shared/WordBox'
 import { ButtonLink, PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -54,9 +56,10 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
             <Removable key={q.id} id={q.id}>
               <div>
                 {showSection && <h3 className="mb-2 mt-6 text-sm font-semibold text-muted">{q.section}</h3>}
-                {group && (group.stem.trim() || group.figures.length > 0) && (
-                  <div className="mb-3 rounded-xl border border-line bg-paper p-4">
+                {group && (group.stem.trim() || group.figures.length > 0 || isWordBank(group)) && (
+                  <div className="mb-3 space-y-2 rounded-xl border border-line bg-paper p-4">
                     {group.stem.trim() && <Markdown>{group.stem}</Markdown>}
+                    {isWordBank(group) && <WordBox options={group.options!} />}
                     {group.figures.map((f, k) => (
                       <FigureView key={k} figure={f} />
                     ))}
@@ -64,7 +67,7 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
                 )}
                 {/* Questions of a group, like the sub-questions 11(a) and 11(b), sit under its shared text. */}
                 <section className={`rounded-2xl bg-surface shadow-sheet p-4 ${q.groupId && groups.has(q.groupId) ? 'ml-4 sm:ml-7' : ''}`}>
-                  <QuestionView q={q} />
+                  <QuestionView q={q} wordBank={isWordBank(q.groupId ? groups.get(q.groupId) : undefined)} />
                   <div className="mt-3 flex justify-end border-t border-line pt-3">
                     <Link href={`/bank/${q.id}`} className="text-sm text-accent hover:underline">
                       {t('編輯這題')}

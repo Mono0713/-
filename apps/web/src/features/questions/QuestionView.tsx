@@ -7,7 +7,7 @@ import { useT } from '@/shared/i18n/client'
 import { IconAlert } from '@/shared/icons'
 import { ConfirmNote } from './ConfirmNote'
 import { MatchingTable, matchingParts } from './MatchingTable'
-import { CONFIDENCE_LABELS, TYPE_LABELS } from '@/shared/labels'
+import { CONFIDENCE_LABELS, TYPE_LABELS, WORD_BANK_LABEL } from '@/shared/labels'
 import { Markdown } from '@/shared/Markdown'
 import { sameRule, withoutRule } from '@/shared/markingRule'
 import { splitNumber } from '@/shared/questionNumber'
@@ -36,6 +36,7 @@ export function QuestionView({
   actions,
   onConfirm,
   ruleAbove,
+  wordBank = false,
 }: {
   q: DraftQuestion
   compact?: boolean
@@ -43,6 +44,8 @@ export function QuestionView({
   onConfirm?: () => void
   /** The marking rule already shown above the card, for the whole group. */
   ruleAbove?: string | null
+  /** A sentence of a word box (選詞填空): the box shows once on the group card above, so not here. */
+  wordBank?: boolean
 }) {
   const t = useT()
   const rule = ownRule(q, ruleAbove)
@@ -54,7 +57,7 @@ export function QuestionView({
   const table = q.type === 'matching' && q.options.length > 0 && matchingParts(q.stem).items.length > 0
   return (
     <div className="space-y-3">
-      <QuestionHeading q={q} showConfidence={!onConfirm} actions={actions} />
+      <QuestionHeading q={q} showConfidence={!onConfirm} actions={actions} wordBank={wordBank} />
 
       {table ? <MatchingTable q={q} /> : <Markdown>{withoutRule(q.stem, q.markingRule)}</Markdown>}
       {q.translation && <Markdown className="border-l-2 border-line pl-3 text-sm text-muted">{q.translation}</Markdown>}
@@ -72,7 +75,7 @@ export function QuestionView({
         return <FigureView key={i} figure={f} answers={answers} />
       })}
 
-      {q.options.length > 0 && !table && (
+      {q.options.length > 0 && !table && !wordBank && (
         <ul className={`grid gap-1.5 ${compact ? '' : 'sm:grid-cols-2'}`}>
           {q.options.map((o, i) => {
             const correct = isChoice && q.answer.values.includes(o.label)
@@ -94,6 +97,16 @@ export function QuestionView({
           <span className="font-medium text-good">{SOURCE_LABELS[q.answer.source] ? t('答案（{source}）：', { source: t(SOURCE_LABELS[q.answer.source]) }) : t('答案：')}</span>
           {answerByBlank ? (
             <span>{q.answer.values.map((v, i) => `(${blanks[i]!.label}) ${v}`).join('、')}</span>
+          ) : wordBank ? (
+            // the label with its word from the box, e.g. G classical
+            <span className="inline-flex flex-wrap gap-x-3">
+              {q.answer.values.map((v, i) => (
+                <span key={i} className="inline-flex gap-1.5">
+                  <span className="num font-semibold">{v}</span>
+                  <Markdown className="inline-block [&_p]:inline">{q.options.find((o) => o.label === v)?.content ?? ''}</Markdown>
+                </span>
+              ))}
+            </span>
           ) : q.answer.values.length === 1 ? (
             <Markdown>{displayAnswer(q.type, q.answer.values[0]!, t)}</Markdown>
           ) : (
@@ -137,7 +150,19 @@ function displayAnswer(type: DraftQuestion['type'], value: string, t: T): string
 
 /** A card's first line: number, type, points and the actions on the right. The copy of a card that
  *  follows the pointer while dragged uses it too, so it lines up with the card exactly. */
-export function QuestionHeading({ q, showConfidence = false, actions, children }: { q: DraftQuestion; showConfidence?: boolean; actions?: React.ReactNode; children?: React.ReactNode }) {
+export function QuestionHeading({
+  q,
+  showConfidence = false,
+  actions,
+  children,
+  wordBank = false,
+}: {
+  q: DraftQuestion
+  showConfidence?: boolean
+  actions?: React.ReactNode
+  children?: React.ReactNode
+  wordBank?: boolean
+}) {
   const t = useT()
   const { main, part } = splitNumber(q.number)
   return (
@@ -150,7 +175,7 @@ export function QuestionHeading({ q, showConfidence = false, actions, children }
       ) : (
         <span className="num text-xl leading-none">{q.number}.</span>
       )}
-      <Badge>{t(TYPE_LABELS[q.type])}</Badge>
+      <Badge>{wordBank ? t(WORD_BANK_LABEL) : t(TYPE_LABELS[q.type])}</Badge>
       {q.points !== null && <Badge>{t('{points} 分', { points: q.points })}</Badge>}
       {q.maxLength ? <Badge>{t('限 {n} 字', { n: q.maxLength })}</Badge> : null}
       {showConfidence && q.confidence !== 'high' && <Badge tone={q.confidence === 'low' ? 'bad' : 'warn'}>{t(CONFIDENCE_LABELS[q.confidence])}</Badge>}

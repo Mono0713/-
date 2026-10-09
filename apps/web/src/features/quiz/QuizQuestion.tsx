@@ -10,7 +10,7 @@ import { useT } from '@/shared/i18n/client'
 import { msg } from '@/shared/i18n/format'
 import { fileUrl } from '@/shared/files'
 import { InkPad } from '@/shared/ink/InkPad'
-import { TYPE_LABELS } from '@/shared/labels'
+import { TYPE_LABELS, WORD_BANK_LABEL } from '@/shared/labels'
 import { blankCount, Markdown } from '@/shared/Markdown'
 import { withoutRule } from '@/shared/markingRule'
 import { IconKeyboard, IconLanguages, IconLoader, IconPen, IconScratch } from '@/shared/icons'
@@ -88,6 +88,8 @@ export function QuizQuestion({
   const set = (next: string[]) => patch({ values: next })
   const setAt = (i: number, v: string, count: number) => set(Array.from({ length: count }, (_, j) => (j === i ? v : (values[j] ?? ''))))
   const key = q.answer.values
+  // 選詞填空: the word box shows once above, with the passage, so not again as this question's options
+  const wordBank = Boolean(item.group?.options?.length)
 
   // Open and fill-in answers can be handwritten; the AI reads them into text when checked.
   // 配合題 and blanks filled from a list are answered by picking labels, never by hand.
@@ -177,7 +179,7 @@ export function QuizQuestion({
       {!answerOnly && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-lg font-semibold tabular-nums">{t('第 {n} 題', { n: index + 1 })}</span>
-          <Badge>{t(TYPE_LABELS[q.type])}</Badge>
+          <Badge>{wordBank ? t(WORD_BANK_LABEL) : t(TYPE_LABELS[q.type])}</Badge>
           {kind.kind === 'multiple' && <Badge tone="accent">{t('可複選')}</Badge>}
           {q.points !== null && <Badge>{t('{n} 分', { n: q.points })}</Badge>}
           {q.maxLength ? <Badge>{t('限 {n} 字', { n: q.maxLength })}</Badge> : null}
@@ -273,7 +275,7 @@ export function QuizQuestion({
             )
           })}
         </ul>
-      ) : q.options.length > 0 && !answerOnly ? (
+      ) : q.options.length > 0 && !answerOnly && !wordBank ? (
         <ul className="grid gap-1.5 sm:grid-cols-2">
           {item.optionOrder.map((label, i) => (
             <li key={`${label}-${i}`} className="flex gap-2 rounded-lg bg-paper px-2.5 py-1.5 text-sm">

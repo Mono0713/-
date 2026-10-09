@@ -1,4 +1,4 @@
-import { untangleBoxes, type DraftExam, type DraftFigure, type DraftQuestion, type ExamMeta, type ExtractedQuestion, type Figure } from '@exam/core'
+import { untangleBoxes, withWordBanks, type DraftExam, type DraftFigure, type DraftQuestion, type ExamMeta, type ExtractedQuestion, type Figure } from '@exam/core'
 import type { PageResult } from './extract.ts'
 
 /**
@@ -32,7 +32,8 @@ export function mergePages(fileName: string, results: PageResult[]): DraftExam {
     const groupId = (id: string | null) => (id === null ? null : `p${result.pageNumber}:${id}`)
     const draftFigures = (figures: Figure[]): DraftFigure[] => figures.map((f) => ({ ...f, pageNumber: result.pageNumber, image: null }))
     for (const group of page.groups) {
-      exam.groups.push({ ...group, id: groupId(group.id)!, pageNumber: result.pageNumber, figures: draftFigures(group.figures) })
+      const options = group.options?.map((o) => ({ ...o, label: normalizeLabel(o.label) }))
+      exam.groups.push({ ...group, ...(options?.length ? { options } : { options: null }), id: groupId(group.id)!, pageNumber: result.pageNumber, figures: draftFigures(group.figures) })
     }
 
     for (const [index, q] of page.questions.entries()) {
@@ -49,7 +50,8 @@ export function mergePages(fileName: string, results: PageResult[]): DraftExam {
     open = last?.continuesOnNextPage ? exam.questions.at(-1)! : null
   }
   exam.questions = untangleBoxes(exam.questions)
-  return exam
+  // A word box (選詞填空) hands its list to each of its sentences, also when a model repeated it on each one.
+  return withWordBanks(exam)
 }
 
 function toDraft(q: ExtractedQuestion, groupId: string | null, location: DraftQuestion['locations'][number], figures: DraftFigure[]): DraftQuestion {
@@ -65,7 +67,8 @@ export function normalizeLabel(label: string): string {
 /** Evens out what different models return so drafts look the same whichever model made them. */
 function tidy(q: DraftQuestion): DraftQuestion {
   for (const option of q.options) option.label = normalizeLabel(option.label)
-  if (q.options.length > 0) q.answer.values = q.answer.values.map(normalizeLabel)
+  // a sentence of a word box (選詞填空) gets the box's options later; its answer is a label too
+  if (q.options.length > 0 || (q.groupId && q.answer.values.every((v) => v.trim().length <= 4))) q.answer.values = q.answer.values.map(normalizeLabel)
   if (q.explanation && q.explanation.trim() === q.answer.values.join('\n').trim()) q.explanation = null
   if (q.points === null && q.section) {
     const perQuestion = /每題\s*(\d+(?:\.\d+)?)\s*分|(\d+(?:\.\d+)?)\s*(?:points?|pts?)\s*(?:for\s+)?each/i.exec(q.section)

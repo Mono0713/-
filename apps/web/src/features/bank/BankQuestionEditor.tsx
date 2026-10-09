@@ -10,8 +10,8 @@ import { QuestionEditor } from '@/features/questions/QuestionEditor'
 import { Button, Card } from '@/shared/ui'
 import { deleteBankQuestion, updateBankQuestion } from './actions'
 
-/** Edits one saved question. importId is the upload its exam came from, if it still exists. */
-export function BankQuestionEditor({ question, importId }: { question: BankQuestion; importId: string | null }) {
+/** Edits one saved question. importId is the upload its exam came from, if it still exists. wordBank: a sentence of a 選詞填空, whose box is shared. */
+export function BankQuestionEditor({ question, importId, wordBank = false }: { question: BankQuestion; importId: string | null; wordBank?: boolean }) {
   const t = useT()
   const [q, setQ] = useState<DraftQuestion>(question)
   const [state, setState] = useState<'saved' | 'dirty'>('saved')
@@ -30,6 +30,7 @@ export function BankQuestionEditor({ question, importId }: { question: BankQuest
       <QuestionEditor
         value={q}
         importId={importId}
+        wordBank={wordBank}
         onChange={(v) => {
           setQ(v)
           setState('dirty')

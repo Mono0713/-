@@ -7,6 +7,15 @@ function result(pageNumber: number, extracted: PageResult['page'], error: string
 }
 
 describe('mergePages', () => {
+  it('hands a word box (選詞填空) to each of its sentences', () => {
+    const box = [{ label: '(A)', content: 'memorial' }, { label: 'B', content: 'diligent' }]
+    const sentence = (number: string, answer: string) =>
+      question({ number, groupId: 'g1', type: 'fill_in_blank', stem: `I like the ___ ${number}.`, options: [], answer: { values: [answer], source: 'handwritten' } })
+    const exam = mergePages('exam.pdf', [result(1, page([sentence('1', '(B)'), sentence('2', 'A')], { groups: [{ id: 'g1', stem: '', figures: [], options: box }] }))])
+    expect(exam.groups[0]!.options).toEqual([{ label: 'A', content: 'memorial' }, { label: 'B', content: 'diligent' }])
+    expect(exam.questions.map((q) => [q.options.length, q.answer.values[0]])).toEqual([[2, 'B'], [2, 'A']])
+  })
+
   it('joins a question that runs over a page break', () => {
     const exam = mergePages('exam.pdf', [
       result(1, page([question({ number: '1' }), question({ number: '2', stem: 'Part one', options: [], continuesOnNextPage: true })])),

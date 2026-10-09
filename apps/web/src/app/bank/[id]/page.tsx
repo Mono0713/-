@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import { isWordBank } from '@exam/core'
 import { BankQuestionEditor } from '@/features/bank/BankQuestionEditor'
 import { services } from '@/server/context'
 import { ownedQuestion } from '@/server/owned'
@@ -24,7 +25,7 @@ export default async function BankQuestionPage({ params }: { params: Promise<{ i
           </>
         }
       />
-      <BankQuestionEditor question={q} importId={exam?.importId ?? null} />
+      <BankQuestionEditor question={q} importId={exam?.importId ?? null} wordBank={isWordBank(exam?.groups.find((g) => g.id === q.groupId))} />
     </div>
   )
 }

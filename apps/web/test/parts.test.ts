@@ -127,3 +127,23 @@ describe('splitting translations and answers', () => {
     expect(r.parts.map((p) => p.answer.values)).toEqual([['one'], ['two']])
   })
 })
+
+describe('word box (選詞填空)', () => {
+  const box = [{ label: 'A', content: 'memorial' }, { label: 'B', content: 'diligent' }]
+  const draft = {
+    groups: [{ id: 'w', stem: '', figures: [], options: box, pageNumber: 1 }],
+    questions: [q({ number: '1', groupId: 'w', type: 'fill_in_blank', options: box }), q({ number: '2', groupId: 'w', type: 'fill_in_blank', options: box }), q({ number: '3', type: 'fill_in_blank' })],
+  }
+
+  it('takes the next question in as one more sentence, keeping its number', () => {
+    const next = attachToPrevious(draft, 2, 'new')!
+    expect(next.groups).toHaveLength(1)
+    expect(next.questions.map((x) => [x.number, x.groupId])).toEqual([['1', 'w'], ['2', 'w'], ['3', 'w']])
+  })
+
+  it('lets a sentence leave with its number, the box staying for the rest', () => {
+    const { draft: next } = detachPart(draft, 0)!
+    expect(next.groups).toHaveLength(1)
+    expect(next.questions.map((x) => [x.number, x.groupId])).toEqual([['2', 'w'], ['1', null], ['3', null]])
+  })
+})

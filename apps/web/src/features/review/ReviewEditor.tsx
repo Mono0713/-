@@ -2,7 +2,7 @@
 
 import { DndContext } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { sheetOf, type DraftExam } from '@exam/core'
+import { isWordBank, sheetOf, type DraftExam } from '@exam/core'
 import type { Strength } from '@exam/models'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { QuestionEditor } from '@/features/questions/QuestionEditor'
@@ -105,6 +105,8 @@ export function ReviewEditor({
     setMeta,
     setSheet,
     setGroupStem,
+    setGroupOptions,
+    makeWordBank,
     patchQuestion,
   } = reviewDraft
   // An exam written from scratch has no original pages: the A4 paper it prints as takes their place.
@@ -291,6 +293,8 @@ export function ReviewEditor({
                   const isEditing = editing === index
                   const key = keys.current[index]!
                   const parts = group ? draft.questions.filter((x) => x.groupId === group.id) : []
+                  // a sentence of a word box (選詞填空): the box shows once on the group card above
+                  const wordBank = isWordBank(draft.groups.find((g) => g.id === q.groupId))
                   return (
                     <Sortable key={key} id={key}>
                       {(handle, dragging) => (
@@ -301,6 +305,7 @@ export function ReviewEditor({
                               group={group}
                               parts={parts}
                               onChange={(stem) => setGroupStem(group.id, stem)}
+                              onOptions={(options) => setGroupOptions(group.id, options)}
                               onSelect={() => select(index, false)}
                               onMerge={canMerge(parts) ? () => mergeGroup(group.id) : undefined}
                             />
@@ -325,6 +330,8 @@ export function ReviewEditor({
                               <QuestionEditor
                                 value={q}
                                 onChange={(v) => updateQuestion(index, v)}
+                                wordBank={wordBank}
+                                onWordBank={() => makeWordBank(index)}
                                 importId={importId}
                                 frame={pages.length ? frame : undefined}
                                 ai={{ answer: () => solver.runOne(index, 'answer'), explain: () => solver.runOne(index, 'explain'), busy: solver.busy.get(key) }}
@@ -345,6 +352,7 @@ export function ReviewEditor({
                             ) : (
                               <QuestionView
                                 q={q}
+                                wordBank={wordBank}
                                 ruleAbove={inGroup ? sharedRule(draft.questions.filter((x) => x.groupId === q.groupId)) : null}
                                 onConfirm={() => confirmQuestion(index)}
                                 actions={<CardActions d={reviewDraft} q={q} index={index} busy={solver.busy.get(key)} handle={handle} />}
@@ -365,6 +373,7 @@ export function ReviewEditor({
                     <DragPreview
                       q={q}
                       inGroup={q.groupId !== null && draft.groups.some((g) => g.id === q.groupId)}
+                      wordBank={isWordBank(draft.groups.find((g) => g.id === q.groupId))}
                       offset={cards.current.get(index)?.offsetTop ?? 0}
                       flagged={isFlagged(q)}
                       actions={<CardActions d={reviewDraft} q={q} index={index} busy={solver.busy.get(key)} handle={null} />}

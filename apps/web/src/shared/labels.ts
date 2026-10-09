@@ -18,6 +18,9 @@ export const TYPE_LABELS: Record<QuestionType, string> = {
   other: msg('其他'),
 }
 
+/** A question filled from a word box its group prints once (選詞填空); stored as fill_in_blank. */
+export const WORD_BANK_LABEL = msg('選詞填空')
+
 export const CHOICE_TYPES = new Set<QuestionType>(['single_choice', 'multiple_choice', 'matching'])
 
 export const STATUS_LABELS = {

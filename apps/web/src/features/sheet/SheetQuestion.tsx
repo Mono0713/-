@@ -24,17 +24,18 @@ const LINES: Partial<Record<DraftQuestion['type'], number>> = { short_answer: 3,
  * One question as printed on paper: the answer bracket for choices, the number, the text with its blanks
  * as lines, pictures, options set in columns by their length, and room to write for open questions.
  */
-export function SheetQuestion({ q, copy, onSpace }: { q: DraftQuestion; copy: SheetCopy; onSpace?: (lines: number) => void }) {
+export function SheetQuestion({ q, copy, onSpace, wordBank = false }: { q: DraftQuestion; copy: SheetCopy; onSpace?: (lines: number) => void; wordBank?: boolean }) {
   const t = useT()
   const teacher = copy === 'teacher'
   const { main, part } = splitNumber(q.number)
-  const bracketed = q.type === 'single_choice' || q.type === 'multiple_choice' || q.type === 'true_false'
+  // a sentence of a word box (選詞填空) takes its label in the bracket, as on paper: ( G ) 1. I like the ___ lines.
+  const bracketed = q.type === 'single_choice' || q.type === 'multiple_choice' || q.type === 'true_false' || wordBank
   const values = q.answer.values.filter((v) => v.trim())
   const bracketAnswer = q.type === 'true_false' ? values.map((v) => (v === 'true' ? '○' : v === 'false' ? '╳' : v)).join('') : values.join('')
   const matching = q.type === 'matching' ? matchingParts(q.stem) : null
   const figures = questionFigures(q)
   // fill-in answers go into the text's own blanks; with no blank in the text they get a line underneath
-  const inlineBlank = (i: number) => <span className="sheet-blank">{teacher && q.type === 'fill_in_blank' ? <span className="sheet-key"><InlineText text={values[i] ?? ''} /></span> : null}</span>
+  const inlineBlank = (i: number) => <span className="sheet-blank">{teacher && q.type === 'fill_in_blank' && !wordBank ? <span className="sheet-key"><InlineText text={values[i] ?? ''} /></span> : null}</span>
   const body = matching && matching.items.length ? matching.lead : q.stem
   const pictures = q.options.some((o) => optionFigures(q, o.label).length > 0)
   // the room to answer in: the person's own size (dragged on the preview), else what the type usually gets
@@ -63,7 +64,7 @@ export function SheetQuestion({ q, copy, onSpace }: { q: DraftQuestion; copy: Sh
           </ol>
         )}
 
-        {q.options.length > 0 && (
+        {q.options.length > 0 && !wordBank && (
           <ul className={`grid gap-x-4 gap-y-1 ${COLUMNS[optionColumns(q.options, pictures)]}`}>
             {q.options.map((o, i) => (
               <li key={`${o.label}-${i}`} className="flex min-w-0 gap-1">
@@ -77,7 +78,7 @@ export function SheetQuestion({ q, copy, onSpace }: { q: DraftQuestion; copy: Sh
           </ul>
         )}
 
-        {q.type === 'fill_in_blank' && !body.match(/_{3,}/) && <AnswerLine label={t('答：')} answer={teacher ? values.join('、') : null} />}
+        {q.type === 'fill_in_blank' && !wordBank && !body.match(/_{3,}/) && <AnswerLine label={t('答：')} answer={teacher ? values.join('、') : null} />}
         {q.type === 'writing' && <WritingGrid characters={values.join('')} />}
         <AnswerRoom lines={lines} ruled={RULED.has(q.type)} onResize={onSpace}>
           {key && <Key>{key}</Key>}

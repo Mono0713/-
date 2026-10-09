@@ -1,4 +1,4 @@
-import type { DraftFigure, DraftQuestion } from '@exam/core'
+import type { DraftFigure, DraftQuestion, Option } from '@exam/core'
 import type { InkDoc } from '@exam/ink'
 
 /** exam: answer everything, then submit for a score. practice: see the answer after each question. */
@@ -24,7 +24,7 @@ export interface QuizItem {
   questionId: string
   question: DraftQuestion
   /** Shared passage and figures of the question's group, if it has one. */
-  group: { stem: string; figures: DraftFigure[] } | null
+  group: { stem: string; figures: DraftFigure[]; options?: Option[] | null } | null
   /** Option labels as stored, in the order shown. */
   optionOrder: string[]
   /** Label shown for each entry of optionOrder. */

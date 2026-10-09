@@ -1,4 +1,4 @@
-import { isPickAnswer, matchingItemCount, questionFigures, type DraftFigure, type DraftQuestion } from '@exam/core'
+import { isPickAnswer, matchingItemCount, questionFigures, type DraftFigure, type Option, type DraftQuestion } from '@exam/core'
 import { isEmptyInk, practiceRows } from '@exam/ink'
 import { numberValue, sameMath, withinTolerance } from './equivalence.ts'
 import type { Grade, QuizAttempt, QuizItem, QuizResponse, QuizSettings, Marking } from './types.ts'
@@ -36,7 +36,7 @@ export function answerKind(q: DraftQuestion): AnswerKind {
 export interface QuizSource {
   questionId: string
   question: DraftQuestion
-  group: { stem: string; figures: DraftFigure[] } | null
+  group: { stem: string; figures: DraftFigure[]; options?: Option[] | null } | null
 }
 
 /**
@@ -50,7 +50,8 @@ export function buildItems(sources: QuizSource[], settings: QuizSettings, random
   return ordered.map(({ questionId, question, group }) => {
     const labels = question.options.map((o) => o.label)
     const partial = settings.multiplePartial && question.type === 'multiple_choice' ? { partial: true } : {}
-    if (labels.length < 2 || !settings.shuffleOptions) return { questionId, question, group, optionOrder: labels, displayLabels: labels, ...partial }
+    // a word box (選詞填空) is printed once for several questions, so its labels never move
+    if (labels.length < 2 || !settings.shuffleOptions || group?.options?.length) return { questionId, question, group, optionOrder: labels, displayLabels: labels, ...partial }
     const optionOrder = shuffle(labels, random)
     return { questionId, question, group, optionOrder, displayLabels: relabel(labels), ...partial }
   })

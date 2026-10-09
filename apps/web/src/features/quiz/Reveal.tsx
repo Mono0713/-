@@ -45,8 +45,9 @@ export function Reveal({
   const key = kind.kind === 'blanks' ? q.answer.values.map((v) => toQuizLabels(item, v)) : q.answer.values
   const withheld = q.answer.values.length > 0 && q.answer.values.every((v) => v === '')
   // A choice is shown as on the paper, label and text: "(2) X-ray crystallography".
+  // a sentence of a word box (選詞填空) shows its word from the box the same way: "(G) classical"
   const choices =
-    kind.kind === 'single' || kind.kind === 'multiple'
+    kind.kind === 'single' || kind.kind === 'multiple' || item.group?.options?.length
       ? key.map((l) => ({ label: displayLabel(item, l), content: q.options.find((o) => o.label === l)?.content ?? '' }))
       : null
   const answer = kind.kind === 'true_false' ? (key[0] === 'true' ? t('○ 是') : t('╳ 非')) : null

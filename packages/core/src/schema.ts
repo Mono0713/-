@@ -148,8 +148,14 @@ export const QuestionGroup = z.object({
   id: z.string(),
   stem: z.string().describe('Shared passage, data or instructions in Markdown'),
   figures: z.array(Figure),
+  options: z
+    .array(Option)
+    .nullable()
+    .default(null)
+    .describe('A word box or list of choices printed once for all the questions of the group, each of which fills its blank with one label from it (選詞填空); else null'),
 })
-export type QuestionGroup = z.infer<typeof QuestionGroup>
+/** `options` is missing on groups saved before word boxes existed. */
+export type QuestionGroup = Omit<z.infer<typeof QuestionGroup>, 'options'> & { options?: z.infer<typeof Option>[] | null }
 
 export const ExamMeta = z.object({
   title: z.string().nullable(),
@@ -169,4 +175,4 @@ export const ExtractedPage = z.object({
     .nullable()
     .describe('Page-level remarks, e.g. "photo shows two exam pages side by side"'),
 })
-export type ExtractedPage = Omit<z.infer<typeof ExtractedPage>, 'questions'> & { questions: ExtractedQuestion[] }
+export type ExtractedPage = Omit<z.infer<typeof ExtractedPage>, 'questions' | 'groups'> & { questions: ExtractedQuestion[]; groups: QuestionGroup[] }

@@ -2,7 +2,7 @@
 
 import type { DragEndEvent } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
-import { sheetOf, type DraftExam, type DraftQuestion, type ExamSheet } from '@exam/core'
+import { isWordBank, sheetOf, syncWordBanks, withWordBanks, type DraftExam, type DraftQuestion, type ExamSheet, type Option } from '@exam/core'
 import { useEffect, useRef, useState } from 'react'
 import { attachToPrevious, detachPart, groupLooseParts, mergeParts, nextPart, splitNumber, splitParts } from './parts'
 import { useHistory } from './useHistory'
@@ -23,7 +23,8 @@ type State = { draft: DraftExam; keys: string[] }
  */
 export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
   // Sub-questions read as separate questions (1(1), 1(2)) start out grouped, so they merge like split ones.
-  const [start] = useState(() => groupLooseParts(initial, (n) => `parts-${Date.now().toString(36)}-${n}`))
+  // A word box read as one choice question per sentence, each repeating the box, becomes one 選詞填空.
+  const [start] = useState(() => withWordBanks(groupLooseParts(initial, (n) => `parts-${Date.now().toString(36)}-${n}`)))
   const [draft, setDraft] = useState(start)
   const [selected, setSelected] = useState<number | null>(null)
   const [editing, setEditing] = useState<number | null>(null)
@@ -43,7 +44,8 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
   const edit = (next: (d: DraftExam, k: string[]) => Partial<State> | null, step?: { tag?: string; focus?: string }) =>
     history.change((s) => {
       const result = next(s.draft, s.keys)
-      return result ? { draft: result.draft ?? s.draft, keys: result.keys ?? s.keys } : s
+      // the questions of a word box always carry the box as their options
+      return result ? { draft: syncWordBanks(result.draft ?? s.draft), keys: result.keys ?? s.keys } : s
     }, step)
   const latest = () => history.now.current
 
@@ -230,9 +232,11 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     const next = ref && /^\d+$/.test(splitNumber(ref.number).main) ? String(Number(splitNumber(ref.number).main) + 1) : String(d.questions.length + 1)
     // added after a sub-question, it is the next sub-question of the same number
     const group = after !== undefined && ref?.groupId && d.groups.some((g) => g.id === ref.groupId) ? ref.groupId : null
+    // a sentence added under a word box keeps the plain numbering (8, 9, 10) and picks from the box
+    const bank = isWordBank(d.groups.find((g) => g.id === group))
     const { main, part } = splitNumber(ref?.number ?? '')
     const q: DraftQuestion = {
-      number: after === undefined ? String(d.questions.length + 1) : group ? `${main}(${nextPart(part)})` : next,
+      number: after === undefined ? String(d.questions.length + 1) : group && !bank ? `${main}(${nextPart(part)})` : next,
       section: ref?.section ?? null,
       groupId: group,
       type: 'single_choice',
@@ -266,6 +270,23 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
   /** `typing` names a text box, so its keystrokes join one undo step; a switch is a step of its own. */
   const setSheet = (patch: Partial<ExamSheet>, typing?: string) => edit((d) => ({ draft: { ...d, sheet: { ...sheetOf(d), ...patch } } }), typing ? { tag: `type:sheet:${typing}` } : undefined)
   const setGroupStem = (id: string, stem: string) => edit((d) => ({ draft: { ...d, groups: d.groups.map((g) => (g.id === id ? { ...g, stem } : g)) } }), { tag: `type:group:${id}` })
+  // A word box: its questions take the new list (see edit); typing in it is one step until it pauses.
+  const setGroupOptions = (id: string, options: Option[]) =>
+    edit((d) => ({ draft: { ...d, groups: d.groups.map((g) => (g.id === id ? { ...g, options: options.length ? options : null } : g)) } }), { tag: `type:box:${id}` })
+  /**
+   * 選詞填空 chosen as a question's type: the question gets a word box of its own (its options, or A–D to fill in),
+   * or its group gets one, and the sentences added after it pick from the same box.
+   */
+  const makeWordBank = (index: number) =>
+    edit((d) => {
+      const q = d.questions[index]
+      if (!q) return null
+      const options = q.options.length ? q.options : [...'ABCD'].map((label) => ({ label, content: '' }))
+      if (q.groupId && d.groups.some((g) => g.id === q.groupId)) return { draft: { ...d, groups: d.groups.map((g) => (g.id === q.groupId ? { ...g, options } : g)) } }
+      const id = `wordbox-${Date.now().toString(36)}`
+      const group = { id, stem: '', figures: [], options, pageNumber: q.locations[0]?.pageNumber ?? 1 }
+      return { draft: { ...d, groups: [...d.groups, group], questions: d.questions.map((x, i) => (i === index ? { ...x, groupId: id } : x)) } }
+    })
 
   return {
     /** The draft as first shown (sub-questions grouped), before any edit. */
@@ -297,5 +318,7 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     setMeta,
     setSheet,
     setGroupStem,
+    setGroupOptions,
+    makeWordBank,
   }
 }

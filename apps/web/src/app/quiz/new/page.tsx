@@ -1,4 +1,5 @@
 import { draftOf } from '@exam/bank'
+import { isWordBank } from '@exam/core'
 import { QuizSetup, type SetupExam } from '@/features/quiz/QuizSetup'
 import { currentOwner, services } from '@/server/context'
 import { getT } from '@/shared/i18n/server'
@@ -23,6 +24,7 @@ export default async function NewQuizPage({ searchParams }: { searchParams: Prom
         question: { ...draftOf(q), answer: { values: [], source: 'none' as const }, explanation: null, translation: null, issues: [], confidence: 'high' as const },
         preview: q.stem.replace(/[#*_`>$|\\]/g, '').replace(/\s+/g, ' ').slice(0, 200),
         hasKey: q.answer.values.some((v) => v.trim()),
+        wordBank: isWordBank(e.groups.find((g) => g.id === q.groupId)),
       })),
     })),
   )

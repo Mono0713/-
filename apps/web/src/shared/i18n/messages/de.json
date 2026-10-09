@@ -1255,5 +1255,13 @@
   "由上往下使用：上面那把額度用完、被限流或失效時，自動改用下一把。按住左邊的點點上下拖曳可調整順序。": "Von oben nach unten verwendet: Ist beim oberen das Kontingent aufgebraucht, wird er gedrosselt oder ungültig, kommt der nächste dran. Zum Umsortieren die Punkte links ziehen.",
   "拖曳調整金鑰 …{hint} 的順序": "Ziehen, um Schlüssel …{hint} umzusortieren",
   "整理題目時卡住了": "Beim Zusammenstellen der Fragen hängen geblieben",
-  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Alle Seiten wurden gelesen, aber das Zusammenstellen der Fragen und Speichern der Bilder wurde nie fertig. Tippe auf Erneut lesen, um es noch einmal zu versuchen."
+  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Alle Seiten wurden gelesen, aber das Zusammenstellen der Fragen und Speichern der Bilder wurde nie fertig. Tippe auf Erneut lesen, um es noch einmal zu versuchen.",
+  "字庫（每題共用）": "Wortkasten (für alle Fragen)",
+  "在上方的題組卡按「編輯」修改字庫。": "Den Wortkasten änderst du mit „Bearbeiten“ auf der Gruppenkarte oben.",
+  "把第 {n} 題加入上方字庫": "Frage {n} zum Wortkasten oben hinzufügen",
+  "把第 {n} 題移出字庫": "Frage {n} aus dem Wortkasten nehmen",
+  "加上共用字庫（選詞填空）": "Gemeinsamen Wortkasten hinzufügen",
+  "選詞填空": "Wortauswahl",
+  "展開字庫": "Wortkasten zeigen",
+  "收合字庫": "Wortkasten ausblenden"
 }

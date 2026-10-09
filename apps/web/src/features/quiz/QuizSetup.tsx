@@ -5,7 +5,7 @@ import type { QuizMode } from '@exam/quiz'
 import { useState, useTransition } from 'react'
 import { QuestionView } from '@/features/questions/QuestionView'
 import { useT } from '@/shared/i18n/client'
-import { TYPE_LABELS } from '@/shared/labels'
+import { TYPE_LABELS, WORD_BANK_LABEL } from '@/shared/labels'
 import { markSymbols } from '@/shared/markSymbols'
 import { Badge, Button, Card, inputBase } from '@/shared/ui'
 import { createQuiz } from './actions'
@@ -15,7 +15,7 @@ export interface SetupExam {
   title: string
   subject: string | null
   /** Questions without their answers, explanations or translations. */
-  questions: { id: string; question: DraftQuestion; preview: string; hasKey: boolean }[]
+  questions: { id: string; question: DraftQuestion; preview: string; hasKey: boolean; wordBank?: boolean }[]
 }
 
 /** Pick exams and questions, then how to take them. */
@@ -101,7 +101,7 @@ export function QuizSetup({ exams, preselected }: { exams: SetupExam[]; preselec
               </div>
               {isOpen && (
                 <ul className="mt-3 space-y-1 border-t border-line pt-2">
-                  {e.questions.map(({ id, question: q, preview, hasKey }, i) => (
+                  {e.questions.map(({ id, question: q, preview, hasKey, wordBank }, i) => (
                     <li key={id}>
                       {q.section && q.section !== e.questions[i - 1]?.question.section && <p className="mt-2 mb-1 px-1 text-xs font-medium text-muted">{markSymbols(q.section)}</p>}
                       <div className="flex items-start gap-2 rounded-md px-1 py-1.5 text-sm hover:bg-paper">
@@ -110,7 +110,7 @@ export function QuizSetup({ exams, preselected }: { exams: SetupExam[]; preselec
                           <span className="w-6 shrink-0 font-medium tabular-nums text-muted">{q.number}</span>
                           <span className="min-w-0 flex-1">
                             <span className="line-clamp-2">
-                              <Badge>{t(TYPE_LABELS[q.type])}</Badge> {preview}
+                              <Badge>{wordBank ? t(WORD_BANK_LABEL) : t(TYPE_LABELS[q.type])}</Badge> {preview}
                             </span>
                             {!hasKey && <span className="text-xs text-warn">{t('沒有標準答案')}</span>}
                           </span>

@@ -1,10 +1,11 @@
 'use client'
 
-import { sheetOf, type DraftExam } from '@exam/core'
+import { isWordBank, sheetOf, type DraftExam } from '@exam/core'
 import { FigureView } from '@/shared/FigureView'
 import { Markdown } from '@/shared/Markdown'
 import { markSymbols } from '@/shared/markSymbols'
 import { splitNumber } from '@/shared/questionNumber'
+import { WordBox } from '@/shared/WordBox'
 import { SheetHeader } from './SheetHeader'
 import { SheetQuestion, type SheetCopy } from './SheetQuestion'
 
@@ -44,7 +45,8 @@ export function sheetBlocks(
           <div className={main ? 'flex gap-1.5' : 'sheet-passage'}>
             {main ? <span className="num shrink-0 font-semibold">{main}.</span> : <p className="mb-1 text-[0.85em] font-semibold">{labels.range(parts[0]!.number, parts.at(-1)!.number)}</p>}
             <div className="min-w-0 flex-1 space-y-1.5">
-              <Markdown>{group.stem}</Markdown>
+              {group.stem.trim() && <Markdown>{group.stem}</Markdown>}
+              {isWordBank(group) && <WordBox options={group.options!} framed={false} />}
               {group.figures.map((f, i) => (
                 <FigureView key={i} figure={f} />
               ))}
@@ -54,12 +56,13 @@ export function sheetBlocks(
       })
     }
     const inGroup = q.groupId !== null && draft.groups.some((g) => g.id === q.groupId)
+    const wordBank = isWordBank(draft.groups.find((g) => g.id === q.groupId))
     blocks.push({
       key: `q-${index}`,
       question: index,
       node: (
         <div className={inGroup && splitNumber(q.number).part ? 'pl-5' : ''}>
-          <SheetQuestion q={q} copy={copy} onSpace={onSpace && ((lines) => onSpace(index, lines))} />
+          <SheetQuestion q={q} copy={copy} wordBank={wordBank} onSpace={onSpace && ((lines) => onSpace(index, lines))} />
         </div>
       ),
     })

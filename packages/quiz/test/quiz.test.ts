@@ -123,6 +123,13 @@ describe('buildItems', () => {
     group: null,
   }))
 
+  it('never shuffles a word box (選詞填空), printed once for all its sentences', () => {
+    const box = [{ label: 'A', content: 'x' }, { label: 'B', content: 'y' }]
+    const [item] = buildItems([{ questionId: 'w', question: sources[1]!.question, group: { stem: '', figures: [], options: box } }], { ...settings, shuffleOptions: true }, sequence(0, 0))
+    expect(item!.displayLabels).toEqual(['A', 'B'])
+    expect(item!.optionOrder).toEqual(['A', 'B'])
+  })
+
   it('keeps the paper order unless asked to shuffle', () => {
     const items = buildItems(sources, settings)
     expect(items.map((i) => i.questionId)).toEqual(['q0', 'q1'])

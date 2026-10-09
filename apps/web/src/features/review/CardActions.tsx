@@ -1,6 +1,6 @@
 'use client'
 
-import type { DraftQuestion } from '@exam/core'
+import { isWordBank, type DraftQuestion } from '@exam/core'
 import { useT } from '@/shared/i18n/client'
 import { IconEdit, IconGrip, IconIndent, IconLoader, IconOutdent, IconSplit, IconTrash } from '@/shared/icons'
 import { attachToPrevious, splitNumber, splitParts } from './parts'
@@ -30,6 +30,9 @@ export function CardActions({ d, q, index, busy, handle }: { d: Draft; q: DraftQ
   const t = useT()
   const chosen = d.selected === index
   const before = index > 0 ? d.draft.questions[index - 1]! : null
+  const boxOf = (x: DraftQuestion | null) => isWordBank(d.draft.groups.find((g) => g.id === x?.groupId))
+  const attach = before && boxOf(before) ? t('把第 {n} 題加入上方字庫', { n: q.number }) : t('把第 {n} 題設為第 {main} 題的小題', { n: q.number, main: splitNumber(before?.number ?? '').main })
+  const detach = boxOf(q) ? t('把第 {n} 題移出字庫', { n: q.number }) : t('把第 {n} 題移出小題', { n: q.number })
   return (
     <>
       {busy && (
@@ -43,12 +46,12 @@ export function CardActions({ d, q, index, busy, handle }: { d: Draft; q: DraftQ
         </button>
       )}
       {chosen && before && attachToPrevious(d.draft, index, '') && (
-        <button type="button" onClick={() => d.attachPart(index)} className={iconButton} aria-label={t('把第 {n} 題設為第 {main} 題的小題', { n: q.number, main: splitNumber(before.number).main })} title={t('把第 {n} 題設為第 {main} 題的小題', { n: q.number, main: splitNumber(before.number).main })}>
+        <button type="button" onClick={() => d.attachPart(index)} className={iconButton} aria-label={attach} title={attach}>
           <IconIndent size={15} />
         </button>
       )}
       {chosen && q.groupId && (
-        <button type="button" onClick={() => d.detachQuestion(index)} className={iconButton} aria-label={t('把第 {n} 題移出小題', { n: q.number })} title={t('把第 {n} 題移出小題', { n: q.number })}>
+        <button type="button" onClick={() => d.detachQuestion(index)} className={iconButton} aria-label={detach} title={detach}>
           <IconOutdent size={15} />
         </button>
       )}

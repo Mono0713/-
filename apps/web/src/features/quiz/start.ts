@@ -62,7 +62,7 @@ export async function sourcesOf(questions: BankQuestion[]): Promise<{ sources: Q
   const exams = new Map(await Promise.all(examIds.map(async (id) => [id, await bank.getExam(id)] as const)))
   const sources = questions.map((q): QuizSource => {
     const group = q.groupId ? exams.get(q.examId)?.groups.find((g) => g.id === q.groupId) : undefined
-    return { questionId: q.id, question: draftOf(q), group: group ? { stem: group.stem, figures: group.figures } : null }
+    return { questionId: q.id, question: draftOf(q), group: group ? { stem: group.stem, figures: group.figures, ...(group.options?.length ? { options: group.options } : {}) } : null }
   })
   return { sources, exams }
 }
