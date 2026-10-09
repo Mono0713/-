@@ -5,7 +5,7 @@ import { createProvider, extractDocument, keepEdits, ManualProvider, mergePages,
 import type { FileStore } from '@exam/files'
 import { cleanFigure, cropExamFigures, figureFromUpload, snapBoxesToText } from '@exam/figures'
 import { ingestBuffer, storedPage } from '@exam/ingest'
-import { WrittenExams } from './written.ts'
+import { WRITTEN, WrittenExams } from './written.ts'
 
 export interface UploadFile {
   name: string
@@ -72,6 +72,12 @@ export const ORIGINAL_DAYS = 30
 /** The error of a reading cut off when the server stopped (a restart or a deploy). */
 export const INTERRUPTED = 'Reading was interrupted because the server restarted'
 
+/** The error of putting the questions together (after every page was read) that never finished. */
+export const ASSEMBLE_TIMEOUT = 'Putting the questions together took too long'
+
+/** Longest wait for putting the questions together; it normally takes seconds. */
+const ASSEMBLE_MS = 5 * 60_000
+
 /**
  * Runs an uploaded exam through ingest, extraction and figure cropping, and keeps
  * its state in the bank. Knows nothing about the web: any front end calls these methods.
@@ -79,6 +85,8 @@ export const INTERRUPTED = 'Reading was interrupted because the server restarted
  */
 export class Importer {
   private readonly running = new Map<string, Promise<void>>()
+  /** Imports `resume` already picked up in this server. */
+  private readonly resumed = new Set<string>()
   /** Runs start only after interrupted imports were marked, so a new run is never mistaken for one. */
   private recovered: Promise<unknown> = Promise.resolve()
 
@@ -132,15 +140,52 @@ export class Importer {
   /** Runs extraction for the given pages (all when omitted) unless a run is already going. */
   async start(id: string, pages?: number[]): Promise<void> {
     await this.recovered
-    if (this.running.has(id)) return
     const imp = await this.require(id)
+    this.launch(id, pages?.length || imp.pageCount, () => this.run(id, pages))
+  }
+
+  /**
+   * An import left "processing" with no run going here (its run died, or the server restarted
+   * mid-run) is picked up again: when every page was already read, only the questions are put
+   * together again, without asking the model; otherwise it is marked interrupted, to be read again.
+   * Once per import per server, so a step that keeps failing is not retried forever. True when it resumed.
+   */
+  async resume(id: string): Promise<boolean> {
+    await this.recovered
+    const imp = await this.bank.getImport(id)
+    if (!imp || imp.provider === WRITTEN || this.running.has(id) || this.resumed.has(id)) return false
+    const interrupted = imp.status === 'failed' && imp.error === INTERRUPTED
+    if (imp.status !== 'processing' && !interrupted) return false
+    this.resumed.add(id)
+    const results = await this.pageResults(id)
+    const read = imp.pageCount > 0 && Array.from({ length: imp.pageCount }, (_, i) => i + 1).every((n) => results.some((r) => r.pageNumber === n && r.page))
+    if (read) {
+      this.launch(id, imp.pageCount, () => this.assembleSaved(id), imp.pageCount)
+      return true
+    }
+    if (imp.status === 'processing') await this.bank.updateImport(id, { status: 'failed', error: INTERRUPTED })
+    return false
+  }
+
+  /** Whether a run of this import is going in this server. */
+  isRunning(id: string): boolean {
+    return this.running.has(id)
+  }
+
+  /** Starts `work` in the background as the import's run; a failure marks the import failed. */
+  private launch(id: string, total: number, work: () => Promise<void>, done = 0): void {
+    if (this.running.has(id)) return
     // Mark it right away so a page rendered before rendering finishes already shows progress.
-    await this.bank.updateImport(id, { status: 'processing', error: null, progress: { done: 0, total: pages?.length || imp.pageCount } })
-    const run = this.run(id, pages)
-      .catch((err) => {
+    const run = this.bank
+      .updateImport(id, { status: 'processing', error: null, progress: { done, total } })
+      .then(work)
+      .catch(async (err) => {
         console.error(`Reading import ${id} failed:`, err)
-        return this.bank.updateImport(id, { status: 'failed', error: err instanceof Error ? err.message : String(err) })
+        const error = err instanceof Error ? err.message : String(err)
+        // A message the database will not take (an odd character, a huge text) must not leave it "processing".
+        await this.bank.updateImport(id, { status: 'failed', error }).catch(() => this.bank.updateImport(id, { status: 'failed', error: error.replace(/[^\x20-\x7e]/g, '').slice(0, 500) || 'failed' }))
       })
+      .catch((err) => console.error(`Marking import ${id} failed did not work:`, err))
       .finally(() => this.running.delete(id))
     this.running.set(id, run)
   }
@@ -341,6 +386,19 @@ export class Importer {
       await this.bank.updateImport(id, { status: 'failed', error: results.find((r) => r.error)?.error ?? 'No page could be read' })
       return
     }
+    await withTimeout(this.assemble(imp, doc, results, selected), ASSEMBLE_MS, ASSEMBLE_TIMEOUT)
+  }
+
+  /** Puts the questions together again from the pages already read, without the model. */
+  private async assembleSaved(id: string): Promise<void> {
+    const imp = await this.require(id)
+    const doc = await this.load(imp)
+    await withTimeout(this.assemble(imp, doc, await this.pageResults(id), doc.pages.map((p) => p.pageNumber)), ASSEMBLE_MS, ASSEMBLE_TIMEOUT)
+  }
+
+  /** Read pages → draft: merged questions, boxes on their text lines, figures cropped and stored. */
+  private async assemble(imp: ImportRecord, doc: IngestedDocument, results: PageResult[], selected: number[]): Promise<void> {
+    const id = imp.id
     // Reading more pages must not undo what the person already changed on the others.
     const previous = await this.bank.getDraft(id)
     const exam = previous ? keepEdits(previous, mergePages(imp.fileName, results), new Set(selected)) : mergePages(imp.fileName, results)
@@ -455,6 +513,13 @@ export function isDoubtful(page: ExtractedPage): boolean {
 function replaceRead(results: PageResult[], again: PageResult[]): PageResult[] {
   const better = new Map(again.filter((r) => r.page).map((r) => [r.pageNumber, r]))
   return results.map((r) => better.get(r.pageNumber) ?? r)
+}
+
+/** `work`, or `message` as an error once `ms` pass without it settling. */
+function withTimeout<T>(work: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const late = new Promise<never>((_, reject) => (timer = setTimeout(() => reject(new Error(message)), ms)))
+  return Promise.race([work, late]).finally(() => clearTimeout(timer))
 }
 
 /** Extension of an uploaded file for its stored copy; anything odd becomes ".bin". */

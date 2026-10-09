@@ -32,7 +32,7 @@ Packages never import from apps.
 | 匯入、上傳、拍照、掃描 | `app/imports/page.tsx` | `features/imports/UploadForm.tsx`, `Scan.tsx`, `shrink.ts` (image shrink before upload), `ImportList.tsx` |
 | AI 出題（放講義、筆記，選題型題數難度，AI 出成考卷） | `app/imports/generate`, then `app/imports/[id]` | `features/generate/GenerateForm.tsx` (`MaterialPicker.tsx`, `TypeCounts.tsx`), `plan.ts` (types offered, form → plan), `actions.ts` (`generateExam`, `retryGenerate`), `sections.ts` (一、單選題… order and numbers), `RetryGenerate.tsx`; material kept and run in the background by `packages/importer/src/written.ts` (`WRITTEN` provider, no pages, so the editor shows the A4 sheet; figures cropped from material pages); AI prompt and reply → draft `packages/grading/src/writer.ts`; model task `generating`, `writerFor` in `server/ai.ts`; failures `explainWriteError` in `imports/errors.ts` |
 | 手動模式（貼聊天 App 回覆） | `app/imports/[id]` | `features/imports/ManualPanel.tsx`, `packages/extraction/src/providers/manual.ts` |
-| 重新辨識、辨識失敗訊息 | `app/imports/[id]` | `features/imports/RerunForm.tsx`, `ImportError.tsx`, `errors.ts` |
+| 重新辨識、辨識失敗訊息、卡住的匯入自動接手 | `app/imports/[id]` | `features/imports/RerunForm.tsx`, `ImportError.tsx`, `errors.ts`; a run that died or was cut off resumes from saved page readings (`Importer.resume`, called by the page), assembly has a time limit (`ASSEMBLE_TIMEOUT`) |
 | 原檔保存 | `app/imports/[id]/original` | `features/imports/OriginalFiles.tsx`, `packages/importer` (expiry) |
 | 校對頁 / 編輯頁 (whole workspace) | `app/imports/[id]/page.tsx` | `features/review/ReviewEditor.tsx` (composes the pieces below) |
 | ↳ 工具列、題號列、存入題庫鈕 | | `review/ReviewToolbar.tsx`, `review/NumberBar.tsx` |

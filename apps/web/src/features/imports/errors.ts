@@ -16,6 +16,8 @@ export function explainError(raw: string, t: T): Explained {
   const text = raw.toLowerCase()
   if (text.includes('interrupted because the server restarted'))
     return { title: t('辨識到一半被中斷了'), detail: t('伺服器剛好重新啟動，這次的辨識沒有跑完。按重新辨識就會再讀一次。'), fix: 'retry' }
+  if (text.includes('putting the questions together took too long'))
+    return { title: t('整理題目時卡住了'), detail: t('頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。'), fix: 'retry' }
   if (text.startsWith('file store could not'))
     return { title: t('檔案沒有存進去'), detail: t('存放檔案的空間這次沒有回應，題目已經讀好了。過一下再按重新辨識。'), fix: 'retry' }
   if (/reply did not match the schema|unexpected token|is not valid json|json at position/.test(text))

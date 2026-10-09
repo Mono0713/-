@@ -234,4 +234,32 @@ describe('a server restart', () => {
     expect(await bank.getImport(cut.id)).toMatchObject({ status: 'failed', error: INTERRUPTED })
     expect((await bank.getImport(blank.id))?.status).toBe('review')
   })
+
+  it('puts the questions together again from pages already read, without the model', async () => {
+    const imp = await importer.create({ ownerId: 'local', files: [{ name: 'p1.png', data: await png() }], provider: 'fake' })
+    await importer.settled(imp.id)
+    // As if the server stopped after reading but before the draft was saved.
+    await bank.updateImport(imp.id, { status: 'failed', error: INTERRUPTED })
+    const calls: string[] = []
+    registerProvider('fake', () => ({ id: 'fake', model: 'fake-1', complete: async () => (calls.push('read'), Promise.reject(new Error('should not read'))) }))
+    try {
+      expect(await importer.resume(imp.id)).toBe(true)
+      await importer.settled(imp.id)
+      expect(await bank.getImport(imp.id)).toMatchObject({ status: 'review', error: null })
+      expect(calls).toEqual([])
+      // Only once per import, so a step that keeps failing is not retried forever.
+      await bank.updateImport(imp.id, { status: 'failed', error: INTERRUPTED })
+      expect(await importer.resume(imp.id)).toBe(false)
+    } finally {
+      registerProvider('fake', () => ({ id: 'fake', model: 'fake-1', complete: async () => ({ text: JSON.stringify(page([question()])), model: 'fake-1', usage: { inputTokens: 10, outputTokens: 5 } }) }))
+    }
+  })
+
+  it('marks a reading with no run going and unread pages as interrupted', async () => {
+    const cut = await bank.createImport({ ownerId: 'local', fileName: 'a.pdf', pageCount: 2, provider: 'fake', model: null })
+    await bank.updateImport(cut.id, { status: 'processing', progress: { done: 2, total: 2 } })
+    expect(importer.isRunning(cut.id)).toBe(false)
+    expect(await importer.resume(cut.id)).toBe(false)
+    expect(await bank.getImport(cut.id)).toMatchObject({ status: 'failed', error: INTERRUPTED })
+  })
 })

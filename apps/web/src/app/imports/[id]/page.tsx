@@ -24,8 +24,13 @@ export const dynamic = 'force-dynamic'
 export default async function ImportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { bank, importer } = services()
-  const imp = await ownedImport(id)
+  let imp = await ownedImport(id)
   if (!imp) notFound()
+  // A reading whose run is gone (it died, or the server restarted) is picked up again.
+  if ((imp.status === 'processing' && !importer.isRunning(id)) || imp.status === 'failed') {
+    await importer.resume(id)
+    imp = (await ownedImport(id)) ?? imp
+  }
   const t = await getT()
   const providers = await availableProviders(imp.ownerId)
   const current = { provider: imp.provider, model: imp.model }

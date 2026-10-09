@@ -1253,5 +1253,7 @@
   "到設定換一把金鑰或換一個模型，再按「再出一次」。": "Troque a chave ou o modelo em Configurações e toque em “Tentar de novo”.",
   "按「再出一次」試試；還是不行就到設定換一個模型。": "Toque em “Tentar de novo”; se falhar de novo, escolha outro modelo em Configurações.",
   "由上往下使用：上面那把額度用完、被限流或失效時，自動改用下一把。按住左邊的點點上下拖曳可調整順序。": "Usadas de cima para baixo: quando a de cima fica sem cota, é limitada ou deixa de funcionar, a próxima é usada. Arraste os pontos à esquerda para reordenar.",
-  "拖曳調整金鑰 …{hint} 的順序": "Arraste para reordenar a chave …{hint}"
+  "拖曳調整金鑰 …{hint} 的順序": "Arraste para reordenar a chave …{hint}",
+  "整理題目時卡住了": "Travou ao organizar as questões",
+  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Todas as páginas foram lidas, mas organizar as questões e salvar as imagens não terminou. Toque em Ler de novo para tentar outra vez."
 }
