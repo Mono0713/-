@@ -37,8 +37,9 @@ services:
         sync: false
       - key: SUPPORT_EMAIL
         sync: false
+      # Storage each account may keep, in MB.
       - key: STORAGE_QUOTA_MB
-        value: "1024"
+        value: "256"
       # Keep memory under the free plan's 512 MB: one image-processing thread, less malloc fragmentation.
       - key: VIPS_CONCURRENCY
         value: "1"
