@@ -1,14 +1,17 @@
 # Render Blueprint: New → Blueprint → pick this repository. Fill the secret values Render asks for
 # (see docs/HOSTING.md). The site needs a server that stays on, because reading and marking run in the background.
+# Free plan for trying it out: sleeps after 15 idle minutes (first visit then waits about a minute) and has 512 MB memory.
+# To go live, change `plan: free` to `plan: starter` (about US$7/month); nothing else needs to change.
 services:
   - type: web
     name: sheetloop
     runtime: node
-    plan: starter
+    plan: free
     region: singapore
-    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm --filter @exam/web build
-    preDeployCommand: pnpm db:migrate
-    startCommand: pnpm --filter @exam/web start
+    # Migrations run in the build because the free plan has no pre-deploy step. A failed migration fails the deploy.
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm db:migrate && pnpm --filter @exam/web build
+    # Smaller JS heap only at run time; the build keeps the default so it is not starved.
+    startCommand: NODE_OPTIONS=--max-old-space-size=384 pnpm --filter @exam/web start
     healthCheckPath: /login
     envVars:
       - key: NODE_VERSION
@@ -36,3 +39,8 @@ services:
         sync: false
       - key: STORAGE_QUOTA_MB
         value: "1024"
+      # Keep memory under the free plan's 512 MB: one image-processing thread, less malloc fragmentation.
+      - key: VIPS_CONCURRENCY
+        value: "1"
+      - key: MALLOC_ARENA_MAX
+        value: "2"
