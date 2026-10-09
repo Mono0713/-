@@ -7,3 +7,4 @@ export { AiTutor, MAX_MESSAGE, parseReply, type TutorQuestion } from './tutor.ts
 export { AiTranslator, FreeTranslator, parseTranslation, type Translation } from './translate.ts'
 export { PostgresTranslationCache, SqliteTranslationCache, translationKey, type TranslationCache, type TranslationEngine } from './translationCache.ts'
 export { AiSolver, type SolveRequest } from './solver.ts'
+export { AiExamWriter, toDraft, type Difficulty, type ExamPlan, type WriteRequest } from './writer.ts'

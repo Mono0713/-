@@ -5,6 +5,7 @@ import { matchingParts } from '@/features/questions/MatchingTable'
 import { FigureView, OptionPictures } from '@/shared/FigureView'
 import { useT } from '@/shared/i18n/client'
 import { Markdown } from '@/shared/Markdown'
+import { InlineText } from '@/shared/math/InlineText'
 import { splitNumber } from '@/shared/questionNumber'
 import { AnswerRoom } from './AnswerRoom'
 import { optionColumns } from './layout'
@@ -33,7 +34,7 @@ export function SheetQuestion({ q, copy, onSpace }: { q: DraftQuestion; copy: Sh
   const matching = q.type === 'matching' ? matchingParts(q.stem) : null
   const figures = questionFigures(q)
   // fill-in answers go into the text's own blanks; with no blank in the text they get a line underneath
-  const inlineBlank = (i: number) => <span className="sheet-blank">{teacher && q.type === 'fill_in_blank' ? <span className="sheet-key">{values[i] ?? ''}</span> : null}</span>
+  const inlineBlank = (i: number) => <span className="sheet-blank">{teacher && q.type === 'fill_in_blank' ? <span className="sheet-key"><InlineText text={values[i] ?? ''} /></span> : null}</span>
   const body = matching && matching.items.length ? matching.lead : q.stem
   const pictures = q.options.some((o) => optionFigures(q, o.label).length > 0)
   // the room to answer in: the person's own size (dragged on the preview), else what the type usually gets
@@ -55,7 +56,7 @@ export function SheetQuestion({ q, copy, onSpace }: { q: DraftQuestion; copy: Sh
           <ol className="space-y-1">
             {matching.items.map((item, i) => (
               <li key={i} className="flex gap-1.5">
-                <span className="sheet-bracket">{teacher ? <span className="sheet-key">{values[i] ?? ''}</span> : null}</span>
+                <span className="sheet-bracket">{teacher ? <span className="sheet-key"><InlineText text={values[i] ?? ''} /></span> : null}</span>
                 <Markdown className="min-w-0 flex-1">{item}</Markdown>
               </li>
             ))}
@@ -92,7 +93,7 @@ function AnswerLine({ label, answer }: { label: string; answer: string | null })
   return (
     <p className="flex items-end gap-1">
       <span>{label}</span>
-      <span className="sheet-blank !w-auto flex-1">{answer ? <span className="sheet-key">{answer}</span> : null}</span>
+      <span className="sheet-blank !w-auto flex-1">{answer ? <span className="sheet-key"><InlineText text={answer} /></span> : null}</span>
     </p>
   )
 }

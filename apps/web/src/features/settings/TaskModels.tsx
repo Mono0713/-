@@ -38,6 +38,7 @@ const GROUPS: { title: string; tasks: TaskInfo[] }[] = [
       { id: 'grading', label: msg('批改問答題'), hint: msg('程式比不出對錯的答案，交卷後由 AI 評分、寫評語。'), unit: msg('每次交卷'), units: 1 },
       { id: 'solving', label: msg('AI 作答'), hint: msg('替沒印答案的題目做出答案。'), unit: msg('每題'), units: 1 },
       { id: 'explaining', label: msg('AI 詳解'), hint: msg('替題目寫一步步的詳解。'), unit: msg('每題'), units: 1 },
+      { id: 'generating', label: msg('AI 出題'), hint: msg('從講義、筆記出一份考卷。'), unit: msg('每份考卷'), units: 1 },
       { id: 'tutoring', label: msg('問 AI'), hint: msg('看過答案後，和 AI 討論這一題。'), unit: msg('每則回覆'), units: 1 },
     ],
   },

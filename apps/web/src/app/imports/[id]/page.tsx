@@ -1,7 +1,8 @@
-import { BLANK, ORIGINAL_DAYS } from '@exam/importer'
+import { BLANK, ORIGINAL_DAYS, WRITTEN } from '@exam/importer'
 import { notFound } from 'next/navigation'
 import { AutoRefresh } from '@/features/imports/AutoRefresh'
 import { DeleteImportButton } from '@/features/imports/DeleteImportButton'
+import { RetryGenerate } from '@/features/generate/RetryGenerate'
 import { ImportError } from '@/features/imports/ImportError'
 import { StatusBadge } from '@/features/imports/ImportList'
 import { ManualPanel } from '@/features/imports/ManualPanel'
@@ -14,6 +15,7 @@ import { availableProviders, modelsByStrength } from '@/server/ai'
 import { ownedImport } from '@/server/owned'
 import type { T } from '@/shared/i18n/format'
 import { getT } from '@/shared/i18n/server'
+import { IconLoader } from '@/shared/icons'
 import { PencilProgress } from '@/shared/motion/PencilProgress'
 import { Card, PageHeader } from '@/shared/ui'
 
@@ -32,14 +34,36 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
       title={imp.title ?? imp.fileName}
       subtitle={
         <span className="inline-flex flex-wrap items-center gap-2">
-          <StatusBadge status={imp.status} />
-          {t('{n} 頁 · {provider}', { n: imp.pageCount, provider: providers.find((p) => p.id === imp.provider)?.label ?? imp.provider })}
-          {imp.model ? ` / ${imp.model}` : ''}
+          <StatusBadge status={imp.status} provider={imp.provider} />
+          {imp.provider === WRITTEN
+            ? t('AI 出題 · {model}', { model: imp.model ?? '' })
+            : t('{n} 頁 · {provider}', { n: imp.pageCount, provider: providers.find((p) => p.id === imp.provider)?.label ?? imp.provider })}
+          {imp.model && imp.provider !== WRITTEN ? ` / ${imp.model}` : ''}
         </span>
       }
       actions={<DeleteImportButton importId={id} />}
     />
   )
+
+  if (imp.status === 'processing' && imp.provider === WRITTEN) {
+    const firstPage = await importer.written.firstPage(imp)
+    return (
+      <div>
+        <AutoRefresh />
+        {header}
+        <Card className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center">
+          {firstPage && <Scan image={firstPage} pageNumber={1} />}
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <p className="flex items-center gap-2 font-medium">
+              {!firstPage && <IconLoader size={16} className="m-spin text-accent" aria-hidden />}
+              {t('AI 正在讀講義、出題…')}
+            </p>
+            <p className="text-sm text-muted">{t('出好的考卷會直接打開，可以先離開這個頁面。')}</p>
+          </div>
+        </Card>
+      </div>
+    )
+  }
 
   if (imp.status === 'processing') {
     const { done, total } = imp.progress
@@ -77,8 +101,8 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
       <div>
         {header}
         <Card className="space-y-4 p-6">
-          {imp.error ? <ImportError error={imp.error} /> : <p className="font-medium text-bad">{t('辨識失敗')}</p>}
-          <RerunForm importId={id} providers={providers} current={current} />
+          {imp.error ? <ImportError error={imp.error} writing={imp.provider === WRITTEN} /> : <p className="font-medium text-bad">{t('辨識失敗')}</p>}
+          {imp.provider === WRITTEN ? <RetryGenerate importId={id} /> : <RerunForm importId={id} providers={providers} current={current} />}
         </Card>
       </div>
     )
@@ -106,8 +130,8 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         models={await modelsByStrength(imp.ownerId, ['recognition', 'solving', 'explaining'])}
         heading={{
           title: imp.title ?? imp.fileName,
-          meta: imp.provider === BLANK ? t('從零建立') : t('{n} 頁 · {provider}', { n: imp.pageCount, provider: readBy(imp, results, t) }),
-          menu: imp.provider === BLANK
+          meta: imp.provider === BLANK ? t('從零建立') : imp.provider === WRITTEN ? t('AI 出題 · {model}', { model: imp.model ?? '' }) : t('{n} 頁 · {provider}', { n: imp.pageCount, provider: readBy(imp, results, t) }),
+          menu: imp.provider === BLANK || imp.provider === WRITTEN
             ? [<DeleteImportButton key="menu" importId={id} menu />]
             : [<OriginalFiles key="original" importId={id} state={original} />, <DeleteImportButton key="menu" importId={id} menu />],
         }}

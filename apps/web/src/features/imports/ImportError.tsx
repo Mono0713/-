@@ -1,11 +1,11 @@
 import Link from 'next/link'
 import { getT } from '@/shared/i18n/server'
-import { explainError } from './errors'
+import { explainError, explainWriteError } from './errors'
 
-/** A failed read in plain words, with the provider's own message folded away underneath. */
-export async function ImportError({ error }: { error: string }) {
+/** A failed read (or, with `writing`, a failed AI 出題) in plain words, with the provider's own message folded away underneath. */
+export async function ImportError({ error, writing = false }: { error: string; writing?: boolean }) {
   const t = await getT()
-  const { title, detail, fix } = explainError(error, t)
+  const { title, detail, fix } = (writing ? explainWriteError : explainError)(error, t)
   return (
     <div className="space-y-2">
       <p className="font-medium text-bad">{title}</p>

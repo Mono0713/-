@@ -2,7 +2,7 @@ import type { Strength as StrengthId, Task as TaskId, Tier } from '@exam/models'
 import { z } from 'zod'
 
 const Strength = z.enum(['save', 'balanced', 'best'] as const satisfies readonly StrengthId[])
-const Task = z.enum(['recognition', 'handwriting', 'grading', 'tutoring', 'translation', 'solving', 'explaining'] as const satisfies readonly TaskId[])
+const Task = z.enum(['recognition', 'handwriting', 'grading', 'tutoring', 'translation', 'solving', 'explaining', 'generating'] as const satisfies readonly TaskId[])
 const TierEnum = z.enum(['fast', 'balanced', 'best'] as const satisfies readonly Tier[])
 const Choice = z.object({ provider: z.string(), model: z.string() })
 
