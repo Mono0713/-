@@ -14,6 +14,7 @@ export const japanese: Sample = {
       text: raw('<u>先生</u>は きょうしつに います。'), // i18n-ignore
       options: [raw('せんせい'), raw('せいせん'), raw('さきせい'), raw('せんせ')], // i18n-ignore
       answer: 0,
+      why: msg('先生讀作せんせい，意思是「老師」。'),
     },
     {
       section: msg('二、填入適當的助詞'),

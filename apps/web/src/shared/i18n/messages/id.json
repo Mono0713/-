@@ -1281,10 +1281,7 @@
   "派給全班": "Bagikan ke seluruh kelas",
   "分享連結或派成作業，交卷後成績和每題得分率自動整理好。": "Bagikan tautan atau jadikan tugas. Setelah dikumpulkan, nilai dan tingkat benar tiap soal langsung tersusun.",
   "{n} / {total} 人已交卷": "{n} / {total} sudah mengumpulkan",
-  "答：{answer}": "Jawab: {answer}",
-  "{n} 個細菌": "{n} bakteri",
   "手寫的計算和申論也看得懂，用紅筆寫下評語和分數。": "Tulisan tangan berupa hitungan dan esai juga terbaca, lalu komentar dan nilai ditulis dengan pena merah.",
-  "步驟清楚，答對了！": "Langkahnya jelas, benar!",
   "隨時練習": "Latihan kapan saja",
   "點一下就知道對錯和詳解；看不懂的外文題目，一鍵翻譯。": "Sekali ketuk langsung tahu benar atau salah beserta pembahasannya; soal berbahasa asing diterjemahkan sekali ketuk.",
   "校對後存進題庫": "Periksa, lalu simpan ke bank soal",
@@ -1303,5 +1300,12 @@
   "看介紹影片": "Tonton video",
   "第 {from}–{to} / {total} 題": "Soal {from}–{to} dari {total}",
   "第 {from}–{to} 題": "Soal {from}–{to}",
-  "答對 {n} / {total} 題": "{n} dari {total} benar"
+  "答對 {n} / {total} 題": "{n} dari {total} benar",
+  "寫得很清楚，答對了！": "Ditulis dengan jelas, benar!",
+  "HCl 在水中幾乎完全解離，是強酸；醋酸和碳酸是弱酸，氨是弱鹼。": "HCl hampir terurai sempurna dalam air sehingga asam kuat; asam asetat dan karbonat asam lemah, amonia basa lemah.",
+  "需求增加而供給不變，需求線往右移，均衡價格上升。": "Permintaan naik sementara penawaran tetap, kurva permintaan bergeser ke kanan sehingga harga keseimbangan naik.",
+  "ancient 是「古老的」，和 thousands of years ago 對得上。": "“Ancient” berarti “kuno”, cocok dengan “thousands of years ago”.",
+  "先生讀作せんせい，意思是「老師」。": "先生 dibaca せんせい, artinya “guru”.",
+  "{eq}，所以 x = 2 或 x = 3。": "{eq}, jadi x = 2 atau x = 3.",
+  "range(1, 4) 是 1、2、3，加起來是 6。": "range(1, 4) adalah 1, 2, 3, jumlahnya 6."
 }

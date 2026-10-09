@@ -18,6 +18,7 @@ export const math: Sample = {
         { key: msg('{a} 或 {b}'), values: { a: '$x=-1$', b: '$x=-6$' } },
       ],
       answer: 1,
+      why: { key: msg('{eq}，所以 x = 2 或 x = 3。'), values: { eq: '$(x-2)(x-3)=0$' } },
     },
     {
       section: msg('二、填充題'),

@@ -13,6 +13,7 @@ export const biology: Sample = {
       text: msg('原核生物具有下列哪一種構造？'),
       options: [msg('核膜'), msg('70S 核糖體'), msg('粒線體'), msg('線狀染色體')],
       answer: 1,
+      why: msg('原核生物沒有核膜和粒線體，但有 70S 核糖體。'),
     },
     {
       section: msg('二、是非題'),

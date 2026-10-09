@@ -1281,10 +1281,7 @@
   "派給全班": "Giao cho cả lớp",
   "分享連結或派成作業，交卷後成績和每題得分率自動整理好。": "Chia sẻ liên kết hoặc giao làm bài tập. Nộp bài xong, điểm và tỉ lệ đúng từng câu được tổng hợp sẵn.",
   "{n} / {total} 人已交卷": "{n} / {total} đã nộp",
-  "答：{answer}": "Đáp: {answer}",
-  "{n} 個細菌": "{n} vi khuẩn",
   "手寫的計算和申論也看得懂，用紅筆寫下評語和分數。": "Đọc được cả bài giải và bài luận viết tay, ghi nhận xét và điểm bằng bút đỏ.",
-  "步驟清楚，答對了！": "Các bước rõ ràng, đúng rồi!",
   "隨時練習": "Luyện tập mọi lúc",
   "點一下就知道對錯和詳解；看不懂的外文題目，一鍵翻譯。": "Chạm một lần là biết đúng sai và lời giải; câu hỏi tiếng nước ngoài dịch chỉ với một chạm.",
   "校對後存進題庫": "Kiểm tra rồi lưu vào ngân hàng đề",
@@ -1303,5 +1300,12 @@
   "看介紹影片": "Xem video giới thiệu",
   "第 {from}–{to} / {total} 題": "Câu {from}–{to} / {total}",
   "第 {from}–{to} 題": "Câu {from}–{to}",
-  "答對 {n} / {total} 題": "Đúng {n} / {total} câu"
+  "答對 {n} / {total} 題": "Đúng {n} / {total} câu",
+  "寫得很清楚，答對了！": "Viết rất rõ ràng, đúng rồi!",
+  "HCl 在水中幾乎完全解離，是強酸；醋酸和碳酸是弱酸，氨是弱鹼。": "HCl phân li gần như hoàn toàn trong nước nên là axit mạnh; axit axetic và cacbonic là axit yếu, amoniac là bazơ yếu.",
+  "需求增加而供給不變，需求線往右移，均衡價格上升。": "Cầu tăng còn cung không đổi, đường cầu dịch sang phải nên giá cân bằng tăng.",
+  "ancient 是「古老的」，和 thousands of years ago 對得上。": "“Ancient” nghĩa là “cổ xưa”, khớp với “thousands of years ago”.",
+  "先生讀作せんせい，意思是「老師」。": "先生 đọc là せんせい, nghĩa là “giáo viên”.",
+  "{eq}，所以 x = 2 或 x = 3。": "{eq}, nên x = 2 hoặc x = 3.",
+  "range(1, 4) 是 1、2、3，加起來是 6。": "range(1, 4) là 1, 2, 3, cộng lại bằng 6."
 }

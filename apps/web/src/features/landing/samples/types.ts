@@ -29,7 +29,7 @@ interface Base {
 /** One question of a sample sheet, with the student's pencil answer that the scan wipes off. */
 export type SampleQuestion = Base &
   (
-    | { kind: 'choice'; text: Text; code?: string; options: Text[]; answer: number }
+    | { kind: 'choice'; text: Text; code?: string; options: Text[]; answer: number; /** shown when it is practised (product tour) */ why: Text }
     | { kind: 'blank'; text: Text; pencil: Text }
     | { kind: 'judge'; text: Text; table?: Table; answer: boolean }
     | { kind: 'match'; items: Text[]; options: Text[]; answers: number[] }

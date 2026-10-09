@@ -1,6 +1,6 @@
 import { IconClass } from '@/shared/icons'
 import { useT } from '@/shared/i18n/client'
-import { biology } from '../samples/biology'
+import type { Sample } from '../samples/types'
 import { mix, ramp, rise } from './tween'
 import { SceneLayout } from './SceneLayout'
 
@@ -9,7 +9,7 @@ const BANDS = [1, 2, 4, 9, 8, 6]
 const BY_QUESTION = [93, 86, 61]
 
 /** The class's results filling in as the sheets come back: the count, the average, the spread and the rate per question. */
-export function ClassScene({ s, tall }: { s: number; tall: boolean }) {
+export function ClassScene({ s, tall, sample }: { s: number; tall: boolean; sample: Sample }) {
   const t = useT()
   const counted = ramp(s, 0.5, 1.4)
   const most = Math.max(...BANDS)
@@ -18,7 +18,7 @@ export function ClassScene({ s, tall }: { s: number; tall: boolean }) {
       <div className="absolute inset-x-2 top-6 rounded-2xl bg-surface p-5 shadow-sheet">
         <p className="flex items-center gap-2 text-[15px] font-bold">
           <IconClass size={17} aria-hidden className="text-accent" />
-          {t(biology.subject)} {t(biology.exam)}
+          {t(sample.subject)} {t(sample.exam)}
         </p>
         <p className="mt-1 text-sm text-muted">{t('{n} / {total} 人已交卷', { n: Math.round(mix(0, 30, counted)), total: 30 })}</p>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">

@@ -14,6 +14,7 @@ export const programming: Sample = {
       code: 'total = 0\nfor i in range(1, 4):\n    total += i\nprint(total)',
       options: [raw('3'), raw('4'), raw('6'), raw('10')],
       answer: 2,
+      why: msg('range(1, 4) 是 1、2、3，加起來是 6。'),
     },
     {
       section: msg('二、填充題'),
