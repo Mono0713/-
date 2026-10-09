@@ -1251,5 +1251,7 @@
   "AI 這次沒有把考卷出好": "Lần này AI chưa ra được đề",
   "過一下再按「再出一次」通常就好了。": "Đợi một chút rồi bấm “Ra đề lại”, thường sẽ được.",
   "到設定換一把金鑰或換一個模型，再按「再出一次」。": "Đổi khóa hoặc mô hình trong Cài đặt rồi bấm “Ra đề lại”.",
-  "按「再出一次」試試；還是不行就到設定換一個模型。": "Bấm “Ra đề lại”; nếu vẫn lỗi, chọn mô hình khác trong Cài đặt."
+  "按「再出一次」試試；還是不行就到設定換一個模型。": "Bấm “Ra đề lại”; nếu vẫn lỗi, chọn mô hình khác trong Cài đặt.",
+  "由上往下使用：上面那把額度用完、被限流或失效時，自動改用下一把。按住左邊的點點上下拖曳可調整順序。": "Dùng từ trên xuống: khi khóa phía trên hết hạn mức, bị giới hạn hoặc mất hiệu lực, khóa tiếp theo sẽ được dùng. Kéo dấu chấm bên trái để đổi thứ tự.",
+  "拖曳調整金鑰 …{hint} 的順序": "Kéo để đổi thứ tự khóa …{hint}"
 }

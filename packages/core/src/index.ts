@@ -5,4 +5,4 @@ export { defaultPrintedText, optionFigures, questionFigures } from './figures.ts
 export { untangleBoxes } from './boxes.ts'
 export { isPickAnswer, matchingItemCount } from './matching.ts'
 export { needsAnswer, needsExplanation, SOLVABLE } from './answers.ts'
-export { keySetId, keyTrouble, withKeys } from './keys.ts'
+export { KEY_REST_MS, keyName, keyTrouble, withKeys } from './keys.ts'

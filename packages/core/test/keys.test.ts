@@ -1,19 +1,30 @@
 import { describe, expect, it } from 'vitest'
-import { keyTrouble, withKeys } from '../src/keys.ts'
+import { KEY_REST_MS, keyTrouble, withKeys } from '../src/keys.ts'
 
 const status = (code: number, message = 'error') => Object.assign(new Error(message), { status: code })
 
 describe('withKeys', () => {
-  it('moves to the next key when one is out of quota, and starts from it next time', async () => {
+  it('uses the top key, moves down when it is out of quota, and lets it rest before it leads again', async () => {
+    let clock = 0
+    const now = () => clock
     const used: string[] = []
+    let aEmpty = true
     const call = async (key: string) => {
       used.push(key)
-      if (key === 'a') throw status(429)
+      if (key === 'a' && aEmpty) throw status(429)
       return key
     }
-    expect(await withKeys('quota', ['a', 'b', 'c'], call)).toBe('b')
-    expect(await withKeys('quota', ['a', 'b', 'c'], call)).toBe('b')
+    const names = ['q:a', 'q:b', 'q:c']
+    expect(await withKeys(names, ['a', 'b', 'c'], call, now)).toBe('b')
+    expect(await withKeys(names, ['a', 'b', 'c'], call, now)).toBe('b')
     expect(used).toEqual(['a', 'b', 'b'])
+    clock += KEY_REST_MS + 1
+    aEmpty = false
+    expect(await withKeys(names, ['a', 'b', 'c'], call, now)).toBe('a')
+  })
+
+  it('follows the order it is given', async () => {
+    expect(await withKeys(['o:b', 'o:a'], ['b', 'a'], async (k) => k)).toBe('b')
   })
 
   it('throws a request error at once instead of trying every key', async () => {
@@ -22,12 +33,12 @@ describe('withKeys', () => {
       used.push(key)
       throw status(400, 'bad image')
     }
-    await expect(withKeys('bad', ['a', 'b'], call)).rejects.toThrow('bad image')
+    await expect(withKeys(['x:a', 'x:b'], ['a', 'b'], call)).rejects.toThrow('bad image')
     expect(used).toEqual(['a'])
   })
 
   it('throws the last error when every key is refused', async () => {
-    await expect(withKeys('all', ['a', 'b'], async (k) => Promise.reject(status(401, `no ${k}`)))).rejects.toThrow('no b')
+    await expect(withKeys(['r:a', 'r:b'], ['a', 'b'], async (k) => Promise.reject(status(401, `no ${k}`)))).rejects.toThrow('no b')
   })
 })
 

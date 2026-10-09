@@ -1251,5 +1251,7 @@
   "AI 這次沒有把考卷出好": "The AI could not write the exam this time",
   "過一下再按「再出一次」通常就好了。": "Wait a moment and press “Try again”; that usually works.",
   "到設定換一把金鑰或換一個模型，再按「再出一次」。": "Change the key or the model in Settings, then press “Try again”.",
-  "按「再出一次」試試；還是不行就到設定換一個模型。": "Press “Try again”; if it still fails, pick another model in Settings."
+  "按「再出一次」試試；還是不行就到設定換一個模型。": "Press “Try again”; if it still fails, pick another model in Settings.",
+  "由上往下使用：上面那把額度用完、被限流或失效時，自動改用下一把。按住左邊的點點上下拖曳可調整順序。": "Used from the top down: when the one above runs out of quota, is rate limited or stops working, the next one is used. Drag the dots on the left to reorder.",
+  "拖曳調整金鑰 …{hint} 的順序": "Drag to reorder key …{hint}"
 }

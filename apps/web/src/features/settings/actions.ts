@@ -3,7 +3,7 @@
 import { randomBytes } from 'node:crypto'
 import { listModels } from '@exam/extraction'
 import { PICTURE_TASKS, type Strength, type Task, type Tier } from '@exam/models'
-import { keysOf, type CustomProvider, type Settings } from '@exam/settings'
+import { keySlots, keysOf, type CustomProvider, type Settings } from '@exam/settings'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { authEnabled, currentOwner, currentUser, services } from '@/server/context'
@@ -87,6 +87,16 @@ export async function removeApiKey(provider: string, slot: string = provider) {
   const apiKeys = { ...s.apiKeys }
   delete apiKeys[slot]
   await save({ apiKeys })
+}
+
+/** Saves the order of a provider's keys (top one used first), given as their slots. */
+export async function reorderApiKeys(provider: string, slots: string[]) {
+  const s = await mine()
+  const mineSlots = new Set(keySlots(s.apiKeys, provider).map(([slot]) => slot))
+  const ordered = [...new Set(slots)].filter((slot) => mineSlots.has(slot))
+  if (ordered.length !== mineSlots.size) return
+  const others = Object.entries(s.apiKeys).filter(([slot]) => !mineSlots.has(slot))
+  await save({ apiKeys: Object.fromEntries([...others, ...ordered.map((slot) => [slot, s.apiKeys[slot]!])]) })
 }
 
 /** Asks the provider which models the key can use now, so new ones show up in the lists. */

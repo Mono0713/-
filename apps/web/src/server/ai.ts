@@ -2,7 +2,7 @@ import { DEFAULT_MODELS, type ModelTier } from '@exam/extraction'
 import { AUTO } from '@exam/importer'
 import { AiExamWriter, AiSolver, AiTeacher, AiTranslator, FreeTranslator, AiTutor, createTextModel, type TextModel, type TextModelConfig } from '@exam/grading'
 import { BUILTIN_LABELS, BUILTIN_MODELS, route, STRENGTHS, type ModelChoice, type ProviderInfo, type Route, type Strength, type Task } from '@exam/models'
-import { keySetId, withKeys } from '@exam/core'
+import { keyName, withKeys } from '@exam/core'
 import { keysOf, type Settings } from '@exam/settings'
 import { authEnabled } from './auth'
 import { services } from './context'
@@ -243,11 +243,11 @@ async function chain(s: Settings, ownerId: string, task: Task, choices: ModelCho
   }
 }
 
-/** A text model on every key saved for the service, moving to the next key when one is out of quota or refused. */
+/** A text model on every key saved for the service, top first, moving down when one is out of quota or refused. */
 function withEachKey(provider: string, keys: string[], config: Omit<TextModelConfig, 'apiKey'>): TextModel {
   const fallback = envKey(provider)
   const each = (keys.length ? keys : [fallback ?? '']).map((apiKey) => createTextModel(provider, { ...config, apiKey }))
   if (each.length === 1) return each[0]!
-  const id = keySetId(provider, keys)
-  return { provider: each[0]!.provider, model: each[0]!.model, complete: (system, prompt, images) => withKeys(id, each, (m) => m.complete(system, prompt, images)) }
+  const names = keys.map((k) => keyName(provider, k))
+  return { provider: each[0]!.provider, model: each[0]!.model, complete: (system, prompt, images) => withKeys(names, each, (m) => m.complete(system, prompt, images)) }
 }

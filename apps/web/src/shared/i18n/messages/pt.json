@@ -1251,5 +1251,7 @@
   "AI 這次沒有把考卷出好": "A IA não conseguiu criar a prova desta vez",
   "過一下再按「再出一次」通常就好了。": "Espere um pouco e toque em “Tentar de novo”; costuma resolver.",
   "到設定換一把金鑰或換一個模型，再按「再出一次」。": "Troque a chave ou o modelo em Configurações e toque em “Tentar de novo”.",
-  "按「再出一次」試試；還是不行就到設定換一個模型。": "Toque em “Tentar de novo”; se falhar de novo, escolha outro modelo em Configurações."
+  "按「再出一次」試試；還是不行就到設定換一個模型。": "Toque em “Tentar de novo”; se falhar de novo, escolha outro modelo em Configurações.",
+  "由上往下使用：上面那把額度用完、被限流或失效時，自動改用下一把。按住左邊的點點上下拖曳可調整順序。": "Usadas de cima para baixo: quando a de cima fica sem cota, é limitada ou deixa de funcionar, a próxima é usada. Arraste os pontos à esquerda para reordenar.",
+  "拖曳調整金鑰 …{hint} 的順序": "Arraste para reordenar a chave …{hint}"
 }

@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { useT } from '@/shared/i18n/client'
-import { IconKey, IconPlus, IconTrash } from '@/shared/icons'
+import { IconKey, IconPlus } from '@/shared/icons'
 import { useRemoval } from '@/shared/removal'
 import { Button, inputClass } from '@/shared/ui'
-import { removeApiKey, saveApiKey } from './actions'
+import { saveApiKey } from './actions'
+import { KeyRows } from './KeyRows'
 
 /** A saved key as the browser sees it: where it is stored and its last four characters. */
 export interface SavedKey {
@@ -14,12 +15,12 @@ export interface SavedKey {
 }
 
 /**
- * The API keys of one service: one line per key with its last characters and a delete button, and
- * 加一把金鑰 to add another. With several, calls move to the next key when one runs out or is refused.
+ * The API keys of one service (`KeyRows`, top one used first, dragged into order) and 加一把金鑰 to add
+ * another. With several, calls move down to the next key when one runs out or is refused.
  */
 export function ApiKeys({ provider, name, keys, fromEnv = false, onAdded }: { provider: string; name: string; keys: SavedKey[]; fromEnv?: boolean; onAdded?: (note?: string) => void }) {
   const t = useT()
-  const { remove, isRemoved } = useRemoval()
+  const { isRemoved } = useRemoval()
   const shown = keys.filter((k) => !isRemoved(`key:${k.slot}`))
   const [adding, setAdding] = useState(!shown.length && !fromEnv)
   const [key, setKey] = useState('')
@@ -30,22 +31,7 @@ export function ApiKeys({ provider, name, keys, fromEnv = false, onAdded }: { pr
   return (
     <div className="space-y-2">
       {shown.length > 0 ? (
-        <ul className="space-y-1">
-          {shown.map((k) => (
-            <li key={k.slot} className="flex items-center gap-2 text-sm text-muted">
-              <IconKey size={14} aria-hidden className="shrink-0" />
-              <span className="font-mono text-xs">{k.hint ? `…${k.hint}` : t('已設定金鑰')}</span>
-              <button
-                type="button"
-                onClick={() => remove({ id: `key:${k.slot}`, note: t('已移除 {name} 的金鑰', { name }), commit: () => removeApiKey(provider, k.slot) })}
-                aria-label={t('移除金鑰 …{hint}', { hint: k.hint ?? '' })}
-                className="m-press grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-bad-soft hover:text-bad"
-              >
-                <IconTrash size={15} />
-              </button>
-            </li>
-          ))}
-        </ul>
+        <KeyRows provider={provider} name={name} keys={shown} />
       ) : (
         fromEnv && <p className="text-sm text-muted">{t('使用 .env 裡的金鑰')}</p>
       )}
@@ -91,7 +77,7 @@ export function ApiKeys({ provider, name, keys, fromEnv = false, onAdded }: { pr
         </button>
       )}
       {error && <p className="text-sm text-bad">{error}</p>}
-      {shown.length > 0 && <p className="text-xs text-muted">{t('可以加好幾把：一把額度用完、被限流或失效時，會自動改用下一把。')}</p>}
+      {shown.length > 0 && <p className="text-xs text-muted">{shown.length > 1 ? t('由上往下使用：上面那把額度用完、被限流或失效時，自動改用下一把。按住左邊的點點上下拖曳可調整順序。') : t('可以加好幾把：一把額度用完、被限流或失效時，會自動改用下一把。')}</p>}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { keySetId, withKeys } from '@exam/core'
+import { keyName, withKeys } from '@exam/core'
 import type { VisionProvider } from './provider.ts'
 import { ClaudeProvider } from './providers/claude.ts'
 import { GeminiProvider } from './providers/gemini.ts'
@@ -52,11 +52,11 @@ export function createProvider(id: string, config: ProviderConfig = {}): VisionP
   const keys = config.apiKeys ?? []
   if (keys.length > 1) {
     const each = keys.map((apiKey) => createProvider(id, { ...config, apiKey, apiKeys: undefined }))
-    const setId = keySetId(id, keys)
+    const names = keys.map((k) => keyName(id, k))
     return {
       id: each[0]!.id,
       model: each[0]!.model,
-      complete: (request) => withKeys(setId, each, (p) => p.complete(request)),
+      complete: (request) => withKeys(names, each, (p) => p.complete(request)),
       invalidReply: () => each.forEach((p) => p.invalidReply?.()),
     }
   }
