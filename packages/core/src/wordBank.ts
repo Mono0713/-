@@ -67,7 +67,31 @@ export function withWordBanks<T extends Pick<DraftExam, 'groups' | 'questions'>>
     i = end
   }
 
+  // A sentence carried over onto the next page joins the box above it: each page is read on its own,
+  // so its reader never saw the box and returns the sentence alone, without options.
+  for (let i = 1; i < questions.length; i++) {
+    const prev = questions[i - 1]!
+    const q = questions[i]!
+    if (!inBank(prev) || (q.groupId && groups.some((g) => g.id === q.groupId)) || !continues(prev, q)) continue
+    questions = questions.map((x, k) => (k === i ? { ...x, groupId: prev.groupId } : x))
+    changed = true
+  }
+
   return syncWordBanks(changed ? { ...draft, groups, questions } : draft)
+}
+
+/**
+ * Whether `q`, read with no box of its own, is the next sentence of the box `prev` belongs to: the next
+ * number in the same section (or at the top of the next page), one blank, and no options or the box's own.
+ */
+function continues(prev: DraftQuestion, q: DraftQuestion): boolean {
+  if (q.type !== 'fill_in_blank' && q.type !== 'single_choice' && q.type !== 'short_answer') return false
+  // a new page may name the section a little differently; on the same page a new heading ends the box
+  const newPage = Math.min(...q.locations.map((l) => l.pageNumber)) > Math.max(...prev.locations.map((l) => l.pageNumber))
+  if (q.section !== null && q.section !== prev.section && !newPage) return false
+  if (!/^\d+$/.test(prev.number) || q.number !== String(Number(prev.number) + 1)) return false
+  if ((q.stem.replace(/\\_/g, '_').match(/_{2,}/g)?.length ?? 0) !== 1) return false
+  return q.options.length === 0 || sameOptions(q.options, prev.options)
 }
 
 /** Every question of a word box carries the box as its options; the same draft when they already do. */
