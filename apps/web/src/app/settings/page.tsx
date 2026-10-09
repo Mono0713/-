@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { formatUsd } from '@exam/models'
-import { LOCALES, publicView } from '@exam/settings'
+import { keySlots, LOCALES, publicView } from '@exam/settings'
 import { monthStart, spend } from '@exam/usage'
 import { SettingsForm } from '@/features/settings/SettingsForm'
 import { ProfileCard } from '@/features/settings/ProfileCard'
@@ -41,6 +41,7 @@ export default async function SettingsPage() {
   const routing = providersOf(saved)
   const builtin = routing.filter((p) => !p.id.startsWith('c-'))
   const sources = await Promise.all(builtin.map((p) => keySource(owner, p.id)))
+  const savedKeys = (provider: string) => keySlots(settings.apiKeys, provider).map(([slot, k]) => ({ slot, hint: k.hint }))
   const month = thisMonth.length ? spend(thisMonth, routing) : null
   return (
     <div className="mx-auto max-w-3xl">
@@ -49,12 +50,12 @@ export default async function SettingsPage() {
       <SettingsForm
         locales={[...LOCALES]}
         locale={locale}
-        builtin={builtin.map((p, i) => ({ id: p.id, label: p.label, source: sources[i]!, hint: settings.apiKeys[p.id]?.hint ?? null }))}
+        builtin={builtin.map((p, i) => ({ id: p.id, label: p.label, source: sources[i]!, keys: savedKeys(p.id) }))}
         custom={saved.customProviders.map((c) => ({
           id: c.id,
           name: c.name,
           baseUrl: c.baseUrl,
-          keyHint: settings.apiKeys[c.id] ? (settings.apiKeys[c.id]!.hint ?? '') : null,
+          keys: savedKeys(c.id),
           models: c.models,
           known: saved.knownModels[c.id] ?? [],
         }))}

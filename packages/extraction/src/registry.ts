@@ -1,3 +1,4 @@
+import { keySetId, withKeys } from '@exam/core'
 import type { VisionProvider } from './provider.ts'
 import { ClaudeProvider } from './providers/claude.ts'
 import { GeminiProvider } from './providers/gemini.ts'
@@ -7,6 +8,8 @@ import { OpenAIProvider } from './providers/openai.ts'
 
 export interface ProviderConfig {
   apiKey?: string
+  /** Several keys for the same service: tried in turn when one is out of quota or refused (see `withKeys`). */
+  apiKeys?: string[]
   model?: string
   /** An OpenAI-compatible service at this address instead of the provider's own API. */
   baseUrl?: string
@@ -46,6 +49,18 @@ export function providerIds(): string[] {
  * model can be swapped without a code change.
  */
 export function createProvider(id: string, config: ProviderConfig = {}): VisionProvider {
+  const keys = config.apiKeys ?? []
+  if (keys.length > 1) {
+    const each = keys.map((apiKey) => createProvider(id, { ...config, apiKey, apiKeys: undefined }))
+    const setId = keySetId(id, keys)
+    return {
+      id: each[0]!.id,
+      model: each[0]!.model,
+      complete: (request) => withKeys(setId, each, (p) => p.complete(request)),
+      invalidReply: () => each.forEach((p) => p.invalidReply?.()),
+    }
+  }
+  if (keys.length === 1) config = { ...config, apiKey: keys[0] }
   if (config.baseUrl && id !== 'manual') return new OpenAICompatibleProvider({ id, baseUrl: config.baseUrl, apiKey: config.apiKey, model: config.model })
   const factory = factories.get(id)
   if (!factory) throw new Error(`Unknown provider "${id}". Available: ${providerIds().join(', ')}`)
