@@ -1,4 +1,4 @@
-import { untangleBoxes, withWordBanks, type DraftExam, type DraftFigure, type DraftQuestion, type ExamMeta, type ExtractedQuestion, type Figure } from '@exam/core'
+import { untangleBoxes, withExamTitle, withWordBanks, type DraftExam, type DraftFigure, type DraftQuestion, type ExamMeta, type ExtractedQuestion, type Figure } from '@exam/core'
 import type { PageResult } from './extract.ts'
 
 /**
@@ -51,7 +51,7 @@ export function mergePages(fileName: string, results: PageResult[]): DraftExam {
   }
   exam.questions = untangleBoxes(exam.questions)
   // A word box (選詞填空) hands its list to each of its sentences, also when a model repeated it on each one.
-  return withWordBanks(exam)
+  return withWordBanks({ ...exam, meta: withExamTitle(meta) })
 }
 
 function toDraft(q: ExtractedQuestion, groupId: string | null, location: DraftQuestion['locations'][number], figures: DraftFigure[]): DraftQuestion {

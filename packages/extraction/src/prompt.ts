@@ -41,6 +41,7 @@ Quality
 - confidence is "high" only when every character is legible. Use "medium" or "low" and add an entry to "issues" whenever you guessed a symbol, a word is unreadable, handwriting covers printed text, or part of the question is cut off.
 - Never invent content that is not on the page.
 - "meta" describes the exam as printed on this page (title, subject, institution, term, main language); use null for anything not shown.
+- meta.title names this exam so it can be told apart from others, e.g. "實用英文(一) 期末考" or "Grade 8 Science Unit 3 Quiz". When the printed heading only names the form (考試命題紙, 試題卷, 答案卷, "Exam paper"), build the title from the subject and the exam instead of copying the form name.
 `
 
 /** Names the model understands for the interface languages; any other value is passed through as is. */

@@ -1300,5 +1300,8 @@
   "播放": "Phát",
   "結尾": "Kết",
   "開頭": "Mở đầu",
-  "看介紹影片": "Xem video giới thiệu"
+  "看介紹影片": "Xem video giới thiệu",
+  "第 {from}–{to} / {total} 題": "Câu {from}–{to} / {total}",
+  "第 {from}–{to} 題": "Câu {from}–{to}",
+  "答對 {n} / {total} 題": "Đúng {n} / {total} câu"
 }

@@ -1300,5 +1300,8 @@
   "播放": "Play",
   "結尾": "Ending",
   "開頭": "Opening",
-  "看介紹影片": "Watch the tour"
+  "看介紹影片": "Watch the tour",
+  "第 {from}–{to} / {total} 題": "Questions {from}–{to} of {total}",
+  "第 {from}–{to} 題": "Questions {from}–{to}",
+  "答對 {n} / {total} 題": "{n} of {total} right"
 }

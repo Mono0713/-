@@ -18,6 +18,7 @@ import { PenTick } from '@/shared/motion/PenMarks'
 import { Segmented } from '@/shared/Segmented'
 import { BlankPick } from './BlankPick'
 import { matchingParts } from '@/features/questions/MatchingTable'
+import { asBlanks, MatchingFill } from './MatchingFill'
 import { MatchingPicker } from './MatchingPicker'
 import { Passage } from './Passage'
 import { PracticeSheet } from './PracticeSheet'
@@ -64,6 +65,7 @@ export function QuizQuestion({
   focus = false,
   groupRange,
   answerOnly = false,
+  inPage = false,
 }: {
   item: QuizItem
   index: number
@@ -82,6 +84,8 @@ export function QuizQuestion({
   groupRange?: [number, number] | null
   /** Only the written answer, without the question: one of many answers to the same question, read in a row. */
   answerOnly?: boolean
+  /** One of several questions answered on one page (a 選詞填空 box): just its number and sentence, the page shows the rest. */
+  inPage?: boolean
 }) {
   const t = useT()
   const q = item.question
@@ -175,6 +179,10 @@ export function QuizQuestion({
   const parts = picker && q.type === 'matching' ? matchingParts(q.stem) : null
   const matchItems = parts && kind.kind === 'blanks' && parts.items.length === kind.count - kind.figureBlanks ? parts.items : null
   const stemText = withoutRule(matchItems ? parts!.lead : q.stem, q.markingRule)
+  // definitions that each hold a blank for the word are answered like 選詞填空: words above, a blank in each
+  const fill = matchItems !== null && q.options.length > 0 && q.options.every((o) => blankCount(asBlanks(o.content)) > 0)
+  // the section heading (A. Match the right definition…) says what to do, unless the passage already does
+  const section = q.section?.trim() && !item.group?.stem.includes(q.section.trim()) && !stemText.includes(q.section.trim()) ? q.section.trim() : null
 
   const choice = kind.kind === 'single' || kind.kind === 'multiple'
   // Options that are all pictures sit two to a row, so graphs can be compared side by side.
@@ -205,8 +213,8 @@ export function QuizQuestion({
     ) : null
 
   return (
-    <div className="space-y-4">
-      {!answerOnly && (
+    <div className={inPage ? "space-y-2" : "space-y-4"}>
+      {!answerOnly && !inPage && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-lg font-semibold tabular-nums">{t('第 {n} 題', { n: index + 1 })}</span>
           <Badge>{wordBank ? t(WORD_BANK_LABEL) : t(TYPE_LABELS[q.type])}</Badge>
@@ -247,9 +255,15 @@ export function QuizQuestion({
         </div>
       )}
 
-      {item.group && !answerOnly && <Passage group={item.group} range={groupRange ?? null} />}
+      {section && !answerOnly && !inPage && <p className="text-sm font-medium text-muted">{section}</p>}
+      {item.group && !answerOnly && !inPage && <Passage group={item.group} range={groupRange ?? null} />}
 
-      {answerOnly ? null : stemShown ? (
+      {answerOnly ? null : inPage ? (
+        <div className="flex items-start gap-2">
+          <span className="num shrink-0 font-semibold leading-7">{index + 1}.</span>
+          <Markdown className="min-w-0 flex-1 leading-7" renderBlank={stemBlank}>{stemText}</Markdown>
+        </div>
+      ) : stemShown ? (
         <div className={focus ? 'flex items-start gap-2' : undefined}>
           <Markdown className={focus ? 'min-w-0 flex-1' : undefined} renderBlank={stemBlank}>{stemText}</Markdown>
           {focus && (
@@ -439,7 +453,19 @@ export function QuizQuestion({
         </div>
       )}
 
-      {picker && kind.kind === 'blanks' && (
+      {fill && kind.kind === 'blanks' && (
+        <MatchingFill
+          items={matchItems!}
+          start={kind.figureBlanks}
+          definitions={item.optionOrder.map((label, i) => ({ label: item.displayLabels[i]!, text: q.options.find((o) => o.label === label)?.content ?? '' }))}
+          values={values}
+          answer={reveal ? key.map((v) => toQuizLabels(item, v)) : null}
+          locked={locked}
+          onChange={set}
+        />
+      )}
+
+      {picker && !fill && kind.kind === 'blanks' && (
         <MatchingPicker
           count={kind.count}
           start={kind.figureBlanks}

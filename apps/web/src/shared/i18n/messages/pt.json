@@ -1300,5 +1300,8 @@
   "播放": "Reproduzir",
   "結尾": "Final",
   "開頭": "Início",
-  "看介紹影片": "Ver o tour"
+  "看介紹影片": "Ver o tour",
+  "第 {from}–{to} / {total} 題": "Questões {from}–{to} de {total}",
+  "第 {from}–{to} 題": "Questões {from}–{to}",
+  "答對 {n} / {total} 題": "{n} de {total} certas"
 }

@@ -1300,5 +1300,8 @@
   "播放": "Putar",
   "結尾": "Penutup",
   "開頭": "Pembuka",
-  "看介紹影片": "Tonton video"
+  "看介紹影片": "Tonton video",
+  "第 {from}–{to} / {total} 題": "Soal {from}–{to} dari {total}",
+  "第 {from}–{to} 題": "Soal {from}–{to}",
+  "答對 {n} / {total} 題": "{n} dari {total} benar"
 }

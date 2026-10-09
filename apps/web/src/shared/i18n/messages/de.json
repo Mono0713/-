@@ -1300,5 +1300,8 @@
   "播放": "Abspielen",
   "結尾": "Ende",
   "開頭": "Anfang",
-  "看介紹影片": "Tour ansehen"
+  "看介紹影片": "Tour ansehen",
+  "第 {from}–{to} / {total} 題": "Fragen {from}–{to} von {total}",
+  "第 {from}–{to} 題": "Fragen {from}–{to}",
+  "答對 {n} / {total} 題": "{n} von {total} richtig"
 }

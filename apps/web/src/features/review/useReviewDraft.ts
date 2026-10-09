@@ -2,7 +2,7 @@
 
 import type { DragEndEvent } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
-import { isWordBank, remapBox, remapDraftPage, sheetOf, syncWordBanks, withWordBanks, type DraftExam, type DraftQuestion, type ExamSheet, type Option, type Quad } from '@exam/core'
+import { isWordBank, remapBox, remapDraftPage, sheetOf, syncWordBanks, withExamTitle, withWordBanks, type DraftExam, type DraftQuestion, type ExamSheet, type Option, type Quad } from '@exam/core'
 import { useEffect, useRef, useState } from 'react'
 import { attachToPrevious, detachPart, groupLooseParts, mergeParts, nextPart, splitNumber, splitParts } from './parts'
 import { useHistory } from './useHistory'
@@ -24,7 +24,12 @@ type State = { draft: DraftExam; keys: string[] }
 export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
   // Sub-questions read as separate questions (1(1), 1(2)) start out grouped, so they merge like split ones.
   // A word box read as one choice question per sentence, each repeating the box, becomes one 選詞填空.
-  const [start] = useState(() => withWordBanks(groupLooseParts(initial, (n) => `parts-${Date.now().toString(36)}-${n}`)))
+  // a title that only names the form (考試命題紙) becomes subject and term
+  const [start] = useState(() => {
+    const d = withWordBanks(groupLooseParts(initial, (n) => `parts-${Date.now().toString(36)}-${n}`))
+    const meta = withExamTitle(d.meta)
+    return meta === d.meta ? d : { ...d, meta }
+  })
   const [draft, setDraft] = useState(start)
   const [selected, setSelected] = useState<number | null>(null)
   const [editing, setEditing] = useState<number | null>(null)

@@ -1300,5 +1300,8 @@
   "播放": "Lire",
   "結尾": "Fin",
   "開頭": "Début",
-  "看介紹影片": "Voir la visite"
+  "看介紹影片": "Voir la visite",
+  "第 {from}–{to} / {total} 題": "Questions {from}–{to} sur {total}",
+  "第 {from}–{to} 題": "Questions {from}–{to}",
+  "答對 {n} / {total} 題": "{n} sur {total} justes"
 }
