@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { IconCrop } from '@/shared/icons'
 import { useT } from '@/shared/i18n/client'
-import { biology } from '../samples/biology'
+import type { Sample } from '../samples/types'
 import { Copy, FoundCard, SampleSheet } from '../sheet/Sheet'
 import { SceneLayout } from './SceneLayout'
 import { easeInOut, mix, pop, ramp, rise } from './tween'
@@ -20,7 +20,7 @@ function Page({ children }: { children: ReactNode }) {
 }
 
 /** A phone photo of the exam on a desk: the corners are found, then the sheet is cut out and laid flat. */
-export function PhotoScene({ s, tall }: { s: number; tall: boolean }) {
+export function PhotoScene({ s, tall, sample }: { s: number; tall: boolean; sample: Sample }) {
   const t = useT()
   const flat = ramp(s, 2.1, 0.9, easeInOut)
   const scale = mix(0.84, 1, flat)
@@ -53,11 +53,11 @@ export function PhotoScene({ s, tall }: { s: number; tall: boolean }) {
       >
         <Page>
           <div className="flex h-full flex-col text-[13.5px] leading-relaxed">
-            <Copy sample={biology} t={t} pencil />
+            <Copy sample={sample} t={t} pencil />
           </div>
         </Page>
       </div>
-      <svg className="pointer-events-none absolute inset-0" width="440" height="520" aria-hidden style={{ opacity: handles }}>
+      <svg className="pointer-events-none absolute inset-0 overflow-visible" width="440" height="520" aria-hidden style={{ opacity: handles }}>
         <polygon points={corners.map((c) => `${c.x},${c.y}`).join(' ')} fill="color-mix(in srgb, var(--color-accent) 8%, transparent)" stroke="var(--color-accent)" strokeWidth="2" />
         {corners.map((c, i) => (
           <circle key={i} cx={c.x} cy={c.y} r="7" fill="var(--color-surface)" stroke="var(--color-accent)" strokeWidth="2.5" />
@@ -75,18 +75,18 @@ export function PhotoScene({ s, tall }: { s: number; tall: boolean }) {
  * The sample sheet's own scan (motion.css, "product page"): the pencil is wiped off, every question
  * is boxed and the answer highlighted, then the note says what was found.
  */
-export function ReadScene({ s, tall }: { s: number; tall: boolean }) {
+export function ReadScene({ s, tall, sample }: { s: number; tall: boolean; sample: Sample }) {
   const t = useT()
   const timing = { '--m-scan-at': '250ms', '--m-box-at': '2s', '--m-mark-at': '2.75s' } as CSSProperties
   return (
     <SceneLayout s={s} tall={tall} step={2} title={t('AI 框出每一題')} text={t('認出題型、選項、表格和答案，學生寫過的筆跡也會清掉。')}>
       <div className="absolute" style={{ left: SHEET.x, top: SHEET.y, width: SHEET.w, height: SHEET.h, ...timing }}>
         <Page>
-          <SampleSheet sample={biology} t={t} />
+          <SampleSheet sample={sample} t={t} />
         </Page>
       </div>
       <div className="absolute right-2 top-[440px] rotate-[2deg]" style={rise(ramp(s, 3.2, 0.5))}>
-        <FoundCard sample={biology} t={t} />
+        <FoundCard sample={sample} t={t} />
       </div>
     </SceneLayout>
   )

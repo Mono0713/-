@@ -1281,10 +1281,7 @@
   "派給全班": "Asígnalo a la clase",
   "分享連結或派成作業，交卷後成績和每題得分率自動整理好。": "Comparte un enlace o asígnalo como tarea. Al entregarlo, las notas y el acierto por pregunta quedan listos.",
   "{n} / {total} 人已交卷": "{n} / {total} entregados",
-  "答：{answer}": "Resp.: {answer}",
-  "{n} 個細菌": "{n} bacterias",
   "手寫的計算和申論也看得懂，用紅筆寫下評語和分數。": "Lee también cálculos y respuestas escritas a mano, y anota comentarios y nota en rojo.",
-  "步驟清楚，答對了！": "¡Pasos claros, correcto!",
   "隨時練習": "Practica cuando quieras",
   "點一下就知道對錯和詳解；看不懂的外文題目，一鍵翻譯。": "Un toque te dice si aciertas y por qué; una pregunta en otro idioma se traduce con un toque.",
   "校對後存進題庫": "Revísalo y guárdalo en tu banco",
@@ -1303,5 +1300,12 @@
   "看介紹影片": "Ver el recorrido",
   "第 {from}–{to} / {total} 題": "Preguntas {from}–{to} de {total}",
   "第 {from}–{to} 題": "Preguntas {from}–{to}",
-  "答對 {n} / {total} 題": "{n} de {total} correctas"
+  "答對 {n} / {total} 題": "{n} de {total} correctas",
+  "寫得很清楚，答對了！": "¡Muy claro, correcto!",
+  "HCl 在水中幾乎完全解離，是強酸；醋酸和碳酸是弱酸，氨是弱鹼。": "El HCl se disocia casi por completo en agua: es un ácido fuerte; el acético y el carbónico son débiles y el amoníaco es una base débil.",
+  "需求增加而供給不變，需求線往右移，均衡價格上升。": "La demanda sube y la oferta no cambia: la curva de demanda se desplaza a la derecha y el precio de equilibrio sube.",
+  "ancient 是「古老的」，和 thousands of years ago 對得上。": "«Ancient» significa «antiguo», y encaja con «thousands of years ago».",
+  "先生讀作せんせい，意思是「老師」。": "先生 se lee せんせい y significa «profesor».",
+  "{eq}，所以 x = 2 或 x = 3。": "{eq}, así que x = 2 o x = 3.",
+  "range(1, 4) 是 1、2、3，加起來是 6。": "range(1, 4) es 1, 2, 3, que suman 6."
 }

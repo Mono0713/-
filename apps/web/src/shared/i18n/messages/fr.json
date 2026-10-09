@@ -1281,10 +1281,7 @@
   "派給全班": "Donnez-le à la classe",
   "分享連結或派成作業，交卷後成績和每題得分率自動整理好。": "Partagez un lien ou donnez-le en devoir. Une fois rendu, les notes et la réussite par question sont prêtes.",
   "{n} / {total} 人已交卷": "{n} / {total} rendus",
-  "答：{answer}": "Rép. : {answer}",
-  "{n} 個細菌": "{n} bactéries",
   "手寫的計算和申論也看得懂，用紅筆寫下評語和分數。": "Il lit aussi les calculs et rédactions manuscrits, et note commentaires et score au stylo rouge.",
-  "步驟清楚，答對了！": "Étapes claires, c’est juste !",
   "隨時練習": "Entraînez-vous quand vous voulez",
   "點一下就知道對錯和詳解；看不懂的外文題目，一鍵翻譯。": "Un toucher indique si c’est juste et pourquoi ; une question dans une autre langue se traduit d’un toucher.",
   "校對後存進題庫": "Vérifiez, puis enregistrez dans votre banque",
@@ -1303,5 +1300,12 @@
   "看介紹影片": "Voir la visite",
   "第 {from}–{to} / {total} 題": "Questions {from}–{to} sur {total}",
   "第 {from}–{to} 題": "Questions {from}–{to}",
-  "答對 {n} / {total} 題": "{n} sur {total} justes"
+  "答對 {n} / {total} 題": "{n} sur {total} justes",
+  "寫得很清楚，答對了！": "Très clair, c’est juste !",
+  "HCl 在水中幾乎完全解離，是強酸；醋酸和碳酸是弱酸，氨是弱鹼。": "HCl se dissocie presque entièrement dans l’eau : c’est un acide fort ; les acides acétique et carbonique sont faibles, l’ammoniac est une base faible.",
+  "需求增加而供給不變，需求線往右移，均衡價格上升。": "La demande augmente, l’offre ne change pas : la courbe de demande se déplace à droite et le prix d’équilibre monte.",
+  "ancient 是「古老的」，和 thousands of years ago 對得上。": "« Ancient » veut dire « ancien », ce qui va avec « thousands of years ago ».",
+  "先生讀作せんせい，意思是「老師」。": "先生 se lit せんせい et veut dire « professeur ».",
+  "{eq}，所以 x = 2 或 x = 3。": "{eq}, donc x = 2 ou x = 3.",
+  "range(1, 4) 是 1、2、3，加起來是 6。": "range(1, 4) donne 1, 2, 3, dont la somme fait 6."
 }

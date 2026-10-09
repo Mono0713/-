@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { IconPause, IconPlay, IconReplay, IconX } from '@/shared/icons'
 import { useT } from '@/shared/i18n/client'
-import type { TryItem } from '../try/TryQuestion'
+import { SAMPLES } from '../samples'
+import { biology } from '../samples/biology'
+import type { PracticeItem } from './practice'
 import { IntroScene, OutroScene } from './Bookends'
 import { ClassScene } from './ClassScene'
 import { GradeScene } from './GradeScene'
@@ -29,17 +31,21 @@ interface Scene {
  * recognise, check, practise, AI marking, classes) and the call to action. Every frame is worked out
  * from one clock, so it can pause (click the picture, the button or Space) and jump to any chapter
  * (the bar, ← →). With reduced motion each chapter shows its finished picture.
+ * It plays the sample exam the hero's pile shows (`sampleId`); one without a choice question
+ * practises biology's.
  */
-export function Tour({ item, cta, onClose }: { item: TryItem; cta: ReactNode; onClose: () => void }) {
+export function Tour({ sampleId, practice, cta, onClose }: { sampleId: string; practice: Record<string, PracticeItem>; cta: ReactNode; onClose: () => void }) {
   const t = useT()
+  const sample = SAMPLES.find((x) => x.id === sampleId) ?? biology
+  const item = practice[sample.id] ?? practice[biology.id]!
   const scenes: Scene[] = [
     { dur: 3, draw: (s) => <IntroScene s={s} /> },
-    { dur: 5.2, chapter: t('上傳'), draw: (s, tall) => <PhotoScene s={s} tall={tall} /> },
-    { dur: 5.4, chapter: t('辨識'), draw: (s, tall) => <ReadScene s={s} tall={tall} /> },
-    { dur: 5, chapter: t('校對'), draw: (s, tall) => <ReviewScene s={s} tall={tall} /> },
+    { dur: 5.2, chapter: t('上傳'), draw: (s, tall) => <PhotoScene s={s} tall={tall} sample={sample} /> },
+    { dur: 5.4, chapter: t('辨識'), draw: (s, tall) => <ReadScene s={s} tall={tall} sample={sample} /> },
+    { dur: 5, chapter: t('校對'), draw: (s, tall) => <ReviewScene s={s} tall={tall} sample={sample} /> },
     { dur: 5.6, chapter: t('練習'), draw: (s, tall) => <PracticeScene s={s} tall={tall} item={item} /> },
-    { dur: 5.6, chapter: t('AI 批改'), draw: (s, tall) => <GradeScene s={s} tall={tall} /> },
-    { dur: 5, chapter: t('班級'), draw: (s, tall) => <ClassScene s={s} tall={tall} /> },
+    { dur: 5.6, chapter: t('AI 批改'), draw: (s, tall) => <GradeScene s={s} tall={tall} sample={sample} /> },
+    { dur: 5, chapter: t('班級'), draw: (s, tall) => <ClassScene s={s} tall={tall} sample={sample} /> },
     { dur: 3, draw: (s, tall) => <OutroScene s={s} tall={tall} cta={cta} /> },
   ]
   const starts = scenes.map((_, i) => scenes.slice(0, i).reduce((sum, s) => sum + s.dur, 0))

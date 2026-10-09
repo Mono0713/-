@@ -13,6 +13,7 @@ export const english: Sample = {
       text: raw('The museum is full of <blank></blank> treasures from thousands of years ago.'),
       options: [raw('modern'), raw('ancient'), raw('recent'), raw('future')],
       answer: 1,
+      why: msg('ancient 是「古老的」，和 thousands of years ago 對得上。'),
     },
     {
       section: msg('二、文法填空'),

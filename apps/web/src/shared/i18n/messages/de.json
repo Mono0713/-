@@ -1281,10 +1281,7 @@
   "派給全班": "An die Klasse verteilen",
   "分享連結或派成作業，交卷後成績和每題得分率自動整理好。": "Per Link teilen oder als Hausaufgabe verteilen. Nach der Abgabe stehen Noten und die Quote je Frage bereit.",
   "{n} / {total} 人已交卷": "{n} / {total} abgegeben",
-  "答：{answer}": "Antw.: {answer}",
-  "{n} 個細菌": "{n} Bakterien",
   "手寫的計算和申論也看得懂，用紅筆寫下評語和分數。": "Auch handschriftliche Rechnungen und Aufsätze werden gelesen; Kommentar und Punkte kommen in Rot dazu.",
-  "步驟清楚，答對了！": "Klare Schritte, richtig!",
   "隨時練習": "Jederzeit üben",
   "點一下就知道對錯和詳解；看不懂的外文題目，一鍵翻譯。": "Ein Tippen zeigt, ob es stimmt und warum; Fragen in anderen Sprachen werden mit einem Tippen übersetzt.",
   "校對後存進題庫": "Prüfen, dann in deine Sammlung",
@@ -1303,5 +1300,12 @@
   "看介紹影片": "Tour ansehen",
   "第 {from}–{to} / {total} 題": "Fragen {from}–{to} von {total}",
   "第 {from}–{to} 題": "Fragen {from}–{to}",
-  "答對 {n} / {total} 題": "{n} von {total} richtig"
+  "答對 {n} / {total} 題": "{n} von {total} richtig",
+  "寫得很清楚，答對了！": "Klar geschrieben, richtig!",
+  "HCl 在水中幾乎完全解離，是強酸；醋酸和碳酸是弱酸，氨是弱鹼。": "HCl dissoziiert in Wasser fast vollständig und ist eine starke Säure; Essig- und Kohlensäure sind schwach, Ammoniak ist eine schwache Base.",
+  "需求增加而供給不變，需求線往右移，均衡價格上升。": "Die Nachfrage steigt bei gleichem Angebot: Die Nachfragekurve verschiebt sich nach rechts, der Gleichgewichtspreis steigt.",
+  "ancient 是「古老的」，和 thousands of years ago 對得上。": "„Ancient“ heißt „uralt“ und passt zu „thousands of years ago“.",
+  "先生讀作せんせい，意思是「老師」。": "先生 wird せんせい gelesen und heißt „Lehrer“.",
+  "{eq}，所以 x = 2 或 x = 3。": "{eq}, also x = 2 oder x = 3.",
+  "range(1, 4) 是 1、2、3，加起來是 6。": "range(1, 4) ist 1, 2, 3, zusammen 6."
 }

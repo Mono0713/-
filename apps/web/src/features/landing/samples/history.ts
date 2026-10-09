@@ -13,6 +13,7 @@ export const history: Sample = {
       text: msg('工業革命最早發生在哪一個國家？'),
       options: [msg('法國'), msg('英國'), msg('德國'), msg('美國')],
       answer: 1,
+      why: msg('十八世紀的英國先用蒸汽機帶動紡織工廠，工業革命從這裡開始。'),
     },
     {
       section: msg('二、配合題'),

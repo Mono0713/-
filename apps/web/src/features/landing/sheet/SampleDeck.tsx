@@ -29,7 +29,8 @@ export function SampleDeck({ ids, sheets, notes, captions, start }: { ids: strin
   const another = () => setDeck((d) => ({ shown: pickUnseen(ids, cookie()?.split('.') ?? [], d.shown), leaving: d.shown, turn: d.turn + 1 }))
 
   return (
-    <div className="relative mx-auto w-full max-w-[460px] lg:mr-0">
+    // data-sample: the product tour opens on the sheet shown here (demo/TourButton)
+    <div className="relative mx-auto w-full max-w-[460px] lg:mr-0" data-sample={ids[deck.shown]}>
       <div className="relative" aria-hidden>
         {/* the rest of the pile */}
         <div className="absolute inset-0 translate-x-2 translate-y-2.5 rotate-[1.6deg] rounded-md sm:translate-x-3 sm:rotate-[2.4deg] bg-surface shadow-sheet" />

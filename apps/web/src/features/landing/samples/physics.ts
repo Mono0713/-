@@ -27,6 +27,7 @@ export const physics: Sample = {
       text: msg('下列何者是向量？'),
       options: [msg('質量'), msg('時間'), msg('位移'), msg('溫度')],
       answer: 2,
+      why: msg('位移有大小也有方向；質量、時間和溫度只有大小。'),
     },
   ],
 }

@@ -13,6 +13,7 @@ export const chemistry: Sample = {
       text: msg('下列何者為強酸？'),
       options: [raw('$\\ce{CH3COOH}$'), raw('$\\ce{HCl}$'), raw('$\\ce{H2CO3}$'), raw('$\\ce{NH3}$')],
       answer: 1,
+      why: msg('HCl 在水中幾乎完全解離，是強酸；醋酸和碳酸是弱酸，氨是弱鹼。'),
     },
     {
       section: msg('二、是非題'),

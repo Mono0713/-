@@ -1281,10 +1281,7 @@
   "派給全班": "Assign it to the class",
   "分享連結或派成作業，交卷後成績和每題得分率自動整理好。": "Share a link or set it as homework. Once it is handed in, scores and the rate for each question are ready.",
   "{n} / {total} 人已交卷": "{n} / {total} handed in",
-  "答：{answer}": "Ans: {answer}",
-  "{n} 個細菌": "{n} bacteria",
   "手寫的計算和申論也看得懂，用紅筆寫下評語和分數。": "It reads handwritten working and essays too, and writes its comments and the score in red pen.",
-  "步驟清楚，答對了！": "Clear steps, correct!",
   "隨時練習": "Practise any time",
   "點一下就知道對錯和詳解；看不懂的外文題目，一鍵翻譯。": "One tap shows if you are right and why; a question in another language is translated in one tap.",
   "校對後存進題庫": "Check it, then save it to your bank",
@@ -1303,5 +1300,12 @@
   "看介紹影片": "Watch the tour",
   "第 {from}–{to} / {total} 題": "Questions {from}–{to} of {total}",
   "第 {from}–{to} 題": "Questions {from}–{to}",
-  "答對 {n} / {total} 題": "{n} of {total} right"
+  "答對 {n} / {total} 題": "{n} of {total} right",
+  "寫得很清楚，答對了！": "Clearly written, correct!",
+  "HCl 在水中幾乎完全解離，是強酸；醋酸和碳酸是弱酸，氨是弱鹼。": "HCl dissociates almost completely in water, so it is a strong acid; acetic and carbonic acid are weak acids and ammonia is a weak base.",
+  "需求增加而供給不變，需求線往右移，均衡價格上升。": "Demand rises while supply stays the same, so the demand curve shifts right and the equilibrium price rises.",
+  "ancient 是「古老的」，和 thousands of years ago 對得上。": "“Ancient” means very old, which fits “thousands of years ago”.",
+  "先生讀作せんせい，意思是「老師」。": "先生 is read せんせい and means “teacher”.",
+  "{eq}，所以 x = 2 或 x = 3。": "{eq}, so x = 2 or x = 3.",
+  "range(1, 4) 是 1、2、3，加起來是 6。": "range(1, 4) is 1, 2, 3, which add up to 6."
 }

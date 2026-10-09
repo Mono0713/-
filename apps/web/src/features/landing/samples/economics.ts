@@ -20,6 +20,7 @@ export const economics: Sample = {
       text: msg('承上題，新的均衡價格會如何變化？'),
       options: [msg('上升'), msg('下降'), msg('不變'), msg('無法判斷')],
       answer: 0,
+      why: msg('需求增加而供給不變，需求線往右移，均衡價格上升。'),
     },
     {
       section: msg('三、計算題'),
