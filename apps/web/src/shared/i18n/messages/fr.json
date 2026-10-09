@@ -1277,5 +1277,7 @@
   "第 {n} 頁已裁切並拉正": "Page {n} recadrée et redressée",
   "匯出裁切後的 PDF": "Exporter le PDF recadré",
   "加入字庫": "Ajouter à la banque",
-  "移出字庫": "Retirer de la banque"
+  "移出字庫": "Retirer de la banque",
+  "把第 {n} 題加入上方題組": "Ajouter la question {n} au groupe ci-dessus",
+  "把第 {n} 題移出題組": "Retirer la question {n} du groupe"
 }

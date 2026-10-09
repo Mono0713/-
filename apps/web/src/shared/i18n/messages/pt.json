@@ -1277,5 +1277,7 @@
   "第 {n} 頁已裁切並拉正": "Página {n} recortada e endireitada",
   "匯出裁切後的 PDF": "Exportar PDF recortado",
   "加入字庫": "Adicionar ao banco",
-  "移出字庫": "Tirar do banco"
+  "移出字庫": "Tirar do banco",
+  "把第 {n} 題加入上方題組": "Adicionar a questão {n} ao grupo acima",
+  "把第 {n} 題移出題組": "Tirar a questão {n} do grupo"
 }

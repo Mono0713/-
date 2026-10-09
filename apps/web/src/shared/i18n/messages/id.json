@@ -1277,5 +1277,7 @@
   "第 {n} 頁已裁切並拉正": "Halaman {n} dipangkas dan diluruskan",
   "匯出裁切後的 PDF": "Ekspor PDF yang dipangkas",
   "加入字庫": "Masukkan ke kotak",
-  "移出字庫": "Keluarkan dari kotak"
+  "移出字庫": "Keluarkan dari kotak",
+  "把第 {n} 題加入上方題組": "Masukkan soal {n} ke grup di atas",
+  "把第 {n} 題移出題組": "Keluarkan soal {n} dari grup"
 }

@@ -1277,5 +1277,7 @@
   "第 {n} 頁已裁切並拉正": "Đã cắt và làm phẳng trang {n}",
   "匯出裁切後的 PDF": "Xuất PDF đã cắt",
   "加入字庫": "Đưa vào hộp từ",
-  "移出字庫": "Đưa ra khỏi hộp từ"
+  "移出字庫": "Đưa ra khỏi hộp từ",
+  "把第 {n} 題加入上方題組": "Đưa câu {n} vào nhóm phía trên",
+  "把第 {n} 題移出題組": "Đưa câu {n} ra khỏi nhóm"
 }

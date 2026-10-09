@@ -1277,5 +1277,7 @@
   "第 {n} 頁已裁切並拉正": "Seite {n} zugeschnitten und begradigt",
   "匯出裁切後的 PDF": "Zugeschnittenes PDF exportieren",
   "加入字庫": "Zum Kasten",
-  "移出字庫": "Aus dem Kasten"
+  "移出字庫": "Aus dem Kasten",
+  "把第 {n} 題加入上方題組": "Frage {n} zur Gruppe oben hinzufügen",
+  "把第 {n} 題移出題組": "Frage {n} aus der Gruppe nehmen"
 }

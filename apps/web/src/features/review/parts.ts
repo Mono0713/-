@@ -188,8 +188,10 @@ export function attachToPrevious<T extends Parts>(draft: T, index: number, newId
   if (!prev || !q || (prev.groupId && prev.groupId === q.groupId)) return null
   const { main, part } = splitNumber(prev.number)
   const questions = [...draft.questions]
-  // under a word box (選詞填空) it becomes one more sentence picking from the box, keeping its own number
-  if (isWordBank(draft.groups.find((g) => g.id === prev.groupId))) {
+  // under a word box (選詞填空) it becomes one more sentence picking from the box, and under a passage or
+  // picture shared by plainly numbered questions (閱讀題組) one more question on it: both keep their own number
+  const above = draft.groups.find((g) => g.id === prev.groupId)
+  if (above && (isWordBank(above) || part === null)) {
     questions[index] = { ...q, groupId: prev.groupId }
     const gone = q.groupId && !questions.some((x) => x.groupId === q.groupId) ? q.groupId : null
     return { ...draft, groups: gone ? draft.groups.filter((g) => g.id !== gone) : draft.groups, questions }
@@ -220,12 +222,13 @@ export function detachPart<T extends Parts>(draft: T, index: number): { draft: T
   const bank = isWordBank(group)
   const rest = draft.questions.filter((x, i) => i !== index)
   const last = rest.findLastIndex((x) => x.groupId === group.id)
-  // a sentence leaving a word box keeps its number and its copy of the box as options
-  const alone: DraftQuestion = { ...q, groupId: null, number: bank ? q.number : /^\d+$/.test(main) ? String(Number(main) + 1) : main }
+  // a sentence leaving a word box keeps its number and its copy of the box as options; a question leaving a passage keeps its number
+  const plain = bank || splitNumber(q.number).part === null
+  const alone: DraftQuestion = { ...q, groupId: null, number: plain ? q.number : /^\d+$/.test(main) ? String(Number(main) + 1) : main }
   const questions = [...rest.slice(0, last + 1), alone, ...rest.slice(last + 1)]
   const remaining = questions.flatMap((x, i) => (x.groupId === group.id ? [i] : []))
   let groups = draft.groups
-  if (remaining.length <= 1 && !bank) {
+  if (remaining.length === 0 || (remaining.length <= 1 && !plain)) {
     groups = groups.filter((g) => g.id !== group.id)
     for (const i of remaining) {
       const x = questions[i]!

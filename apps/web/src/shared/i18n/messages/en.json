@@ -1277,5 +1277,7 @@
   "第 {n} 頁已裁切並拉正": "Page {n} cropped and straightened",
   "匯出裁切後的 PDF": "Export cropped PDF",
   "加入字庫": "Add to box",
-  "移出字庫": "Take out of box"
+  "移出字庫": "Take out of box",
+  "把第 {n} 題加入上方題組": "Add question {n} to the group above",
+  "把第 {n} 題移出題組": "Take question {n} out of its group"
 }

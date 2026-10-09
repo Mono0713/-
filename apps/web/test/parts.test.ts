@@ -147,3 +147,20 @@ describe('word box (選詞填空)', () => {
     expect(next.questions.map((x) => [x.number, x.groupId])).toEqual([['2', 'w'], ['1', null], ['3', null]])
   })
 })
+
+describe('passage shared by plainly numbered questions (閱讀題組)', () => {
+  const draft = {
+    groups: [{ id: 'p', stem: 'A passage', figures: [], pageNumber: 1 }],
+    questions: [q({ number: '3', groupId: 'p', type: 'single_choice' }), q({ number: '4', groupId: 'p', type: 'single_choice' }), q({ number: '5', type: 'single_choice' })],
+  }
+
+  it('takes the next question in, keeping its number', () => {
+    expect(attachToPrevious(draft, 2, 'new')!.questions.map((x) => [x.number, x.groupId])).toEqual([['3', 'p'], ['4', 'p'], ['5', 'p']])
+  })
+
+  it('lets a question leave with its number, the passage staying for the rest', () => {
+    const { draft: next } = detachPart(draft, 1)!
+    expect(next.groups).toHaveLength(1)
+    expect(next.questions.map((x) => [x.number, x.groupId])).toEqual([['3', 'p'], ['4', null], ['5', null]])
+  })
+})
