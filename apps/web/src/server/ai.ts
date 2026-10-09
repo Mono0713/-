@@ -1,6 +1,6 @@
 import { DEFAULT_MODELS, type ModelTier } from '@exam/extraction'
 import { AUTO } from '@exam/importer'
-import { AiSolver, AiTeacher, AiTranslator, FreeTranslator, AiTutor, createTextModel, type TextModel, type TextModelConfig } from '@exam/grading'
+import { AiExamWriter, AiSolver, AiTeacher, AiTranslator, FreeTranslator, AiTutor, createTextModel, type TextModel, type TextModelConfig } from '@exam/grading'
 import { BUILTIN_LABELS, BUILTIN_MODELS, route, STRENGTHS, type ModelChoice, type ProviderInfo, type Route, type Strength, type Task } from '@exam/models'
 import { keySetId, withKeys } from '@exam/core'
 import { keysOf, type Settings } from '@exam/settings'
@@ -191,6 +191,17 @@ export async function solverFor(ownerId: string, task: 'solving' | 'explaining',
   const r = await routeFor(ownerId, task, pictures)
   if (!r) return null
   return new AiSolver(await chain(s, ownerId, task, [r.primary, ...r.fallbacks]))
+}
+
+/**
+ * Writes exams from study material (AI 出題) on the `generating` route and the user's keys; `pictures`:
+ * the material's page images are sent, so only a model that sees qualifies. Null without a key.
+ */
+export async function writerFor(ownerId: string, pictures: boolean): Promise<{ writer: AiExamWriter; model: string } | null> {
+  const s = await services().settings.get(ownerId)
+  const r = await routeFor(ownerId, 'generating', pictures)
+  if (!r) return null
+  return { writer: new AiExamWriter(await chain(s, ownerId, 'generating', [r.primary, ...r.fallbacks])), model: r.primary.model }
 }
 
 /**

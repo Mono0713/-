@@ -18,7 +18,7 @@ type Result = { ok: true; note?: string } | { ok: false; error: string }
 
 const API_PROVIDERS = ['claude', 'openai', 'gemini']
 const STRENGTHS: Strength[] = ['save', 'balanced', 'best']
-const TASKS: Task[] = ['recognition', 'handwriting', 'grading', 'tutoring', 'translation', 'solving', 'explaining']
+const TASKS: Task[] = ['recognition', 'handwriting', 'grading', 'tutoring', 'translation', 'solving', 'explaining', 'generating']
 
 async function save(patch: Parameters<ReturnType<typeof services>['settings']['update']>[1]) {
   await services().settings.update(await currentOwner(), patch)

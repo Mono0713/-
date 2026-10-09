@@ -1,7 +1,8 @@
 import { ImportList } from '@/features/imports/ImportList'
 import { createBlankExam } from '@/features/imports/actions'
 import { UploadForm } from '@/features/imports/UploadForm'
-import { IconEdit } from '@/shared/icons'
+import Link from 'next/link'
+import { IconEdit, IconSparkles } from '@/shared/icons'
 import { currentOwner, services } from '@/server/context'
 import { availableProviders } from '@/server/ai'
 import { getT } from '@/shared/i18n/server'
@@ -36,6 +37,20 @@ export default async function ImportsPage() {
             <span className="text-sm text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-accent">→</span>
           </button>
         </form>
+        {/* Study material in, a whole exam out: written by the AI into the same kind of draft. */}
+        <Link
+          href="/imports/generate"
+          className="m-press group mt-3 flex w-full items-center gap-3 rounded-2xl border border-dashed border-ink/15 px-5 py-4 text-left transition-colors hover:border-accent/50 hover:bg-surface"
+        >
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent-soft text-accent">
+            <IconSparkles size={17} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium">{t('AI 出題')}</span>
+            <span className="block text-xs text-muted">{t('放上講義或筆記，選好題型和題數，AI 出成一份考卷。')}</span>
+          </span>
+          <span className="text-sm text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-accent">→</span>
+        </Link>
       </section>
       <section>
         <h2 className="mb-3 mt-1 text-sm font-semibold text-muted lg:mt-[4.25rem]">{t('最近匯入')}</h2>

@@ -5,6 +5,7 @@ import { createProvider, extractDocument, keepEdits, ManualProvider, mergePages,
 import type { FileStore } from '@exam/files'
 import { cleanFigure, cropExamFigures, figureFromUpload, snapBoxesToText } from '@exam/figures'
 import { ingestBuffer, storedPage } from '@exam/ingest'
+import { WrittenExams } from './written.ts'
 
 export interface UploadFile {
   name: string
@@ -81,7 +82,12 @@ export class Importer {
   /** Runs start only after interrupted imports were marked, so a new run is never mistaken for one. */
   private recovered: Promise<unknown> = Promise.resolve()
 
-  constructor(private readonly opts: ImporterOptions) {}
+  /** Exams the AI writes from study material (AI 出題). */
+  readonly written: WrittenExams
+
+  constructor(private readonly opts: ImporterOptions) {
+    this.written = new WrittenExams(opts.bank, opts.files, (imp) => this.base(imp))
+  }
 
   get bank(): Bank {
     return this.opts.bank
@@ -278,6 +284,7 @@ export class Importer {
   /** Deletes the import and its files. Questions already in the bank stay, and so do the figure images they show. */
   async remove(id: string): Promise<void> {
     await this.settled(id)
+    await this.written.settled(id)
     const imp = await this.require(id)
     const inBank = (await this.bank.examForImport(imp.id)) !== null
     await this.bank.deleteImport(id)

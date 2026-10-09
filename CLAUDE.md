@@ -30,6 +30,7 @@ Packages never import from apps.
 | User says | Route | Files |
 |---|---|---|
 | 匯入、上傳、拍照、掃描 | `app/imports/page.tsx` | `features/imports/UploadForm.tsx`, `Scan.tsx`, `shrink.ts` (image shrink before upload), `ImportList.tsx` |
+| AI 出題（放講義、筆記，選題型題數難度，AI 出成考卷） | `app/imports/generate`, then `app/imports/[id]` | `features/generate/GenerateForm.tsx` (`MaterialPicker.tsx`, `TypeCounts.tsx`), `plan.ts` (types offered, form → plan), `actions.ts` (`generateExam`, `retryGenerate`), `sections.ts` (一、單選題… order and numbers), `RetryGenerate.tsx`; material kept and run in the background by `packages/importer/src/written.ts` (`WRITTEN` provider, no pages, so the editor shows the A4 sheet; figures cropped from material pages); AI prompt and reply → draft `packages/grading/src/writer.ts`; model task `generating`, `writerFor` in `server/ai.ts`; failures `explainWriteError` in `imports/errors.ts` |
 | 手動模式（貼聊天 App 回覆） | `app/imports/[id]` | `features/imports/ManualPanel.tsx`, `packages/extraction/src/providers/manual.ts` |
 | 重新辨識、辨識失敗訊息 | `app/imports/[id]` | `features/imports/RerunForm.tsx`, `ImportError.tsx`, `errors.ts` |
 | 原檔保存 | `app/imports/[id]/original` | `features/imports/OriginalFiles.tsx`, `packages/importer` (expiry) |
@@ -86,7 +87,7 @@ Packages never import from apps.
 | 安全標頭 (CSP、HSTS…) | | `apps/web/next.config.ts` |
 | 找不到頁面 (404) | `app/not-found.tsx` | uses `shared/ui` `EmptyState` |
 | 刪除＋5 秒復原 | | `shared/removal.tsx`, `shared/Toast.tsx` |
-| 公式輸入 | | `shared/math/` (`MathTextInput` 文字框裡的公式, `FormulaToolbar` 電腦版公式工具列, `formulaKeys.ts` 各分類按鍵（常用／代數／幾何／微積分／希臘字母／化學）, `mathKeyboard.ts` 手機平板的螢幕數學鍵盤, `mathlive.ts`, `chips.ts` 公式小塊與存回文字, `delimiters.ts` (`fromPaste` 貼上的 LaTeX 變公式), `CopyFormulas.tsx` 複製題目時剪貼簿拿到 LaTeX; 鍵盤配色在 `app/globals.css`) |
+| 公式輸入 | | `shared/math/` (`MathTextInput` 文字框裡的公式, `FormulaToolbar` 電腦版公式工具列, `formulaKeys.ts` 各分類按鍵（常用／代數／幾何／微積分／希臘字母／化學）, `mathKeyboard.ts` 手機平板的螢幕數學鍵盤, `mathlive.ts`, `chips.ts` 公式小塊與存回文字, `delimiters.ts` (`fromPaste` 貼上的 LaTeX 變公式), `CopyFormulas.tsx` 複製題目時剪貼簿拿到 LaTeX, `InlineText.tsx` 一行裡的短答案帶公式（A4 填空答案）; 鍵盤配色在 `app/globals.css`) |
 | 手寫板、稿紙 | | `shared/ink/InkPad.tsx`, `packages/ink` (`paper.ts`) |
 | 動畫 | | `shared/motion/` (`motion.css` holds every keyframe and `m-*` class) |
 | 深色/淺色 | | `shared/theme/`, color tokens in `app/globals.css` |
@@ -110,12 +111,12 @@ Packages never import from apps.
 |---|---|
 | `core` | Question/exam schema and types (`schema.ts`), box untangling (`boxes.ts`), figure helpers, 配合題 item count (`matching.ts`), which questions lack a key (`answers.ts`) |
 | `extraction` | AI recognition of pages: prompt (`prompt.ts`), providers, merging pages (`merge.ts`) |
-| `importer` | Upload → pages → recognition → draft pipeline, background runs, original-file expiry |
+| `importer` | Upload → pages → recognition → draft pipeline, background runs, original-file expiry; exams written from study material (`written.ts`) |
 | `ingest` | PDF and image → page images |
 | `figures` | Cropping figures, cleaning handwriting out of blanks, moving AI question boxes onto their text lines (`snap.ts`), uploaded pictures (`upload.ts`) |
 | `bank` | Question bank storage (`sqlite.ts`, `postgres.ts`), drafts |
 | `quiz` | Attempts storage, marking rules (`logic.ts`), answer equivalence (`equivalence.ts`) |
-| `grading` | AI teacher, handwriting reader, tutor, translation, answer solver (`solver.ts`), their caches |
+| `grading` | AI teacher, handwriting reader, tutor, translation, answer solver (`solver.ts`), exam writer for AI 出題 (`writer.ts`), their caches |
 | `models` | Model catalog, prices, routing by AI strength (see `packages/models/SPEC.md`) |
 | `settings` | Per-user settings and their stores, locales list |
 | `sharing`, `classes`, `usage` | Share links; classes and assignments (`types.ts`, stores `sqlite.ts`/`postgres.ts`, `rows.ts`, `stats.ts`, `analysis.ts`, `grid.ts`, `exceptions.ts`); AI usage log |

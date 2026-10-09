@@ -55,7 +55,7 @@ export function explainError(raw: string, t: T): Explained {
     return { title: t('這份檔案對這個模型來說太大了'), detail: t('換一個能讀更長內容的模型，或把檔案拆成幾份再匯入。'), fix: 'model' }
   if (status >= 500 || /overloaded|unavailable|internal error|timeout|timed out/.test(text))
     return { title: t('AI 服務暫時忙不過來'), detail: t('這是供應商那邊的問題，過一下再按重新辨識通常就好了。'), fix: 'retry' }
-  if (/fetch failed|econnrefused|enotfound|network|socket/.test(text))
+  if (/fetch failed|econnrefused|enotfound|network|socket|connection error/.test(text))
     return { title: t('連不到 AI 服務'), detail: t('檢查網路，或確認自訂服務的網址填對了。'), fix: 'retry' }
   return { title: t('AI 沒有讀完這份考卷'), detail: t('可以換一個模型或改用手動模式再試一次。'), fix: 'model' }
 }
@@ -73,4 +73,17 @@ function retryAfter(raw: string, t: T): string | null {
   if (minutes < 60) return t('{n} 分鐘', { n: minutes })
   const hours = Math.floor(minutes / 60)
   return minutes % 60 ? t('{h} 小時 {m} 分', { h: hours, m: minutes % 60 }) : t('{h} 小時', { h: hours })
+}
+
+/**
+ * A failed AI 出題 in plain words. The title says what went wrong as for a read; what to do next
+ * points at 再出一次 and the settings, as there is no model picker on that page.
+ */
+export function explainWriteError(raw: string, t: T): Explained {
+  const read = explainError(raw, t)
+  const fallback = read.title === t('AI 沒有讀完這份考卷')
+  const title = fallback || read.title === t('AI 回的格式不對') ? t('AI 這次沒有把考卷出好') : read.title
+  if (read.fix === 'retry') return { title, detail: t('過一下再按「再出一次」通常就好了。'), fix: 'retry' }
+  if (read.fix === 'settings' && !fallback) return { title, detail: t('到設定換一把金鑰或換一個模型，再按「再出一次」。'), fix: 'settings' }
+  return { title, detail: t('按「再出一次」試試；還是不行就到設定換一個模型。'), fix: 'settings' }
 }

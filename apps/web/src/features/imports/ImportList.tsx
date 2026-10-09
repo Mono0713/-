@@ -1,5 +1,5 @@
 import type { ImportRecord } from '@exam/bank'
-import { BLANK } from '@exam/importer'
+import { BLANK, WRITTEN } from '@exam/importer'
 import Link from 'next/link'
 import { intlTag } from '@/shared/i18n/locales'
 import { getLocale, getT } from '@/shared/i18n/server'
@@ -9,9 +9,10 @@ import { Badge, EmptyState } from '@/shared/ui'
 
 const TONES = { processing: 'accent', waiting: 'warn', review: 'warn', saved: 'good', failed: 'bad' } as const
 
-export async function StatusBadge({ status }: { status: ImportRecord['status'] }) {
+/** `provider`: an exam the AI is writing reads 出題中 rather than 辨識中. */
+export async function StatusBadge({ status, provider }: { status: ImportRecord['status']; provider?: string }) {
   const t = await getT()
-  return <Badge tone={TONES[status]}>{t(STATUS_LABELS[status])}</Badge>
+  return <Badge tone={TONES[status]}>{status === 'processing' && provider === WRITTEN ? t('出題中') : t(STATUS_LABELS[status])}</Badge>
 }
 
 export async function ImportList({ imports }: { imports: ImportRecord[] }) {
@@ -26,7 +27,7 @@ export async function ImportList({ imports }: { imports: ImportRecord[] }) {
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-2 font-medium sm:truncate">{imp.title ?? imp.fileName}</p>
                 <p className="truncate text-xs text-muted">
-                  {[imp.subject, imp.provider === BLANK ? t('從零建立') : imp.title ? imp.fileName : null, imp.provider === BLANK ? null : t('{n} 頁', { n: imp.pageCount }), imp.questionCount ? t('{n} 題在題庫', { n: imp.questionCount }) : null]
+                  {[imp.subject, imp.provider === BLANK ? t('從零建立') : imp.provider === WRITTEN ? t('AI 出題') : imp.title ? imp.fileName : null, imp.provider === BLANK || imp.provider === WRITTEN ? null : t('{n} 頁', { n: imp.pageCount }), imp.questionCount ? t('{n} 題在題庫', { n: imp.questionCount }) : null]
                     .filter(Boolean)
                     .join(' · ')}
                 </p>
@@ -34,7 +35,7 @@ export async function ImportList({ imports }: { imports: ImportRecord[] }) {
               </div>
               <span className="hidden text-xs text-muted sm:inline">{new Date(imp.createdAt).toLocaleString(intlTag(locale), { dateStyle: 'short', timeStyle: 'short' })}</span>
               <span className="shrink-0">
-                <StatusBadge status={imp.status} />
+                <StatusBadge status={imp.status} provider={imp.provider} />
               </span>
             </Link>
           </li>

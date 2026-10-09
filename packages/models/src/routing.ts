@@ -1,15 +1,15 @@
 import { TIERS, type ModelInfo, type ProviderInfo, type Tier } from './catalog.ts'
 
 /** The jobs the app gives AI. Each picks its own model, so the cheap jobs never pay for the expensive ones. */
-export type Task = 'recognition' | 'handwriting' | 'grading' | 'tutoring' | 'translation' | 'solving' | 'explaining'
-export const TASKS: readonly Task[] = ['recognition', 'handwriting', 'grading', 'tutoring', 'translation', 'solving', 'explaining']
+export type Task = 'recognition' | 'handwriting' | 'grading' | 'tutoring' | 'translation' | 'solving' | 'explaining' | 'generating'
+export const TASKS: readonly Task[] = ['recognition', 'handwriting', 'grading', 'tutoring', 'translation', 'solving', 'explaining', 'generating']
 
 /** The one setting most people touch: save money, balance, or be as accurate as possible. */
 export type Strength = 'save' | 'balanced' | 'best'
 export const STRENGTHS: readonly Strength[] = ['save', 'balanced', 'best']
 
 /** Tasks that always send images, so only models that can see qualify. */
-const NEEDS_VISION: Record<Task, boolean> = { recognition: true, handwriting: true, grading: false, tutoring: false, translation: false, solving: false, explaining: false }
+const NEEDS_VISION: Record<Task, boolean> = { recognition: true, handwriting: true, grading: false, tutoring: false, translation: false, solving: false, explaining: false, generating: false }
 
 /** Whether a task always sends images (pages, handwriting), so its model must see them. */
 export const readsImages = (task: Task): boolean => NEEDS_VISION[task]
@@ -18,7 +18,7 @@ export const readsImages = (task: Task): boolean => NEEDS_VISION[task]
  * Tasks about one question that send its pictures when it has any. They can run on a text-only
  * model for questions without pictures and on another model, one that sees, for those with them.
  */
-export const PICTURE_TASKS: readonly Task[] = ['solving', 'explaining', 'tutoring']
+export const PICTURE_TASKS: readonly Task[] = ['solving', 'explaining', 'tutoring', 'generating']
 
 /**
  * Which tier each task uses at each strength, and for recognition, the tier a doubtful
@@ -34,6 +34,8 @@ export const PLAN: Record<Task, Record<Strength, { tier: Tier; escalate?: Tier }
   // Working out a key the paper left out, and writing a worked explanation: both need real reasoning.
   solving: { save: { tier: 'fast' }, balanced: { tier: 'balanced' }, best: { tier: 'best' } },
   explaining: { save: { tier: 'fast' }, balanced: { tier: 'balanced' }, best: { tier: 'best' } },
+  // Writing a whole exam from study material: the questions must be right and fit the material.
+  generating: { save: { tier: 'fast' }, balanced: { tier: 'balanced' }, best: { tier: 'best' } },
 }
 
 export interface ModelChoice {
