@@ -285,6 +285,10 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     edit((d) => {
       const q = d.questions[index]
       if (!q) return null
+      // right after a word box, it joins that box
+      const prev = d.questions[index - 1]
+      const above = prev?.groupId ? d.groups.find((g) => g.id === prev.groupId && isWordBank(g)) : undefined
+      if (above) return { draft: { ...d, questions: d.questions.map((x, i) => (i === index ? { ...x, groupId: above.id } : x)) } }
       const options = q.options.length ? q.options : [...'ABCD'].map((label) => ({ label, content: '' }))
       if (q.groupId && d.groups.some((g) => g.id === q.groupId)) return { draft: { ...d, groups: d.groups.map((g) => (g.id === q.groupId ? { ...g, options } : g)) } }
       const id = `wordbox-${Date.now().toString(36)}`

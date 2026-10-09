@@ -1275,5 +1275,7 @@
   "找不到考卷的邊，請手動拉四個角。": "Couldn’t find the paper’s edges. Drag the four corners yourself.",
   "四個角交叉了，拉開一點。": "The corners cross over. Pull them apart a little.",
   "第 {n} 頁已裁切並拉正": "Page {n} cropped and straightened",
-  "匯出裁切後的 PDF": "Export cropped PDF"
+  "匯出裁切後的 PDF": "Export cropped PDF",
+  "加入字庫": "Add to box",
+  "移出字庫": "Take out of box"
 }

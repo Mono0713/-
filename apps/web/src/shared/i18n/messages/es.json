@@ -1275,5 +1275,7 @@
   "找不到考卷的邊，請手動拉四個角。": "No se encontraron los bordes del papel. Arrastra las esquinas a mano.",
   "四個角交叉了，拉開一點。": "Las esquinas se cruzan. Sepáralas un poco.",
   "第 {n} 頁已裁切並拉正": "Página {n} recortada y enderezada",
-  "匯出裁切後的 PDF": "Exportar PDF recortado"
+  "匯出裁切後的 PDF": "Exportar PDF recortado",
+  "加入字庫": "Añadir al banco",
+  "移出字庫": "Sacar del banco"
 }

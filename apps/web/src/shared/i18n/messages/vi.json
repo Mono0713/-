@@ -1275,5 +1275,7 @@
   "找不到考卷的邊，請手動拉四個角。": "Không tìm thấy mép giấy, hãy tự kéo bốn góc.",
   "四個角交叉了，拉開一點。": "Các góc bị chéo nhau, kéo ra một chút.",
   "第 {n} 頁已裁切並拉正": "Đã cắt và làm phẳng trang {n}",
-  "匯出裁切後的 PDF": "Xuất PDF đã cắt"
+  "匯出裁切後的 PDF": "Xuất PDF đã cắt",
+  "加入字庫": "Đưa vào hộp từ",
+  "移出字庫": "Đưa ra khỏi hộp từ"
 }

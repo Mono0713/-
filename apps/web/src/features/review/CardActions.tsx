@@ -33,6 +33,11 @@ export function CardActions({ d, q, index, busy, handle }: { d: Draft; q: DraftQ
   const boxOf = (x: DraftQuestion | null) => isWordBank(d.draft.groups.find((g) => g.id === x?.groupId))
   const attach = before && boxOf(before) ? t('把第 {n} 題加入上方字庫', { n: q.number }) : t('把第 {n} 題設為第 {main} 題的小題', { n: q.number, main: splitNumber(before?.number ?? '').main })
   const detach = boxOf(q) ? t('把第 {n} 題移出字庫', { n: q.number }) : t('把第 {n} 題移出小題', { n: q.number })
+  // the word box's own buttons carry a word, and the one joining it shows on the card right after the box
+  // without picking the card first, so a sentence read apart (one carried onto the next page) is easy to bring back
+  const intoBox = before !== null && boxOf(before) && !boxOf(q) && attachToPrevious(d.draft, index, '') !== null
+  const grouped = q.groupId !== null && d.draft.groups.some((g) => g.id === q.groupId)
+  const worded = 'm-press flex h-8 shrink-0 items-center gap-1 rounded-lg px-2 text-xs text-muted hover:bg-ink/[0.05] hover:text-ink'
   return (
     <>
       {busy && (
@@ -45,14 +50,24 @@ export function CardActions({ d, q, index, busy, handle }: { d: Draft; q: DraftQ
           <IconSplit size={15} />
         </button>
       )}
-      {chosen && before && attachToPrevious(d.draft, index, '') && (
-        <button type="button" onClick={() => d.attachPart(index)} className={iconButton} aria-label={attach} title={attach}>
+      {intoBox ? (
+        <button type="button" onClick={() => d.attachPart(index)} className={worded} aria-label={attach} title={attach}>
           <IconIndent size={15} />
+          {t('加入字庫')}
         </button>
+      ) : (
+        chosen &&
+        before &&
+        attachToPrevious(d.draft, index, '') && (
+          <button type="button" onClick={() => d.attachPart(index)} className={iconButton} aria-label={attach} title={attach}>
+            <IconIndent size={15} />
+          </button>
+        )
       )}
-      {chosen && q.groupId && (
-        <button type="button" onClick={() => d.detachQuestion(index)} className={iconButton} aria-label={detach} title={detach}>
+      {chosen && grouped && (
+        <button type="button" onClick={() => d.detachQuestion(index)} className={boxOf(q) ? worded : iconButton} aria-label={detach} title={detach}>
           <IconOutdent size={15} />
+          {boxOf(q) && t('移出字庫')}
         </button>
       )}
       <button type="button" onClick={() => d.setEditing(index)} className={iconButton} aria-label={t('編輯')} title={t('編輯（或點兩下題目）')}>

@@ -1,4 +1,5 @@
 import type { Option } from './schema.ts'
+import { joinCarriedGroups } from './carried.ts'
 import type { DraftExam, DraftQuestion } from './types.ts'
 
 type Group = DraftExam['groups'][number]
@@ -29,8 +30,10 @@ const sameOptions = (a: Option[], b: Option[]) => a.length === b.length && a.eve
  * repeating the same list of four or more options (how recognition used to read a word box), becomes
  * one word box: the list moves onto their group, or a new group named after the run's first question.
  */
-export function withWordBanks<T extends Pick<DraftExam, 'groups' | 'questions'>>(draft: T): T {
-  let changed = false
+export function withWordBanks<T extends Pick<DraftExam, 'groups' | 'questions'>>(original: T): T {
+  // questions carried onto the next page first rejoin their group (a passage, a box, sub-questions)
+  const draft = joinCarriedGroups(original)
+  let changed = draft !== original
   const groups = draft.groups.map((g) => ({ ...g }))
   let questions = draft.questions
 
