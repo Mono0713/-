@@ -323,7 +323,7 @@ export function ReviewEditor({
                             }}
                             onClick={() => !isEditing && select(index, false)}
                             onDoubleClick={() => !isEditing && setEditing(index)}
-                            className={`relative scroll-mt-40 rounded-2xl bg-surface p-4 transition-shadow sm:p-5 ${
+                            className={`group/card relative scroll-mt-40 rounded-2xl bg-surface p-4 transition-shadow sm:p-5 ${
                               inGroup ? 'ml-4 before:absolute before:-left-3 before:-top-4 before:bottom-4 before:w-0.5 before:rounded-full before:bg-ink/10 sm:ml-7 sm:before:-left-4' : ''
                             } ${
                               // While dragged, the card stays as an empty slot of its own size while its full-size copy
@@ -331,7 +331,11 @@ export function ReviewEditor({
                               dragging ? '!bg-accent-soft/60 outline-2 -outline-offset-2 outline-dashed outline-accent/35 [&>*]:invisible' : 'shadow-sheet'
                             } ${selected === index && !dragging ? 'ring-2 ring-accent/70' : ''}`}
                           >
-                            {isFlagged(q) && <span aria-hidden className="absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-hl" />}
+                            {/* fades with the note's 沒問題 (ConfirmNote) instead of vanishing when the flag clears */}
+                            <span
+                              aria-hidden
+                              className={`absolute bottom-5 left-0 top-5 w-[3px] rounded-r-full bg-hl transition-opacity duration-300 group-has-[[data-erasing]]/card:opacity-0 ${isFlagged(q) ? '' : 'opacity-0'}`}
+                            />
                             {isEditing ? (
                               <QuestionEditor
                                 value={q}

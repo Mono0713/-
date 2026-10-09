@@ -130,13 +130,22 @@
 .m-toast { opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity 160ms ease-in, transform 200ms ease-in; }
 .m-toast[data-show] { opacity: 1; transform: none; pointer-events: auto; transition: opacity 200ms ease-out, transform 320ms var(--m-ease-out); }
 
-/* confirming a note: its highlight is erased right to left, then the note folds away */
+/* confirming a note (features/questions/ConfirmNote.tsx): its highlight is erased right to left
+   while the text fades, then the note's height folds to nothing in one ease, together with the
+   space above it (a space-y-3 gap, --m-fold-gap), so the card shrinks smoothly with no jump */
 .m-erase {
   background-image: linear-gradient(var(--color-warn-soft), var(--color-warn-soft));
   background-repeat: no-repeat; background-position: 100% 0; background-size: 100% 100%;
-  transition: background-size 420ms var(--m-ease-out), opacity 260ms ease 300ms, transform 260ms ease 300ms;
+  transition: background-size 340ms var(--m-ease-out), opacity 200ms ease 140ms;
 }
-.m-erase[data-erasing] { background-size: 0% 100%; opacity: 0; transform: translateY(-4px); }
+.m-erase[data-erasing] { background-size: 0% 100%; opacity: 0; }
+.m-fold {
+  display: grid; grid-template-rows: 1fr;
+  transition: grid-template-rows 300ms var(--m-ease-in-out) 220ms, margin-top 300ms var(--m-ease-in-out) 220ms;
+}
+.m-fold > * { min-height: 0; }
+.m-fold[data-erasing] { grid-template-rows: 0fr; margin-top: calc(-1 * var(--m-fold-gap, 0.75rem)); }
+.m-fold[data-erasing] > * { overflow: hidden; }
 
 /* phone action sheet (shared/chrome/Fab.tsx): slides up with a spring, rows follow one by one */
 .m-sheet { transform: translateY(105%); transition: transform 520ms var(--m-spring); }
