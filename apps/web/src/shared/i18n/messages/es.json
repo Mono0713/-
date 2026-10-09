@@ -140,8 +140,6 @@
   "學生付": "Pagan los estudiantes",
   "不用 AI": "Sin IA",
   "用老師的 API 金鑰批改學生交的問答題和填空題。": "Las respuestas cortas y de completar huecos se califican con la clave de API del profesor.",
-  "老師付到每月上限，超過之後改用學生自己的金鑰。": "El profesor paga hasta un límite mensual; después se usan las claves de los propios estudiantes.",
-  "學生用自己的 API 金鑰批改；沒有金鑰的學生由老師批改。": "Los estudiantes califican con sus propias claves de API; el profesor califica a quienes no tengan una.",
   "不用 AI，全部由老師批改。": "Sin IA. El profesor califica todo.",
   "AI 批改費用": "Costes de la calificación con IA",
   "每月上限 US$": "Límite mensual US$",
@@ -1300,5 +1298,9 @@
   "播放": "Reproducir",
   "結尾": "Final",
   "開頭": "Inicio",
-  "看介紹影片": "Ver el recorrido"
+  "看介紹影片": "Ver el recorrido",
+  "試了太多次加入碼，請過 15 分鐘再試。": "Demasiados intentos con códigos de acceso. Vuelve a intentarlo en 15 minutos.",
+  "老師付到每月上限，超過之後改用學生自己的 Claude、OpenAI 或 Gemini 金鑰。": "El docente paga hasta el límite mensual; después se usan las claves de Claude, OpenAI o Gemini de cada estudiante.",
+  "學生用自己的 Claude、OpenAI 或 Gemini 金鑰批改（自己加的服務不能批改作業）；沒有的學生由老師批改。": "Se corrige con las claves de Claude, OpenAI o Gemini de cada estudiante (los servicios que añadan ellos mismos no pueden corregir tareas); el docente corrige a quien no tenga.",
+  "一次最多 {n} 頁，請分成幾次上傳。": "Como máximo {n} páginas a la vez. Súbelas en varias partes."
 }

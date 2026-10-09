@@ -106,6 +106,9 @@ Packages never import from apps.
 - `server/ai.ts`: which service and model each task uses (`routeFor`), API keys (`apiKeyOf`, `keySource`), and the AI helpers `teacherFor`, `tutorFor`, `translatorFor`, `availableProviders`.
 - `server/storage.ts`: per-account quota (`storageOf`, `noRoomFor`).
 - `server/owned.ts`, `shared.ts`, `classes.ts`, `profile.ts`: access checks and lookups for owned items, share links, classes, profiles.
+- `server/files.ts`: who may read a stored file (`canReadFile`: own, open share, class); `ownDraftFiles`/`ownQuestionFiles` drop picture keys that are not the person's own from drafts the browser sends (pure part in `fileKeys.ts`). Every read of a key taken from a question goes through these.
+- `server/signInCheck.ts`: a production server with a database but no sign-in refuses to serve (`ALLOW_SINGLE_USER=1` opts out). `server/rateLimit.ts`: in-memory attempt counter (`overLimit`), used for join codes (`joinTooOften` in `classes.ts`).
+- Shared caches (`grading_cache`, `translation_cache`) only take results from Claude/OpenAI/Gemini (`isBuiltin` in `server/ai.ts`); a service someone added keeps its marks private (`cacheFor` in `features/quiz/teacher.ts`).
 - Server actions live in each feature's `actions.ts`; they get the signed-in person from `currentOwner()`.
 
 ## Packages

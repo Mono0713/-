@@ -6,7 +6,7 @@ import type { Marking } from '@exam/quiz'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { sourcesOf, startFromSources } from '@/features/quiz/start'
-import { displayName, freezeFigures, inAssignment, inClass, requireTeaching, taughtAttempt } from '@/server/classes'
+import { displayName, freezeFigures, inAssignment, inClass, joinTooOften, requireTeaching, taughtAttempt } from '@/server/classes'
 import { currentOwner, services } from '@/server/context'
 import { ownedExam } from '@/server/owned'
 import { getT } from '@/shared/i18n/server'
@@ -17,12 +17,17 @@ const ROLES: ClassRole[] = ['assistant', 'student']
 
 const clean = (text: string, max = 80) => text.trim().replace(/\s+/g, ' ').slice(0, max)
 
+/** A new class's monthly cap on the teacher's AI marking, in US dollars, so students cannot run up the bill; the teacher can change it. */
+const NEW_CLASS_CAP_USD = 5
+
 /** Makes a class with the person as its teacher and opens it. */
 export async function createClass(name: string): Promise<{ error: string } | undefined> {
   const title = clean(name)
   const t = await getT()
   if (!title) return { error: t('請幫班級取個名字') }
-  const classroom = await services().classes.create(await currentOwner(), await displayName(), title)
+  const { classes } = services()
+  const classroom = await classes.create(await currentOwner(), await displayName(), title)
+  await classes.update(classroom.id, { aiMonthlyCapUsd: NEW_CLASS_CAP_USD })
   revalidatePath('/classes')
   redirect(`/classes/${classroom.id}`)
 }
@@ -30,10 +35,11 @@ export async function createClass(name: string): Promise<{ error: string } | und
 /** Joins the class with this code as a student and opens it. */
 export async function joinClass(code: string): Promise<{ error: string } | undefined> {
   const { classes } = services()
-  const classroom = await classes.byCode(code)
   const t = await getT()
-  if (!classroom) return { error: t('找不到這個加入碼，請再確認一次。') }
   const owner = await currentOwner()
+  if (joinTooOften(owner)) return { error: t('試了太多次加入碼，請過 15 分鐘再試。') }
+  const classroom = await classes.byCode(code)
+  if (!classroom) return { error: t('找不到這個加入碼，請再確認一次。') }
   if (!classroom.joinOpen && !(await classes.member(classroom.id, owner))) return { error: t('這個班級現在不開放加入，請問老師。') }
   await classes.join(classroom.id, owner, await displayName())
   revalidatePath('/classes')

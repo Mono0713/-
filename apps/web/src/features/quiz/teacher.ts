@@ -1,9 +1,16 @@
-import { markOpenAnswers, readHandwrittenAnswers, unreadHandwriting } from '@exam/grading'
+import { type GradingCache, markOpenAnswers, privateGradingCache, readHandwrittenAnswers, unreadHandwriting } from '@exam/grading'
 import { questionFigures } from '@exam/core'
 import { needsTeacher, type QuizAttempt, type QuizItem } from '@exam/quiz'
 import { graderFor } from '@/server/classes'
+import { canReadFile } from '@/server/files'
 import { localeOf, services } from '@/server/context'
 import { type Teacher } from '@/server/ai'
+
+/** Where this teacher's marks are remembered: the shared cache only for marks made by Claude, OpenAI or Gemini. */
+export function cacheFor(teacher: Teacher): GradingCache {
+  const { gradingCache } = services()
+  return teacher.shared ? gradingCache : privateGradingCache(gradingCache, teacher.payer)
+}
 
 /**
  * Reads handwritten answers into text and saves them, so they can be checked like typing.
@@ -14,7 +21,8 @@ export async function readInk(attempt: QuizAttempt, teacher: Teacher, only?: num
   // A 作圖題 is read with the figure it was drawn on.
   const figureOf = async (item: QuizItem) => {
     const figure = questionFigures(item.question).find((f) => f.image)
-    return figure?.image ? files.read(figure.image.file) : null
+    // only a picture the student could open themselves is sent to the AI
+    return figure?.image && (await canReadFile(attempt.ownerId, figure.image.file)) ? files.read(figure.image.file) : null
   }
   const responses = await readHandwrittenAnswers(attempt, teacher.reader, only, figureOf)
   const { quizzes } = services()
@@ -30,7 +38,7 @@ export async function readInk(attempt: QuizAttempt, teacher: Teacher, only?: num
  * the results page shows progress until it is done. Marks the person gave meanwhile are kept.
  */
 export async function startTeacher(id: string) {
-  const { quizzes, gradingCache } = services()
+  const { quizzes } = services()
   const attempt = await quizzes.get(id)
   const teacher = attempt && (await graderFor(attempt))
   if (!attempt || !teacher) return
@@ -39,7 +47,7 @@ export async function startTeacher(id: string) {
   await quizzes.update(id, (now) => ({ ...now, teacher: { status: 'running', model: teacher.model, error: null } }))
   void (async () => {
     const read = unread ? await readInk(attempt, teacher) : attempt
-    return markOpenAnswers(read, { grader: teacher.teacher, cache: gradingCache, language: await localeOf(attempt.ownerId) })
+    return markOpenAnswers(read, { grader: teacher.teacher, cache: cacheFor(teacher), language: await localeOf(attempt.ownerId) })
   })()
     .then(({ markings }) =>
       quizzes.update(id, (now) => ({ ...now, markings: now.markings.map((m, i) => m ?? markings[i] ?? null), teacher: { status: 'done', model: teacher.model, error: null } })),

@@ -21,13 +21,14 @@ export async function openShare(token: string): Promise<OpenShare | null> {
   return { share, exam, questions: items }
 }
 
-const IMPORT_FILE = /^u\/([^/]+)\/imports\/([^/]+)\/(figures|pages)\//
+// Only the question pictures: the photos of the original pages may show answers, names or handwriting.
+const IMPORT_FILE = /^u\/([^/]+)\/imports\/([^/]+)\/figures\//
 // Figures of an exam copied from someone's link live in a folder named after the copy.
 const COPY_FILE = /^u\/([^/]+)\/copies\/([^/]+)\//
 
 /**
- * Whether a file of someone else may be served: figures and page images of an exam
- * shared by an open link, whether it was imported or copied from another link.
+ * Whether a file of someone else may be served: the figures of an exam shared by an
+ * open link, whether it was imported or copied from another link.
  * Anyone signed in with the link sees them anyway.
  */
 export async function sharedFile(key: string): Promise<boolean> {

@@ -25,6 +25,8 @@ export function connect(url: string, opts: { schema?: string; max?: number } = {
 /** Applies the migrations not applied yet, each in its own transaction. Returns their names. */
 export async function migrate(sql: Sql, dir: string = MIGRATIONS_DIR): Promise<string[]> {
   await sql`create table if not exists schema_migrations (name text primary key, applied_at timestamptz not null default now())`
+  // Like every table: the public anon key in the browser must not read or change which migrations ran.
+  await sql`alter table schema_migrations enable row level security`
   const done = new Set((await sql<{ name: string }[]>`select name from schema_migrations`).map((r) => r.name))
   const files = (await readdir(dir)).filter((f) => f.endsWith('.sql')).sort()
   const applied: string[] = []

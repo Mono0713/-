@@ -13,6 +13,7 @@ import { PostgresShareStore, SqliteShareStore, type ShareStore } from '@exam/sha
 import { PostgresUsageStore, SqliteUsageStore, type UsageStore } from '@exam/usage'
 import { routeFor, serviceUrlOf } from './ai'
 import { authEnabled } from './auth'
+import { SIGN_IN_MISSING, signInMissing } from './signInCheck'
 
 export { currentOwner, currentUser, authEnabled } from './auth'
 
@@ -50,6 +51,8 @@ const globals = globalThis as typeof globalThis & { __examServices?: Services }
 
 export function services(): Services {
   if (!globals.__examServices) {
+    // never serve a shared database to everyone as one person (files and actions that skip the proxy stop here too)
+    if (signInMissing()) throw new Error(SIGN_IN_MISSING)
     mkdirSync(dataDir, { recursive: true })
     const stores = process.env.DATABASE_URL ? postgresStores(process.env.DATABASE_URL) : sqliteStores()
     const { fileIndex, ...rest } = stores

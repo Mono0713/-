@@ -20,6 +20,19 @@ export function cacheKey({ item, response }: GradingTask, language: string): str
   return createHash('sha256').update(JSON.stringify([question, answer, language])).digest('hex')
 }
 
+/**
+ * A cache seen through one person's own corner: marks are looked up there first, then in the shared
+ * cache, and new marks are kept only in the corner. For marks made by a service the person added,
+ * which must never reach anyone else's answers.
+ */
+export function privateGradingCache(shared: GradingCache, owner: string): GradingCache {
+  const own = (key: string) => `${owner}:${key}`
+  return {
+    get: async (key) => (await shared.get(own(key))) ?? shared.get(key),
+    set: (key, marking) => shared.set(own(key), marking),
+  }
+}
+
 export class SqliteGradingCache implements GradingCache {
   private readonly db: DatabaseSync
 

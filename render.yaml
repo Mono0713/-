@@ -18,7 +18,8 @@ services:
         value: "22"
       - key: DATABASE_URL
         sync: false
-      # Encrypts saved API keys. Use the same value as the local .env (they share one database). Never change it afterwards.
+      # Encrypts saved API keys. Never change it afterwards. Only the local .env that shares this database needs the same value;
+      # before strangers use the site, develop on a database (and secret) of your own instead (docs/HOSTING.md).
       - key: SETTINGS_SECRET
         sync: false
       - key: NEXT_PUBLIC_SUPABASE_URL

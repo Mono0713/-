@@ -85,10 +85,14 @@ function overrideOf(s: Settings, task: Task, pictures = false): ModelChoice | nu
  * The models a task uses for this user right now; null when no service with a key can do it.
  * `pictures`: the request carries a question's pictures, so only models that see them qualify.
  */
-export async function routeFor(ownerId: string, task: Task, pictures = false): Promise<Route | null> {
+export async function routeFor(ownerId: string, task: Task, pictures = false, builtinOnly = false): Promise<Route | null> {
   const s = await services().settings.get(ownerId)
-  return route(task, s.strength, providersOf(s), { override: overrideOf(s, task, pictures), pictures })
+  const providers = providersOf(s).filter((p) => !builtinOnly || isBuiltin(p.id))
+  return route(task, s.strength, providers, { override: overrideOf(s, task, pictures), pictures })
 }
+
+/** Claude, OpenAI or Gemini at their own addresses, as opposed to a service the person added (whose answers they control). */
+export const isBuiltin = (provider: string): boolean => BUILTIN.includes(provider)
 
 /** The model each task would run on at each strength (null: no service with a key can do it). */
 export type StrengthModels = Record<Strength, Partial<Record<Task, string | null>>>
@@ -154,7 +158,11 @@ function planNote(t: T, primary: string, escalate: string | null | undefined, fa
   return t('用 {primary}', { primary })
 }
 
-export type Teacher = { teacher: AiTeacher; reader: TextModel; provider: string; model: string }
+/**
+ * `shared`: every marking model is a built-in service, so its marks may go in the cache everyone shares.
+ * A service someone added answers whatever its owner wants, so its marks are kept to that person (`payer`).
+ */
+export type Teacher = { teacher: AiTeacher; reader: TextModel; provider: string; model: string; shared: boolean; payer: string }
 
 /**
  * The AI teacher for this user, or null when AI marking is off or no service has a key.
@@ -163,15 +171,16 @@ export type Teacher = { teacher: AiTeacher; reader: TextModel; provider: string;
  * For a class the teacher pays for, `scope` tags the calls (for its monthly cap) and
  * `always` uses the teacher's keys even when their own AI marking is switched off.
  */
-export async function teacherFor(ownerId: string, opts: { scope?: string; always?: boolean } = {}): Promise<Teacher | null> {
+export async function teacherFor(ownerId: string, opts: { scope?: string; always?: boolean; builtinOnly?: boolean } = {}): Promise<Teacher | null> {
   const s = await services().settings.get(ownerId)
   if (!s.aiGrading.enabled && !opts.always) return null
-  const grading = await routeFor(ownerId, 'grading')
+  const grading = await routeFor(ownerId, 'grading', false, opts.builtinOnly)
   if (!grading) return null
-  const handwriting = (await routeFor(ownerId, 'handwriting')) ?? grading
+  const handwriting = (await routeFor(ownerId, 'handwriting', false, opts.builtinOnly)) ?? grading
   const marker = await chain(s, ownerId, 'grading', [grading.primary, ...grading.fallbacks], opts.scope)
   const reader = await chain(s, ownerId, 'handwriting', [handwriting.primary, ...handwriting.fallbacks], opts.scope)
-  return { teacher: new AiTeacher(marker), reader, provider: grading.primary.provider, model: grading.primary.model }
+  const shared = [grading.primary, ...grading.fallbacks].every((c) => isBuiltin(c.provider))
+  return { teacher: new AiTeacher(marker), reader, provider: grading.primary.provider, model: grading.primary.model, shared, payer: ownerId }
 }
 
 /** The AI tutor for this user, on their own keys and the tutoring route (one that sees, for a question with pictures); null when no service has a key. */
@@ -207,12 +216,14 @@ export async function writerFor(ownerId: string, pictures: boolean): Promise<{ w
 /**
  * Translates questions for this user: free services by default, or the AI on their own keys and
  * the translation route when they chose AI translation (free again while no service has a key).
+ * `shared`: its translations may go in the cache everyone shares (not when a service the person added may write them).
  */
-export async function translatorFor(ownerId: string): Promise<{ engine: 'free' | 'ai'; translator: Pick<AiTranslator, 'translate'> }> {
+export async function translatorFor(ownerId: string): Promise<{ engine: 'free' | 'ai'; translator: Pick<AiTranslator, 'translate'>; shared: boolean }> {
   const s = await services().settings.get(ownerId)
   const translation = s.translationEngine === 'ai' ? await routeFor(ownerId, 'translation') : null
-  if (!translation) return { engine: 'free', translator: new FreeTranslator() }
-  return { engine: 'ai', translator: new AiTranslator(await chain(s, ownerId, 'translation', [translation.primary, ...translation.fallbacks])) }
+  if (!translation) return { engine: 'free', translator: new FreeTranslator(), shared: true }
+  const choices = [translation.primary, ...translation.fallbacks]
+  return { engine: 'ai', translator: new AiTranslator(await chain(s, ownerId, 'translation', choices)), shared: choices.every((c) => isBuiltin(c.provider)) }
 }
 
 /** A text model that moves on to the next choice when one fails, logging what each call used. */

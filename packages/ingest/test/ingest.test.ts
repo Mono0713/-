@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
-import { ingestFile } from '../src/index.ts'
+import { ingestFile, PageLimitError } from '../src/index.ts'
 
 /** Smallest useful PDF: one A4 page with a line of text, plus optional invisible (render mode 3) text in another font. */
 function tinyPdf(text: string, hidden?: string): Buffer {
@@ -52,6 +52,12 @@ describe('ingestFile', async () => {
     await writeFile(path, tinyPdf('Question 1', 'FEENT2DNA'))
     const doc = await ingestFile(path, { maxEdge: 500 })
     expect(doc.pages[0]!.textLayer).toBe('Question 1')
+  })
+
+  it('refuses a PDF with more pages than allowed before drawing any', async () => {
+    const path = join(dir, 'long.pdf')
+    await writeFile(path, tinyPdf('Question 1'))
+    await expect(ingestFile(path, { maxPages: 0 })).rejects.toBeInstanceOf(PageLimitError)
   })
 
   it('shrinks large photos and applies EXIF rotation', async () => {

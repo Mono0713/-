@@ -4,18 +4,19 @@ import { type DraftExam, type DraftQuestion, needsAnswer, needsExplanation } fro
 import { revalidatePath } from 'next/cache'
 import { solverFor } from '@/server/ai'
 import { currentOwner, keyPrefixOf, localeOf, services } from '@/server/context'
+import { ownDraftFiles } from '@/server/files'
 import { requireImport } from '@/server/owned'
 import { getT } from '@/shared/i18n/server'
 
 export async function saveDraft(importId: string, draft: DraftExam) {
-  await requireImport(importId)
-  await services().importer.saveDraft(importId, draft)
+  const imp = await requireImport(importId)
+  await services().importer.saveDraft(importId, ownDraftFiles(imp.ownerId, draft))
 }
 
 /** Puts the reviewed questions into the bank; saving again replaces them. */
 export async function publishDraft(importId: string, draft: DraftExam): Promise<{ count: number; examId: string }> {
-  await requireImport(importId)
-  const exam = await services().importer.publish(importId, draft)
+  const imp = await requireImport(importId)
+  const exam = await services().importer.publish(importId, ownDraftFiles(imp.ownerId, draft))
   revalidatePath('/bank')
   revalidatePath(`/bank/exams/${exam.id}`)
   revalidatePath('/imports')

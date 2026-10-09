@@ -6,6 +6,7 @@ import { authEnabled, currentOwner, localPerson } from './auth'
 import { providersOf, teacherFor, type Teacher } from './ai'
 import { keyPrefixOf, services } from './context'
 import { currentProfile } from './profile'
+import { overLimit } from './rateLimit'
 import { keyShown } from '@/features/quiz/visible'
 import { msg } from '@/shared/i18n/format'
 import { getT } from '@/shared/i18n/server'
@@ -65,7 +66,8 @@ export async function freezeFigures(sources: QuizSource[], teacherId: string, as
   const done = new Map<string, string>()
   let n = 0
   const copy = async (f: DraftFigure): Promise<DraftFigure> => {
-    if (!f.image) return f
+    // only the teacher's own files: a picture key in a question is not proof it may be read
+    if (!f.image || !f.image.file.startsWith(keyPrefixOf(teacherId))) return { ...f, image: null }
     let file = done.get(f.image.file)
     if (!file) {
       const data = await files.read(f.image.file)
@@ -87,6 +89,13 @@ export async function freezeFigures(sources: QuizSource[], teacherId: string, as
   }
   return out
 }
+
+/** Join codes one person may look up in a quarter of an hour, by link or typed: enough for real use, too few to guess one. */
+const JOIN_TRIES = 10
+const JOIN_WINDOW_MS = 15 * 60_000
+
+/** Counts one join code lookup; true when the person has tried too many lately. */
+export const joinTooOften = (userId: string): boolean => overLimit(`join:${userId}`, JOIN_TRIES, JOIN_WINDOW_MS)
 
 const CLASS_FILE = /^u\/([^/]+)\/classes\/([^/]+)\//
 
@@ -112,6 +121,8 @@ export async function classSpend(classroom: Classroom): Promise<{ usd: number; u
  * Who marks an attempt's open answers with AI, and on whose keys. A class assignment
  * follows the class's choice: the teacher pays (up to the monthly cap), each student pays
  * with their own keys, or the teacher pays up to the cap and then the student does.
+ * On a student's keys only Claude, OpenAI or Gemini mark class work: a service the student
+ * added could answer with any mark they like.
  */
 export async function graderFor(attempt: Pick<QuizAttempt, 'ownerId' | 'assignment'>): Promise<Teacher | null> {
   const a = attempt.assignment
@@ -119,14 +130,14 @@ export async function graderFor(attempt: Pick<QuizAttempt, 'ownerId' | 'assignme
   const classroom = await services().classes.get(a.classId)
   if (!classroom) return teacherFor(attempt.ownerId)
   if (classroom.aiPayer === 'off') return null
-  if (classroom.aiPayer === 'student') return teacherFor(attempt.ownerId)
+  if (classroom.aiPayer === 'student') return teacherFor(attempt.ownerId, { builtinOnly: true })
   const cap = classroom.aiMonthlyCapUsd
   const underCap = cap === null || (await classSpend(classroom)).usd < cap
   if (underCap) {
     const teacher = await teacherFor(classroom.ownerId, { scope: `class:${classroom.id}`, always: true })
     if (teacher || classroom.aiPayer === 'teacher') return teacher
   }
-  return classroom.aiPayer === 'mixed' ? teacherFor(attempt.ownerId) : null
+  return classroom.aiPayer === 'mixed' ? teacherFor(attempt.ownerId, { builtinOnly: true }) : null
 }
 
 /** Whether the person may mark their own open answers: not on a class assignment, where the teacher or AI does. */

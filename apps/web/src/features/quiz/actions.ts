@@ -6,11 +6,12 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { graderFor, keyRule, selfMarks } from '@/server/classes'
 import { currentOwner, localeOf, services } from '@/server/context'
+import { canReadFile } from '@/server/files'
 import { translatorFor, tutorFor } from '@/server/ai'
 import { ownedAttempt } from '@/server/owned'
 import { getT } from '@/shared/i18n/server'
 import { startQuiz } from './start'
-import { readInk, startTeacher } from './teacher'
+import { cacheFor, readInk, startTeacher } from './teacher'
 import { keyShown, revealedItem } from './visible'
 
 async function owned(id: string): Promise<QuizAttempt> {
@@ -99,7 +100,7 @@ export async function checkAnswer(id: string, index: number, response: QuizRespo
   // An answer the key cannot settle is marked by the AI teacher right away, when there is one.
   if (teacher && needsTeacher(item, attempt.responses[index] ?? null, attempt.markings[index] ?? null)) {
     try {
-      const { markings } = await markOpenAnswers(attempt, { grader: teacher.teacher, cache: services().gradingCache, language: await localeOf(attempt.ownerId), only: [index] })
+      const { markings } = await markOpenAnswers(attempt, { grader: teacher.teacher, cache: cacheFor(teacher), language: await localeOf(attempt.ownerId), only: [index] })
       attempt = (await services().quizzes.update(id, (a) => ({ ...a, markings: withAt(a.markings, index, markings[index] ?? null) }))) ?? attempt
     } catch {
       // Marking can wait: the person can mark it or ask again from the results.
@@ -153,10 +154,11 @@ export async function askTeacher(id: string): Promise<{ error: string } | undefi
 const MAX_PICTURES = 6
 
 /** The pictures of a question in an attempt, its group's first, as stored files. */
-async function pictures(item: QuizItem): Promise<Buffer[]> {
+async function pictures(ownerId: string, item: QuizItem): Promise<Buffer[]> {
   const { files } = services()
   const keys = [...(item.group?.figures ?? []), ...item.question.figures].flatMap((f) => (f.image ? [f.image.file] : [])).slice(0, MAX_PICTURES)
-  return (await Promise.all(keys.map((k) => files.read(k).catch(() => null)))).filter((b): b is Buffer => Boolean(b))
+  // only pictures the person could open themselves are sent to their AI
+  return (await Promise.all(keys.map(async (k) => ((await canReadFile(ownerId, k)) ? files.read(k).catch(() => null) : null)))).filter((b): b is Buffer => Boolean(b))
 }
 
 /** Messages one question's conversation keeps; then it starts over. */
@@ -176,7 +178,7 @@ export async function askTutor(id: string, index: number, message: string): Prom
   if (!keyShown(await keyRule(attempt))) return { error: attempt.assignment ? t('老師公開答案後才能問 AI。') : t('這份考卷的答案沒有公開，不能問 AI。') }
   const text = message.trim().slice(0, MAX_MESSAGE)
   if (!text) return { error: t('請輸入問題') }
-  const images = await pictures(item)
+  const images = await pictures(attempt.ownerId, item)
   const tutor = await tutorFor(attempt.ownerId, images.length > 0)
   if (!tutor) return { error: t('還沒有可用的 AI：請到設定加上 API 金鑰。') }
   const earlier = attempt.tutoring?.[index] ?? []
@@ -211,7 +213,7 @@ export async function translateQuestion(id: string, index: number): Promise<{ st
   const printed = q.translation?.trim() || null
   if (printed && !q.options.some((o) => o.content.trim())) return { stem: printed, options: [] }
   const shown = (t: { stem: string; options: string[] }) => ({ stem: printed ?? t.stem, options: t.options })
-  const { engine, translator } = await translatorFor(attempt.ownerId)
+  const { engine, translator, shared } = await translatorFor(attempt.ownerId)
   const kept = attempt.translations?.[index]
   if (kept && (kept.engine ?? 'ai') === engine) return shown(kept)
   const language = await localeOf(attempt.ownerId)
@@ -242,7 +244,8 @@ export async function translateQuestion(id: string, index: number): Promise<{ st
     return { error: engine === 'free' ? t('免費翻譯暫時沒有回應，請再試一次，或到設定改用 AI 翻譯。') : t('翻譯暫時沒有回應，請再試一次。') }
   }
   const translation = inOrder(made)
-  await Promise.all([keep(translation), translationCache.set(translationKey(source, language, engine), made).catch(() => {})])
+  // a translation from a service the person added stays with this attempt: it could say anything to the next reader
+  await Promise.all([keep(translation), shared && translationCache.set(translationKey(source, language, engine), made).catch(() => {})])
   return shown(translation)
 }
 

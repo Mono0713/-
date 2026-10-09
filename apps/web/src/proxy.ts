@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import './server/env'
+import { SIGN_IN_MISSING, signInMissing } from './server/signInCheck'
 
 /** Pages anyone may open without signing in (and `/`, the product page). */
 const PUBLIC = ['/welcome', '/login', '/auth/', '/privacy', '/terms', '/manifest.webmanifest']
@@ -13,7 +14,7 @@ const PUBLIC = ['/welcome', '/login', '/auth/', '/privacy', '/terms', '/manifest
 export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !key) return NextResponse.next()
+  if (!url || !key) return signInMissing() ? new NextResponse(SIGN_IN_MISSING, { status: 503 }) : NextResponse.next()
 
   let response = NextResponse.next({ request })
   const supabase = createServerClient(url, key, {

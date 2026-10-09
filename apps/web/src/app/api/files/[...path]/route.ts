@@ -1,8 +1,7 @@
 import { checkKey, contentTypeOf } from '@exam/files'
 import { authEnabled, currentUser } from '@/server/auth'
 import { services } from '@/server/context'
-import { classFile } from '@/server/classes'
-import { sharedFile } from '@/server/shared'
+import { canReadFile } from '@/server/files'
 
 const IMAGES = new Set(['image/png', 'image/jpeg', 'image/webp'])
 
@@ -25,7 +24,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ path: string[]
   if (!IMAGES.has(type)) return notFound()
   if (authEnabled()) {
     const user = await currentUser()
-    if (!user || (!key.startsWith(`u/${user.id}/`) && !(await sharedFile(key)) && !(await classFile(key, user.id)))) return notFound()
+    if (!user || !(await canReadFile(user.id, key))) return notFound()
   }
   const { files } = services()
   const signed = await files.signedUrl(key, 300)

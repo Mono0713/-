@@ -140,8 +140,6 @@
   "學生付": "Học sinh trả",
   "不用 AI": "Không dùng AI",
   "用老師的 API 金鑰批改學生交的問答題和填空題。": "Câu tự luận và câu điền chỗ trống của học sinh được chấm bằng khóa API của giáo viên.",
-  "老師付到每月上限，超過之後改用學生自己的金鑰。": "Giáo viên trả đến hạn mức hàng tháng, vượt quá thì dùng khóa riêng của học sinh.",
-  "學生用自己的 API 金鑰批改；沒有金鑰的學生由老師批改。": "Học sinh tự chấm bằng khóa API của mình; học sinh không có khóa thì giáo viên chấm.",
   "不用 AI，全部由老師批改。": "Không dùng AI, giáo viên chấm tất cả.",
   "AI 批改費用": "Chi phí chấm bằng AI",
   "每月上限 US$": "Hạn mức hàng tháng US$",
@@ -1300,5 +1298,9 @@
   "播放": "Phát",
   "結尾": "Kết",
   "開頭": "Mở đầu",
-  "看介紹影片": "Xem video giới thiệu"
+  "看介紹影片": "Xem video giới thiệu",
+  "試了太多次加入碼，請過 15 分鐘再試。": "Bạn đã thử mã tham gia quá nhiều lần. Vui lòng thử lại sau 15 phút.",
+  "老師付到每月上限，超過之後改用學生自己的 Claude、OpenAI 或 Gemini 金鑰。": "Giáo viên trả đến hạn mức hằng tháng; vượt quá thì dùng khóa Claude, OpenAI hoặc Gemini của chính học sinh.",
+  "學生用自己的 Claude、OpenAI 或 Gemini 金鑰批改（自己加的服務不能批改作業）；沒有的學生由老師批改。": "Chấm bằng khóa Claude, OpenAI hoặc Gemini của chính học sinh (dịch vụ tự thêm không được chấm bài tập); học sinh không có khóa sẽ do giáo viên chấm.",
+  "一次最多 {n} 頁，請分成幾次上傳。": "Mỗi lần tối đa {n} trang. Vui lòng tải lên thành nhiều lần."
 }

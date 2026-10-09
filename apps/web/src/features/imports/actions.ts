@@ -1,6 +1,7 @@
 'use server'
 
 import { extractJson } from '@exam/extraction'
+import { PAGE_LIMIT } from '@exam/importer'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { currentOwner, services } from '@/server/context'
@@ -27,6 +28,7 @@ export async function createImport(formData: FormData): Promise<{ error: string 
     })
     id = record.id
   } catch (err) {
+    if (err instanceof Error && err.name === 'PageLimitError') return { error: t('一次最多 {n} 頁，請分成幾次上傳。', { n: PAGE_LIMIT }) }
     console.error('[import] could not save the upload', err)
     const reason = err instanceof Error ? err.message : String(err)
     if (reason.startsWith('File store could not')) return { error: t('檔案沒有存進去：存放檔案的空間這次沒有接受。請再按一次開始辨識。') }

@@ -9,6 +9,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { startQuiz } from '@/features/quiz/start'
 import { currentOwner, keyPrefixOf, services } from '@/server/context'
+import { ownsFile } from '@/server/files'
 import { noRoomFor } from '@/server/storage'
 import { ownedExam } from '@/server/owned'
 import { openShare } from '@/server/shared'
@@ -81,7 +82,8 @@ export async function copyShared(token: string): Promise<{ error: string } | und
   const folder = `${keyPrefixOf(owner)}copies/${examId}`
   let n = 0
   const copyFigure = async (f: DraftFigure): Promise<DraftFigure> => {
-    if (!f.image) return f
+    // only the sharer's own files: a picture key in a question is not proof it may be read
+    if (!f.image || !ownsFile(opened.exam.ownerId, f.image.file)) return { ...f, image: null }
     const data = await files.read(f.image.file)
     if (!data) return { ...f, image: null }
     const file = `${folder}/figure-${++n}.png`

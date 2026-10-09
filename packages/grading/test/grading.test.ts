@@ -2,7 +2,7 @@ import type { DraftQuestion } from '@exam/core'
 import { buildItems } from '@exam/quiz'
 import { afterAll, describe, expect, it } from 'vitest'
 import { testDatabase } from '@exam/db'
-import { AiTeacher, markOpenAnswers, PostgresGradingCache, SqliteGradingCache, type TextModel } from '../src/index.ts'
+import { AiTeacher, markOpenAnswers, PostgresGradingCache, privateGradingCache, SqliteGradingCache, type TextModel } from '../src/index.ts'
 
 function q(overrides: Partial<DraftQuestion>): DraftQuestion {
   return {
@@ -72,5 +72,19 @@ describe('markOpenAnswers', () => {
     const result = await markOpenAnswers(a, { grader: new AiTeacher(model), cache: new SqliteGradingCache(':memory:'), language: 'en' })
     expect(prompts).toHaveLength(3)
     expect(result.markings.every((m) => m?.credit === 0)).toBe(true)
+  })
+})
+
+describe('privateGradingCache', () => {
+  it('keeps its marks to its owner while still reading the shared ones', async () => {
+    const shared = new SqliteGradingCache(':memory:')
+    await shared.set('k1', { credit: 1, by: 'ai', feedback: null })
+    const mine = privateGradingCache(shared, 'student-a')
+    expect(await mine.get('k1')).toMatchObject({ credit: 1 })
+    await mine.set('k2', { credit: 1, by: 'ai', feedback: 'from my own service' })
+    expect(await mine.get('k2')).toMatchObject({ feedback: 'from my own service' })
+    // nobody else, and not the shared cache, sees a mark made by a service someone added
+    expect(await shared.get('k2')).toBeNull()
+    expect(await privateGradingCache(shared, 'student-b').get('k2')).toBeNull()
   })
 })

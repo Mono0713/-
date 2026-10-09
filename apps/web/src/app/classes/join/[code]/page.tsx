@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { JoinButton } from '@/features/classes/JoinButton'
+import { joinTooOften } from '@/server/classes'
 import { currentOwner, services } from '@/server/context'
 import { getT } from '@/shared/i18n/server'
 import { Card, EmptyState } from '@/shared/ui'
@@ -15,6 +16,13 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
   const { code } = await params
   const t = await getT()
   const { classes } = services()
+  if (joinTooOften(await currentOwner())) {
+    return (
+      <div className="mx-auto max-w-md pt-10">
+        <EmptyState title={t('試了太多次加入碼，請過 15 分鐘再試。')} />
+      </div>
+    )
+  }
   const classroom = await classes.byCode(code)
   if (!classroom) {
     return (

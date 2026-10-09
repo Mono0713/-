@@ -4,7 +4,7 @@ import type { DraftExam, DraftFigure, ExtractedPage, IngestedDocument, PageImage
 import { createProvider, extractDocument, keepEdits, ManualProvider, mergePages, type PageResult, type ProviderConfig, type TextFiles } from '@exam/extraction'
 import type { FileStore } from '@exam/files'
 import { cleanFigure, cropExamFigures, figureFromUpload, snapBoxesToText } from '@exam/figures'
-import { imagesToPdf, ingestBuffer, storedPage } from '@exam/ingest'
+import { imagesToPdf, ingestBuffer, PAGE_LIMIT, PageLimitError, storedPage } from '@exam/ingest'
 import { PageCrops } from './crops.ts'
 import { WRITTEN, WrittenExams } from './written.ts'
 
@@ -466,8 +466,10 @@ export class Importer {
   private async ingest(files: UploadFile[]): Promise<IngestedDocument> {
     const pages: PageImage[] = []
     for (const f of files) {
-      const doc = await ingestBuffer(f.name, f.data, { maxEdge: this.opts.maxEdge })
+      // the limit counts every file of the upload together
+      const doc = await ingestBuffer(f.name, f.data, { maxEdge: this.opts.maxEdge, maxPages: PAGE_LIMIT - pages.length })
       for (const page of doc.pages) pages.push({ ...page, pageNumber: pages.length + 1 })
+      if (pages.length > PAGE_LIMIT) throw new PageLimitError(PAGE_LIMIT)
     }
     return { fileName: files[0]!.name, kind: files.length === 1 && extname(files[0]!.name).toLowerCase() === '.pdf' ? 'pdf' : 'image', pages }
   }

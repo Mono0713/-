@@ -8,3 +8,5 @@ onlyBuiltDependencies:
 overrides:
   # One KaTeX for everything: rehype-katex would bring its own copy, which never gets the mhchem (\ce) extension.
   katex: ^0.18.9
+  # Security fix (GHSA-68fv-2mgg-jv7q); reached through Next.js and PostCSS.
+  source-map-js: ^1.2.2

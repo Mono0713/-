@@ -5,13 +5,29 @@ import type { PageImage } from '@exam/core'
 export interface RenderOptions {
   /** Longest edge of the rendered page in pixels. */
   maxEdge: number
+  /** Most pages rendered; a longer PDF is refused before any page is drawn. Default PAGE_LIMIT. */
+  maxPages?: number
+}
+
+/** Pages one upload may have: every page is drawn in memory, so a huge PDF could take the server down. */
+export const PAGE_LIMIT = 100
+
+/** Thrown when a file has more pages than allowed; `limit` is the most allowed. */
+export class PageLimitError extends Error {
+  override name = 'PageLimitError'
+  constructor(readonly limit: number) {
+    super(`More than ${limit} pages`)
+  }
 }
 
 /** Renders each PDF page to PNG and collects its text layer, if any. */
 export async function renderPdf(data: Uint8Array, opts: RenderOptions): Promise<PageImage[]> {
   // pdfjs takes ownership of the buffer it is given, so hand it a copy.
-  const doc = await getDocument({ data: new Uint8Array(data), verbosity: 0 }).promise
+  const task = getDocument({ data: new Uint8Array(data), verbosity: 0 })
+  const doc = await task.promise
   try {
+    const limit = opts.maxPages ?? PAGE_LIMIT
+    if (doc.numPages > limit) throw new PageLimitError(limit)
     const pages: PageImage[] = []
     for (let n = 1; n <= doc.numPages; n++) {
       const page = await doc.getPage(n)
@@ -48,7 +64,7 @@ export async function renderPdf(data: Uint8Array, opts: RenderOptions): Promise<
     }
     return pages
   } finally {
-    await doc.destroy()
+    await task.destroy()
   }
 }
 

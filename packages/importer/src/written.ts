@@ -3,7 +3,7 @@ import type { Bank, ImportRecord } from '@exam/bank'
 import type { DraftExam, PageImage } from '@exam/core'
 import { cropExamFigures } from '@exam/figures'
 import type { FileStore } from '@exam/files'
-import { ingestBuffer, storedPage } from '@exam/ingest'
+import { ingestBuffer, PageLimitError, storedPage } from '@exam/ingest'
 import type { UploadFile } from './importer.ts'
 
 /** `provider` of an exam the AI wrote from study material (講義、筆記) rather than read from an exam paper. */
@@ -14,6 +14,11 @@ export const MAX_MATERIAL_PAGES = 30
 
 /** The error thrown when the material has more pages than MAX_MATERIAL_PAGES. */
 export const TOO_MANY_PAGES = 'Too many pages of material'
+
+/** A PDF longer than what is left of the material's pages ends as TOO_MANY_PAGES. */
+const tooMany = (err: unknown): never => {
+  throw err instanceof PageLimitError ? new Error(TOO_MANY_PAGES) : err
+}
 
 /** Text files read as plain text rather than rendered to pages. */
 const TEXT_EXTENSIONS = new Set(['.txt', '.md', '.markdown', '.csv'])
@@ -59,7 +64,7 @@ export class WrittenExams {
         texts.push(`${f.name}\n${f.data.toString('utf8').trim()}`)
         continue
       }
-      for (const page of (await ingestBuffer(f.name, f.data)).pages) {
+      for (const page of (await ingestBuffer(f.name, f.data, { maxPages: MAX_MATERIAL_PAGES - pages.length }).catch(tooMany)).pages) {
         pages.push({ ...page, pageNumber: pages.length + 1 })
         if (pages.length > MAX_MATERIAL_PAGES) throw new Error(TOO_MANY_PAGES)
       }

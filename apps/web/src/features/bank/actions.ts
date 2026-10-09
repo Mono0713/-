@@ -4,6 +4,7 @@ import type { ExamPatch } from '@exam/bank'
 import type { DraftQuestion } from '@exam/core'
 import { revalidatePath } from 'next/cache'
 import { currentOwner, services } from '@/server/context'
+import { ownQuestionFiles } from '@/server/files'
 import { ownedExam, ownedQuestion } from '@/server/owned'
 
 async function requireQuestion(id: string) {
@@ -20,7 +21,7 @@ async function requireExam(id: string) {
 
 export async function updateBankQuestion(id: string, question: DraftQuestion) {
   const q = await requireQuestion(id)
-  await services().bank.updateQuestion(id, question)
+  await services().bank.updateQuestion(id, ownQuestionFiles(q.ownerId, question))
   revalidatePath(`/bank/exams/${q.examId}`)
 }
 

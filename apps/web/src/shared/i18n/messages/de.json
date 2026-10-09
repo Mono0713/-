@@ -140,8 +140,6 @@
   "學生付": "Schüler:innen zahlen",
   "不用 AI": "Keine KI",
   "用老師的 API 金鑰批改學生交的問答題和填空題。": "Kurzantworten und Lückentexte werden mit dem API-Schlüssel der Lehrkraft bewertet.",
-  "老師付到每月上限，超過之後改用學生自己的金鑰。": "Die Lehrkraft zahlt bis zu einem Monatslimit, danach werden die Schlüssel der Schüler:innen verwendet.",
-  "學生用自己的 API 金鑰批改；沒有金鑰的學生由老師批改。": "Schüler:innen bewerten mit ihren eigenen API-Schlüsseln. Die Lehrkraft bewertet für alle ohne Schlüssel.",
   "不用 AI，全部由老師批改。": "Keine KI. Die Lehrkraft bewertet alles.",
   "AI 批改費用": "KI-Bewertungskosten",
   "每月上限 US$": "Monatslimit US$",
@@ -1300,5 +1298,9 @@
   "播放": "Abspielen",
   "結尾": "Ende",
   "開頭": "Anfang",
-  "看介紹影片": "Tour ansehen"
+  "看介紹影片": "Tour ansehen",
+  "試了太多次加入碼，請過 15 分鐘再試。": "Zu viele Versuche mit Beitrittscodes. Bitte versuche es in 15 Minuten erneut.",
+  "老師付到每月上限，超過之後改用學生自己的 Claude、OpenAI 或 Gemini 金鑰。": "Die Lehrkraft zahlt bis zum Monatslimit, danach werden die eigenen Claude-, OpenAI- oder Gemini-Schlüssel der Lernenden verwendet.",
+  "學生用自己的 Claude、OpenAI 或 Gemini 金鑰批改（自己加的服務不能批改作業）；沒有的學生由老師批改。": "Bewertet wird mit den eigenen Claude-, OpenAI- oder Gemini-Schlüsseln der Lernenden (selbst hinzugefügte Dienste dürfen keine Aufgaben bewerten); wer keinen hat, wird von der Lehrkraft bewertet.",
+  "一次最多 {n} 頁，請分成幾次上傳。": "Höchstens {n} Seiten auf einmal. Bitte lade sie in mehreren Teilen hoch."
 }

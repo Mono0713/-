@@ -12,6 +12,8 @@
 
 全部寫在專案根目錄的 `.env`（範本見 `.env.example`）。
 
+正式版的伺服器（`pnpm preview`、Render）設了雲端資料庫，卻沒設 Google 登入那兩個變數時，網站會直接顯示錯誤、不提供服務：不然每個訪客都會變成同一個本機使用者，看得到也改得了同一份資料。真的只給一個人用的伺服器，才另外設 `ALLOW_SINGLE_USER=1`。
+
 ## 1. Supabase 專案
 
 1. 到 https://supabase.com 建立專案（免費方案可以先測，但一週沒人用會暫停）。
@@ -19,6 +21,7 @@
    - 長時間跑的伺服器用「Session pooler」或直接連線的網址；Vercel 這類無伺服器平台用「Transaction pooler」（port 6543）。程式已關閉 prepared statements，兩種都能用。
 3. **建立資料表**：`pnpm db:migrate`。會套用 `supabase/migrations/` 裡還沒套用過的檔案，重跑也安全。也可以用 Supabase CLI 的 `supabase db push`。
 4. **`SETTINGS_SECRET`**：隨便一串 32 個字以上的亂碼（例如 `node -p "require('crypto').randomBytes(32).toString('hex')"`）。本機和 Render 共用同一個資料庫時，兩邊要填同一串。用戶存的 API 金鑰會用它加密後才寫進資料庫。**之後不能改**，改了已存的金鑰就讀不出來，要請大家重新貼。
+   - 開放給陌生人之前，本機開發請改用**另一個** Supabase 專案（自己的 `DATABASE_URL` 和 `SETTINGS_SECRET`），正式的這兩個值只放在 Render。不然電腦裡的 `.env` 一旦外流，就是所有人的資料和 API 金鑰；本機測試也會改到真正使用者的資料。
 
 資料表都開了 Row Level Security 且沒有任何規則，所以瀏覽器拿到的公開 anon key 無法直接讀寫資料；只有網站伺服器（用 `DATABASE_URL` 連線）能存取，並由伺服器檢查每筆資料的擁有者。
 

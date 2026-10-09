@@ -18,8 +18,8 @@ const PAYERS = [
 
 const NOTES: Record<AiPayer, string> = {
   teacher: msg('用老師的 API 金鑰批改學生交的問答題和填空題。'),
-  mixed: msg('老師付到每月上限，超過之後改用學生自己的金鑰。'),
-  student: msg('學生用自己的 API 金鑰批改；沒有金鑰的學生由老師批改。'),
+  mixed: msg('老師付到每月上限，超過之後改用學生自己的 Claude、OpenAI 或 Gemini 金鑰。'),
+  student: msg('學生用自己的 Claude、OpenAI 或 Gemini 金鑰批改（自己加的服務不能批改作業）；沒有的學生由老師批改。'),
   off: msg('不用 AI，全部由老師批改。'),
 }
 
