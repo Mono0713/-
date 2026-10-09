@@ -41,7 +41,8 @@ Packages never import from apps.
 | ↳ 原卷、題目框、放大縮小 | | `review/PageViewer.tsx` (also frames pictures: `review/useFigureFraming.ts`, `FramingBar.tsx` 套用/取消), `review/useBoxEditing.ts` (move/resize/draw boxes; a question added by hand draws its first box, or 放一個框), `review/boxGeometry.ts`; box placement from AI: `packages/core/src/boxes.ts` |
 | ↳ 題目大綱、分隔線、版面記憶 | | `review/Outline.tsx`, `review/useWorkspaceLayout.ts` |
 | ↳ 題組/小題共用卡片 | | `review/GroupCard.tsx` |
-| ↳ 懸浮球（全部生成答案/詳解、新增、複製、AI 強度和目前模型、復原） | | `review/useReviewFab.tsx` (what the FAB holds), `review/StrengthPanel.tsx` (AI 強度; models from `modelsByStrength` in `server/ai.ts`) |
+| ↳ 原卷自動裁切、拉正（拍照的考卷找出紙張四角；四角四邊各自拖曳、自動、整張、復原）、匯出裁切後的 PDF | | found when uploaded (no AI): `packages/ingest/src/crop.ts` (`findPage`, `flattenPage`), kept per page by `packages/importer/src/crops.ts` (`PageCrops`: `crops.json` corners on the photo as taken, `raw-N.webp`; re-runs cut the same way; moving page readings' boxes); corner math `packages/core/src/quad.ts` (`remapBox`, `remapDraftPage`); editor: crop button in the page controls of `review/PageViewer.tsx`, `review/PageCropper.tsx` (the outline and grips), `review/usePageCrops.tsx` (state, 復原 note; draft boxes moved by `remapPage` in `useReviewDraft`, all undo steps rewritten), `review/cropActions.ts`; PDF `app/api/imports/[id]/pdf/route.ts` → `Importer.pagesPdf` → `packages/ingest/src/pdfWrite.ts` |
+| ↳ 懸浮球（全部生成答案/詳解、新增、複製、匯出 PDF、AI 強度和目前模型、復原） | | `review/useReviewFab.tsx` (what the FAB holds), `review/StrengthPanel.tsx` (AI 強度; models from `modelsByStrength` in `server/ai.ts`) |
 | ↳ 題目卡上的按鈕（拆小題、設為小題/移出小題、編輯、刪除、拖曳） | | `review/CardActions.tsx` |
 | ↳ AI 作答、AI 詳解（全部在懸浮球，單題在題目卡上） | | `review/useSolver.ts` (runs + undoable single-question redo), `review/SolveStatus.tsx` (progress toast), `solveQuestion` in `review/actions.ts`; `needsAnswer`/`needsExplanation` in `packages/core/src/answers.ts`; models: tasks `solving`/`explaining` in `packages/models/src/routing.ts`; AI `packages/grading/src/solver.ts` |
 | ↳ A4 預覽、學生版／教師版、匯出 PDF（從零建立的考卷，原卷的位置） | | `features/sheet/SheetPreview.tsx` (viewer like the original pages: bottom zoom/page bar and page badge from `shared/PageControls.tsx`, answers always red, PDF export started from the FAB in `review/useReviewFab.tsx`; measures blocks on an unseen page, pages them, `usePrint.ts` prints full-size pages = PDF), `blocks.tsx` (header, section, passage, question blocks), `SheetQuestion.tsx` (one printed question by type), `AnswerRoom.tsx` (answer room whose bottom edge is dragged; `space` on the question, lines), `SheetHeader.tsx` (title, 班級／座號／姓名, 得分), `SheetSettings.tsx` (in 考卷資訊), `layout.ts` (`paginate`, `optionColumns`); settings `sheet` on `DraftExam` (`sheetOf` in `packages/core/src/types.ts`); styles `.a4-*`/`.sheet-*` and print rules in `app/globals.css` |
@@ -112,8 +113,8 @@ Packages never import from apps.
 |---|---|
 | `core` | Question/exam schema and types (`schema.ts`), box untangling (`boxes.ts`), figure helpers, 配合題 item count (`matching.ts`), which questions lack a key (`answers.ts`) |
 | `extraction` | AI recognition of pages: prompt (`prompt.ts`), providers, merging pages (`merge.ts`) |
-| `importer` | Upload → pages → recognition → draft pipeline, background runs, original-file expiry; exams written from study material (`written.ts`) |
-| `ingest` | PDF and image → page images |
+| `importer` | Upload → pages → recognition → draft pipeline, background runs, original-file expiry; exams written from study material (`written.ts`); page crops (`crops.ts`) |
+| `ingest` | PDF and image → page images; finding and flattening the sheet in a photo (`crop.ts`); images → PDF (`pdfWrite.ts`) |
 | `figures` | Cropping figures, cleaning handwriting out of blanks, moving AI question boxes onto their text lines (`snap.ts`), uploaded pictures (`upload.ts`) |
 | `bank` | Question bank storage (`sqlite.ts`, `postgres.ts`), drafts |
 | `quiz` | Attempts storage, marking rules (`logic.ts`), answer equivalence (`equivalence.ts`) |

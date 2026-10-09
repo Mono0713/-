@@ -1266,5 +1266,14 @@
   "加上共用字庫（選詞填空）": "Gemeinsamen Wortkasten hinzufügen",
   "選詞填空": "Wortauswahl",
   "展開字庫": "Wortkasten zeigen",
-  "收合字庫": "Wortkasten ausblenden"
+  "收合字庫": "Wortkasten ausblenden",
+  "原始照片": "Originalfoto",
+  "拖曳四個角或四條邊對齊考卷，套用後自動拉正。": "Ziehe die vier Ecken oder Kanten auf das Blatt; Anwenden richtet es gerade aus.",
+  "整張": "Ganz",
+  "裁切並拉正這一頁": "Diese Seite zuschneiden und begradigen",
+  "沒有存好，再試一次。": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+  "找不到考卷的邊，請手動拉四個角。": "Blattränder nicht gefunden. Ziehe die vier Ecken selbst.",
+  "四個角交叉了，拉開一點。": "Die Ecken überkreuzen sich. Zieh sie etwas auseinander.",
+  "第 {n} 頁已裁切並拉正": "Seite {n} zugeschnitten und begradigt",
+  "匯出裁切後的 PDF": "Zugeschnittenes PDF exportieren"
 }

@@ -4,7 +4,8 @@ import type { DraftExam, DraftFigure, ExtractedPage, IngestedDocument, PageImage
 import { createProvider, extractDocument, keepEdits, ManualProvider, mergePages, type PageResult, type ProviderConfig, type TextFiles } from '@exam/extraction'
 import type { FileStore } from '@exam/files'
 import { cleanFigure, cropExamFigures, figureFromUpload, snapBoxesToText } from '@exam/figures'
-import { ingestBuffer, storedPage } from '@exam/ingest'
+import { imagesToPdf, ingestBuffer, storedPage } from '@exam/ingest'
+import { PageCrops } from './crops.ts'
 import { WRITTEN, WrittenExams } from './written.ts'
 
 export interface UploadFile {
@@ -100,9 +101,12 @@ export class Importer {
 
   /** Exams the AI writes from study material (AI 出題). */
   readonly written: WrittenExams
+  /** Where the paper is on photographed pages, and cutting them again. */
+  readonly crops: PageCrops
 
   constructor(private readonly opts: ImporterOptions) {
     this.written = new WrittenExams(opts.bank, opts.files, (imp) => this.base(imp))
+    this.crops = new PageCrops(opts.files, (imp) => this.base(imp), (imp, n) => this.pageImage(imp, n), opts.maxEdge ?? 2000)
   }
 
   get bank(): Bank {
@@ -140,7 +144,8 @@ export class Importer {
     const base = this.base(record)
     for (const [i, f] of input.files.entries()) await this.files.write(`${base}/sources/${i + 1}${sourceExt(f.name)}`, f.data)
     await this.files.write(`${base}/sources/names.json`, JSON.stringify(input.files.map((f) => f.name)))
-    for (const page of doc.pages) await this.files.write(this.pageImage(record, page.pageNumber), await storedPage(page.data))
+    // photos are cut to the sheet and flattened before anything reads them
+    for (const page of await this.crops.frameNew(record, doc.pages)) await this.files.write(this.pageImage(record, page.pageNumber), await storedPage(page.data))
     await this.start(record.id)
     return record
   }
@@ -260,6 +265,17 @@ export class Importer {
     const key = `${this.base(imp)}/figures/upload-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}.png`
     await this.files.write(key, png)
     return { file: key, width, height, blanks: [] }
+  }
+
+  /** The pages as shown (photos cut to the sheet and flattened), one PDF page each. */
+  async pagesPdf(id: string): Promise<Buffer> {
+    const imp = await this.require(id)
+    const pages: Buffer[] = []
+    for (let n = 1; n <= imp.pageCount; n++) {
+      const data = await this.files.read(this.pageImage(imp, n))
+      if (data) pages.push(data)
+    }
+    return imagesToPdf(pages)
   }
 
   /** Prompts to paste into a chat app for pages still waiting in manual mode. */
@@ -467,7 +483,7 @@ export class Importer {
         return { name, data }
       }),
     )
-    return this.ingest(files)
+    return this.crops.apply(imp, await this.ingest(files))
   }
 
   private async loadPages(imp: ImportRecord): Promise<IngestedDocument> {

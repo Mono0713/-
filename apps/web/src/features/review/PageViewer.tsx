@@ -5,14 +5,18 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerE
 import { fileUrl } from '@/shared/files'
 import { PageBadge, PageControls, pill, usePageControls, ZOOMS } from '@/shared/PageControls'
 import { useT } from '@/shared/i18n/client'
-import { IconExternal, IconLoader, IconPlus } from '@/shared/icons'
+import { IconCrop, IconExternal, IconLoader, IconPlus } from '@/shared/icons'
 import { clamp, GRIPS, type Box } from './boxGeometry'
 import { FramingBar } from './FramingBar'
+import { PageCropper } from './PageCropper'
 import { useBoxEditing } from './useBoxEditing'
 import type { Framing } from './useFigureFraming'
+import type { Cropping, SourcePage } from './usePageCrops'
 
 // The box of a picture being framed, told apart from the questions' boxes.
 const FRAME = -1
+// The page image, again from the server once it was cut anew.
+const pageUrl = (p: SourcePage) => fileUrl(p.image) + (p.version ? `?v=${p.version}` : '')
 const spot = ({ x, y, width, height }: Box) => ({ left: `${x * 100}%`, top: `${y * 100}%`, width: `${width * 100}%`, height: `${height * 100}%` })
 
 /**
@@ -22,7 +26,8 @@ const spot = ({ x, y, width, height }: Box) => ({ left: `${x * 100}%`, top: `${y
  * where the layout gives it a height (`className`); otherwise the pages flow with the window.
  * While a picture is `framing`, the pages show only its box, the same box as a selected question's:
  * moved and resized the same way, or drawn anew anywhere on a page. A selected question with no box
- * yet (added by hand) gets one drawn on a page, or placed on the page in view.
+ * yet (added by hand) gets one drawn on a page, or placed on the page in view. With `onCrop`, the
+ * controls cut the page in view again (`cropping`: that page shows its photo and the paper's outline).
  */
 export function PageViewer({
   pages,
@@ -31,15 +36,19 @@ export function PageViewer({
   onSelect,
   onBoxChange,
   framing,
+  cropping,
+  onCrop,
   className = '',
 }: {
-  pages: { pageNumber: number; image: string }[]
+  pages: SourcePage[]
   questions: DraftQuestion[]
   selected: number | null
   onSelect: (index: number) => void
   /** Given, the selected question's box can be moved and resized, and dragged onto another page (`pageNumber`). */
   onBoxChange?: (index: number, location: number, bbox: Box, pageNumber?: number) => void
   framing?: Framing | null
+  cropping?: Cropping | null
+  onCrop?: (pageNumber: number) => void
   className?: string
 }) {
   const t = useT()
@@ -169,7 +178,7 @@ export function PageViewer({
   }, [framing?.id])
   const frameLive = live?.index === FRAME ? live : null
   // The selected question has no box yet: a press on a page draws one, or the bar places one.
-  const boxless = !framing && onBoxChange && selected !== null && questions[selected]?.locations.length === 0 ? selected : null
+  const boxless = !framing && !cropping && onBoxChange && selected !== null && questions[selected]?.locations.length === 0 ? selected : null
   const drawLive = boxless !== null && live?.index === boxless ? live : null
   const placeBox = () => {
     if (boxless === null) return
@@ -188,6 +197,24 @@ export function PageViewer({
     // A column, so the controls sit at the bottom of the viewer even before the pages fill it.
     <div ref={scroller} onScroll={onScroll} onPointerMove={nearControls} onPointerDown={nearControls} className={`relative flex flex-col ${className}`}>
       {framing && <FramingBar hint={t('拖曳框線調整圖片範圍，或在頁面上重畫一個框。')} onApply={framing.onApply} onCancel={framing.onCancel} />}
+      {cropping && (
+        <FramingBar
+          hint={cropping.note ?? t('拖曳四個角或四條邊對齊考卷，套用後自動拉正。')}
+          busy={cropping.busy}
+          extra={
+            <>
+              <button type="button" onClick={cropping.onAuto} disabled={cropping.busy} className="m-press h-8 shrink-0 rounded-full px-3 hover:bg-white/15">
+                {t('自動')}
+              </button>
+              <button type="button" onClick={cropping.onFull} disabled={cropping.busy} className="m-press h-8 shrink-0 rounded-full px-3 hover:bg-white/15">
+                {t('整張')}
+              </button>
+            </>
+          }
+          onApply={cropping.onApply}
+          onCancel={cropping.onCancel}
+        />
+      )}
       {boxless !== null && (
         <FramingBar
           hint={t('第 {n} 題還沒有框：在頁面上拖曳畫一個。', { n: questions[boxless]!.number })}
@@ -207,121 +234,128 @@ export function PageViewer({
           onPointerCancel={endPan}
           onDragStart={(e) => zoom > 0 && e.preventDefault()}
         >
-          {pages.map((page) => (
-            <figure
-              key={page.pageNumber}
-              data-page={page.pageNumber}
-              className={`group relative overflow-hidden rounded-lg bg-surface shadow-sheet ${framing || boxless !== null ? 'cursor-crosshair' : ''}`}
-              // a press on the page (mouse or pen) draws the picture's box anew, or the box of a question without one
-              {...(framing && { onPointerDown: (e: ReactPointerEvent) => e.pointerType !== 'touch' && startEdit(e, FRAME, 0, framing.bbox, 'draw') })}
-              {...(boxless !== null && { onPointerDown: (e: ReactPointerEvent) => e.pointerType !== 'touch' && startEdit(e, boxless, 0, { x: 0, y: 0, width: 0, height: 0 }, 'draw') })}
-              // An A4-shaped page holds the place until the image arrives, so nothing jumps around much.
-              style={loaded[page.pageNumber] ? undefined : { aspectRatio: '1 / 1.414' }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                ref={(img) => {
-                  // A cached image may have loaded before React attached onLoad.
-                  if (img?.complete && img.naturalWidth) done(page.pageNumber, 'ok')
-                }}
-                src={fileUrl(page.image)}
-                alt={t('第 {n} 頁', { n: page.pageNumber })}
-                onLoad={() => done(page.pageNumber, 'ok')}
-                onError={() => done(page.pageNumber, 'error')}
-                className={`block h-auto w-full transition-opacity duration-300 ${loaded[page.pageNumber] === 'ok' ? 'opacity-100' : 'absolute inset-0 opacity-0'}`}
-              />
-              {!loaded[page.pageNumber] && (
-                // The spinner sits in the upper part of the page, where it is in view.
-                <div className="absolute inset-0 flex justify-center pt-[38%]" role="status" aria-label={t('第 {n} 頁載入中', { n: page.pageNumber })}>
-                  <div className="flex flex-col items-center gap-2 text-muted">
-                    <IconLoader size={26} className="m-spin text-accent" />
-                    <span className="text-xs">{t('載入考卷中…')}</span>
-                  </div>
-                </div>
-              )}
-              {loaded[page.pageNumber] === 'error' && (
-                <div className="absolute inset-0 grid place-items-center text-sm text-muted" role="alert">
-                  {t('這一頁的圖片載入失敗')}
-                </div>
-              )}
-              {loaded[page.pageNumber] === 'ok' && framing && (frameLive ? frameLive.pageNumber : framing.pageNumber) === page.pageNumber && (
-                <div
-                  data-frame
-                  style={spot(frameLive ? frameLive.bbox : framing.bbox)}
-                  onPointerDown={(e) => startEdit(e, FRAME, 0, framing.bbox, 'move')}
-                  className={`absolute z-[1] touch-none rounded-sm bg-accent/15 ring-2 ring-accent ${frameLive ? 'cursor-grabbing' : 'cursor-move'}`}
-                >
-                  {GRIPS.map(({ grip, className }) => (
-                    <span key={grip} aria-hidden onPointerDown={(e) => startEdit(e, FRAME, 0, framing.bbox, grip)} className={`absolute ${className} ${grip.length === 2 ? 'h-3.5 w-3.5' : ''}`} />
-                  ))}
-                </div>
-              )}
-              {drawLive?.pageNumber === page.pageNumber && (
-                <div
-                  style={spot(drawLive.bbox)}
-                  className="pointer-events-none absolute z-[1] rounded-sm bg-accent/15 ring-2 ring-accent"
+          {pages.map((page) =>
+            cropping?.pageNumber === page.pageNumber ? (
+              // the page being cut shows its photo as taken, with the paper's outline
+              <figure key={page.pageNumber} data-page={page.pageNumber} className="relative rounded-lg bg-surface shadow-sheet">
+                <PageCropper image={cropping.image} quad={cropping.quad} onChange={cropping.onChange} />
+              </figure>
+            ) : (
+              <figure
+                key={page.pageNumber}
+                data-page={page.pageNumber}
+                className={`group relative overflow-hidden rounded-lg bg-surface shadow-sheet ${framing || boxless !== null ? 'cursor-crosshair' : ''}`}
+                // a press on the page (mouse or pen) draws the picture's box anew, or the box of a question without one
+                {...(framing && { onPointerDown: (e: ReactPointerEvent) => e.pointerType !== 'touch' && startEdit(e, FRAME, 0, framing.bbox, 'draw') })}
+                {...(boxless !== null && { onPointerDown: (e: ReactPointerEvent) => e.pointerType !== 'touch' && startEdit(e, boxless, 0, { x: 0, y: 0, width: 0, height: 0 }, 'draw') })}
+                // An A4-shaped page holds the place until the image arrives, so nothing jumps around much.
+                style={loaded[page.pageNumber] ? undefined : { aspectRatio: '1 / 1.414' }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  ref={(img) => {
+                    // A cached image may have loaded before React attached onLoad.
+                    if (img?.complete && img.naturalWidth) done(page.pageNumber, 'ok')
+                  }}
+                  src={pageUrl(page)}
+                  alt={t('第 {n} 頁', { n: page.pageNumber })}
+                  onLoad={() => done(page.pageNumber, 'ok')}
+                  onError={() => done(page.pageNumber, 'error')}
+                  className={`block h-auto w-full transition-opacity duration-300 ${loaded[page.pageNumber] === 'ok' ? 'opacity-100' : 'absolute inset-0 opacity-0'}`}
                 />
-              )}
-              {loaded[page.pageNumber] === 'ok' &&
-                !framing &&
-                boxes
-                  .flatMap((q, index) =>
-                    q.locations
-                      .map((l, location) => ({ l, location, index, moving: live !== null && live.index === index && live.location === location }))
-                      // a box being carried shows on the page under the pointer
-                      .filter(({ l, moving }) => (moving ? live!.pageNumber : l.pageNumber) === page.pageNumber),
-                  )
-                  .map(({ l, location, index, moving }, order) => {
-                    const box = moving ? live!.bbox : l.bbox
-                    const place = {
-                      '--i': order,
-                      left: `${box.x * 100}%`,
-                      top: `${box.y * 100}%`,
-                      width: `${box.width * 100}%`,
-                      height: `${box.height * 100}%`,
-                      ...((moving || carried.current.has(`${index}-${location}`)) && { animation: 'none' }),
-                    } as CSSProperties
-                    const editing = index === selected && !!onBoxChange
-                    // Every box is the same element whether or not it is selected, so selecting one never
-                    // remounts another and replays its reveal (m-found plays once, when the page shows).
-                    return (
-                      <div
-                        key={`${index}-${location}`}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={t('第 {n} 題', { n: questions[index]!.number })}
-                        aria-pressed={index === selected}
-                        data-q={index}
-                        style={place}
-                        onClick={() => index !== selected && onSelect(index)}
-                        onKeyDown={(e) => {
-                          if (e.key !== 'Enter' && e.key !== ' ') return
-                          e.preventDefault()
-                          onSelect(index)
-                        }}
-                        {...(editing && { onPointerDown: (e: ReactPointerEvent) => startEdit(e, index, location, l.bbox, 'move') })}
-                        className={`${revealed[page.pageNumber] ? '' : 'm-found'} absolute rounded-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${
-                          index === selected ? 'z-[1] bg-accent/15 ring-2 ring-accent' : 'cursor-pointer ring-1 ring-accent/0 hover:bg-accent/5 hover:ring-accent/40'
-                        } ${editing ? `touch-none ${live?.index === index ? 'cursor-grabbing' : 'cursor-move'}` : ''}`}
-                      >
-                        {/* invisible grab areas on the edges and corners; nothing drawn over the text */}
-                        {editing &&
-                          GRIPS.map(({ grip, className }) => (
-                            <span
-                              key={grip}
-                              aria-hidden
-                              onPointerDown={(e) => startEdit(e, index, location, l.bbox, grip)}
-                              className={`absolute ${className} ${grip.length === 2 ? 'h-3.5 w-3.5' : ''}`}
-                            />
-                          ))}
-                      </div>
+                {!loaded[page.pageNumber] && (
+                  // The spinner sits in the upper part of the page, where it is in view.
+                  <div className="absolute inset-0 flex justify-center pt-[38%]" role="status" aria-label={t('第 {n} 頁載入中', { n: page.pageNumber })}>
+                    <div className="flex flex-col items-center gap-2 text-muted">
+                      <IconLoader size={26} className="m-spin text-accent" />
+                      <span className="text-xs">{t('載入考卷中…')}</span>
+                    </div>
+                  </div>
+                )}
+                {loaded[page.pageNumber] === 'error' && (
+                  <div className="absolute inset-0 grid place-items-center text-sm text-muted" role="alert">
+                    {t('這一頁的圖片載入失敗')}
+                  </div>
+                )}
+                {loaded[page.pageNumber] === 'ok' && framing && (frameLive ? frameLive.pageNumber : framing.pageNumber) === page.pageNumber && (
+                  <div
+                    data-frame
+                    style={spot(frameLive ? frameLive.bbox : framing.bbox)}
+                    onPointerDown={(e) => startEdit(e, FRAME, 0, framing.bbox, 'move')}
+                    className={`absolute z-[1] touch-none rounded-sm bg-accent/15 ring-2 ring-accent ${frameLive ? 'cursor-grabbing' : 'cursor-move'}`}
+                  >
+                    {GRIPS.map(({ grip, className }) => (
+                      <span key={grip} aria-hidden onPointerDown={(e) => startEdit(e, FRAME, 0, framing.bbox, grip)} className={`absolute ${className} ${grip.length === 2 ? 'h-3.5 w-3.5' : ''}`} />
+                    ))}
+                  </div>
+                )}
+                {drawLive?.pageNumber === page.pageNumber && (
+                  <div
+                    style={spot(drawLive.bbox)}
+                    className="pointer-events-none absolute z-[1] rounded-sm bg-accent/15 ring-2 ring-accent"
+                  />
+                )}
+                {loaded[page.pageNumber] === 'ok' &&
+                  !framing &&
+                  boxes
+                    .flatMap((q, index) =>
+                      q.locations
+                        .map((l, location) => ({ l, location, index, moving: live !== null && live.index === index && live.location === location }))
+                        // a box being carried shows on the page under the pointer
+                        .filter(({ l, moving }) => (moving ? live!.pageNumber : l.pageNumber) === page.pageNumber),
                     )
-                  })}
-              {pages.length > 1 && (
-                <PageBadge n={page.pageNumber} />
-              )}
-            </figure>
-          ))}
+                    .map(({ l, location, index, moving }, order) => {
+                      const box = moving ? live!.bbox : l.bbox
+                      const place = {
+                        '--i': order,
+                        left: `${box.x * 100}%`,
+                        top: `${box.y * 100}%`,
+                        width: `${box.width * 100}%`,
+                        height: `${box.height * 100}%`,
+                        ...((moving || carried.current.has(`${index}-${location}`)) && { animation: 'none' }),
+                      } as CSSProperties
+                      const editing = index === selected && !!onBoxChange
+                      // Every box is the same element whether or not it is selected, so selecting one never
+                      // remounts another and replays its reveal (m-found plays once, when the page shows).
+                      return (
+                        <div
+                          key={`${index}-${location}`}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={t('第 {n} 題', { n: questions[index]!.number })}
+                          aria-pressed={index === selected}
+                          data-q={index}
+                          style={place}
+                          onClick={() => index !== selected && onSelect(index)}
+                          onKeyDown={(e) => {
+                            if (e.key !== 'Enter' && e.key !== ' ') return
+                            e.preventDefault()
+                            onSelect(index)
+                          }}
+                          {...(editing && { onPointerDown: (e: ReactPointerEvent) => startEdit(e, index, location, l.bbox, 'move') })}
+                          className={`${revealed[page.pageNumber] ? '' : 'm-found'} absolute rounded-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${
+                            index === selected ? 'z-[1] bg-accent/15 ring-2 ring-accent' : 'cursor-pointer ring-1 ring-accent/0 hover:bg-accent/5 hover:ring-accent/40'
+                          } ${editing ? `touch-none ${live?.index === index ? 'cursor-grabbing' : 'cursor-move'}` : ''}`}
+                        >
+                          {/* invisible grab areas on the edges and corners; nothing drawn over the text */}
+                          {editing &&
+                            GRIPS.map(({ grip, className }) => (
+                              <span
+                                key={grip}
+                                aria-hidden
+                                onPointerDown={(e) => startEdit(e, index, location, l.bbox, grip)}
+                                className={`absolute ${className} ${grip.length === 2 ? 'h-3.5 w-3.5' : ''}`}
+                              />
+                            ))}
+                        </div>
+                      )
+                    })}
+                {pages.length > 1 && (
+                  <PageBadge n={page.pageNumber} />
+                )}
+              </figure>
+            ),
+          )}
         </div>
       </div>
 
@@ -334,9 +368,16 @@ export function PageViewer({
         zoom={zoom}
         onZoom={setZoom}
         extra={
-          <a href={fileUrl(pages[index]!.image)} target="_blank" rel="noreferrer" className={pill} aria-label={t('在新分頁開啟這一頁')} title={t('在新分頁開啟這一頁')}>
-            <IconExternal size={14} />
-          </a>
+          <>
+            {onCrop && !framing && !cropping && (
+              <button type="button" onClick={() => onCrop(pages[index]!.pageNumber)} className={pill} aria-label={t('裁切並拉正這一頁')} title={t('裁切並拉正這一頁')}>
+                <IconCrop size={14} />
+              </button>
+            )}
+            <a href={pageUrl(pages[index]!)} target="_blank" rel="noreferrer" className={pill} aria-label={t('在新分頁開啟這一頁')} title={t('在新分頁開啟這一頁')}>
+              <IconExternal size={14} />
+            </a>
+          </>
         }
       />
     </div>

@@ -1266,5 +1266,14 @@
   "加上共用字庫（選詞填空）": "Adicionar um banco de palavras comum",
   "選詞填空": "Banco de palavras",
   "展開字庫": "Mostrar banco de palavras",
-  "收合字庫": "Ocultar banco de palavras"
+  "收合字庫": "Ocultar banco de palavras",
+  "原始照片": "Foto original",
+  "拖曳四個角或四條邊對齊考卷，套用後自動拉正。": "Arraste os quatro cantos ou bordas até o papel; ao aplicar, ele é endireitado.",
+  "整張": "Inteira",
+  "裁切並拉正這一頁": "Recortar e endireitar esta página",
+  "沒有存好，再試一次。": "Não foi possível salvar. Tente de novo.",
+  "找不到考卷的邊，請手動拉四個角。": "Bordas do papel não encontradas. Arraste os cantos manualmente.",
+  "四個角交叉了，拉開一點。": "Os cantos se cruzam. Afaste-os um pouco.",
+  "第 {n} 頁已裁切並拉正": "Página {n} recortada e endireitada",
+  "匯出裁切後的 PDF": "Exportar PDF recortado"
 }

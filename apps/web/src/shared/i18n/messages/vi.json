@@ -1266,5 +1266,14 @@
   "加上共用字庫（選詞填空）": "Thêm hộp từ dùng chung (chọn từ điền chỗ trống)",
   "選詞填空": "Chọn từ điền",
   "展開字庫": "Mở hộp từ",
-  "收合字庫": "Thu gọn hộp từ"
+  "收合字庫": "Thu gọn hộp từ",
+  "原始照片": "Ảnh gốc",
+  "拖曳四個角或四條邊對齊考卷，套用後自動拉正。": "Kéo bốn góc hoặc bốn cạnh khớp với tờ giấy; áp dụng sẽ tự làm phẳng.",
+  "整張": "Toàn bộ",
+  "裁切並拉正這一頁": "Cắt và làm phẳng trang này",
+  "沒有存好，再試一次。": "Chưa lưu được, hãy thử lại.",
+  "找不到考卷的邊，請手動拉四個角。": "Không tìm thấy mép giấy, hãy tự kéo bốn góc.",
+  "四個角交叉了，拉開一點。": "Các góc bị chéo nhau, kéo ra một chút.",
+  "第 {n} 頁已裁切並拉正": "Đã cắt và làm phẳng trang {n}",
+  "匯出裁切後的 PDF": "Xuất PDF đã cắt"
 }

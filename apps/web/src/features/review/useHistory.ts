@@ -59,6 +59,12 @@ export function useHistory<S>(initial: () => S, apply: (state: S) => void) {
     /** Goes back one step; returns it (with its focus), or null when there is nothing to undo. */
     undo: () => move(past.current, future.current),
     redo: () => move(future.current, past.current),
+    /** Changes the state and every step before and after it the same way, without a step of its own (a page cut again). */
+    rewrite: (fn: (state: S) => S) => {
+      past.current = past.current.map((s) => ({ ...s, state: fn(s.state) }))
+      future.current = future.current.map((s) => ({ ...s, state: fn(s.state) }))
+      set(fn(now.current!))
+    },
     canUndo: past.current.length > 0,
     canRedo: future.current.length > 0,
   }

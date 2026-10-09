@@ -2,7 +2,7 @@
 
 import type { DragEndEvent } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
-import { isWordBank, sheetOf, syncWordBanks, withWordBanks, type DraftExam, type DraftQuestion, type ExamSheet, type Option } from '@exam/core'
+import { isWordBank, remapBox, remapDraftPage, sheetOf, syncWordBanks, withWordBanks, type DraftExam, type DraftQuestion, type ExamSheet, type Option, type Quad } from '@exam/core'
 import { useEffect, useRef, useState } from 'react'
 import { attachToPrevious, detachPart, groupLooseParts, mergeParts, nextPart, splitNumber, splitParts } from './parts'
 import { useHistory } from './useHistory'
@@ -164,6 +164,10 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     }, { focus: key })
   }
 
+  // A page cut again: its boxes move with the paper, in every undo step too, since the page itself is not undone.
+  const remapPage = (pageNumber: number, from: Quad | null, to: Quad | null) =>
+    history.rewrite((s) => ({ ...s, draft: remapDraftPage(s.draft, pageNumber, (b) => remapBox(b, from, to)) }))
+
   // After undo or redo: the step's question is selected and brought into view; selection and the
   // open form stay on their question if it is still there.
   const land = (step: { focus?: string } | null, before: string[]) => {
@@ -308,6 +312,7 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     detachQuestion,
     removeQuestion,
     moveBox,
+    remapPage,
     undo,
     redo,
     canUndo: history.canUndo,

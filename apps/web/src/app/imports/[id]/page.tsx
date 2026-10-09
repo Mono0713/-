@@ -115,7 +115,13 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
   const results = await importer.pageResults(id)
   const failed = results.filter((r) => !r.page).map((r) => r.pageNumber)
   const failedWhy = results.find((r) => !r.page && r.error)?.error
-  const pages = Array.from({ length: imp.pageCount }, (_, i) => ({ pageNumber: i + 1, image: importer.pageImage(imp, i + 1) }))
+  // a page cut to its sheet keeps the photo as taken, to cut again from the page viewer
+  const crops = await importer.crops.read(imp)
+  const pages = Array.from({ length: imp.pageCount }, (_, i) => ({
+    pageNumber: i + 1,
+    image: importer.pageImage(imp, i + 1),
+    ...(i + 1 in crops && { raw: importer.crops.rawKey(imp, i + 1), quad: crops[i + 1] ?? null }),
+  }))
   const [savedExam, originals] = await Promise.all([bank.examForImport(id), importer.originals(id)])
   const original = {
     files: originals.map((f) => f.name),

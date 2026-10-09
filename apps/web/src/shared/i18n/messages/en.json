@@ -1266,5 +1266,14 @@
   "加上共用字庫（選詞填空）": "Add a shared word box (word bank)",
   "選詞填空": "Word bank",
   "展開字庫": "Show word box",
-  "收合字庫": "Hide word box"
+  "收合字庫": "Hide word box",
+  "原始照片": "Original photo",
+  "拖曳四個角或四條邊對齊考卷，套用後自動拉正。": "Drag the four corners or edges onto the paper; applying straightens it.",
+  "整張": "Whole",
+  "裁切並拉正這一頁": "Crop and straighten this page",
+  "沒有存好，再試一次。": "Couldn’t save. Try again.",
+  "找不到考卷的邊，請手動拉四個角。": "Couldn’t find the paper’s edges. Drag the four corners yourself.",
+  "四個角交叉了，拉開一點。": "The corners cross over. Pull them apart a little.",
+  "第 {n} 頁已裁切並拉正": "Page {n} cropped and straightened",
+  "匯出裁切後的 PDF": "Export cropped PDF"
 }

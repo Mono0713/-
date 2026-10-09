@@ -32,6 +32,7 @@ import { StrengthPanel } from './StrengthPanel'
 import { useDraftSaving } from './useDraftSaving'
 import { useFigureFraming } from './useFigureFraming'
 import { SolveStatus } from './SolveStatus'
+import { usePageCrops, type SourcePage } from './usePageCrops'
 import { useReviewFab } from './useReviewFab'
 import { useSolver } from './useSolver'
 import { isFlagged, useReviewDraft } from './useReviewDraft'
@@ -58,7 +59,7 @@ export function ReviewEditor({
 }: {
   importId: string
   initial: DraftExam
-  pages: { pageNumber: number; image: string }[]
+  pages: SourcePage[]
   /** The exam this import was already saved as. */
   savedExam: { id: string; questionCount: number } | null
   notice?: React.ReactNode
@@ -109,6 +110,8 @@ export function ReviewEditor({
     makeWordBank,
     patchQuestion,
   } = reviewDraft
+  // The original's pages, cut again from the page viewer (裁切); the draft's boxes move with the paper.
+  const crops = usePageCrops(importId, pages, reviewDraft.remapPage)
   // An exam written from scratch has no original pages: the A4 paper it prints as takes their place.
   const paper = pages.length === 0
   // a question's answer room dragged on the paper; stable, so the paper is not laid out again on every render
@@ -146,6 +149,7 @@ export function ReviewEditor({
     model: models?.[shownStrength].solving,
     onStrength: () => setStrengthOpen(true),
     onExport: paper ? (withAnswers) => setPrinting(withAnswers ? 'teacher' : 'student') : undefined,
+    onExportPages: paper ? undefined : () => void (location.href = `/api/imports/${encodeURIComponent(importId)}/pdf`),
   })
 
   const metaFields = (compact: boolean) => [
@@ -231,12 +235,14 @@ export function ReviewEditor({
               <SheetPreview draft={draft} selected={selected} onSelect={(i) => select(i, true)} onSpace={setSpace} printing={printing} onPrinted={() => setPrinting(null)} className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]" />
             ) : (
               <PageViewer
-                pages={pages}
+                pages={crops.pages}
                 questions={draft.questions}
                 selected={selected}
                 onSelect={(i) => select(i, true)}
                 onBoxChange={moveBox}
                 framing={framing}
+                cropping={framing ? null : crops.cropping}
+                onCrop={crops.start}
                 className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]"
               />
             )}
@@ -393,6 +399,7 @@ export function ReviewEditor({
         </div>
       </div>
 
+      {crops.toast}
       <Toast show={deletedNote !== null} action={t('復原')} onAction={undo}>
         {t('已刪除第 {n} 題', { n: deletedNote ?? '' })}
       </Toast>

@@ -3,7 +3,7 @@
 import type { Strength } from '@exam/models'
 import { STRENGTH_LABELS } from '@/features/settings/strengths'
 import type { FabAction } from '@/shared/chrome/Fab'
-import { IconCopy, IconPlus, IconPrint, IconSparkles, IconStrength, IconUndo } from '@/shared/icons'
+import { IconCopy, IconDownload, IconPlus, IconPrint, IconSparkles, IconStrength, IconUndo } from '@/shared/icons'
 import { useT } from '@/shared/i18n/client'
 import { msg } from '@/shared/i18n/format'
 import type { useReviewDraft } from './useReviewDraft'
@@ -14,7 +14,8 @@ type Draft = ReturnType<typeof useReviewDraft>
 /**
  * What the floating button holds, nearest the button first: AI 作答 and AI 詳解 for the questions
  * still missing them or for every question (each card has its own AI buttons), add a question after
- * the selected one, copy it, 匯出 PDF for an exam written from scratch (without and with the answers),
+ * the selected one, copy it, 匯出 PDF for an exam written from scratch (without and with the answers)
+ * or 匯出裁切後的 PDF for an original (its pages as cut and flattened),
  * the AI strength with the model it uses, and undo. Nothing else.
  */
 export function useReviewFab({
@@ -24,6 +25,7 @@ export function useReviewFab({
   model,
   onStrength,
   onExport,
+  onExportPages,
 }: {
   d: Draft
   solver: Solver
@@ -32,6 +34,8 @@ export function useReviewFab({
   onStrength: () => void
   /** Given (an exam with no original pages), prints its A4 pages as PDF, with or without the answers. */
   onExport?: (withAnswers: boolean) => void
+  /** Given (an exam with original pages), downloads those pages, cut and flattened, as one PDF. */
+  onExportPages?: () => void
 }): FabAction[] {
   const t = useT()
   const { draft, selected } = d
@@ -63,6 +67,7 @@ export function useReviewFab({
           { id: 'pdf-key', label: t('匯出 PDF（附答案）'), icon: <IconPrint size={19} />, onClick: () => onExport(true) },
         ]
       : []),
+    ...(onExportPages ? [{ id: 'pdf-pages', label: t('匯出裁切後的 PDF'), icon: <IconDownload size={19} />, onClick: onExportPages }] : []),
     ...(strength
       ? [{ id: 'strength', label: model ? t('AI 強度：{strength}・{model}', { strength: strengthLabel!, model }) : t('AI 強度：{strength}', { strength: strengthLabel! }), icon: <IconStrength size={19} />, onClick: onStrength }]
       : []),
