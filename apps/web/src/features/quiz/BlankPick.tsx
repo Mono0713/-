@@ -13,6 +13,8 @@ export function BlankPick({
   labels,
   value,
   answer,
+  texts,
+  answerBeside = false,
   locked,
   onPick,
 }: {
@@ -23,6 +25,11 @@ export function BlankPick({
   value: string
   /** The right label in this quiz's naming, only once the answer is shown. */
   answer: string | null
+  /** What each label stands for. On a phone the list opens as rows with these beside the labels,
+   *  since the list itself may be out of sight; wider screens keep the compact row of labels. */
+  texts?: string[]
+  /** The right label is shown by the caller beside the blank, not on its corner. */
+  answerBeside?: boolean
   locked: boolean
   onPick: (label: string) => void
 }) {
@@ -59,12 +66,18 @@ export function BlankPick({
       >
         {value}
       </button>
-      {answer !== null && !right && (
+      {answer !== null && !right && !answerBeside && (
         <span className="num absolute -right-2 -top-2.5 rounded bg-good px-1.5 text-xs font-semibold text-on-accent shadow-sm">{answer}</span>
       )}
       {open && (
-        <span role="listbox" aria-label={t('空格 {label}', { label })} className="m-menu absolute left-0 top-full z-30 mt-1 flex w-max max-w-64 flex-wrap gap-1 rounded-lg border border-line bg-surface p-1.5 shadow-lg">
-          {labels.map((l) => (
+        <span
+          role="listbox"
+          aria-label={t('空格 {label}', { label })}
+          className={`m-menu absolute left-0 top-full z-30 mt-1 rounded-lg border border-line bg-surface p-1.5 shadow-lg ${
+            texts ? 'flex max-h-80 w-[min(20rem,calc(100vw-4rem))] flex-col gap-1 overflow-y-auto sm:max-h-none sm:w-max sm:max-w-64 sm:flex-row sm:flex-wrap' : 'flex w-max max-w-64 flex-wrap gap-1'
+          }`}
+        >
+          {labels.map((l, i) => (
             <button
               key={l}
               type="button"
@@ -74,9 +87,10 @@ export function BlankPick({
                 onPick(l === value ? '' : l)
                 setOpen(false)
               }}
-              className={`m-press num h-8 min-w-9 rounded-md px-2 text-sm font-medium ${l === value ? 'bg-accent text-on-accent' : 'bg-ink/[0.045] text-ink/80 hover:bg-ink/[0.08]'}`}
+              className={`m-press min-h-8 min-w-9 shrink-0 rounded-md px-2 text-sm ${texts ? 'flex items-baseline gap-2 py-1.5 text-left sm:block sm:py-0 sm:text-center' : ''} ${l === value ? 'bg-accent text-on-accent' : 'bg-ink/[0.045] text-ink/80 hover:bg-ink/[0.08]'}`}
             >
-              {l}
+              <span className="num font-medium">{l}</span>
+              {texts?.[i] && <span className="line-clamp-2 min-w-0 flex-1 sm:hidden">{texts[i]}</span>}
             </button>
           ))}
         </span>

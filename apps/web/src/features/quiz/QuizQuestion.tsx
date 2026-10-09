@@ -17,6 +17,7 @@ import { IconKeyboard, IconLanguages, IconLoader, IconPen, IconScratch } from '@
 import { PenTick } from '@/shared/motion/PenMarks'
 import { Segmented } from '@/shared/Segmented'
 import { BlankPick } from './BlankPick'
+import { matchingParts } from '@/features/questions/MatchingTable'
 import { MatchingPicker } from './MatchingPicker'
 import { Passage } from './Passage'
 import { PracticeSheet } from './PracticeSheet'
@@ -48,6 +49,9 @@ const ANSWER_MODES = [
  * marked: a right pick in green, a right option not picked outlined, a wrong pick in red. Every question has a
  * scratch pad for working; open and fill-in questions can also be answered by hand.
  */
+/** An option's text without its markup, for the short line beside its label in a pick list. */
+const shortText = (content: string) => content.replace(/[*`#>]|\$+|\\[a-z]+/gi, ' ').replace(/\s+/g, ' ').trim()
+
 export function QuizQuestion({
   item,
   index,
@@ -165,6 +169,12 @@ export function QuizQuestion({
   // when there is one per remaining answer.
   const inline = kind.kind === 'blanks' && kind.count > kind.figureBlanks && blankCount(q.stem) === kind.count - kind.figureBlanks
   const stemBlank = inline && kind.kind === 'blanks' ? (k: number) => blankControl(kind.figureBlanks + k, String(kind.figureBlanks + k + 1), true) : undefined
+  // 配合題 and lists picked from: answered below the text, one bracket per line. A 配合題 whose items are
+  // numbered lines of its text shows each item behind its bracket, as on paper, and the text keeps its lead-in.
+  const picker = pick && !inline && kind.kind === 'blanks' && kind.count > kind.figureBlanks
+  const parts = picker && q.type === 'matching' ? matchingParts(q.stem) : null
+  const matchItems = parts && kind.kind === 'blanks' && parts.items.length === kind.count - kind.figureBlanks ? parts.items : null
+  const stemText = withoutRule(matchItems ? parts!.lead : q.stem, q.markingRule)
 
   const choice = kind.kind === 'single' || kind.kind === 'multiple'
   // Options that are all pictures sit two to a row, so graphs can be compared side by side.
@@ -173,6 +183,26 @@ export function QuizQuestion({
     if (kind.kind === 'single') return set(values[0] === label ? [] : [label])
     set(values.includes(label) ? values.filter((v) => v !== label) : [...values, label])
   }
+
+  // The list picked from, shown once; a label already used fades so what is left stands out.
+  const optionList =
+    q.options.length > 0 && !answerOnly && !wordBank ? (
+      <ul className={`grid gap-1.5 ${picker ? 'content-start' : 'sm:grid-cols-2'}`}>
+        {item.optionOrder.map((label, i) => {
+          const used = picker && values.includes(item.displayLabels[i]!)
+          return (
+            <li key={`${label}-${i}`} className={`flex gap-2 rounded-lg bg-paper px-2.5 py-1.5 text-sm transition-opacity ${used ? 'opacity-45' : ''}`}>
+              <span className="num shrink-0 font-semibold leading-relaxed text-muted">({item.displayLabels[i]})</span>
+              <span className="min-w-0 flex-1">
+                <Markdown>{q.options.find((o) => o.label === label)?.content ?? ''}</Markdown>
+                <OptionPictures figures={optionFigures(q, label)} />
+                {optionTranslation(label) && <Markdown className="m-expand text-muted">{optionTranslation(label)!}</Markdown>}
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    ) : null
 
   return (
     <div className="space-y-4">
@@ -221,7 +251,7 @@ export function QuizQuestion({
 
       {answerOnly ? null : stemShown ? (
         <div className={focus ? 'flex items-start gap-2' : undefined}>
-          <Markdown className={focus ? 'min-w-0 flex-1' : undefined} renderBlank={stemBlank}>{withoutRule(q.stem, q.markingRule)}</Markdown>
+          <Markdown className={focus ? 'min-w-0 flex-1' : undefined} renderBlank={stemBlank}>{stemText}</Markdown>
           {focus && (
             <button type="button" onClick={() => setStemFolded(true)} className="m-press shrink-0 rounded-md px-2 py-1 text-xs text-muted hover:bg-ink/[0.06] hover:text-ink">
               {t('收合題目')}
@@ -275,19 +305,8 @@ export function QuizQuestion({
             )
           })}
         </ul>
-      ) : q.options.length > 0 && !answerOnly && !wordBank ? (
-        <ul className="grid gap-1.5 sm:grid-cols-2">
-          {item.optionOrder.map((label, i) => (
-            <li key={`${label}-${i}`} className="flex gap-2 rounded-lg bg-paper px-2.5 py-1.5 text-sm">
-              <span className="num shrink-0 font-semibold leading-relaxed text-muted">({item.displayLabels[i]})</span>
-              <span className="min-w-0 flex-1">
-                <Markdown>{q.options.find((o) => o.label === label)?.content ?? ''}</Markdown>
-                <OptionPictures figures={optionFigures(q, label)} />
-                {optionTranslation(label) && <Markdown className="m-expand text-muted">{optionTranslation(label)!}</Markdown>}
-              </span>
-            </li>
-          ))}
-        </ul>
+      ) : !picker && optionList ? (
+        optionList
       ) : null}
 
       {kind.kind === 'true_false' && (
@@ -420,11 +439,14 @@ export function QuizQuestion({
         </div>
       )}
 
-      {pick && !inline && kind.kind === 'blanks' && kind.count > kind.figureBlanks && (
+      {picker && kind.kind === 'blanks' && (
         <MatchingPicker
           count={kind.count}
           start={kind.figureBlanks}
+          items={matchItems}
+          options={optionList}
           labels={item.displayLabels}
+          texts={item.optionOrder.map((label) => shortText(q.options.find((o) => o.label === label)?.content ?? ''))}
           values={values}
           answer={reveal ? key.map((v) => toQuizLabels(item, v)) : null}
           locked={locked}
