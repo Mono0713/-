@@ -7,11 +7,15 @@ import { pop, ramp, rise } from './tween'
 
 /** The mark drawing itself: the sheet settles, then the loop is written around its corner. */
 function Mark({ s, size }: { s: number; size: number }) {
+  const drawn = ramp(s, 0.35, 0.6)
+  // while it is written the loop is a dash growing round the circle; once whole it is a plain
+  // circle, so no seam is left where the dash's two ends meet
+  const pen = drawn < 1 ? { pathLength: 1, strokeDasharray: `${drawn} 1` } : {}
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none" aria-hidden className="text-accent" style={pop(ramp(s, 0, 0.5), 0.9)}>
       <g transform="translate(-2 -1)">
         <path d={MARK_SHEET} fill="currentColor" />
-        <circle cx="46" cy="47" r="8.5" stroke="currentColor" strokeWidth="5" pathLength={1} strokeDasharray="1 2" strokeDashoffset={1 - ramp(s, 0.35, 0.6)} transform="rotate(-90 46 47)" />
+        <circle cx="46" cy="47" r="8.5" stroke="currentColor" strokeWidth="5" transform="rotate(-90 46 47)" {...pen} />
       </g>
     </svg>
   )
