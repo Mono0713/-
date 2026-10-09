@@ -56,13 +56,14 @@
 
 ### 用 Render 上線（建議）
 
-專案根目錄的 `render.yaml` 已經寫好：Node 22、新加坡機房（離台灣近）、每次部署前自動跑 `pnpm db:migrate`。
+專案根目錄的 `render.yaml` 已經寫好：Node 22、新加坡機房（離台灣近）、每次部署時自動跑 `pnpm db:migrate`，先用免費方案。
 
 1. 先完成上面 1 到 3（Supabase、Google、R2），手邊備好那些值。
 2. https://render.com 用 GitHub 登入 → New → Blueprint → 選這個 repo 和要上線的分支。
 3. Render 會列出要填的變數，照 `.env` 的值貼上。`SITE_URL` 先填 Render 給的網址（`https://sheetloop-xxxx.onrender.com`），之後換自己的網域再改。
-4. 方案用 Starter（每月約 7 美元）。免費方案閒置 15 分鐘會休眠、記憶體只有 512 MB，處理 PDF 容易不夠，而且不支援部署前自動建資料表。
-5. 部署好後，回 Supabase → Authentication → URL Configuration，把 `https://<Render 網址>/auth/callback` 加進 Redirect URLs，Site URL 也改成這個網址。
+4. `DATABASE_URL` 要用 Supabase 的 **Session pooler** 連線字串（Connect → Session pooler，網址含 `pooler.supabase.com`）。Render 連不到只有 IPv6 的直連網址。
+5. 免費方案閒置 15 分鐘會休眠，下一個人打開要等約一分鐘；記憶體 512 MB，已用 `--max-old-space-size`、`VIPS_CONCURRENCY`、`MALLOC_ARENA_MAX` 壓低用量。休眠或重啟時正在跑的匯入會標成「伺服器重新啟動而中斷」，重新匯入即可。正式上線把 `render.yaml` 的 `plan: free` 改成 `plan: starter`（每月約 7 美元），資料不受影響。
+6. 部署好後，回 Supabase → Authentication → URL Configuration，把 `https://<Render 網址>/auth/callback` 加進 Redirect URLs，Site URL 也改成這個網址。
 
 ### 發布 Google 登入
 
