@@ -79,7 +79,6 @@
   "{n} 個班級": "Classes : {n}",
   "老師派作業、學生作答，成績集中在一起": "Les enseignants assignent, les élèves répondent, et toutes les notes restent au même endroit",
   "{n} 頁 · {provider}": "Pages : {n} · {provider}",
-  "頁面都讀完了，正在整理題目、存圖片…": "Toutes les pages sont lues. Organisation des questions et enregistrement des images…",
   "模型正在讀取頁面…": "Le modèle lit les pages…",
   "已完成 {done} / {total} 頁": "{done} / {total} pages terminées",
   "遇到免費額度限制時會自動等待後重試，可以先離開這個頁面。": "Si une limite du forfait gratuit est atteinte, l'analyse attend et réessaie automatiquement. Tu peux quitter cette page.",
@@ -1255,5 +1254,9 @@
   "由上往下使用：上面那把額度用完、被限流或失效時，自動改用下一把。按住左邊的點點上下拖曳可調整順序。": "Utilisées de haut en bas : quand celle du dessus n'a plus de quota, est limitée ou ne fonctionne plus, la suivante prend le relais. Faites glisser les points à gauche pour réordonner.",
   "拖曳調整金鑰 …{hint} 的順序": "Faire glisser pour réordonner la clé …{hint}",
   "整理題目時卡住了": "Bloqué en assemblant les questions",
-  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Toutes les pages ont été lues, mais l'assemblage des questions et l'enregistrement des images n'ont pas abouti. Appuyez sur Relire pour réessayer."
+  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Toutes les pages ont été lues, mais l'assemblage des questions et l'enregistrement des images n'ont pas abouti. Appuyez sur Relire pour réessayer.",
+  "有幾頁請另一個模型再讀一次…": "Un autre modèle relit quelques pages…",
+  "正在存圖片 {done} / {total}…": "Enregistrement des images {done} / {total}…",
+  "快好了，正在存檔…": "Presque fini, enregistrement…",
+  "頁面都讀完了，正在整理題目…": "Pages lues, assemblage des questions…"
 }

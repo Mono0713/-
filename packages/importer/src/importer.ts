@@ -72,6 +72,12 @@ export const ORIGINAL_DAYS = 30
 /** The error of a reading cut off when the server stopped (a restart or a deploy). */
 export const INTERRUPTED = 'Reading was interrupted because the server restarted'
 
+/**
+ * After every page was read once: reading doubtful or failed pages again with another model,
+ * putting the questions together, cropping and storing figures (done of total), saving the draft.
+ */
+export type AfterReading = { step: 'rereading' | 'merging' | 'saving' } | { step: 'figures'; done: number; total: number }
+
 /** The error of putting the questions together (after every page was read) that never finished. */
 export const ASSEMBLE_TIMEOUT = 'Putting the questions together took too long'
 
@@ -85,6 +91,8 @@ const ASSEMBLE_MS = 5 * 60_000
  */
 export class Importer {
   private readonly running = new Map<string, Promise<void>>()
+  /** What a run is doing after the pages were read, for the progress screen. */
+  private readonly steps = new Map<string, AfterReading>()
   /** Imports `resume` already picked up in this server. */
   private readonly resumed = new Set<string>()
   /** Runs start only after interrupted imports were marked, so a new run is never mistaken for one. */
@@ -167,6 +175,11 @@ export class Importer {
     return false
   }
 
+  /** What a running import is doing after its first reading of every page; null while it reads or when idle. */
+  step(id: string): AfterReading | null {
+    return this.steps.get(id) ?? null
+  }
+
   /** Whether a run of this import is going in this server. */
   isRunning(id: string): boolean {
     return this.running.has(id)
@@ -186,7 +199,10 @@ export class Importer {
         await this.bank.updateImport(id, { status: 'failed', error }).catch(() => this.bank.updateImport(id, { status: 'failed', error: error.replace(/[^\x20-\x7e]/g, '').slice(0, 500) || 'failed' }))
       })
       .catch((err) => console.error(`Marking import ${id} failed did not work:`, err))
-      .finally(() => this.running.delete(id))
+      .finally(() => {
+        this.running.delete(id)
+        this.steps.delete(id)
+      })
     this.running.set(id, run)
   }
 
@@ -368,13 +384,16 @@ export class Importer {
     for (const fallback of plan.fallbacks) {
       const failed = fresh.filter((r) => !r.page && !r.error?.startsWith(WAITING)).map((r) => r.pageNumber)
       if (!failed.length) break
+      this.steps.set(id, { step: 'rereading' })
       fresh = replaceRead(fresh, (await read(fallback, failed, false)).results)
     }
     // Pages read with doubts are read again by the stronger model; its reading wins when it succeeds.
     if (plan.escalate) {
       const doubtful = fresh.filter((r) => r.page && isDoubtful(r.page)).map((r) => r.pageNumber)
+      if (doubtful.length) this.steps.set(id, { step: 'rereading' })
       if (doubtful.length) fresh = replaceRead(fresh, (await read(plan.escalate, doubtful, false)).results)
     }
+    this.steps.set(id, { step: 'merging' })
     const results = await this.saveResults(imp, fresh)
 
     if (results.some((r) => r.error?.startsWith(WAITING))) {
@@ -399,20 +418,27 @@ export class Importer {
   /** Read pages → draft: merged questions, boxes on their text lines, figures cropped and stored. */
   private async assemble(imp: ImportRecord, doc: IngestedDocument, results: PageResult[], selected: number[]): Promise<void> {
     const id = imp.id
+    const started = Date.now()
+    const timed = (step: string) => console.info(`Import ${id}: ${step} done after ${((Date.now() - started) / 1000).toFixed(1)} s`)
+    this.steps.set(id, { step: 'merging' })
     // Reading more pages must not undo what the person already changed on the others.
     const previous = await this.bank.getDraft(id)
     const exam = previous ? keepEdits(previous, mergePages(imp.fileName, results), new Set(selected)) : mergePages(imp.fileName, results)
     // Boxes the model drew are moved onto the text lines they belong to (only on the pages just read).
     await snapBoxesToText(exam, doc.pages.filter((p) => selected.includes(p.pageNumber))).catch(() => {})
+    timed('putting the questions together')
     // Figures already in the draft keep their images; new crops get names that cannot overwrite them.
     const stamp = previous ? `-${Date.now().toString(36)}` : ''
     await cropExamFigures(exam, doc.pages, async (name, png) => {
       const key = `${this.base(imp)}/figures/${name}${stamp}.png`
       await this.files.write(key, png)
       return key
-    })
+    }, (done, total) => this.steps.set(id, { step: 'figures', done, total }))
+    timed('saving the figures')
+    this.steps.set(id, { step: 'saving' })
     await this.bank.saveDraft(id, exam)
     await this.bank.updateImport(id, { status: 'review' })
+    timed('saving the draft')
   }
 
   private async ingest(files: UploadFile[]): Promise<IngestedDocument> {

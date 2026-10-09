@@ -79,7 +79,6 @@
   "{n} 個班級": "{n} lớp",
   "老師派作業、學生作答，成績集中在一起": "Giáo viên giao bài, học sinh làm bài, điểm số gom về một chỗ",
   "{n} 頁 · {provider}": "{n} trang · {provider}",
-  "頁面都讀完了，正在整理題目、存圖片…": "Đã đọc xong các trang. Đang sắp xếp câu hỏi và lưu hình ảnh…",
   "模型正在讀取頁面…": "Mô hình đang đọc các trang…",
   "已完成 {done} / {total} 頁": "Đã xong {done} / {total} trang",
   "遇到免費額度限制時會自動等待後重試，可以先離開這個頁面。": "Nếu gặp giới hạn gói miễn phí, hệ thống sẽ tự chờ và thử lại. Bạn có thể rời khỏi trang này.",
@@ -1255,5 +1254,9 @@
   "由上往下使用：上面那把額度用完、被限流或失效時，自動改用下一把。按住左邊的點點上下拖曳可調整順序。": "Dùng từ trên xuống: khi khóa phía trên hết hạn mức, bị giới hạn hoặc mất hiệu lực, khóa tiếp theo sẽ được dùng. Kéo dấu chấm bên trái để đổi thứ tự.",
   "拖曳調整金鑰 …{hint} 的順序": "Kéo để đổi thứ tự khóa …{hint}",
   "整理題目時卡住了": "Bị kẹt khi sắp xếp câu hỏi",
-  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Đã đọc xong các trang nhưng bước sắp xếp câu hỏi và lưu hình chưa hoàn tất. Nhấn Đọc lại để thử lại."
+  "頁面都讀好了，但把題目整理起來、存圖片這一步一直沒有完成。按重新辨識再試一次。": "Đã đọc xong các trang nhưng bước sắp xếp câu hỏi và lưu hình chưa hoàn tất. Nhấn Đọc lại để thử lại.",
+  "有幾頁請另一個模型再讀一次…": "Đang nhờ mô hình khác đọc lại vài trang…",
+  "正在存圖片 {done} / {total}…": "Đang lưu hình {done} / {total}…",
+  "快好了，正在存檔…": "Sắp xong, đang lưu…",
+  "頁面都讀完了，正在整理題目…": "Đã đọc xong các trang, đang sắp xếp câu hỏi…"
 }
