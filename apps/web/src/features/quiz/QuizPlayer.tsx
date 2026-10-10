@@ -2,22 +2,32 @@
 
 import { isEmptyInk } from '@exam/ink'
 import type { Grade, QuizAttempt, QuizItem, QuizResponse } from '@exam/quiz'
-import { gradeItem } from '@exam/quiz/logic'
+import { answerKind, gradeItem, groupRange } from '@exam/quiz/logic'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { IconChevronLeft, IconChevronRight, IconFinish, IconSparkles, IconTimer } from '@/shared/icons'
+import { useT } from '@/shared/i18n/client'
+import { IconChevronLeft, IconChevronRight, IconFinish, IconReveal, IconSparkles, IconTimer } from '@/shared/icons'
 import { quizIsCalm } from '@/shared/motion/preference'
+import { useSwipe } from '@/shared/motion/useSwipe'
 import { Button, Card } from '@/shared/ui'
-import { checkAnswer, finishQuiz, markAnswer, saveResponse } from './actions'
+import { checkAnswer, finishQuiz, markAnswer, saveResponse, translateQuestion } from './actions'
 import { QuizQuestion } from './QuizQuestion'
 import { Reveal } from './Reveal'
+import { PageScore, WordBankPage } from './WordBankPage'
 
 /**
  * Runs a quiz. Exam mode: move freely between questions, answers are saved as
  * you go, submit at the end (or when time runs out). Practice mode: one
  * question at a time, with the answer shown after each.
  */
-export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
+export function QuizPlayer({ attempt, locale, aiMarks }: {
+  attempt: QuizAttempt
+  /** The reader's language, for the 翻譯 button on questions written in another one. */
+  locale: string
+  /** An AI teacher marks open answers when they are checked. */
+  aiMarks: boolean
+}) {
+  const t = useT()
   const router = useRouter()
   const practice = attempt.settings.mode === 'practice'
   const [items, setItems] = useState<QuizItem[]>(attempt.items)
@@ -45,8 +55,8 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
     })
 
   const flush = async (i: number) => {
-    const t = timers.current.get(i)
-    if (t) clearTimeout(t)
+    const waiting = timers.current.get(i)
+    if (waiting) clearTimeout(waiting)
     timers.current.delete(i)
     const r = responsesRef.current[i]
     if (r) await saveResponse(attempt.id, i, r)
@@ -57,8 +67,8 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
   const update = (i: number, r: QuizResponse) => {
     setResponses((all) => all.map((x, j) => (j === i ? r : x)))
     if (practice) return
-    const t = timers.current.get(i)
-    if (t) clearTimeout(t)
+    const waiting = timers.current.get(i)
+    if (waiting) clearTimeout(waiting)
     timers.current.set(
       i,
       setTimeout(() => {
@@ -68,15 +78,21 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
     )
   }
 
+  // 選詞填空 sentences share one page, so they are checked together; everything else one question at a time
   const check = () =>
     start(async () => {
-      const result = await checkAnswer(attempt.id, current, responses[current] ?? { values: [] })
-      setItems((all) => all.map((x, j) => (j === current ? result.item : x)))
-      // Handwriting comes back with what the AI read.
-      setResponses((all) => all.map((x, j) => (j === current ? result.response : x)))
-      setGrades((all) => all.map((x, j) => (j === current ? result.grade : x)))
-      setMarkings((all) => all.map((x, j) => (j === current ? result.marking : x)))
-      setChecked((all) => all.map((x, j) => (j === current ? true : x)))
+      for (let i = from; i <= to; i++) {
+        if (checked[i]) continue
+        const result = await checkAnswer(attempt.id, i, responses[i] ?? { values: [] })
+        // past the deadline: the page shows the attempt as it now stands
+        if ('closed' in result) return router.refresh()
+        setItems((all) => all.map((x, j) => (j === i ? result.item : x)))
+        // Handwriting comes back with what the AI read.
+        setResponses((all) => all.map((x, j) => (j === i ? result.response : x)))
+        setGrades((all) => all.map((x, j) => (j === i ? result.grade : x)))
+        setMarkings((all) => all.map((x, j) => (j === i ? result.marking : x)))
+        setChecked((all) => all.map((x, j) => (j === i ? true : x)))
+      }
     })
 
   const mark = (i: number, credit: number | null) =>
@@ -89,6 +105,11 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
   // On a class assignment the teacher or AI marks; the student does not mark their own.
   const own = !attempt.assignment || Boolean(attempt.assignment.preview)
 
+  // The sentences of a word box (選詞填空) are answered on one page, as printed; any other question has a page of its own.
+  const pageOf = (i: number): [number, number] => (items[i]?.group?.options?.length ? (groupRange(items, i) ?? [i, i]) : [i, i])
+  const [from, to] = pageOf(current)
+  const grouped = to > from
+
   const secondsLeft = useCountdown(practice ? null : attempt.deadline, finish)
   const [navOpen, setNavOpen] = useState(false)
   const [direction, setDirection] = useState<1 | -1>(1)
@@ -96,19 +117,31 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
   const [turning, setTurning] = useState<number | null>(null)
   // set once you change question, so the first question does not slide in on page load
   const [moved, setMoved] = useState(false)
-  const go = (i: number) => {
-    setDirection(i >= current ? 1 : -1)
-    setTurning(i !== current && !quizIsCalm() ? current : null)
-    setMoved(i !== current)
+  const go = (to: number) => {
+    // a sentence of a word box opens its whole page
+    const i = pageOf(to)[0]
+    setDirection(i >= from ? 1 : -1)
+    setTurning(i !== from && !quizIsCalm() ? from : null)
+    setMoved(i !== from)
     setCurrent(i)
     setNavOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const item = items[current]!
-  const isChecked = checked[current]
-  const last = current === total - 1
-  const progress = practice ? `已完成 ${checked.filter(Boolean).length} / ${total} 題` : `已作答 ${answeredCount} / ${total} 題`
+  // phones: swipe the sheet left for the next question, right for the one before
+  const sheet = useRef<HTMLDivElement>(null)
+  useSwipe(sheet, { onLeft: to < total - 1 ? () => go(to + 1) : undefined, onRight: from > 0 ? () => go(from - 1) : undefined })
+
+  const item = items[from]!
+  // 書寫模式: writing practice and compositions get a bigger writing area inside the same frame,
+  // so moving between question types never rearranges the page.
+  const focus = item.question.type === 'writing' || item.question.type === 'composition'
+  const isChecked = checked.slice(from, to + 1).every(Boolean)
+  // The sparkle means AI: only when an AI teacher will mark this answer (never for choice questions).
+  const kind = answerKind(item.question)
+  const aiChecks = aiMarks && !['single', 'multiple', 'true_false'].includes(kind.kind) && !(kind.kind === 'blanks' && kind.pick)
+  const last = to === total - 1
+  const progress = practice ? t('已完成 {done} / {total} 題', { done: checked.filter(Boolean).length, total }) : t('已作答 {done} / {total} 題', { done: answeredCount, total })
   // No dialog: with questions left blank the first press only says how many, and a second press hands in.
   const unanswered = total - answeredCount
   const [armed, setArmed] = useState(false)
@@ -118,14 +151,14 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
     return () => clearTimeout(timer)
   }, [armed])
   const submit = () => (unanswered && !armed ? setArmed(true) : finish())
-  const submitLabel = pending ? '交卷中…' : armed && unanswered ? `還有 ${unanswered} 題沒寫，再按一次交卷` : '交卷'
+  const submitLabel = pending ? t('交卷中…') : armed && unanswered ? t('還有 {n} 題沒寫，再按一次交卷', { n: unanswered }) : t('交卷')
 
   const navGrid = (
     <div className="grid grid-cols-6 gap-1 sm:grid-cols-8 lg:grid-cols-6">
       {items.map((_, i) => {
         const g = grades[i]
         const tone =
-          i === current
+          i >= from && i <= to
             ? 'border-accent bg-accent text-on-accent'
             : practice && checked[i]
               ? g?.status === 'correct'
@@ -147,12 +180,12 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
 
   return (
     // m-calm-zone: 設定裡的「做題時減少動畫」 stills everything in here
-    <div className="m-calm-zone grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-6">
+    <div className="quiz-play m-calm-zone grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-6">
       {/* Phones: progress, time and the question list in a bar that stays on screen. */}
       <div className="sticky top-14 z-20 -mx-4 border-b border-line bg-paper/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium tabular-nums">
-            第 {current + 1} / {total} 題
+            {grouped ? t('第 {from}–{to} / {total} 題', { from: from + 1, to: to + 1, total }) : t('第 {n} / {total} 題', { n: from + 1, total })}
           </span>
           {secondsLeft !== null && (
             <span className={`flex items-center gap-1 text-sm font-semibold tabular-nums ${secondsLeft <= 60 ? 'm-last-minute text-pen' : ''}`}>
@@ -161,7 +194,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
             </span>
           )}
           <button type="button" onClick={() => setNavOpen(!navOpen)} className="ml-auto rounded-md border border-line bg-surface px-3 py-1 text-sm" aria-expanded={navOpen}>
-            題號 {navOpen ? '▴' : '▾'}
+            {t('題號')} {navOpen ? '▴' : '▾'}
           </button>
         </div>
         {navOpen && (
@@ -178,60 +211,103 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
       </div>
 
       <div className="min-w-0 space-y-4">
-        {/* Keyed by question. The old sheet slides off quickly and is gone before the next one
+        {/* One sheet size for every question, so the buttons under it stay put as types change.
+            Keyed by question. The old sheet slides off quickly and is gone before the next one
             slides in from the side you are heading to, so two questions never show at once. */}
-        <div className="relative">
-          <div key={current} data-back={direction < 0 || undefined} className={moved ? 'm-leaf-in' : undefined}>
-            <Card className="p-4 sm:p-5">
-              <QuizQuestion
-                item={item}
-                index={current}
-                response={responses[current] ?? null}
-                onChange={isChecked ? undefined : (r) => update(current, r)}
-                reveal={practice && isChecked}
-                celebrate={practice && isChecked}
-              />
+        <div ref={sheet} className="relative">
+          <div key={from} data-back={direction < 0 || undefined} className={moved ? 'm-leaf-in' : undefined}>
+            <Card className="p-4 sm:min-h-[24rem] sm:p-5">
+              {grouped ? (
+                <WordBankPage
+                  items={items.slice(from, to + 1)}
+                  from={from}
+                  responses={responses.slice(from, to + 1)}
+                  onChange={isChecked ? undefined : update}
+                  reveal={practice && isChecked}
+                />
+              ) : (
+                <QuizQuestion
+                  item={item}
+                  index={from}
+                  response={responses[from] ?? null}
+                  onChange={isChecked ? undefined : (r) => update(from, r)}
+                  reveal={practice && isChecked}
+                  celebrate={practice && isChecked}
+                  locale={locale}
+                  // no translating during an exam
+                  onTranslate={practice ? () => translateQuestion(attempt.id, from) : undefined}
+                  focus={focus}
+                  groupRange={groupRange(items, from)}
+                />
+              )}
             </Card>
           </div>
-          {turning !== null && items[turning] && (
+          {turning !== null && items[turning] && pageOf(turning)[1] > turning ? (
             <div key={`leaf-${turning}`} aria-hidden inert data-back={direction < 0 || undefined} className="m-leaf-out absolute inset-x-0 top-0" onAnimationEnd={(e) => e.target === e.currentTarget && setTurning(null)}>
-              <Card className="p-4 sm:p-5">
-                <QuizQuestion item={items[turning]!} index={turning} response={responses[turning] ?? null} reveal={practice && checked[turning]} />
+              <Card className="p-4 sm:min-h-[24rem] sm:p-5">
+                <WordBankPage
+                  items={items.slice(turning, pageOf(turning)[1] + 1)}
+                  from={turning}
+                  responses={responses.slice(turning, pageOf(turning)[1] + 1)}
+                  onChange={checked[turning] ? undefined : () => {}}
+                  reveal={practice && Boolean(checked[turning])}
+                />
+              </Card>
+            </div>
+          ) : turning !== null && items[turning] && (
+            <div key={`leaf-${turning}`} aria-hidden inert data-back={direction < 0 || undefined} className="m-leaf-out absolute inset-x-0 top-0" onAnimationEnd={(e) => e.target === e.currentTarget && setTurning(null)}>
+              <Card className="p-4 sm:min-h-[24rem] sm:p-5">
+                {/* drawn exactly as it was on screen (answer-mode switch, draft and translate buttons included),
+                    so the whole sheet leaves together; it is inert, so the no-op handlers never run */}
+                <QuizQuestion
+                  item={items[turning]!}
+                  index={turning}
+                  response={responses[turning] ?? null}
+                  onChange={checked[turning] ? undefined : () => {}}
+                  reveal={practice && checked[turning]}
+                  locale={locale}
+                  onTranslate={practice ? () => translateQuestion(attempt.id, turning) : undefined}
+                  focus={items[turning]!.question.type === 'writing' || items[turning]!.question.type === 'composition'}
+                  groupRange={groupRange(items, turning)}
+                />
               </Card>
             </div>
           )}
         </div>
 
-        {practice && isChecked && grades[current] && (
+        {practice && isChecked && grouped && <PageScore grades={grades.slice(from, to + 1).filter((g): g is Grade => g !== null)} />}
+
+        {practice && isChecked && !grouped && grades[from] && (
           <Reveal
             item={item}
-            grade={grades[current]!}
-            marking={markings[current] ?? null}
-            onMark={own ? (credit) => mark(current, credit) : undefined}
-            withheldNote={own ? undefined : '老師還沒有公開答案。'}
-            tutor={{ attemptId: attempt.id, index: current, turns: tutoring[current] ?? [], onTurns: (turns) => setTutoring((t) => ({ ...t, [current]: turns })) }}
+            grade={grades[from]!}
+            marking={markings[from] ?? null}
+            onMark={own ? (credit) => mark(from, credit) : undefined}
+            withheldNote={own ? undefined : t('老師還沒有公開答案。')}
+            tutor={{ attemptId: attempt.id, index: from, turns: tutoring[from] ?? [], onTurns: (turns) => setTutoring((all) => ({ ...all, [from]: turns })) }}
           />
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Button onClick={() => go(current - 1)} disabled={current === 0} icon={<IconChevronLeft size={16} />}>
-            上一題
+        {/* phones: pinned to the bottom edge, where the thumb is */}
+        <div className="flex flex-wrap items-center justify-between gap-2 max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-30 max-sm:flex-nowrap max-sm:border-t max-sm:border-line max-sm:bg-paper/90 max-sm:px-4 max-sm:pt-3 max-sm:pb-[calc(0.75rem+env(safe-area-inset-bottom))] max-sm:backdrop-blur-md">
+          <Button onClick={() => go(from - 1)} disabled={from === 0} icon={<IconChevronLeft size={16} />}>
+            {t('上一題')}
           </Button>
           <div className="flex gap-2">
             {practice && !isChecked && (
-              <Button variant="primary" onClick={check} disabled={pending} loading={pending} icon={<IconSparkles size={16} />}>
-                {pending ? '檢查中…' : '看答案'}
+              <Button variant="primary" onClick={check} disabled={pending} loading={pending} icon={aiChecks ? <IconSparkles size={16} /> : <IconReveal size={16} />}>
+                {pending ? t('檢查中…') : t('看答案')}
               </Button>
             )}
             {(!practice || isChecked) && !last && (
-              <Button variant={practice ? 'primary' : 'secondary'} onClick={() => go(current + 1)}>
-                下一題
+              <Button variant={practice ? 'primary' : 'secondary'} onClick={() => go(to + 1)}>
+                {t('下一題')}
                 <IconChevronRight size={16} />
               </Button>
             )}
             {last && (!practice || isChecked) && (
               <Button variant="primary" onClick={() => (practice ? finish() : submit())} disabled={pending} loading={pending} icon={<IconFinish size={16} />}>
-                {practice ? '完成練習' : armed && unanswered ? submitLabel : '交卷'}
+                {practice ? t('完成練習') : armed && unanswered ? submitLabel : t('交卷')}
               </Button>
             )}
           </div>
@@ -241,7 +317,7 @@ export function QuizPlayer({ attempt }: { attempt: QuizAttempt }) {
       <aside className="hidden space-y-3 lg:sticky lg:top-20 lg:block lg:self-start">
         {secondsLeft !== null && (
           <Card className="p-3 text-center">
-            <p className="text-xs text-muted">剩餘時間</p>
+            <p className="text-xs text-muted">{t('剩餘時間')}</p>
             {/* the last minute turns red-pen, the colon blinks and the clock beats once a second */}
             <p className={`num text-3xl ${secondsLeft <= 60 ? 'm-last-minute text-pen' : ''}`}>
               <Clock seconds={secondsLeft} />
@@ -285,8 +361,9 @@ function useCountdown(deadline: string | null, onEnd: () => void): number | null
 }
 
 function Clock({ seconds }: { seconds: number }) {
+  const t = useT()
   return (
-    <span className="inline-flex" aria-label={`${Math.floor(seconds / 60)} 分 ${seconds % 60} 秒`}>
+    <span className="inline-flex" aria-label={t('{m} 分 {s} 秒', { m: Math.floor(seconds / 60), s: seconds % 60 })}>
       {Math.floor(seconds / 60)}
       <span className="m-colon">:</span>
       {String(seconds % 60).padStart(2, '0')}

@@ -1,60 +1,82 @@
+import Link from 'next/link'
 import { formatUsd } from '@exam/models'
-import { LOCALES, publicView } from '@exam/settings'
+import { keySlots, LOCALES, publicView } from '@exam/settings'
 import { monthStart, spend } from '@exam/usage'
 import { SettingsForm } from '@/features/settings/SettingsForm'
+import { ProfileCard } from '@/features/settings/ProfileCard'
 import { StorageCard } from '@/features/settings/StorageCard'
-import { authEnabled, availableProviders, currentOwner, keySource, localeOf, providersOf, services, storageOf, teacherChoice } from '@/server/context'
+import { AccountCard } from '@/features/account/AccountCard'
+import { accountControls } from '@/server/account'
+import { authEnabled, currentOwner, services } from '@/server/context'
+import { keySource, providersOf } from '@/server/ai'
+import { storageItems, storageOf } from '@/server/storage'
+import { currentProfile } from '@/server/profile'
+import { getLocale, getT } from '@/shared/i18n/server'
 import { PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: '設定' }
+export async function generateMetadata() {
+  const t = await getT()
+  return { title: t('設定') }
+}
 
 // Estimates learn from this much recent use.
 const ESTIMATE_WINDOW_DAYS = 90
 
 export default async function SettingsPage() {
+  const t = await getT()
   const owner = await currentOwner()
   const { settings: store, usage } = services()
   // Only the public view reaches the browser: API keys stay on the server.
-  const [saved, providers, teacher, locale, recent, thisMonth, storage] = await Promise.all([
+  const [saved, locale, recent, thisMonth, storage, items, user] = await Promise.all([
     store.get(owner),
-    availableProviders(owner),
-    teacherChoice(owner),
-    localeOf(owner),
+    getLocale(),
     usage.summary(owner, new Date(Date.now() - ESTIMATE_WINDOW_DAYS * 86_400_000)),
     usage.summary(owner, monthStart()),
     storageOf(owner),
+    storageItems(owner),
+    authEnabled() ? currentProfile() : null,
   ])
   const settings = publicView(saved)
   const routing = providersOf(saved)
-  const sources = await Promise.all(providers.map((p) => keySource(owner, p.id)))
+  const builtin = routing.filter((p) => !p.id.startsWith('c-'))
+  const sources = await Promise.all(builtin.map((p) => keySource(owner, p.id)))
+  const savedKeys = (provider: string) => keySlots(settings.apiKeys, provider).map(([slot, k]) => ({ slot, hint: k.hint }))
   const month = thisMonth.length ? spend(thisMonth, routing) : null
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title="設定" subtitle="語言、AI 強度、模型和 API 金鑰。" />
+      <PageHeader title={t('設定')} subtitle={t('語言、外觀，和 AI 要用哪家服務、哪個模型。')} />
+      {user && <ProfileCard user={user} />}
       <SettingsForm
         locales={[...LOCALES]}
         locale={locale}
-        defaultProvider={settings.defaultProvider}
-        providers={providers}
-        aiGrading={{ enabled: settings.aiGrading.enabled, active: teacher }}
-        keysInDatabase={Boolean(process.env.DATABASE_URL)}
-        keys={Object.fromEntries(providers.map((p, i) => [p.id, { source: sources[i]!, hint: settings.apiKeys[p.id]?.hint ?? null }]))}
-        routing={routing}
-        strength={{ strength: saved.strength, taskStrength: saved.taskStrength, taskModels: saved.taskModels }}
-        usage={recent}
-        month={month && { usd: formatUsd(month.usd), unpriced: month.unpriced }}
+        builtin={builtin.map((p, i) => ({ id: p.id, label: p.label, source: sources[i]!, keys: savedKeys(p.id) }))}
         custom={saved.customProviders.map((c) => ({
           id: c.id,
           name: c.name,
           baseUrl: c.baseUrl,
-          keyHint: settings.apiKeys[c.id] ? (settings.apiKeys[c.id]!.hint ?? '') : null,
+          keys: savedKeys(c.id),
           models: c.models,
           known: saved.knownModels[c.id] ?? [],
         }))}
         hosted={authEnabled()}
+        keysInDatabase={Boolean(process.env.DATABASE_URL)}
+        routing={routing}
+        models={{ strength: saved.strength, taskModels: saved.taskModels, pictureModels: saved.pictureModels, translation: saved.translationEngine, grading: saved.aiGrading.enabled }}
+        usage={recent}
+        month={month && { usd: formatUsd(month.usd), unpriced: month.unpriced }}
       />
-      <StorageCard used={storage.used} quota={storage.quota} />
+      <StorageCard used={storage.used} quota={storage.quota} rows={items} />
+      {user && accountControls() && <AccountCard />}
+      <p className="mt-8 mb-2 text-center text-xs text-muted">
+        <Link href="/privacy" className="hover:text-ink hover:underline">
+          {t('隱私權政策')}
+        </Link>
+        <span className="mx-2">·</span>
+        <Link href="/terms" className="hover:text-ink hover:underline">
+          {t('服務條款')}
+        </Link>
+      </p>
     </div>
   )
 }

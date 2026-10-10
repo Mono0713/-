@@ -34,7 +34,7 @@ describe('ClaudeProvider', () => {
     expect(reply).toEqual({ text: '{"ok":true}', model: 'claude-opus-5', usage: { inputTokens: 100, outputTokens: 20 } })
     const params = firstArg<Anthropic.MessageCreateParams>(stream)
     expect(params.model).toBe('claude-opus-5')
-    expect(params.system).toBe('SYSTEM')
+    expect(params.system).toEqual([{ type: 'text', text: 'SYSTEM', cache_control: { type: 'ephemeral' } }])
     expect(params.output_config?.format).toEqual({ type: 'json_schema', schema: { type: 'object' } })
     expect(params.messages[0]!.content).toEqual([
       { type: 'image', source: { type: 'base64', media_type: 'image/png', data: Buffer.from('img').toString('base64') } },
@@ -127,21 +127,52 @@ describe('OpenAICompatibleProvider', () => {
     expect(params.response_format).toMatchObject({ type: 'json_schema', json_schema: { strict: true, schema: { type: 'object' } } })
   })
 
-  it('moves the schema into the prompt when the service rejects it', async () => {
+  it('moves the schema into the system text when the service rejects it, and remembers that service', async () => {
     const create = vi
       .fn()
       .mockRejectedValueOnce(Object.assign(new Error('response_format json_schema is not supported'), { status: 400 }))
       .mockResolvedValue(reply('{"ok":true}'))
     const c = { chat: { completions: { create } } } as unknown as OpenAI
-    const provider = new OpenAICompatibleProvider({ id: 'c-1', baseUrl: 'http://x', model: 'm', client: c })
+    const provider = new OpenAICompatibleProvider({ id: 'c-1', baseUrl: 'http://rejects', model: 'm', client: c })
     expect((await provider.complete(request)).text).toBe('{"ok":true}')
-    await provider.complete(request)
     const retried = create.mock.calls[1]![0] as Record<string, any>
     expect(retried.response_format).toEqual({ type: 'json_object' })
-    expect(retried.messages[1].content[1].text).toContain('JSON Schema')
-    // remembered: the third call goes straight to the prompt form
+    expect(retried.messages[0].content).toMatch(/^SYSTEM\n\n.*JSON Schema/)
+    expect(retried.messages[0].content).toContain('Leave out any field')
+    expect(retried.messages[1].content[1].text).toBe('PROMPT')
+    // a new import with the same service goes straight to the prompt form
+    await new OpenAICompatibleProvider({ id: 'c-1', baseUrl: 'http://rejects', model: 'm', client: c }).complete(request)
     expect(create).toHaveBeenCalledTimes(3)
     expect((create.mock.calls[2]![0] as Record<string, any>).response_format).toEqual({ type: 'json_object' })
+  })
+
+  it('asks for room for a full page and puts the schema in the prompt after an off-schema reply', async () => {
+    const create = vi.fn(async (_params: Record<string, any>) => reply('{"ok":true}'))
+    const c = { chat: { completions: { create } } } as unknown as OpenAI
+    const provider = new OpenAICompatibleProvider({ id: 'c-1', baseUrl: 'http://off-schema', model: 'm', client: c })
+    await provider.complete(request)
+    expect(firstArg<Record<string, any>>(create).max_tokens).toBe(32_000)
+    provider.invalidReply()
+    await provider.complete(request)
+    expect(create.mock.calls[1]![0].messages[0].content).toContain('JSON Schema')
+  })
+
+  it('sends the schema as text from the start to Claude behind a relay', async () => {
+    const create = vi.fn(async (_params: Record<string, any>) => reply('{"ok":true}'))
+    const c = { chat: { completions: { create } } } as unknown as OpenAI
+    await new OpenAICompatibleProvider({ id: 'c-1', baseUrl: 'http://relay', model: 'claude-sonnet-5-5', client: c }).complete(request)
+    expect(create).toHaveBeenCalledTimes(1)
+    expect(firstArg<Record<string, any>>(create).response_format).toEqual({ type: 'json_object' })
+  })
+
+  it('asks for fewer tokens when the model can not write that many', async () => {
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce(Object.assign(new Error('max_tokens: 32000 > 8192, which is the maximum allowed'), { status: 400 }))
+      .mockResolvedValue(reply('{"ok":true}'))
+    const c = { chat: { completions: { create } } } as unknown as OpenAI
+    await new OpenAICompatibleProvider({ id: 'c-1', baseUrl: 'http://x', model: 'm', client: c }).complete(request)
+    expect((create.mock.calls[1]![0] as Record<string, any>).max_tokens).toBe(8_192)
   })
 
   it('throws a stop error when the reply is cut off', async () => {

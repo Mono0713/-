@@ -1,10 +1,13 @@
 import { summarize, type QuizAttempt, type QuizSource } from '@exam/quiz'
-import type { Member } from './index.ts'
+import type { Member } from './types.ts'
 
 /** How one student did on an assignment: the attempt that counts is the last one handed in, else the one under way. */
 export interface StudentResult {
   userId: string
+  /** Empty for a student who has left the class: the class no longer holds their name. */
   name: string
+  /** Left the class (or was removed) after starting it; their work still counts. */
+  left: boolean
   /** Attempts started. */
   tries: number
   counted: {
@@ -32,6 +35,8 @@ export interface AssignmentStats {
   students: StudentResult[]
   questions: QuestionStat[]
   handedIn: number
+  /** The handed-in attempts that count, one per student: what the charts and the export read. */
+  counted: QuizAttempt[]
   /** Average share of the points over the handed-in attempts; null before anyone handed in. */
   average: number | null
   /** Answers the AI marked, and how many of those the teacher changed. */
@@ -48,17 +53,19 @@ export function assignmentStats(sources: QuizSource[], members: Member[], attemp
   const byStudent = new Map<string, QuizAttempt[]>()
   for (const a of attempts) byStudent.set(a.ownerId, [...(byStudent.get(a.ownerId) ?? []), a])
 
+  // Students who left keep their handed-in work with the teacher, so they keep a row.
+  const inClass = new Set(members.map((m) => m.userId))
+  const departed = [...byStudent.keys()].filter((id) => !inClass.has(id)).map((userId) => ({ userId, name: '', left: true }))
   const counted: QuizAttempt[] = []
-  const results = students.map((m): StudentResult => {
+  const results = [...students.map((m) => ({ userId: m.userId, name: m.name, left: false })), ...departed].map((m): StudentResult => {
     const mine = (byStudent.get(m.userId) ?? []).sort((a, b) => a.startedAt.localeCompare(b.startedAt))
     const done = mine.filter((a) => a.finishedAt)
     const pick = done.at(-1) ?? mine.at(-1)
-    if (!pick) return { userId: m.userId, name: m.name, tries: 0, counted: null }
+    if (!pick) return { ...m, tries: 0, counted: null }
     const s = summarize(pick)
     if (pick.finishedAt) counted.push(pick)
     return {
-      userId: m.userId,
-      name: m.name,
+      ...m,
       tries: mine.length,
       counted: { attemptId: pick.id, handedIn: Boolean(pick.finishedAt), score: s.score, max: s.max, pending: s.pending, startedAt: pick.startedAt, finishedAt: pick.finishedAt },
     }
@@ -89,6 +96,7 @@ export function assignmentStats(sources: QuizSource[], members: Member[], attemp
       return { questionId: src.questionId, number: src.question.number, rate: e && e.max ? e.score / e.max : null, answered: e?.answered ?? 0 }
     }),
     handedIn: counted.length,
+    counted,
     average: counted.length ? shares / counted.length : null,
     aiMarked,
     overridden,

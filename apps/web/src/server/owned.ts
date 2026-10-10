@@ -2,6 +2,7 @@ import type { BankExam, BankQuestion, ImportRecord } from '@exam/bank'
 import type { QuizAttempt } from '@exam/quiz'
 import { currentOwner } from './auth'
 import { services } from './context'
+import { getT } from '@/shared/i18n/server'
 
 /**
  * Things looked up by an id from the address bar or a form, only when they belong
@@ -32,6 +33,9 @@ export async function ownedAttempt(id: string): Promise<QuizAttempt | null> {
 /** For actions: the import, or an error when it is not the person's. */
 export async function requireImport(id: string): Promise<ImportRecord> {
   const imp = await ownedImport(id)
-  if (!imp) throw new Error('找不到這份上傳的考卷')
+  if (!imp) {
+    const t = await getT()
+    throw new Error(t('找不到這份上傳的考卷'))
+  }
   return imp
 }

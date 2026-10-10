@@ -1,10 +1,14 @@
-import { canTeach, type Assignment, type Classroom, type ClassRole, type Member } from '@exam/classes'
+import { canTeach, lastClose, type Assignment, type Classroom, type ClassRole, type Member } from '@exam/classes'
 import type { DraftFigure } from '@exam/core'
 import type { QuizAttempt, QuizSettings, QuizSource } from '@exam/quiz'
 import { monthStart, spend } from '@exam/usage'
-import { authEnabled, currentOwner, currentUser, localPerson } from './auth'
-import { keyPrefixOf, providersOf, services, teacherFor, type Teacher } from './context'
+import { authEnabled, currentOwner, localPerson } from './auth'
+import { providersOf, teacherFor, type Teacher } from './ai'
+import { keyPrefixOf, services } from './context'
+import { currentProfile } from './profile'
 import { keyShown } from '@/features/quiz/visible'
+import { msg } from '@/shared/i18n/format'
+import { getT } from '@/shared/i18n/server'
 
 export interface InClass {
   classroom: Classroom
@@ -25,7 +29,10 @@ export async function inClass(classId: string): Promise<InClass | null> {
 /** For actions: the class when the person teaches it, else an error. */
 export async function requireTeaching(classId: string): Promise<InClass> {
   const found = await inClass(classId)
-  if (!found?.teaches) throw new Error('找不到這個班級')
+  if (!found?.teaches) {
+    const t = await getT()
+    throw new Error(t('找不到這個班級'))
+  }
   return found
 }
 
@@ -39,12 +46,14 @@ export async function inAssignment(assignmentId: string): Promise<(InClass & { a
 
 /** The name classmates see: the account's name, else the part of the e-mail before the @. */
 export async function displayName(): Promise<string> {
-  if (!authEnabled()) return (await localPerson()).name
-  const user = await currentUser()
-  return user?.name ?? user?.email?.split('@')[0] ?? '我'
+  const t = await getT()
+  if (!authEnabled()) return t((await localPerson()).name)
+  const user = await currentProfile()
+  return user?.name ?? user?.email?.split('@')[0] ?? t('我')
 }
 
-export const ROLE_LABELS: Record<ClassRole, string> = { teacher: '老師', assistant: '助教', student: '學生' }
+/** Translated where shown: t(ROLE_LABELS[role]). */
+export const ROLE_LABELS: Record<ClassRole, string> = { teacher: msg('老師'), assistant: msg('助教'), student: msg('學生') }
 
 /**
  * Copies the figure images of the questions into the class's own folder, so the
@@ -155,6 +164,8 @@ export async function keyRule(attempt: Pick<QuizAttempt, 'settings' | 'assignmen
   if (assignment.settings.mode === 'practice') return {}
   const { answers } = assignment.settings
   if (answers === 'never') return { keyHidden: true }
-  if (answers === 'after_close') return assignment.closesAt ? { keyUntil: assignment.closesAt } : { keyHidden: true }
+  // A student with a later deadline may still be writing; the answers wait for them too.
+  const closes = lastClose(assignment)
+  if (answers === 'after_close') return closes ? { keyUntil: closes } : { keyHidden: true }
   return {}
 }

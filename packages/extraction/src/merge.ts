@@ -1,4 +1,4 @@
-import { untangleBoxes, type DraftExam, type DraftFigure, type DraftQuestion, type ExamMeta, type ExtractedQuestion, type Figure } from '@exam/core'
+import { untangleBoxes, withExamTitle, withWordBanks, type DraftExam, type DraftFigure, type DraftQuestion, type ExamMeta, type ExtractedQuestion, type Figure } from '@exam/core'
 import type { PageResult } from './extract.ts'
 
 /**
@@ -32,7 +32,8 @@ export function mergePages(fileName: string, results: PageResult[]): DraftExam {
     const groupId = (id: string | null) => (id === null ? null : `p${result.pageNumber}:${id}`)
     const draftFigures = (figures: Figure[]): DraftFigure[] => figures.map((f) => ({ ...f, pageNumber: result.pageNumber, image: null }))
     for (const group of page.groups) {
-      exam.groups.push({ ...group, id: groupId(group.id)!, pageNumber: result.pageNumber, figures: draftFigures(group.figures) })
+      const options = group.options?.map((o) => ({ ...o, label: normalizeLabel(o.label) }))
+      exam.groups.push({ ...group, ...(options?.length ? { options } : { options: null }), id: groupId(group.id)!, pageNumber: result.pageNumber, figures: draftFigures(group.figures) })
     }
 
     for (const [index, q] of page.questions.entries()) {
@@ -49,7 +50,8 @@ export function mergePages(fileName: string, results: PageResult[]): DraftExam {
     open = last?.continuesOnNextPage ? exam.questions.at(-1)! : null
   }
   exam.questions = untangleBoxes(exam.questions)
-  return exam
+  // A word box (選詞填空) hands its list to each of its sentences, also when a model repeated it on each one.
+  return withWordBanks({ ...exam, meta: withExamTitle(meta) })
 }
 
 function toDraft(q: ExtractedQuestion, groupId: string | null, location: DraftQuestion['locations'][number], figures: DraftFigure[]): DraftQuestion {
@@ -65,7 +67,8 @@ export function normalizeLabel(label: string): string {
 /** Evens out what different models return so drafts look the same whichever model made them. */
 function tidy(q: DraftQuestion): DraftQuestion {
   for (const option of q.options) option.label = normalizeLabel(option.label)
-  if (q.options.length > 0) q.answer.values = q.answer.values.map(normalizeLabel)
+  // a sentence of a word box (選詞填空) gets the box's options later; its answer is a label too
+  if (q.options.length > 0 || (q.groupId && q.answer.values.every((v) => v.trim().length <= 4))) q.answer.values = q.answer.values.map(normalizeLabel)
   if (q.explanation && q.explanation.trim() === q.answer.values.join('\n').trim()) q.explanation = null
   if (q.points === null && q.section) {
     const perQuestion = /每題\s*(\d+(?:\.\d+)?)\s*分|(\d+(?:\.\d+)?)\s*(?:points?|pts?)\s*(?:for\s+)?each/i.exec(q.section)
@@ -97,4 +100,68 @@ function appendContinuation(target: DraftQuestion, part: ExtractedQuestion, loca
   target.issues.push(...part.issues)
   if (CONFIDENCE_RANK[part.confidence] < CONFIDENCE_RANK[target.confidence]) target.confidence = part.confidence
   target.locations.push(location)
+}
+
+/**
+ * Lays a new reading of some pages over the draft the person has been editing, so only those
+ * pages change: questions elsewhere stay as they were left (text, answers, order, moved boxes),
+ * and on a page read again a box the person placed by hand stays where they put it.
+ */
+export function keepEdits(previous: DraftExam, next: DraftExam, reread: ReadonlySet<number>): DraftExam {
+  const onReread = (l: { pageNumber: number }) => reread.has(l.pageNumber)
+  const firstPage = (q: DraftQuestion) => (q.locations.length ? Math.min(...q.locations.map((l) => l.pageNumber)) : null)
+  const key = (q: DraftQuestion) => `${q.section ?? ''}\u0000${q.number}`
+  const unique = (list: DraftQuestion[]) => {
+    const counts = new Map<string, number>()
+    for (const q of list) counts.set(key(q), (counts.get(key(q)) ?? 0) + 1)
+    return (q: DraftQuestion) => counts.get(key(q)) === 1
+  }
+
+  // Old questions on pages not read again stay; one that also ran onto a page read again keeps its other part.
+  // The new reading of a page takes the place of the first old question that was on it.
+  const questions: (DraftQuestion | number)[] = []
+  for (const q of previous.questions) {
+    if (!q.locations.some(onReread)) questions.push(q)
+    else if (q.locations.some((l) => !onReread(l)))
+      questions.push({ ...q, locations: q.locations.filter((l) => !onReread(l)), figures: q.figures.filter((f) => !reread.has(f.pageNumber)) })
+    else if (!questions.includes(firstPage(q)!)) questions.push(firstPage(q)!)
+  }
+
+  const fresh = next.questions.filter((q) => q.locations.some(onReread))
+  const oldUnique = unique(previous.questions)
+  const freshUnique = unique(fresh)
+  const placedBefore = new Map(previous.questions.filter(oldUnique).map((q) => [key(q), q]))
+  const slots = new Map<number, DraftQuestion[]>()
+  for (const f of fresh) {
+    const before = freshUnique(f) ? placedBefore.get(key(f)) : undefined
+    const locations = f.locations.map((l) => (onReread(l) && before?.locations.find((b) => b.manual && b.pageNumber === l.pageNumber)) || l)
+    // A question carried over from a page not read again: its part there is the one already edited.
+    const carried = f.locations.find((l) => !onReread(l))
+    const on = (q: DraftQuestion | number): q is DraftQuestion => typeof q !== 'number' && q.locations.some((l) => l.pageNumber === carried?.pageNumber)
+    if (carried) {
+      const at = questions.findIndex((q) => on(q) && key(q) === key(f))
+      const same = at >= 0 ? at : questions.findLastIndex(on)
+      if (same >= 0) {
+        const old = questions[same] as DraftQuestion
+        questions[same] = { ...f, locations: [...old.locations, ...locations.filter(onReread)].sort((a, b) => a.pageNumber - b.pageNumber) }
+        continue
+      }
+    }
+    const page = firstPage(f)!
+    if (!questions.includes(page)) {
+      const after = questions.findLastIndex((q) => (typeof q === 'number' ? q : (firstPage(q) ?? Infinity)) <= page)
+      questions.splice(after + 1, 0, page)
+    }
+    slots.set(page, [...(slots.get(page) ?? []), { ...f, locations }])
+  }
+
+  const meta = { ...previous.meta }
+  for (const k of Object.keys(meta) as (keyof ExamMeta)[]) meta[k] ??= next.meta[k]
+  return {
+    fileName: previous.fileName,
+    meta,
+    groups: [...previous.groups.filter((g) => !reread.has(g.pageNumber)), ...next.groups.filter((g) => reread.has(g.pageNumber))].sort((a, b) => a.pageNumber - b.pageNumber),
+    questions: questions.flatMap((q) => (typeof q === 'number' ? (slots.get(q) ?? []) : [q])),
+    pages: next.pages,
+  }
 }

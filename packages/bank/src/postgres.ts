@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { DraftExam, DraftQuestion, ExamMeta } from '@exam/core'
 import { iso, isUuid, likePattern, type Sql, type TransactionSql } from '@exam/db'
 import { draftFields, META_KEYS, searchText, type Bank, type ImportPatch } from './bank.ts'
-import type { BankExam, BankQuestion, ExamQuery, ImportRecord, NewExam, NewImport, QuestionQuery } from './types.ts'
+import type { BankExam, BankQuestion, ExamPatch, ExamQuery, ImportRecord, NewExam, NewImport, QuestionQuery } from './types.ts'
 
 type Row = Record<string, unknown>
 
@@ -45,6 +45,7 @@ export class PostgresBank implements Bank {
     if (patch.model !== undefined) columns.model = patch.model
     if (patch.keepOriginal !== undefined) columns.keep_original = patch.keepOriginal
     if (patch.originalDeletedAt !== undefined) columns.original_deleted_at = patch.originalDeletedAt && new Date(patch.originalDeletedAt)
+    if (patch.pageCount !== undefined) columns.page_count = patch.pageCount
     await this.setColumns(this.sql, 'imports', id, columns)
   }
 
@@ -52,6 +53,11 @@ export class PostgresBank implements Bank {
     const rows = await this.sql`${this.importSelect()} where not i.keep_original and i.original_deleted_at is null
       and exists (select 1 from exams e where e.import_id = i.id and e.created_at < ${savedBefore})`
     return rows.map(toImport)
+  }
+
+  async failInterrupted(error: string): Promise<number> {
+    const rows = await this.sql`update imports set status = 'failed', error = ${error}, updated_at = now() where status = 'processing' returning id`
+    return rows.length
   }
 
   async deleteImport(id: string): Promise<void> {
@@ -98,7 +104,7 @@ export class PostgresBank implements Bank {
   }
 
   async createExam(ownerId: string, exam: NewExam): Promise<BankExam> {
-    const id = randomUUID()
+    const id = exam.id ?? randomUUID()
     await this.sql.begin(async (tx) => {
       await tx`insert into exams (id, owner_id, import_id) values (${id}, ${ownerId}, null)`
       await this.setColumns(tx, 'exams', id, { ...metaColumns(exam.meta), groups: tx.json(exam.groups as never) })
@@ -110,6 +116,10 @@ export class PostgresBank implements Bank {
     return (await this.getExam(id))!
   }
 
+  async linkImport(examId: string, importId: string): Promise<void> {
+    if (isUuid(examId) && isUuid(importId)) await this.sql`update exams set import_id = ${importId} where id = ${examId}`
+  }
+
   async examForImport(importId: string): Promise<BankExam | null> {
     if (!isUuid(importId)) return null
     const [row] = await this.sql`${this.examSelect()} where e.import_id = ${importId}`
@@ -117,13 +127,34 @@ export class PostgresBank implements Bank {
   }
 
   async listExams(query: ExamQuery): Promise<BankExam[]> {
+    // A database not migrated yet has no `position`: the bank still opens, newest first, until it is.
+    try {
+      return await this.listExamsBy(query, true)
+    } catch (err) {
+      if (!isMissingColumn(err)) throw err
+      return this.listExamsBy(query, false)
+    }
+  }
+
+  private async listExamsBy(query: ExamQuery, placed: boolean): Promise<BankExam[]> {
     const sql = this.sql
     const term = query.search?.trim().toLowerCase()
     const rows = await sql`${this.examSelect()} where e.owner_id = ${query.ownerId}
       ${term ? sql`and (coalesce(e.title, '') ilike ${likePattern(term)} or exists (select 1 from questions q where q.exam_id = e.id and q.search_text like ${likePattern(term)}))` : sql``}
       ${query.subject ? sql`and e.subject = ${query.subject}` : sql``}
-      order by e.created_at desc`
+      order by ${placed ? sql`e.position nulls first,` : sql``} e.created_at desc`
     return rows.map(toExam)
+  }
+
+  async reorderExams(ownerId: string, ids: string[]): Promise<void> {
+    try {
+      await this.sql.begin(async (tx) => {
+        for (const [i, id] of ids.entries()) if (isUuid(id)) await tx`update exams set position = ${i} where id = ${id} and owner_id = ${ownerId}`
+      })
+    } catch (err) {
+      // not migrated yet: the order cannot be kept, which is not worth an error page
+      if (!isMissingColumn(err)) throw err
+    }
   }
 
   async getExam(id: string): Promise<BankExam | null> {
@@ -132,8 +163,8 @@ export class PostgresBank implements Bank {
     return row ? toExam(row) : null
   }
 
-  async updateExam(id: string, meta: Partial<ExamMeta>): Promise<BankExam | null> {
-    await this.setColumns(this.sql, 'exams', id, metaColumns(meta))
+  async updateExam(id: string, patch: ExamPatch): Promise<BankExam | null> {
+    await this.setColumns(this.sql, 'exams', id, { ...metaColumns(patch), ...(patch.multiplePartial !== undefined && { multiple_partial: patch.multiplePartial }) })
     return this.getExam(id)
   }
 
@@ -213,6 +244,9 @@ function metaColumns(meta: Partial<ExamMeta>): Record<string, string | null> {
 
 const text = (v: unknown) => (v === null || v === undefined ? null : String(v))
 
+/** Postgres error 42703: a column the query names does not exist (the migration has not run). */
+const isMissingColumn = (err: unknown) => typeof err === 'object' && err !== null && (err as { code?: unknown }).code === '42703'
+
 function toExam(row: Row): BankExam {
   return {
     id: String(row.id),
@@ -224,6 +258,8 @@ function toExam(row: Row): BankExam {
     term: text(row.term),
     language: text(row.language),
     groups: (row.groups ?? []) as DraftExam['groups'],
+    // Missing before the 20261006 migration: on, as it was for every exam.
+    multiplePartial: row.multiple_partial !== false,
     questionCount: Number(row.question_count ?? 0),
     createdAt: iso(row.created_at as Date)!,
     updatedAt: iso(row.updated_at as Date)!,

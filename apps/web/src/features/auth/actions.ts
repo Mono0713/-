@@ -3,11 +3,7 @@
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { authEnabled, LOCAL_AS_COOKIE, LOCAL_PEOPLE, localSwitching, supabaseServer } from '@/server/auth'
-
-/** Where the person came from, to return there after signing in; only paths inside the app. */
-function safeNext(next: unknown): string {
-  return typeof next === 'string' && next.startsWith('/') && !next.startsWith('//') ? next : '/'
-}
+import { safeNext } from '@/shared/safeNext'
 
 /** Sends the person to Google; Supabase brings them back to /auth/callback. */
 export async function signInWithGoogle(formData: FormData) {
@@ -25,7 +21,8 @@ export async function signInWithGoogle(formData: FormData) {
 
 export async function signOut() {
   if (authEnabled()) await (await supabaseServer()).auth.signOut()
-  redirect('/login')
+  // back to the product page, the site's front door
+  redirect('/')
 }
 
 /** `pnpm dev` without accounts only: acts as another local person (e.g. a student) in this browser. */

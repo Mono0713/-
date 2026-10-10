@@ -11,3 +11,8 @@ export function loadMathLive(): Promise<typeof MathfieldElement> {
   })
   return loading
 }
+
+/** The formula's LaTeX without its empty slots, which would otherwise show as a red \placeholder. */
+export function plain(field: MathfieldElement): string {
+  return field.getValue('latex-without-placeholders')
+}

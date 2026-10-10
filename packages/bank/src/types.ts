@@ -35,6 +35,8 @@ export interface ImportRecord {
 }
 
 export interface NewExam {
+  /** Id to create the exam under, e.g. when its files are named after it first. A new one when left out. */
+  id?: string
   meta: Partial<ExamMeta>
   groups: DraftExam['groups']
   questions: DraftQuestion[]
@@ -62,10 +64,15 @@ export interface BankExam extends ExamMeta {
   importId: string | null
   /** Passages and figures shared by several of its questions. */
   groups: DraftExam['groups']
+  /** Multiple-choice questions earn part of their points when partly right (學測 rule); set by the exam's author. */
+  multiplePartial: boolean
   questionCount: number
   createdAt: string
   updatedAt: string
 }
+
+/** What the exam's author changes on the exam page: its details and how it is scored. */
+export type ExamPatch = Partial<ExamMeta> & { multiplePartial?: boolean }
 
 export interface ExamQuery {
   ownerId: string

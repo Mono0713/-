@@ -77,7 +77,9 @@ describe.each(banks)('%s', (_name, open) => {
     expect(await bank.subjects('local')).toEqual(['數學'])
 
     await bank.updateExam(exam.id, { subject: '物理', term: '113-1' })
-    expect(await bank.getExam(exam.id)).toMatchObject({ subject: '物理', term: '113-1', title: '期中考' })
+    expect(await bank.getExam(exam.id)).toMatchObject({ subject: '物理', term: '113-1', title: '期中考', multiplePartial: true })
+    await bank.updateExam(exam.id, { multiplePartial: false })
+    expect(await bank.getExam(exam.id)).toMatchObject({ subject: '物理', multiplePartial: false })
     expect((await bank.listQuestions({ ownerId: 'local', subject: '物理' })).total).toBe(2)
 
     const q = (await bank.listQuestions({ ownerId: 'local', type: 'essay' })).items[0]!
@@ -119,6 +121,31 @@ describe.each(banks)('%s', (_name, open) => {
     expect(await bank.getImport(saved.id)).toMatchObject({ originalDeletedAt: at })
     expect(await ids(new Date(Date.now() + 60_000))).toEqual([])
   })
+
+  it('fails the imports a restart cut off, and only those', async () => {
+    const bank = await open()
+    const running = await bank.createImport({ ownerId: 'local', fileName: 'x.pdf', pageCount: 1, provider: 'claude', model: null })
+    await bank.updateImport(running.id, { status: 'processing' })
+    const done = await bank.createImport({ ownerId: 'local', fileName: 'y.pdf', pageCount: 1, provider: 'claude', model: null })
+    await bank.updateImport(done.id, { status: 'review' })
+    expect(await bank.failInterrupted('restarted')).toBeGreaterThanOrEqual(1)
+    expect(await bank.getImport(running.id)).toMatchObject({ status: 'failed', error: 'restarted' })
+    expect((await bank.getImport(done.id))?.status).toBe('review')
+  })
+  it('lists exams in the order the person placed them, new ones first', async () => {
+    const bank = await open()
+    // created a moment apart, so "newest first" is not a tie
+    const make = async (title: string) => (await new Promise((r) => setTimeout(r, 5)), await bank.createExam('local', { meta: { ...meta, title }, groups: [], questions: [draftQuestion()] })).id
+    const [a, b, c] = [await make('甲'), await make('乙'), await make('丙')]
+    expect((await bank.listExams({ ownerId: 'local' })).map((e) => e.title)).toEqual(['丙', '乙', '甲'])
+    await bank.reorderExams('local', [a, c, b])
+    expect((await bank.listExams({ ownerId: 'local' })).map((e) => e.title)).toEqual(['甲', '丙', '乙'])
+    const d = await make('丁')
+    expect((await bank.listExams({ ownerId: 'local' })).map((e) => e.id)).toEqual([d, a, c, b])
+    // someone else's order is not touched
+    await bank.reorderExams('other', [b, a])
+    expect((await bank.listExams({ ownerId: 'local' })).map((e) => e.id)).toEqual([d, a, c, b])
+  })
 })
 
 describe('SqliteBank', () => {
@@ -146,5 +173,4 @@ describe('SqliteBank', () => {
     await bank.close()
     // A second open does not migrate again.
     expect(await new SqliteBank(path).listExams({ ownerId: 'local' })).toHaveLength(2)
-  })
-})
+  })})

@@ -1,11 +1,19 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
 import { BRAND, brandTagline } from '@/shared/brand/brand'
+import { BottomNav } from '@/shared/chrome/BottomNav'
 import { Header } from '@/shared/chrome/Header'
 import { Sidebar } from '@/shared/chrome/Sidebar'
 import { MOTION_SCRIPT } from '@/shared/motion/preference'
+import { ServiceWorker } from '@/shared/pwa/ServiceWorker'
+import { CopyFormulas } from '@/shared/math/CopyFormulas'
+import { CATALOGS } from '@/shared/i18n/catalogs'
+import { saveLocale } from '@/features/settings/actions'
+import { I18nProvider } from '@/shared/i18n/client'
+import { getLocale } from '@/shared/i18n/server'
 import { RemovalProvider } from '@/shared/removal'
 import { THEME_SCRIPT } from '@/shared/theme/theme'
+import { RAIL_SCRIPT } from '@/shared/chrome/rail'
 import '@fontsource/lxgw-wenkai-tc/400.css'
 import './globals.css'
 
@@ -19,17 +27,33 @@ const mono = localFont({ src: './fonts/jetbrains-mono-latin-500-normal.woff2', v
 export const metadata: Metadata = {
   title: { default: BRAND.name, template: `%s · ${BRAND.name}` },
   description: brandTagline(),
+  // Installed on a phone's home screen it opens like an app, without the browser bar.
+  appleWebApp: { capable: true, title: BRAND.name, statusBarStyle: 'default' },
+  // Listing icons here turns off app/icon.svg, so the tab icon is named too.
+  icons: { icon: [{ url: '/icon.svg', type: 'image/svg+xml' }, { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }], apple: '/icons/apple-touch-icon.png' },
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const viewport: Viewport = {
+  // Lets the page reach under the phone's home indicator; the bottom bar pads itself with the safe area.
+  viewportFit: 'cover',
+  // Colors the phone's status bar to match the page.
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#fcfcfa' },
+    { media: '(prefers-color-scheme: dark)', color: '#0f1528' },
+  ],
+}
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale()
   return (
-    <html lang="zh-Hant" className={`${body.variable} ${bricolage.variable} ${mono.variable}`} suppressHydrationWarning>
+    <html lang={locale} className={`${body.variable} ${bricolage.variable} ${mono.variable}`} suppressHydrationWarning>
       <head>
         {/* Applies the saved light/dark and motion choices before the first paint. Browser extensions
             sometimes rewrite this tag before React starts, so a mismatch here is not ours to report. */}
-        <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_SCRIPT + MOTION_SCRIPT }} />
+        <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: THEME_SCRIPT + MOTION_SCRIPT + RAIL_SCRIPT }} />
       </head>
       <body className="min-h-screen font-sans antialiased">
+        <I18nProvider locale={locale} messages={CATALOGS[locale]} save={saveLocale}>
         <RemovalProvider>
           <div className="xl:flex">
             <Sidebar />
@@ -41,7 +65,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </main>
             </div>
           </div>
+          <BottomNav />
         </RemovalProvider>
+        </I18nProvider>
+        <ServiceWorker />
+        <CopyFormulas />
       </body>
     </html>
   )

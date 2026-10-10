@@ -92,6 +92,8 @@ function compatible(provider: string, { apiKey, model, baseUrl, onUsage }: TextM
     async complete(system, prompt, images = []) {
       const response = await new OpenAI({ apiKey: apiKey || 'none', baseURL: baseUrl }).chat.completions.create({
         model,
+        // Left unset, many services stop at 4,096 tokens.
+        max_tokens: 8_192,
         messages: [
           { role: 'system', content: system },
           {
@@ -101,6 +103,7 @@ function compatible(provider: string, { apiKey, model, baseUrl, onUsage }: TextM
         ],
       })
       onUsage?.({ inputTokens: response.usage?.prompt_tokens ?? null, outputTokens: response.usage?.completion_tokens ?? null })
+      if (!Array.isArray(response?.choices)) throw new Error(`${provider} did not answer like an OpenAI-compatible API (no "choices"). Check the API address: it usually ends in /v1.`)
       return response.choices[0]?.message.content ?? ''
     },
   }

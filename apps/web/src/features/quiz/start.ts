@@ -1,6 +1,8 @@
 import { draftOf, type BankExam, type BankQuestion } from '@exam/bank'
 import { buildItems, type QuizAttempt, type QuizSettings, type QuizSource } from '@exam/quiz'
 import { services } from '@/server/context'
+import type { T } from '@/shared/i18n/format'
+import { getT } from '@/shared/i18n/server'
 
 /**
  * Makes a quiz attempt for `ownerId` from bank questions, which may belong to someone
@@ -20,19 +22,37 @@ export async function startQuiz(input: {
   let questions = input.questions
   if (input.limit && input.limit < questions.length) {
     const order = input.order ?? questions.map((q) => q.id)
-    questions = [...questions].sort(() => Math.random() - 0.5).slice(0, input.limit)
+    questions = draw(questions, input.limit)
     questions.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
   }
   const { sources, exams } = await sourcesOf(questions)
   return startFromSources({
     ownerId: input.ownerId,
-    title: titles(exams),
+    title: titles(exams, await getT()),
     // Someone else's exams are not linked: the person cannot open them in the bank.
     examIds: input.share ? [] : [...exams.keys()],
     sources,
     settings: input.settings,
     ...(input.share && { share: input.share }),
   })
+}
+
+/**
+ * About `limit` questions at random. A reading passage's questions are drawn as a whole, never
+ * split, so the count can go a little over when the last pick is a passage.
+ */
+function draw(questions: BankQuestion[], limit: number): BankQuestion[] {
+  const units = new Map<string, BankQuestion[]>()
+  for (const q of questions) {
+    const key = q.groupId ? `${q.examId}:${q.groupId}` : q.id
+    units.set(key, [...(units.get(key) ?? []), q])
+  }
+  const picked: BankQuestion[] = []
+  for (const unit of [...units.values()].sort(() => Math.random() - 0.5)) {
+    if (picked.length >= limit) break
+    picked.push(...unit)
+  }
+  return picked
 }
 
 /** Bank questions as a quiz takes them, each with its group's passage and figures, and the exams they come from. */
@@ -42,14 +62,14 @@ export async function sourcesOf(questions: BankQuestion[]): Promise<{ sources: Q
   const exams = new Map(await Promise.all(examIds.map(async (id) => [id, await bank.getExam(id)] as const)))
   const sources = questions.map((q): QuizSource => {
     const group = q.groupId ? exams.get(q.examId)?.groups.find((g) => g.id === q.groupId) : undefined
-    return { questionId: q.id, question: draftOf(q), group: group ? { stem: group.stem, figures: group.figures } : null }
+    return { questionId: q.id, question: draftOf(q), group: group ? { stem: group.stem, figures: group.figures, ...(group.options?.length ? { options: group.options } : {}) } : null }
   })
   return { sources, exams }
 }
 
-function titles(exams: Map<string, { title: string | null } | null>): string {
-  const list = [...exams.values()].map((e) => e?.title ?? '未命名考卷')
-  return list.length === 1 ? list[0]! : `${list[0]} 等 ${list.length} 份考卷`
+function titles(exams: Map<string, { title: string | null } | null>, t: T): string {
+  const list = [...exams.values()].map((e) => e?.title ?? t('未命名考卷'))
+  return list.length === 1 ? list[0]! : t('{title} 等 {n} 份考卷', { title: list[0]!, n: list.length })
 }
 
 /**

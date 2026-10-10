@@ -119,3 +119,26 @@ describe('defaultPrintedText', () => {
     expect(defaultPrintedText('(a)')).toBe('(a)')
   })
 })
+
+describe('cleanFigure edges', () => {
+  /** A graph at (112,50)-(300,250), and a ")" stroke at x 92-96 that a slightly wide box catches. */
+  async function optionPage() {
+    const svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+      <rect width="${W}" height="${H}" fill="#fff"/>
+      <rect x="92" y="60" width="4" height="30" fill="#111"/>
+      <path d="M112 150 L300 150 M200 50 L200 250 M115 240 L290 60" stroke="#111" stroke-width="3" fill="none"/>
+    </svg>`
+    return sharp(Buffer.from(svg)).png().toBuffer()
+  }
+
+  it('leaves out a sliver of the next label that the box edge cuts through', async () => {
+    const out = await cleanFigure(await optionPage(), { description: 'graph', bbox: { x: 94 / W, y: 45 / H, width: 210 / W, height: 210 / H }, blanks: [] }, { padding: 0 })
+    expect(await darkCount(out.png, 0, 0, 4, out.height)).toBe(0)
+    expect(out.width).toBeGreaterThan(195)
+  })
+
+  it('keeps a label inside the box that the edge does not touch', async () => {
+    const out = await cleanFigure(await optionPage(), { description: 'graph', bbox: { x: 88 / W, y: 45 / H, width: 216 / W, height: 210 / H }, blanks: [] }, { padding: 0 })
+    expect(await darkCount(out.png, 0, 0, 12, out.height)).toBeGreaterThan(0)
+  })
+})

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { DatabaseSync } from 'node:sqlite'
 import type { DraftExam, DraftQuestion, ExamMeta } from '@exam/core'
 import { draftFields, META_KEYS, searchText, type Bank, type ImportPatch } from './bank.ts'
-import type { BankExam, BankQuestion, ExamQuery, ImportRecord, NewExam, NewImport, QuestionQuery } from './types.ts'
+import type { BankExam, BankQuestion, ExamPatch, ExamQuery, ImportRecord, NewExam, NewImport, QuestionQuery } from './types.ts'
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS imports (
@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS exams (
   term TEXT,
   language TEXT,
   groups TEXT NOT NULL DEFAULT '[]',
+  multiple_partial INTEGER NOT NULL DEFAULT 1,
+  position INTEGER,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -67,6 +69,7 @@ class SqliteBankSync {
     this.db.exec(SCHEMA)
     this.migrate()
     this.addImportColumns()
+    this.addExamColumns()
   }
 
   createImport(input: NewImport): ImportRecord {
@@ -102,6 +105,7 @@ class SqliteBankSync {
     if (patch.model !== undefined) columns.model = patch.model
     if (patch.keepOriginal !== undefined) columns.keep_original = patch.keepOriginal ? 1 : 0
     if (patch.originalDeletedAt !== undefined) columns.original_deleted_at = patch.originalDeletedAt
+    if (patch.pageCount !== undefined) columns.page_count = patch.pageCount
     this.setColumns('imports', id, columns)
   }
 
@@ -111,6 +115,10 @@ class SqliteBankSync {
         AND EXISTS (SELECT 1 FROM exams e WHERE e.import_id = i.id AND e.created_at < ?)`)
       .all(savedBefore.toISOString()) as Row[]
     return rows.map(toImport)
+  }
+
+  failInterrupted(error: string): number {
+    return Number(this.db.prepare("UPDATE imports SET status = 'failed', error = ?, updated_at = ? WHERE status = 'processing'").run(error, new Date().toISOString()).changes)
   }
 
   deleteImport(id: string): void {
@@ -153,7 +161,7 @@ class SqliteBankSync {
 
   createExam(ownerId: string, exam: NewExam): BankExam {
     const now = new Date().toISOString()
-    const id = randomUUID()
+    const id = exam.id ?? randomUUID()
     this.db.exec('BEGIN')
     try {
       this.db.prepare('INSERT INTO exams (id, owner_id, import_id, groups, created_at, updated_at) VALUES (?, ?, NULL, ?, ?, ?)').run(id, ownerId, JSON.stringify(exam.groups), now, now)
@@ -165,6 +173,10 @@ class SqliteBankSync {
       throw err
     }
     return this.getExam(id)!
+  }
+
+  linkImport(examId: string, importId: string): void {
+    this.db.prepare('UPDATE exams SET import_id = ? WHERE id = ?').run(importId, examId)
   }
 
   examForImport(importId: string): BankExam | null {
@@ -184,8 +196,14 @@ class SqliteBankSync {
       where.push('e.subject = ?')
       params.push(query.subject)
     }
-    const rows = this.db.prepare(`${EXAM_SELECT} WHERE ${where.join(' AND ')} ORDER BY e.created_at DESC`).all(...params) as Row[]
+    // exams the person has placed keep their order; new ones, not placed yet, come first, newest first
+    const rows = this.db.prepare(`${EXAM_SELECT} WHERE ${where.join(' AND ')} ORDER BY e.position IS NOT NULL, e.position, e.created_at DESC`).all(...params) as Row[]
     return rows.map(toExam)
+  }
+
+  reorderExams(ownerId: string, ids: string[]): void {
+    const set = this.db.prepare('UPDATE exams SET position = ? WHERE id = ? AND owner_id = ?')
+    ids.forEach((id, i) => set.run(i, id, ownerId))
   }
 
   getExam(id: string): BankExam | null {
@@ -193,8 +211,8 @@ class SqliteBankSync {
     return row ? toExam(row) : null
   }
 
-  updateExam(id: string, meta: Partial<ExamMeta>): BankExam | null {
-    this.setColumns('exams', id, metaColumns(meta))
+  updateExam(id: string, patch: ExamPatch): BankExam | null {
+    this.setColumns('exams', id, { ...metaColumns(patch), ...(patch.multiplePartial !== undefined && { multiple_partial: patch.multiplePartial ? 1 : 0 }) })
     return this.getExam(id)
   }
 
@@ -318,6 +336,12 @@ class SqliteBankSync {
     if (!columns.includes('page_format')) this.db.exec("ALTER TABLE imports ADD COLUMN page_format TEXT NOT NULL DEFAULT 'png'")
   }
 
+  private addExamColumns() {
+    const columns = (this.db.prepare('PRAGMA table_info(exams)').all() as Row[]).map((c) => String(c.name))
+    if (!columns.includes('multiple_partial')) this.db.exec('ALTER TABLE exams ADD COLUMN multiple_partial INTEGER NOT NULL DEFAULT 1')
+    if (!columns.includes('position')) this.db.exec('ALTER TABLE exams ADD COLUMN position INTEGER')
+  }
+
   private setColumns(table: 'imports' | 'exams' | 'questions', id: string, columns: Record<string, string | number | null>) {
     const keys = Object.keys(columns)
     if (!keys.length) return
@@ -348,6 +372,7 @@ function toExam(row: Row): BankExam {
     term: text(row.term),
     language: text(row.language),
     groups: JSON.parse(String(row.groups ?? '[]')) as DraftExam['groups'],
+    multiplePartial: row.multiple_partial === undefined || row.multiple_partial === null || Number(row.multiple_partial) !== 0,
     questionCount: Number(row.question_count ?? 0),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -404,15 +429,18 @@ export class SqliteBank implements Bank {
   async listImports(ownerId: string) { return this.db.listImports(ownerId) }
   async updateImport(id: string, patch: ImportPatch) { this.db.updateImport(id, patch) }
   async originalsToExpire(savedBefore: Date) { return this.db.originalsToExpire(savedBefore) }
+  async failInterrupted(error: string) { return this.db.failInterrupted(error) }
   async deleteImport(id: string) { this.db.deleteImport(id) }
   async getDraft(importId: string) { return this.db.getDraft(importId) }
   async saveDraft(importId: string, draft: DraftExam) { this.db.saveDraft(importId, draft) }
   async saveExam(importId: string, draft: DraftExam) { return this.db.saveExam(importId, draft) }
   async createExam(ownerId: string, exam: NewExam) { return this.db.createExam(ownerId, exam) }
   async examForImport(importId: string) { return this.db.examForImport(importId) }
+  async linkImport(examId: string, importId: string) { this.db.linkImport(examId, importId) }
   async listExams(query: ExamQuery) { return this.db.listExams(query) }
   async getExam(id: string) { return this.db.getExam(id) }
-  async updateExam(id: string, meta: Partial<ExamMeta>) { return this.db.updateExam(id, meta) }
+  async updateExam(id: string, patch: ExamPatch) { return this.db.updateExam(id, patch) }
+  async reorderExams(ownerId: string, ids: string[]) { this.db.reorderExams(ownerId, ids) }
   async deleteExam(id: string) { this.db.deleteExam(id) }
   async listQuestions(query: QuestionQuery) { return this.db.listQuestions(query) }
   async getQuestion(id: string) { return this.db.getQuestion(id) }

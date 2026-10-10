@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useT } from '@/shared/i18n/client'
 import { Toast } from './Toast'
 
 /** How long something deleted waits for 復原 before it is really gone. */
@@ -30,6 +31,7 @@ const Context = createContext<Removals>({ remove: (r) => void r.commit(), isRemo
  * page (deleting an exam from its own page goes back to the bank, where the card is already gone).
  */
 export function RemovalProvider({ children }: { children: ReactNode }) {
+  const t = useT()
   const [hidden, setHidden] = useState<string[]>([])
   const [note, setNote] = useState<Removal | null>(null)
   const pending = useRef(new Map<string, { removal: Removal; timer: ReturnType<typeof setTimeout> }>())
@@ -77,7 +79,7 @@ export function RemovalProvider({ children }: { children: ReactNode }) {
   return (
     <Context.Provider value={value}>
       {children}
-      <Toast show={note !== null} action="復原" onAction={undo}>
+      <Toast show={note !== null} action={t('復原')} onAction={undo}>
         {note?.note}
       </Toast>
     </Context.Provider>

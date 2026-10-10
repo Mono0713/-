@@ -1,18 +1,24 @@
 'use server'
 
 import { randomBytes } from 'node:crypto'
-import { listModels } from '@exam/extraction'
-import type { Strength, Task, Tier } from '@exam/models'
-import type { CustomProvider } from '@exam/settings'
+import { listModels, probeVision } from '@exam/extraction'
+import { guessVision, PICTURE_TASKS, type Strength, type Task, type Tier } from '@exam/models'
+import { keySlots, keysOf, type CustomProvider, type Settings } from '@exam/settings'
 import { revalidatePath } from 'next/cache'
-import { apiKeyOf, authEnabled, currentOwner, services } from '@/server/context'
+import { cookies } from 'next/headers'
+import { authEnabled, currentOwner, currentUser, services } from '@/server/context'
+import { apiKeyOf } from '@/server/ai'
 import { checkServiceUrl } from '@/server/serviceUrl'
+import { isLocale, LOCALE_COOKIE } from '@/shared/i18n/locales'
+import { getT } from '@/shared/i18n/server'
+import { looksLikeWebPage, modelsAt } from './apiBase'
+import { NAME_MAX } from './profile'
 
 type Result = { ok: true; note?: string } | { ok: false; error: string }
 
 const API_PROVIDERS = ['claude', 'openai', 'gemini']
 const STRENGTHS: Strength[] = ['save', 'balanced', 'best']
-const TASKS: Task[] = ['recognition', 'handwriting', 'grading', 'tutoring', 'translation']
+const TASKS: Task[] = ['recognition', 'handwriting', 'grading', 'tutoring', 'translation', 'solving', 'explaining', 'generating']
 
 async function save(patch: Parameters<ReturnType<typeof services>['settings']['update']>[1]) {
   await services().settings.update(await currentOwner(), patch)
@@ -22,63 +28,99 @@ async function save(patch: Parameters<ReturnType<typeof services>['settings']['u
 const mine = async () => services().settings.get(await currentOwner())
 
 export async function saveLocale(locale: string) {
-  await save({ locale })
+  if (!isLocale(locale)) return
+  // Signed-out visitors (the product page) only get the cookie.
+  if (!authEnabled() || (await currentUser())) await save({ locale })
+  // Remembered in the browser too, so the sign-in page and other accounts on it follow.
+  ;(await cookies()).set(LOCALE_COOKIE, locale, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' })
+  revalidatePath('/', 'layout')
 }
 
-export async function saveDefaultProvider(provider: string) {
-  await save({ defaultProvider: provider })
-}
-
-export async function saveModel(provider: string, model: string) {
-  const models = { ...(await mine()).models }
-  if (model.trim()) models[provider] = model.trim()
-  else delete models[provider]
-  await save({ models })
+/** The name and picture shown in the app; null goes back to the Google account's. The picture is a small image as a data URL. */
+export async function saveProfile(patch: { name?: string | null; avatar?: string | null }) {
+  const { profile } = await mine()
+  const next = { ...profile }
+  if (patch.name !== undefined) next.name = [...(patch.name?.trim() ?? '')].slice(0, NAME_MAX).join('') || null
+  if (patch.avatar !== undefined) next.avatar = patch.avatar && /^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$/.test(patch.avatar) && patch.avatar.length <= 100_000 ? patch.avatar : null
+  await save({ profile: next })
 }
 
 const rejected = (err: unknown) => {
   const status = (err as { status?: number })?.status
   return status === 400 || status === 401 || status === 403
 }
+const noModelsHint = (t: Awaited<ReturnType<typeof getT>>) =>
+  t('這個網址沒有列出任何模型，可能不是 API 網址。API 網址通常以 /v1 結尾，可以在該服務的「接入教程」或 API 文件裡找到 Base URL，移除後用正確網址重新接上。')
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err)).slice(0, 200)
 
-/** Checks the key against the provider, then keeps it (and the models it can use) on this computer. */
+/**
+ * Checks the key against the provider, then keeps it (and the models it can use) beside the keys
+ * already saved for it: calls move on to the next key when one runs out (see `withKeys`).
+ */
 export async function saveApiKey(provider: string, key: string): Promise<Result> {
+  const t = await getT()
   key = key.trim()
   const s = await mine()
   const custom = s.customProviders.find((c) => c.id === provider)
-  if ((!API_PROVIDERS.includes(provider) && !custom) || !key) return { ok: false, error: '請貼上 API 金鑰。' }
+  if ((!API_PROVIDERS.includes(provider) && !custom) || !key) return { ok: false, error: t('請貼上 API 金鑰。') }
+  if (keysOf(s.apiKeys, provider).includes(key)) return { ok: false, error: t('這把金鑰已經加過了。') }
   let known: string[] | null = null
+  let baseUrl = custom?.baseUrl
   let note: string | undefined
   try {
-    known = await listModels(provider, key, custom ? await checkServiceUrl(custom.baseUrl, authEnabled()) : undefined)
+    if (custom) ({ known, baseUrl } = await modelsAt(await checkServiceUrl(custom.baseUrl, authEnabled(), t), key))
+    else known = await listModels(provider, key)
   } catch (err) {
-    if (rejected(err)) return { ok: false, error: '這把金鑰無效或沒有權限，所以沒有儲存。請確認複製完整。' }
-    note = `已儲存，但暫時連不上服務，無法確認金鑰。（${message(err)}）`
+    if (rejected(err)) return { ok: false, error: t('這把金鑰無效或沒有權限，所以沒有儲存。請確認複製完整。') }
+    note = t('已儲存，但暫時連不上服務，無法確認金鑰。（{reason}）', { reason: message(err) })
   }
-  await save({ apiKeys: { ...s.apiKeys, [provider]: key }, ...(known ? { knownModels: { ...s.knownModels, [provider]: known } } : {}) })
+  const customProviders = custom && baseUrl !== custom.baseUrl ? s.customProviders.map((c) => (c.id === custom.id ? { ...c, baseUrl: baseUrl! } : c)) : undefined
+  const slot = s.apiKeys[provider] ? `${provider}#${randomBytes(3).toString('hex')}` : provider
+  await save({ apiKeys: { ...s.apiKeys, [slot]: key }, ...(known ? { knownModels: { ...s.knownModels, [provider]: known } } : {}), ...(customProviders ? { customProviders } : {}) })
   return { ok: true, note }
 }
 
-export async function removeApiKey(provider: string) {
+/** Removes one of a provider's keys, named by its slot (`claude`, `claude#a1b2c3`); the others stay. */
+export async function removeApiKey(provider: string, slot: string = provider) {
   const s = await mine()
+  if (slot !== provider && !slot.startsWith(`${provider}#`)) return
   const apiKeys = { ...s.apiKeys }
-  delete apiKeys[provider]
+  delete apiKeys[slot]
   await save({ apiKeys })
+}
+
+/** Saves the order of a provider's keys (top one used first), given as their slots. */
+export async function reorderApiKeys(provider: string, slots: string[]) {
+  const s = await mine()
+  const mineSlots = new Set(keySlots(s.apiKeys, provider).map(([slot]) => slot))
+  const ordered = [...new Set(slots)].filter((slot) => mineSlots.has(slot))
+  if (ordered.length !== mineSlots.size) return
+  const others = Object.entries(s.apiKeys).filter(([slot]) => !mineSlots.has(slot))
+  await save({ apiKeys: Object.fromEntries([...others, ...ordered.map((slot) => [slot, s.apiKeys[slot]!])]) })
 }
 
 /** Asks the provider which models the key can use now, so new ones show up in the lists. */
 export async function refreshModels(provider: string): Promise<Result> {
+  const t = await getT()
   const key = await apiKeyOf(await currentOwner(), provider)
   const custom = (await mine()).customProviders.find((c) => c.id === provider)
-  if (!key && !custom) return { ok: false, error: '先設定 API 金鑰。' }
+  if (!key && !custom) return { ok: false, error: t('先設定 API 金鑰。') }
   try {
-    const known = await listModels(provider, key ?? '', custom ? await checkServiceUrl(custom.baseUrl, authEnabled()) : undefined)
+    let known: string[]
+    let baseUrl = custom?.baseUrl
+    if (custom) ({ known, baseUrl } = await modelsAt(await checkServiceUrl(custom.baseUrl, authEnabled(), t), key ?? ''))
+    else known = await listModels(provider, key ?? '')
     const s = await mine()
-    await save({ knownModels: { ...s.knownModels, [provider]: known } })
-    return { ok: true, note: `找到 ${known.length} 個模型。` }
+    const moved = custom && baseUrl !== custom.baseUrl
+    await save({
+      knownModels: { ...s.knownModels, [provider]: known },
+      ...(moved ? { customProviders: s.customProviders.map((c) => (c.id === custom.id ? { ...c, baseUrl: baseUrl! } : c)) } : {}),
+    })
+    if (moved) return { ok: true, note: t('找到 {n} 個模型。API 網址已改成 {url}。', { n: known.length, url: baseUrl! }) }
+    if (!known.length && custom && looksLikeWebPage(custom.baseUrl)) return { ok: false, error: noModelsHint(t) }
+    return { ok: true, note: t('找到 {n} 個模型。', { n: known.length }) }
   } catch (err) {
-    return { ok: false, error: `無法取得模型清單：${message(err)}` }
+    return { ok: false, error: t('無法取得模型清單：{reason}', { reason: message(err) }) }
   }
 }
 
@@ -92,13 +134,9 @@ export async function saveStrength(strength: Strength) {
   if (STRENGTHS.includes(strength)) await save({ strength })
 }
 
-/** One task's own strength; null follows the overall one again. */
-export async function saveTaskStrength(task: Task, strength: Strength | null) {
-  if (!TASKS.includes(task) || (strength && !STRENGTHS.includes(strength))) return
-  const taskStrength = { ...(await mine()).taskStrength }
-  if (strength) taskStrength[task] = strength
-  else delete taskStrength[task]
-  await save({ taskStrength })
+/** How the 翻譯 button translates: free services, or the AI. */
+export async function saveTranslationEngine(engine: 'free' | 'ai') {
+  if (engine === 'free' || engine === 'ai') await save({ translationEngine: engine })
 }
 
 /** A model picked by hand for one task; null lets the strength choose again. */
@@ -112,16 +150,48 @@ export async function saveTaskModel(task: Task, choice: { provider: string; mode
   await save({ taskModels, ...(task === 'grading' ? { aiGrading: { ...s.aiGrading, provider: null, model: null } } : {}) })
 }
 
+/** The model for questions with pictures in one of AI 作答, 詳解 and 問 AI; null picks one that sees, automatically. */
+export async function savePictureModel(task: Task, choice: { provider: string; model: string } | null) {
+  if (!PICTURE_TASKS.includes(task)) return
+  const pictureModels = { ...(await mine()).pictureModels }
+  if (choice?.provider && choice.model.trim()) pictureModels[task] = { provider: choice.provider, model: choice.model.trim() }
+  else delete pictureModels[task]
+  await save({ pictureModels })
+}
+
+/** Every task's models, as the settings page keeps them; what 一鍵套用 replaces and 復原 puts back. */
+export interface ModelChoices {
+  strength: Strength
+  taskModels: Partial<Record<Task, { provider: string; model: string }>>
+  pictureModels: Partial<Record<Task, { provider: string; model: string }>>
+}
+
+/** 一鍵套用: one strength for every task, the models picked by hand dropped, so 自動 picks them all. */
+export async function applyStrength(strength: Strength) {
+  if (!STRENGTHS.includes(strength)) return
+  const { aiGrading } = await mine()
+  await save({ strength, taskModels: {}, pictureModels: {}, aiGrading: { ...aiGrading, provider: null, model: null } })
+}
+
+/** Puts back the choices 一鍵套用 replaced (its 復原). */
+export async function restoreChoices(choices: ModelChoices) {
+  const clean = (record: ModelChoices['taskModels'], tasks: readonly Task[]) =>
+    Object.fromEntries(Object.entries(record).filter(([task, c]) => tasks.includes(task as Task) && c?.provider && c.model)) as ModelChoices['taskModels']
+  if (!STRENGTHS.includes(choices.strength)) return
+  await save({ strength: choices.strength, taskModels: clean(choices.taskModels, TASKS), pictureModels: clean(choices.pictureModels, PICTURE_TASKS) })
+}
+
 /**
  * Adds a service that speaks the OpenAI format. Its address is checked first (hosted, it must
  * be public HTTPS), then its model list is fetched with the key, when it answers.
  */
 export async function addCustomProvider(input: { name: string; baseUrl: string; apiKey: string }): Promise<Result & { id?: string }> {
+  const t = await getT()
   const name = input.name.trim().slice(0, 60)
-  if (!name) return { ok: false, error: '請替這個服務取個名字。' }
+  if (!name) return { ok: false, error: t('請替這個服務取個名字。') }
   let baseUrl: string
   try {
-    baseUrl = await checkServiceUrl(input.baseUrl, authEnabled())
+    baseUrl = await checkServiceUrl(input.baseUrl, authEnabled(), t)
   } catch (err) {
     return { ok: false, error: message(err) }
   }
@@ -129,11 +199,12 @@ export async function addCustomProvider(input: { name: string; baseUrl: string; 
   let known: string[] = []
   let note: string | undefined
   try {
-    known = await listModels('custom', key, baseUrl)
+    ;({ known, baseUrl } = await modelsAt(baseUrl, key))
   } catch (err) {
-    if (rejected(err)) return { ok: false, error: '服務拒絕了這把金鑰，所以沒有新增。請確認金鑰與網址。' }
-    note = `已新增，但暫時連不上服務，模型請自己輸入。（${message(err)}）`
+    if (rejected(err)) return { ok: false, error: t('服務拒絕了這把金鑰，所以沒有新增。請確認金鑰與網址。') }
+    note = t('已新增，但暫時連不上服務，模型請自己輸入。（{reason}）', { reason: message(err) })
   }
+  if (!note && !known.length && looksLikeWebPage(baseUrl)) note = noModelsHint(t)
   const s = await mine()
   const id = `c-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'service'}-${randomBytes(2).toString('hex')}`
   const provider: CustomProvider = { id, name, baseUrl, models: [] }
@@ -142,7 +213,7 @@ export async function addCustomProvider(input: { name: string; baseUrl: string; 
     apiKeys: key ? { ...s.apiKeys, [id]: key } : s.apiKeys,
     knownModels: { ...s.knownModels, [id]: known },
   })
-  return { ok: true, id, note: note ?? (known.length ? `找到 ${known.length} 個模型，請挑要用的加進來。` : undefined) }
+  return { ok: true, id, note: note ?? (known.length ? t('找到 {n} 個模型，請挑要用的加進來。', { n: known.length }) : undefined) }
 }
 
 /** Replaces the models listed for a service the person added (tier, image support, price). */
@@ -152,17 +223,36 @@ export async function saveCustomModels(id: string, models: { id: string; tier: T
   await save({ customProviders })
 }
 
+/**
+ * Whether a model added to a service of one's own reads pictures: from its name when the name says,
+ * otherwise by showing it a small picture with the service's key. null when neither can tell.
+ */
+export async function detectVision(id: string, model: string): Promise<{ vision: boolean | null; tested: boolean }> {
+  const guess = guessVision(model)
+  if (guess !== null) return { vision: guess, tested: false }
+  const custom = (await mine()).customProviders.find((c) => c.id === id)
+  if (!custom) return { vision: null, tested: false }
+  try {
+    const baseUrl = await checkServiceUrl(custom.baseUrl, authEnabled(), await getT())
+    const apiKey = await apiKeyOf(await currentOwner(), id)
+    return { vision: await probeVision({ baseUrl, apiKey, model }), tested: true }
+  } catch {
+    return { vision: null, tested: false }
+  }
+}
+
 /** Removes a service the person added, with its key and every choice that used it. */
 export async function removeCustomProvider(id: string) {
   const s = await mine()
-  const drop = <T,>(record: Partial<Record<string, T>>) => Object.fromEntries(Object.entries(record).filter(([k]) => k !== id)) as Record<string, T>
-  const taskModels = Object.fromEntries(Object.entries(s.taskModels).filter(([, v]) => v?.provider !== id))
+  const drop = <T,>(record: Partial<Record<string, T>>) => Object.fromEntries(Object.entries(record).filter(([k]) => k !== id && !k.startsWith(`${id}#`))) as Record<string, T>
+  const keep = (record: Settings['taskModels']) => Object.fromEntries(Object.entries(record).filter(([, v]) => v?.provider !== id))
   await save({
     customProviders: s.customProviders.filter((c) => c.id !== id),
     apiKeys: drop(s.apiKeys),
     models: drop(s.models),
     knownModels: drop(s.knownModels),
-    taskModels,
+    taskModels: keep(s.taskModels),
+    pictureModels: keep(s.pictureModels),
     ...(s.defaultProvider === id ? { defaultProvider: 'auto' } : {}),
   })
 }

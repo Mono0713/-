@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useT } from '@/shared/i18n/client'
 import { applyCalm, readCalm } from './preference'
 
 /** The "做題時減少動畫" switch: applies at once and is remembered in this browser. */
 export function CalmSwitch() {
+  const t = useT()
   const [calm, setCalm] = useState(false)
   useEffect(() => setCalm(readCalm()), [])
   return (
@@ -12,7 +14,7 @@ export function CalmSwitch() {
       type="button"
       role="switch"
       aria-checked={calm}
-      aria-label="做題時減少動畫"
+      aria-label={t('做題時減少動畫')}
       onClick={() => {
         setCalm(!calm)
         applyCalm(!calm)

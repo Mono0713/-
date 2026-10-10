@@ -60,6 +60,40 @@ describe('extractPage', () => {
     expect(result.attempts).toBe(2)
   })
 
+  it('reads JSON that has a sentence around it', async () => {
+    const provider = fakeProvider([`Here is the page:\n${JSON.stringify(page([question()]))}\nDone.`])
+    const result = await extractPage(provider, image, 'quiz.pdf')
+    expect(result.page?.questions).toHaveLength(1)
+  })
+
+  it('reads a tool call a relay handed back as text', async () => {
+    const p = page([question()])
+    const fields = Object.entries(p).map(([k, v]) => `<parameter name="${k}">${typeof v === 'string' ? v : JSON.stringify(v)}</parameter>`).join('\n')
+    const provider = fakeProvider([`<function_calls>\n<invoke name="extracted_page">\n${fields}\n</invoke>\n</function_calls>`])
+    const result = await extractPage(provider, image, 'quiz.pdf')
+    expect(result.error).toBeNull()
+    expect(result.page?.questions).toHaveLength(1)
+  })
+
+  it('fills back fields a compact reply left out because they were empty', async () => {
+    const compact = {
+      meta: { title: 'Quiz' },
+      questions: [{ number: '1', type: 'single_choice', stem: 'Pick one', options: [{ label: 'A', content: 'x' }], answer: { source: 'none' }, bbox: { x: 0.1, y: 0.2, width: 0.8, height: 0.1 }, confidence: 'high' }],
+    }
+    const result = await extractPage(fakeProvider([JSON.stringify(compact)]), image, 'quiz.pdf')
+    expect(result.error).toBeNull()
+    expect(result.page?.meta).toEqual({ title: 'Quiz', subject: null, institution: null, term: null, language: null })
+    expect(result.page?.groups).toEqual([])
+    expect(result.page?.questions[0]).toMatchObject({ section: null, groupId: null, translation: null, answer: { values: [], source: 'none' }, figures: [], issues: [], continuesOnNextPage: false, maxLength: null, markingRule: null })
+  })
+
+  it('tells the provider about an off-schema reply before retrying', async () => {
+    const invalidReply = vi.fn()
+    const provider = { ...fakeProvider(['{"questions": "nope"}', JSON.stringify(page([]))]), invalidReply }
+    await extractPage(provider, image, 'quiz.pdf')
+    expect(invalidReply).toHaveBeenCalledTimes(1)
+  })
+
   it('reports a failure after running out of retries', async () => {
     const provider = fakeProvider(['not json', 'still not json'])
     const result = await extractPage(provider, image, 'quiz.pdf', { retries: 1 })

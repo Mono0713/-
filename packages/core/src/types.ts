@@ -32,6 +32,8 @@ export interface DraftQuestion extends Omit<ExtractedQuestion, 'continuesFromPre
   /** Where the question sits on the source pages, one entry per page it spans. */
   /** `manual`: the person drew or moved this box themselves, so it is kept exactly as they left it. */
   locations: { pageNumber: number; bbox: ExtractedQuestion['bbox']; manual?: boolean }[]
+  /** Room to answer in on the printed sheet, in lines, as dragged on the A4 preview; missing means the type's usual room. */
+  space?: number
 }
 
 export interface DraftExam {
@@ -40,6 +42,22 @@ export interface DraftExam {
   groups: (Omit<QuestionGroup, 'figures'> & { pageNumber: number; figures: DraftFigure[] })[]
   questions: DraftQuestion[]
   pages: { pageNumber: number; provider: string; model: string; notes: string | null }[]
+  /** How the exam prints on A4 (the editor's sheet preview); missing means the defaults in `sheetOf`. */
+  sheet?: ExamSheet
+}
+
+/** The printed paper's own parts, beside the questions. */
+export interface ExamSheet {
+  /** Print 班級、座號、姓名 and a score box under the title. */
+  studentFields: boolean
+  /** Instructions printed under the header (作答說明), Markdown. */
+  instructions: string | null
+}
+
+export const DEFAULT_SHEET: ExamSheet = { studentFields: true, instructions: null }
+
+export function sheetOf(draft: Pick<DraftExam, 'sheet'>): ExamSheet {
+  return { ...DEFAULT_SHEET, ...draft.sheet }
 }
 
 export type { ExtractedPage }

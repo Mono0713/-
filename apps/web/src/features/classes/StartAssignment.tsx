@@ -1,17 +1,19 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useT } from '@/shared/i18n/client'
 import { Button, ButtonLink } from '@/shared/ui'
 import { startAssignment } from './actions'
 
-/** Start, or go back to the attempt under way. */
-export function StartAssignment({ assignmentId, resume, label }: { assignmentId: string; resume: string | null; label: string }) {
+/** Start, or go back to the attempt under way. A full-screen exam enters full screen on the same tap, which a browser requires. */
+export function StartAssignment({ assignmentId, resume, label, fullscreen }: { assignmentId: string; resume: string | null; label: string; fullscreen: boolean }) {
+  const t = useT()
   const [error, setError] = useState<string | null>(null)
   const [pending, start] = useTransition()
   if (resume) {
     return (
       <ButtonLink href={`/quiz/${resume}`} variant="primary">
-        繼續作答
+        {t('繼續作答')}
       </ButtonLink>
     )
   }
@@ -21,12 +23,13 @@ export function StartAssignment({ assignmentId, resume, label }: { assignmentId:
         variant="primary"
         loading={pending}
         disabled={pending}
-        onClick={() =>
+        onClick={() => {
+          if (fullscreen && document.fullscreenEnabled && !document.fullscreenElement) void document.documentElement.requestFullscreen().catch(() => {})
           start(async () => {
             // On success it opens the quiz.
             setError((await startAssignment(assignmentId))?.error ?? null)
           })
-        }
+        }}
       >
         {label}
       </Button>

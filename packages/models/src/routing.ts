@@ -1,15 +1,24 @@
 import { TIERS, type ModelInfo, type ProviderInfo, type Tier } from './catalog.ts'
 
 /** The jobs the app gives AI. Each picks its own model, so the cheap jobs never pay for the expensive ones. */
-export type Task = 'recognition' | 'handwriting' | 'grading' | 'tutoring' | 'translation'
-export const TASKS: readonly Task[] = ['recognition', 'handwriting', 'grading', 'tutoring', 'translation']
+export type Task = 'recognition' | 'handwriting' | 'grading' | 'tutoring' | 'translation' | 'solving' | 'explaining' | 'generating'
+export const TASKS: readonly Task[] = ['recognition', 'handwriting', 'grading', 'tutoring', 'translation', 'solving', 'explaining', 'generating']
 
 /** The one setting most people touch: save money, balance, or be as accurate as possible. */
 export type Strength = 'save' | 'balanced' | 'best'
 export const STRENGTHS: readonly Strength[] = ['save', 'balanced', 'best']
 
-/** Tasks that send images, so only models that can see qualify. */
-const NEEDS_VISION: Record<Task, boolean> = { recognition: true, handwriting: true, grading: false, tutoring: false, translation: false }
+/** Tasks that always send images, so only models that can see qualify. */
+const NEEDS_VISION: Record<Task, boolean> = { recognition: true, handwriting: true, grading: false, tutoring: false, translation: false, solving: false, explaining: false, generating: false }
+
+/** Whether a task always sends images (pages, handwriting), so its model must see them. */
+export const readsImages = (task: Task): boolean => NEEDS_VISION[task]
+
+/**
+ * Tasks about one question that send its pictures when it has any. They can run on a text-only
+ * model for questions without pictures and on another model, one that sees, for those with them.
+ */
+export const PICTURE_TASKS: readonly Task[] = ['solving', 'explaining', 'tutoring', 'generating']
 
 /**
  * Which tier each task uses at each strength, and for recognition, the tier a doubtful
@@ -22,6 +31,11 @@ export const PLAN: Record<Task, Record<Strength, { tier: Tier; escalate?: Tier }
   grading: { save: { tier: 'fast' }, balanced: { tier: 'fast' }, best: { tier: 'balanced' } },
   tutoring: { save: { tier: 'fast' }, balanced: { tier: 'balanced' }, best: { tier: 'best' } },
   translation: { save: { tier: 'fast' }, balanced: { tier: 'fast' }, best: { tier: 'balanced' } },
+  // Working out a key the paper left out, and writing a worked explanation: both need real reasoning.
+  solving: { save: { tier: 'fast' }, balanced: { tier: 'balanced' }, best: { tier: 'best' } },
+  explaining: { save: { tier: 'fast' }, balanced: { tier: 'balanced' }, best: { tier: 'best' } },
+  // Writing a whole exam from study material: the questions must be right and fit the material.
+  generating: { save: { tier: 'fast' }, balanced: { tier: 'balanced' }, best: { tier: 'best' } },
 }
 
 export interface ModelChoice {
@@ -40,8 +54,10 @@ export interface Route {
 }
 
 export interface RouteOptions {
-  /** A model the person picked for this task; it wins while its provider has a key. */
+  /** A model the person picked for this task; it wins while its provider has a key (and, with images, sees them). */
   override?: ModelChoice | null
+  /** This request carries images (a question's pictures): only models that see them qualify. */
+  pictures?: boolean
 }
 
 /**
@@ -51,11 +67,13 @@ export interface RouteOptions {
  */
 export function route(task: Task, strength: Strength, providers: ProviderInfo[], opts: RouteOptions = {}): Route | null {
   const plan = PLAN[task][strength]
-  const usable = providers.filter((p) => p.ready && candidates(p, task).length > 0)
+  const sees = NEEDS_VISION[task] || Boolean(opts.pictures)
+  const usable = providers.filter((p) => p.ready && candidates(p, sees).length > 0)
   const picks = usable
-    .map((p) => ({ provider: p, model: nearest(candidates(p, task), plan.tier)! }))
+    .map((p) => ({ provider: p, model: nearest(candidates(p, sees), plan.tier)! }))
     .sort((a, b) => cost(a.model) - cost(b.model))
-  const override = opts.override && usable.some((p) => p.id === opts.override!.provider) ? opts.override : null
+  const o = opts.override
+  const override = o && usable.some((p) => p.id === o.provider) && (!sees || canSee(providers, o)) ? o : null
   const ordered = picks.map((p) => ({ provider: p.provider.id, model: p.model.id }))
   const primary = override ?? ordered[0]
   if (!primary) return null
@@ -63,14 +81,19 @@ export function route(task: Task, strength: Strength, providers: ProviderInfo[],
   let escalate: ModelChoice | null = null
   if (plan.escalate && !override) {
     const provider = usable.find((p) => p.id === primary.provider)!
-    const up = nearest(candidates(provider, task), plan.escalate)!
+    const up = nearest(candidates(provider, sees), plan.escalate)!
     if (up.id !== primary.model) escalate = { provider: provider.id, model: up.id }
   }
   return { task, strength, primary, fallbacks, escalate }
 }
 
-function candidates(p: ProviderInfo, task: Task): ModelInfo[] {
-  return NEEDS_VISION[task] ? p.models.filter((m) => m.vision) : p.models
+function candidates(p: ProviderInfo, sees: boolean): ModelInfo[] {
+  return sees ? p.models.filter((m) => m.vision) : p.models
+}
+
+/** Whether a chosen model reads images; one typed in by hand that the list does not know is trusted to. */
+export function canSee(providers: ProviderInfo[], choice: ModelChoice): boolean {
+  return providers.find((p) => p.id === choice.provider)?.models.find((m) => m.id === choice.model)?.vision ?? true
 }
 
 /** The model of the wanted tier, else the closest tier, preferring the more capable one on a tie. */

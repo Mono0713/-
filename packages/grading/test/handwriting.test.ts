@@ -3,7 +3,7 @@ import type { InkDoc } from '@exam/ink'
 import { buildItems } from '@exam/quiz'
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
-import { inkToPng, readHandwriting, readHandwrittenAnswers, repairLatex, unreadHandwriting, type TextModel } from '../src/index.ts'
+import { drawingToPng, inkToPng, practiceToPng, readHandwriting, readHandwrittenAnswers, repairLatex, unreadHandwriting, type TextModel } from '../src/index.ts'
 
 function q(overrides: Partial<DraftQuestion>): DraftQuestion {
   return {
@@ -72,5 +72,32 @@ describe('handwriting', () => {
 
     const failing = fakeModel([new Error('overloaded')])
     await expect(readHandwrittenAnswers(attempt, failing.model)).rejects.toThrow('overloaded')
+  })
+})
+
+describe('writing practice', () => {
+  it('sends the grid uncropped and returns one reading per row', async () => {
+    const [item] = items([q({ type: 'writing', answer: { values: ['永', '天'], source: 'printed' } })])
+    const { model, calls } = fakeModel(['{"values": ["永 永", "?天"]}'])
+    expect(await readHandwriting(model, item!, { ...ink, height: 0.25 })).toEqual(['永永', '?天'])
+    expect(calls[0]!.prompt).toContain('1. 永\n2. 天')
+    const png = await practiceToPng(['永', '天'], { ...ink, height: 0.25 }, 800)
+    expect((await sharp(png).metadata()).height).toBe(200)
+  })
+})
+
+describe('drawing questions', () => {
+  it('reads the strokes on top of the figure as one description', async () => {
+    const [item] = items([q({ type: 'drawing', stem: 'Mark A = -1/3 on the number line.', answer: { values: ['A at -1/3'], source: 'printed' } })])
+    const figure = await sharp({ create: { width: 400, height: 100, channels: 3, background: '#eeeeee' } }).png().toBuffer()
+    const { model, calls } = fakeModel(['{"values": ["point A at about -0.3"]}'])
+    expect(await readHandwriting(model, item!, { ...ink, height: 0.25 }, figure)).toEqual(['point A at about -0.3'])
+    expect(calls[0]!.images).toBe(1)
+    // the figure fills the page under the strokes, uncropped
+    const png = await drawingToPng({ ...ink, height: 0.25 }, figure, 800)
+    const meta = await sharp(png).metadata()
+    expect([meta.width, meta.height]).toEqual([800, 200])
+    const { data } = await sharp(png).extract({ left: 10, top: 10, width: 1, height: 1 }).raw().toBuffer({ resolveWithObject: true })
+    expect(data[0]).toBe(0xee)
   })
 })

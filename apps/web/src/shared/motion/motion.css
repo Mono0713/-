@@ -38,7 +38,8 @@
 .m-page { animation: m-fade-up var(--m-slow) var(--m-ease-out) backwards; }
 .m-enter { animation: m-fade-up var(--m-slow) var(--m-ease-out) backwards; }
 .m-scale-in { animation: m-scale-in var(--m-base) var(--m-spring) backwards; }
-.m-expand { transform-origin: top; animation: m-expand var(--m-slow) var(--m-ease-out) backwards; }
+.m-fade-in { animation: m-fade-in var(--m-base) var(--m-ease-out) backwards; }
+.m-expand { transform-origin: top; animation: m-expand var(--m-base) var(--m-ease-out) backwards; }
 .m-slide-next { animation: m-slide-next var(--m-slow) var(--m-ease-out) backwards; }
 .m-slide-prev { animation: m-slide-prev var(--m-slow) var(--m-ease-out) backwards; }
 
@@ -54,10 +55,15 @@
 .m-stagger > :nth-child(n + 9) { animation-delay: 320ms; }
 
 /* feedback */
-.m-pop { animation: m-pop var(--m-slow) var(--m-spring); }
+.m-pop { animation: m-pop var(--m-base) var(--m-spring); }
 .m-shake { animation: m-shake 420ms var(--m-ease-out); }
 .m-float { animation: m-float 3.2s ease-in-out infinite; }
 .m-spin { animation: m-spin 0.8s linear infinite; }
+/* a thin ballpoint-blue line running along the top while the page catches up (e.g. after a language switch) */
+/* a 40%-wide sweep that enters past the left edge and leaves past the right one */
+@keyframes m-loading-bar { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+.m-loading-bar { overflow: hidden; }
+.m-loading-bar::after { content: ''; position: absolute; inset: 0; width: 40%; background: var(--color-accent); border-radius: 1px; animation: m-loading-bar 0.9s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
 .m-draw { stroke-dasharray: 1 2; animation: m-draw var(--m-slow) var(--m-ease-out) 80ms both; }
 
 /* interaction */
@@ -100,12 +106,12 @@
 :is(.hl, .hl-md > p).m-sweep,
 .m-sweep.hl-md > p {
   background-repeat: no-repeat;
-  animation: m-sweep 520ms var(--m-ease-out) 120ms backwards;
+  animation: m-sweep 340ms var(--m-ease-out) 60ms backwards;
 }
 
 /* pen strokes: an SVG path with pathLength="1" draws itself.
    The dash gap is twice the path and starts just past 1, so a round cap never peeks out before drawing. */
-.m-pen { stroke-dasharray: 1 2; animation: m-draw 560ms var(--m-ease-out) both; }
+.m-pen { stroke-dasharray: 1 2; animation: m-draw 360ms var(--m-ease-out) both; }
 .m-nudge { animation: m-nudge 360ms ease 60ms; }
 
 /* buttons that press down: the bottom edge is a solid "depth" that collapses while held */
@@ -125,13 +131,22 @@
 .m-toast { opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity 160ms ease-in, transform 200ms ease-in; }
 .m-toast[data-show] { opacity: 1; transform: none; pointer-events: auto; transition: opacity 200ms ease-out, transform 320ms var(--m-ease-out); }
 
-/* confirming a note: its highlight is erased right to left, then the note folds away */
+/* confirming a note (features/questions/ConfirmNote.tsx): its highlight is erased right to left
+   while the text fades, then the note's height folds to nothing in one ease, together with the
+   space above it (a space-y-3 gap, --m-fold-gap), so the card shrinks smoothly with no jump */
 .m-erase {
   background-image: linear-gradient(var(--color-warn-soft), var(--color-warn-soft));
   background-repeat: no-repeat; background-position: 100% 0; background-size: 100% 100%;
-  transition: background-size 420ms var(--m-ease-out), opacity 260ms ease 300ms, transform 260ms ease 300ms;
+  transition: background-size 340ms var(--m-ease-out), opacity 200ms ease 140ms;
 }
-.m-erase[data-erasing] { background-size: 0% 100%; opacity: 0; transform: translateY(-4px); }
+.m-erase[data-erasing] { background-size: 0% 100%; opacity: 0; }
+.m-fold {
+  display: grid; grid-template-rows: 1fr;
+  transition: grid-template-rows 300ms var(--m-ease-in-out) 220ms, margin-top 300ms var(--m-ease-in-out) 220ms;
+}
+.m-fold > * { min-height: 0; }
+.m-fold[data-erasing] { grid-template-rows: 0fr; margin-top: calc(-1 * var(--m-fold-gap, 0.75rem)); }
+.m-fold[data-erasing] > * { overflow: hidden; }
 
 /* phone action sheet (shared/chrome/Fab.tsx): slides up with a spring, rows follow one by one */
 .m-sheet { transform: translateY(105%); transition: transform 520ms var(--m-spring); }
@@ -198,6 +213,67 @@
   100% { outline-color: transparent; }
 }
 .m-found { outline: 2px solid transparent; outline-offset: 1px; animation: m-found 1.4s var(--m-ease-out) calc(var(--i, 0) * 140ms + 250ms) backwards; }
+
+/* product page (features/landing)
+   The sample sheet plays once: a scan line runs down it and wipes the student's pencil off as it
+   goes (.m-wipe clips the pencil copy from the top in step with the line: same keyframe stops, same
+   timing), then the questions are boxed one by one, the answer is highlighted and the note pops up.
+   Each animation starts from its first frame and ends on the element's own style, so with motion off,
+   or on a sheet that is only holding the pile's height, the clean, boxed sheet is what shows.
+   The moments are set on .landing (--m-scan-at, --m-box-at, --m-mark-at, --m-note-at). */
+.landing { --m-scan-at: 700ms; --m-box-at: 2.2s; --m-mark-at: 2.95s; --m-note-at: 3.25s; }
+@keyframes m-scan-down { from { top: -18px; opacity: 1; } 88% { top: calc(100% - 18px); opacity: 1; } to { top: calc(100% - 18px); opacity: 0; } }
+@keyframes m-wipe { from { clip-path: inset(0 0 0 0); } 88%, to { clip-path: inset(100% 0 0 0); } }
+.m-scan-once {
+  position: absolute; inset-inline: 0; top: calc(100% - 18px); height: 18px; opacity: 0; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-accent) 30%, transparent));
+  border-bottom: 2px solid var(--color-accent);
+  animation: m-scan-down 1.7s cubic-bezier(0.45, 0, 0.3, 1) var(--m-scan-at, 0ms) backwards;
+}
+.m-wipe { clip-path: inset(100% 0 0 0); animation: m-wipe 1.7s cubic-bezier(0.45, 0, 0.3, 1) var(--m-scan-at, 0ms) backwards; }
+@keyframes m-box-in { from { opacity: 0; transform: scale(1.04); } }
+.m-box-in { animation: m-box-in 420ms var(--m-spring) calc(var(--i, 0) * 200ms + var(--m-box-at, 0ms)) backwards; }
+.m-note-in { animation: m-fade-up var(--m-slow) var(--m-ease-out) var(--m-note-at, 0ms) backwards; }
+@keyframes m-drop { from { opacity: 0; transform: translateY(-10px); } }
+.m-drop { animation: m-drop var(--m-slow) var(--m-spring) calc(var(--i, 0) * 160ms + 250ms) backwards; }
+.m-tile { animation: m-fade-up var(--m-slow) var(--m-ease-out) calc(var(--i, 0) * 70ms + 150ms) backwards; }
+@keyframes m-grow { from { transform: scaleY(0.15); } }
+.m-grow { transform-origin: bottom; animation: m-grow 600ms var(--m-spring) calc(var(--i, 0) * 60ms + 300ms) backwards; }
+
+/* the product tour (features/landing/demo) draws its frames from its own clock; while it is paused,
+   the few pieces it borrows that animate with CSS (the sample sheet's scan) hold still too */
+.m-hold, .m-hold * { animation-play-state: paused !important; }
+
+/* Sections fade up once as they scroll into view (RevealObserver sets data-in); pictures inside
+   marked .m-play hold their first frame until then. The start arrow leans toward where it goes. */
+.m-reveal { transition: opacity var(--m-slow) var(--m-ease-out), transform var(--m-slow) var(--m-ease-out); transition-delay: calc(var(--i, 0) * 70ms); }
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  .m-reveal:not([data-in]) { opacity: 0; transform: translateY(14px); }
+}
+@media (scripting: enabled) {
+  .m-reveal:not([data-in]) :is(.m-play, .m-play *) { animation-play-state: paused; }
+}
+/* the papers on a who-it-is-for card (features/landing/Audience.tsx), each with its place in the
+   cascade (--k, 0 at the back) and its tilt: they slide out of one pile as the card comes into view
+   (.m-play) and fan out a little more while the card is pointed at */
+@keyframes m-fan-in { from { translate: calc(var(--k, 0) * -28px) calc(var(--k, 0) * -18px); rotate: 0deg; } }
+.m-fan > * {
+  rotate: var(--tilt, 0deg);
+  transition: translate var(--m-slow) var(--m-spring), rotate var(--m-slow) var(--m-spring);
+  animation: m-fan-in 650ms var(--m-ease-out) calc(var(--i, 0) * 70ms + var(--k, 0) * 90ms + 200ms) backwards;
+}
+@media (hover: hover) {
+  .m-fan-host:hover .m-fan > * { translate: calc((var(--k, 0) - 1) * 9px) calc((var(--k, 0) - 1) * 3px); rotate: calc(var(--tilt, 0deg) * 1.6); }
+}
+.m-nudge-right { transition: transform var(--m-base) var(--m-spring); }
+@media (hover: hover) {
+  :hover > .m-nudge-right { transform: translateX(3px); }
+}
+
+/* questions answered on the product page: the answer folds open under its question */
+details[open] > .m-answer { transform-origin: top; animation: m-expand var(--m-base) var(--m-ease-out); }
+details > summary .m-chevron { transition: transform var(--m-base) var(--m-spring); }
+details[open] > summary .m-chevron { transform: rotate(180deg); }
 
 /* pen checkbox (input.m-check): ticked in ballpoint, the tick drawn left to right; unticking is quick */
 .m-check {

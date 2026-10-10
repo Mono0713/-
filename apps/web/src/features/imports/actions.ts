@@ -3,12 +3,15 @@
 import { extractJson } from '@exam/extraction'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { currentOwner, noRoomFor, services } from '@/server/context'
+import { currentOwner, services } from '@/server/context'
+import { noRoomFor } from '@/server/storage'
 import { requireImport } from '@/server/owned'
+import { getT } from '@/shared/i18n/server'
 
 export async function createImport(formData: FormData): Promise<{ error: string } | void> {
+  const t = await getT()
   const files = formData.getAll('files').filter((f): f is File => f instanceof File && f.size > 0)
-  if (!files.length) return { error: '請選擇至少一個 PDF 或圖片檔。' }
+  if (!files.length) return { error: t('請選擇至少一個 PDF 或圖片檔。') }
   const provider = String(formData.get('provider') ?? 'manual')
   const model = String(formData.get('model') ?? '').trim() || null
   const owner = await currentOwner()
@@ -24,10 +27,30 @@ export async function createImport(formData: FormData): Promise<{ error: string 
     })
     id = record.id
   } catch (err) {
-    return { error: `無法讀取檔案：${err instanceof Error ? err.message : String(err)}` }
+    console.error('[import] could not save the upload', err)
+    const reason = err instanceof Error ? err.message : String(err)
+    if (reason.startsWith('File store could not')) return { error: t('檔案沒有存進去：存放檔案的空間這次沒有接受。請再按一次開始辨識。') }
+    return { error: t('無法讀取檔案：{reason}', { reason }) }
   }
+  await rememberMethod(owner, provider, model)
   revalidatePath('/imports')
   redirect(`/imports/${id}`)
+}
+
+/** The next upload starts with the recognition method (and its model) used this time. */
+async function rememberMethod(owner: string, provider: string, model: string | null) {
+  const { settings } = services()
+  const s = await settings.get(owner)
+  if (s.defaultProvider === provider && (!model || s.models[provider] === model)) return
+  await settings.update(owner, { defaultProvider: provider, ...(model ? { models: { ...s.models, [provider]: model } } : {}) }).catch(() => {})
+}
+
+/** Opens an empty exam in the editor, to be written question by question. */
+export async function createBlankExam() {
+  const t = await getT()
+  const record = await services().importer.createBlank(await currentOwner(), t('新考卷'))
+  revalidatePath('/imports')
+  redirect(`/imports/${record.id}`)
 }
 
 /** Saves a reply pasted from a chat app and re-reads those pages. */
@@ -37,7 +60,8 @@ export async function submitManualReply(importId: string, target: number | 'batc
   try {
     JSON.parse(json ?? '')
   } catch {
-    return { error: '貼上的內容不是完整的 JSON。請確認把聊天回覆從第一個 { 到最後一個 } 都複製到了。' }
+    const t = await getT()
+    return { error: t('貼上的內容不是完整的 JSON。請確認把聊天回覆從第一個 { 到最後一個 } 都複製到了。') }
   }
   await services().importer.submitManualReply(importId, target, json!)
   revalidatePath(`/imports/${importId}`)
@@ -55,6 +79,14 @@ export async function deleteImport(importId: string) {
   await requireImport(importId)
   await services().importer.remove(importId)
   revalidatePath('/imports')
+}
+
+/** Deletes the uploaded files for good, from the storage list; page images stay. */
+export async function deleteOriginals(importId: string): Promise<void> {
+  await requireImport(importId)
+  await services().importer.removeOriginals(importId)
+  revalidatePath('/settings')
+  revalidatePath(`/imports/${importId}`)
 }
 
 /** Keeps the uploaded files past the 30 days after saving, or lets them go again. */

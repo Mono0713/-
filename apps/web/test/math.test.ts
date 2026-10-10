@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { splitMath, withMathDelimiters } from '../src/shared/math/delimiters.ts'
+import { fromPaste, splitMath, withMathDelimiters } from '../src/shared/math/delimiters.ts'
 
 describe('withMathDelimiters', () => {
   it('wraps a bare formula', () => {
@@ -29,5 +29,16 @@ describe('splitMath', () => {
   })
   it('ignores escaped dollar signs', () => {
     expect(splitMath('costs \\$5')).toEqual([{ kind: 'text', text: 'costs \\$5' }])
+  })
+})
+
+describe('fromPaste', () => {
+  it('turns \\( \\) and \\[ \\] into $ formulas', () => {
+    expect(fromPaste('面積為 \\(\\frac{1}{2}ab\\)')).toBe('面積為 $\\frac{1}{2}ab$')
+    expect(fromPaste('\\[ x^2 + 1 \\]')).toBe('$$x^2 + 1$$')
+  })
+  it('wraps bare LaTeX and keeps $ formulas', () => {
+    expect(fromPaste('\\sqrt{2}')).toBe('$\\sqrt{2}$')
+    expect(fromPaste('$y = x^2$')).toBe('$y = x^2$')
   })
 })

@@ -1,87 +1,128 @@
 'use client'
 
+import katex from 'katex'
+import 'katex/contrib/mhchem'
 import type { MathfieldElement } from 'mathlive'
-import { useState } from 'react'
-import { IconCheck, IconCode, IconTrash } from '@/shared/icons'
+import { useEffect, useMemo, useState } from 'react'
+import { useT } from '@/shared/i18n/client'
+import { IconCheck, IconTrash } from '@/shared/icons'
+import { FORMULA_GROUPS } from './formulaKeys'
+import { plain } from './mathlive'
+import { touchQuery } from './mathKeyboard'
 
-/** Common structures, inserted at the cursor; #0 is the selection and #? an empty slot. */
-const TEMPLATES: { label: string; latex: string; insert: string }[] = [
-  { label: '分數', latex: '\\frac{a}{b}', insert: '\\frac{#0}{#?}' },
-  { label: 'xⁿ', latex: 'x^{n}', insert: '#0^{#?}' },
-  { label: 'xₙ', latex: 'x_{n}', insert: '#0_{#?}' },
-  { label: '√', latex: '\\sqrt{x}', insert: '\\sqrt{#0}' },
-  { label: 'ⁿ√', latex: '\\sqrt[n]{x}', insert: '\\sqrt[#?]{#0}' },
-  { label: 'lim', latex: '\\lim_{x\\to a}', insert: '\\lim_{#?\\to #?}' },
-  { label: '∫', latex: '\\int_a^b', insert: '\\int_{#?}^{#?}#0\\,d#?' },
-  { label: 'Σ', latex: '\\sum', insert: '\\sum_{#?}^{#?}' },
-  { label: '|x|', latex: '|x|', insert: '\\left|#0\\right|' },
-  { label: 'v⃗', latex: '\\vec{v}', insert: '\\vec{#0}' },
-  { label: 'H₂O', latex: '\\ce{H2O}', insert: '\\ce{#0}' },
-  { label: '±', latex: '\\pm', insert: '\\pm' },
-  { label: '≤', latex: '\\le', insert: '\\le' },
-  { label: '≥', latex: '\\ge', insert: '\\ge' },
-  { label: '≠', latex: '\\ne', insert: '\\ne' },
-  { label: '∞', latex: '\\infty', insert: '\\infty' },
-  { label: 'π', latex: '\\pi', insert: '\\pi' },
-  { label: 'θ', latex: '\\theta', insert: '\\theta' },
-  { label: '→', latex: '\\to', insert: '\\to' },
-  { label: '°', latex: '^{\\circ}', insert: '^{\\circ}' },
-]
+const LATEX_TAB = 'latex'
+// The group last used stays open for the next formula.
+let lastTab = FORMULA_GROUPS[0]!.id
 
 /**
- * Tools for the formula being edited in place: shapes to insert, the LaTeX behind it,
- * remove and done. It sits at the bottom of the text box; its buttons keep the focus in the formula.
+ * Tools for the formula being edited in place, at the bottom of its text box: groups of keys
+ * that look like what they insert (common, algebra, geometry, calculus, Greek, chemistry), a
+ * LaTeX tab with the formula's source, remove and done. Its buttons keep the focus in the formula.
  */
 export function FormulaToolbar({ field, onDone, onRemove, onSource }: { field: MathfieldElement; onDone: () => void; onRemove: () => void; onSource: (latex: string) => void }) {
-  const [source, setSource] = useState<string | null>(null)
+  const t = useT()
+  // On touch screens the keys are on the on-screen math keyboard; the box keeps LaTeX, remove and done.
+  const [touch] = useState(() => window.matchMedia(touchQuery).matches)
+  const [tab, setTab] = useState(touch ? '' : lastTab)
+  const [source, setSource] = useState(() => plain(field))
+  const group = FORMULA_GROUPS.find((g) => g.id === tab)
+  const keys = useMemo(
+    () => group?.keys.map((key) => ({ ...key, html: katex.renderToString(key.show, { throwOnError: false, strict: false }) })) ?? [],
+    [group],
+  )
+
+  // The LaTeX tab follows what is typed in the formula itself.
+  useEffect(() => {
+    const sync = () => setSource(plain(field))
+    field.addEventListener('input', sync)
+    return () => field.removeEventListener('input', sync)
+  }, [field])
+
   const keep = (e: React.MouseEvent) => e.preventDefault()
+  const choose = (id: string) => {
+    if (touch && id === tab) return setTab('')
+    setTab(id)
+    if (id !== LATEX_TAB) lastTab = id
+    else setSource(plain(field))
+  }
   const insert = (template: string) => {
     field.executeCommand(['insert', template, { selectionMode: 'placeholder' }])
     field.focus()
   }
-  const tool = 'm-press h-7 min-w-7 shrink-0 rounded-md px-1.5 text-[13px] text-ink/80 hover:bg-accent-soft hover:text-accent'
+  const tabClass = (active: boolean) =>
+    `relative h-8 shrink-0 px-2 text-[12.5px] transition-colors ${active ? 'font-medium text-ink' : 'text-muted hover:text-ink'} after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:rounded-full after:bg-accent ${active ? 'after:opacity-100' : 'after:opacity-0'}`
+
   return (
-    <div className="m-expand border-t border-line/70 bg-paper/60 px-2 py-1.5" data-formula-toolbar>
-      <div className="flex items-center gap-1">
-        <div className="flex min-w-0 flex-1 gap-0.5 overflow-x-auto" role="toolbar" aria-label="插入公式符號">
-          {TEMPLATES.map((t) => (
-            <button key={t.label} type="button" onMouseDown={keep} onClick={() => insert(t.insert)} className={tool} title={t.latex}>
-              {t.label}
+    <div className="m-expand border-t border-line/70 bg-paper/60" data-formula-toolbar>
+      <div className={`flex items-center gap-1 pl-1.5 pr-1.5 ${tab ? 'border-b border-line/50' : 'py-1'}`}>
+        <div className="flex min-w-0 flex-1 overflow-x-auto [scrollbar-width:none]" role="tablist" aria-label={t('插入公式符號')}>
+          {!touch && FORMULA_GROUPS.map((g) => (
+            <button key={g.id} type="button" role="tab" aria-selected={tab === g.id} onMouseDown={keep} onClick={() => choose(g.id)} className={tabClass(tab === g.id)}>
+              {t(g.label)}
             </button>
           ))}
+          <button type="button" role="tab" aria-selected={tab === LATEX_TAB} onMouseDown={keep} onClick={() => choose(LATEX_TAB)} className={`${tabClass(tab === LATEX_TAB)} font-mono !text-[12px]`}>
+            LaTeX
+          </button>
         </div>
-        <span className="mx-0.5 h-5 w-px shrink-0 bg-line" />
         <button
           type="button"
           onMouseDown={keep}
-          onClick={() => setSource(source === null ? field.value : null)}
-          className={`${tool} grid place-items-center ${source !== null ? 'bg-accent-soft text-accent' : ''}`}
-          aria-label="LaTeX 原始碼"
-          title="LaTeX 原始碼"
+          onClick={onRemove}
+          className="m-press grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted hover:bg-bad-soft hover:text-bad"
+          aria-label={t('刪除公式')}
+          title={t('刪除公式')}
         >
-          <IconCode size={15} />
-        </button>
-        <button type="button" onMouseDown={keep} onClick={onRemove} className={`${tool} grid place-items-center hover:bg-bad-soft hover:text-bad`} aria-label="刪除公式" title="刪除公式">
           <IconTrash size={14} />
         </button>
-        <button type="button" onMouseDown={keep} onClick={onDone} className="m-press grid h-7 w-7 shrink-0 place-items-center rounded-md bg-accent text-on-accent" aria-label="公式完成" title="公式完成（Enter）">
-          <IconCheck size={15} strokeWidth={2.6} />
+        <button
+          type="button"
+          onMouseDown={keep}
+          onClick={onDone}
+          className="m-press flex h-7 shrink-0 items-center gap-1 rounded-md bg-accent pl-1.5 pr-2.5 text-xs font-medium text-on-accent"
+          title={t('公式完成（Enter）')}
+        >
+          <IconCheck size={14} strokeWidth={2.6} />
+          {t('完成')}
         </button>
       </div>
-      {source !== null && (
-        <input
-          value={source}
-          onChange={(e) => {
-            setSource(e.target.value)
-            onSource(e.target.value)
-          }}
-          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), onDone())}
-          className="mt-1.5 w-full rounded-md border border-line bg-surface px-2 py-1 font-mono text-[12px] outline-none focus:border-accent"
-          aria-label="LaTeX 原始碼"
-          spellCheck={false}
-        />
+
+      {tab === LATEX_TAB && (
+        <div className="px-2 py-2">
+          <textarea
+            autoComplete="off"
+            value={source}
+            rows={Math.min(4, Math.max(1, Math.ceil(source.length / 60)))}
+            onChange={(e) => {
+              setSource(e.target.value)
+              onSource(e.target.value)
+            }}
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), onDone())}
+            className="block w-full resize-none rounded-lg border border-line bg-surface px-2.5 py-1.5 font-mono text-[12.5px] leading-relaxed outline-none focus:border-accent"
+            aria-label={t('LaTeX 原始碼')}
+            placeholder="\frac{a}{b}"
+            spellCheck={false}
+          />
+        </div>
       )}
-      <p className="mt-1 px-0.5 text-[11px] text-muted">直接打字：/ 是分數、^ 是次方、sqrt 是根號，Enter 完成；平板會出現數學鍵盤。</p>
+      {group && (
+        <div key={tab} className="flex flex-wrap gap-0.5 px-1.5 py-1.5" role="toolbar" aria-label={t(group!.label)}>
+          {keys.map((key) => (
+            <button
+              key={key.show}
+              type="button"
+              onMouseDown={keep}
+              onClick={() => insert(key.insert)}
+              className="m-press grid h-10 min-w-10 place-items-center rounded-lg px-1.5 text-[15px] text-ink/85 hover:bg-accent-soft hover:text-accent [&_.katex]:text-[1em]"
+              title={key.insert.replace(/#0|#\?/g, '□')}
+              aria-label={key.insert.replace(/#0|#\?/g, '□')}
+              dangerouslySetInnerHTML={{ __html: key.html }}
+            />
+          ))}
+        </div>
+      )}
+
+      {!touch && <p className="px-3 pb-1.5 text-[11px] text-muted">{t('也可以直接打：/ 分數、^ 次方、_ 下標、sqrt 根號；Enter 完成')}</p>}
     </div>
   )
 }

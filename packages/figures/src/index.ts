@@ -37,7 +37,7 @@ export async function cleanFigure(pageImage: Buffer, figure: Figure, opts: Clean
   }
 
   const pad = Math.round((opts.padding ?? 0.005) * page.width)
-  const crop = [page.toRect(figure.bbox), ...blanks.map((b) => b.rect)].reduce((a, r) => ({
+  const crop = [page.dropEdgeSlivers(page.toRect(figure.bbox)), ...blanks.map((b) => b.rect)].reduce((a, r) => ({
     x1: Math.min(a.x1, r.x1), y1: Math.min(a.y1, r.y1), x2: Math.max(a.x2, r.x2), y2: Math.max(a.y2, r.y2),
   }))
   const left = Math.max(0, crop.x1 - pad), top = Math.max(0, crop.y1 - pad)
@@ -94,30 +94,43 @@ export function printedTextSvg(text: string, width: number, height: number, inse
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><g font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="${size.toFixed(1)}" fill="#1a1a1a">${texts.join('')}</g></svg>`
 }
 
+const FIGURE_CONCURRENCY = 4
+
 /**
- * Crops every figure of a draft exam and records the saved image on the figure.
+ * Crops each figure of a draft exam that has no image yet and records the saved image on the figure.
  * `save` stores one PNG under a stable name (e.g. "q6-1") and returns the path to record.
  */
 export async function cropExamFigures(
   exam: DraftExam,
   pages: PageImage[],
   save: (name: string, png: Buffer) => Promise<string>,
+  /** Told after each figure, cropped or not, e.g. to show how far saving the figures got. */
+  onFigure?: (done: number, total: number) => void,
 ): Promise<{ name: string; error: string }[]> {
   const named: [string, DraftFigure][] = [
     ...exam.groups.flatMap((g) => g.figures.map((f, k): [string, DraftFigure] => [`group-${g.id.replace(/\W+/g, '-')}-${k + 1}`, f])),
     ...exam.questions.flatMap((q, n) => q.figures.map((f, k): [string, DraftFigure] => [`q${n + 1}-${k + 1}`, f])),
-  ]
+  ].filter(([, f]) => !f.image)
   const failures: { name: string; error: string }[] = []
-  for (const [name, figure] of named) {
-    const page = pages.find((p) => p.pageNumber === figure.pageNumber)
-    if (!page) continue
-    try {
-      const clean = await cleanFigure(page.data, figure)
-      figure.image = { file: await save(name, clean.png), width: clean.width, height: clean.height, blanks: clean.blanks }
-    } catch (err) {
-      failures.push({ name, error: err instanceof Error ? err.message : String(err) })
+  // A few at a time: saving each one is a round trip or three to the file store, which adds up when it is remote.
+  let next = 0
+  let done = 0
+  onFigure?.(0, named.length)
+  const worker = async () => {
+    while (next < named.length) {
+      const [name, figure] = named[next++]!
+      const page = pages.find((p) => p.pageNumber === figure.pageNumber)
+      if (!page) continue
+      try {
+        const clean = await cleanFigure(page.data, figure)
+        figure.image = { file: await save(name, clean.png), width: clean.width, height: clean.height, blanks: clean.blanks }
+      } catch (err) {
+        failures.push({ name, error: err instanceof Error ? err.message : String(err) })
+      }
+      onFigure?.(++done, named.length)
     }
   }
+  await Promise.all(Array.from({ length: Math.min(FIGURE_CONCURRENCY, named.length) }, worker))
   return failures
 }
 
@@ -171,6 +184,42 @@ class Page {
     const right = strongest(r.x2 - reach, r.x2 + reach, this.width, col)
     if (left >= 0) r.x1 = left
     if (right >= 0 && right > r.x1) r.x2 = right
+    return r
+  }
+
+  /**
+   * A box drawn a little too wide catches a sliver of the text next to it, e.g. the ")" of "(B)"
+   * at its left edge. A thin strip of print that the edge cuts through (it touches the edge), with
+   * blank paper between it and the rest, is left out. Labels set apart inside the box don't touch it.
+   */
+  dropEdgeSlivers(box: Rect): Rect {
+    const r = { ...box }
+    const w = r.x2 - r.x1, h = r.y2 - r.y1
+    const colInk = (x: number) => this.fraction(r.y1, r.y2, (y) => this.isPrint(this.at(x, y))) > 0
+    const rowInk = (y: number) => this.fraction(r.x1, r.x2, (x) => this.isPrint(this.at(x, y))) > 0
+    // Where the edge content ends and enough blank follows it, within the outer 12% of the box.
+    const cut = (from: number, step: 1 | -1, size: number, ink: (v: number) => boolean): number | null => {
+      if (!ink(from) && !ink(from + step)) return null
+      const thin = Math.round(size * 0.04), gap = Math.max(3, Math.round(size * 0.02)), reach = Math.round(size * 0.15)
+      let i = 0
+      while (i <= thin && ink(from + step * i)) i++
+      if (i > thin) return null
+      const blankFrom = i
+      while (i < reach && !ink(from + step * i)) i++
+      return i < reach && i - blankFrom >= gap ? from + step * (i - Math.ceil((i - blankFrom) / 2)) : null
+    }
+    if (w > 40) {
+      const left = cut(r.x1, 1, w, colInk)
+      if (left !== null) r.x1 = left
+      const right = cut(r.x2 - 1, -1, w, colInk)
+      if (right !== null && right > r.x1) r.x2 = right
+    }
+    if (h > 40) {
+      const top = cut(r.y1, 1, h, rowInk)
+      if (top !== null) r.y1 = top
+      const bottom = cut(r.y2 - 1, -1, h, rowInk)
+      if (bottom !== null && bottom > r.y1) r.y2 = bottom
+    }
     return r
   }
 
@@ -238,3 +287,5 @@ class Page {
     return samples.map((s) => (s.length ? s.sort((a, b) => a - b)[s.length >> 1]! : 255))
   }
 }
+export { snapBoxesToText, lineShift } from './snap.ts'
+export { figureFromUpload } from './upload.ts'

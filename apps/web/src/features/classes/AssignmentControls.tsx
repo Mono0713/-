@@ -3,6 +3,8 @@
 import type { AssignmentAnswers } from '@exam/classes'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
+import { useT } from '@/shared/i18n/client'
+import { msg } from '@/shared/i18n/format'
 import { IconTrash } from '@/shared/icons'
 import { useRemoval } from '@/shared/removal'
 import { Segmented } from '@/shared/Segmented'
@@ -10,9 +12,9 @@ import { Button, Card, inputBase } from '@/shared/ui'
 import { deleteAssignment, startAssignment, updateAssignment } from './actions'
 
 const ANSWERS = [
-  ['after_submit', '交卷後'],
-  ['after_close', '截止後'],
-  ['never', '不公布'],
+  ['after_submit', msg('交卷後')],
+  ['after_close', msg('截止後')],
+  ['never', msg('不公布')],
 ] as const satisfies readonly (readonly [AssignmentAnswers, string])[]
 
 /** An ISO moment as a `datetime-local` value in the browser's time zone. */
@@ -24,6 +26,7 @@ function toLocal(iso: string | null): string {
 
 /** The teacher's handles on an assignment: when it closes, when answers show, trying it, deleting it. */
 export function AssignmentControls({ classId, assignmentId, closesAt, answers, practice }: { classId: string; assignmentId: string; closesAt: string | null; answers: AssignmentAnswers; practice: boolean }) {
+  const t = useT()
   const router = useRouter()
   const { remove } = useRemoval()
   const [close, setClose] = useState(toLocal(closesAt))
@@ -41,8 +44,9 @@ export function AssignmentControls({ classId, assignmentId, closesAt, answers, p
     <Card className="space-y-4 p-4">
       <div className="flex flex-wrap items-end gap-3">
         <label className="block">
-          <span className="mb-1 block text-xs font-medium text-muted">截止時間</span>
+          <span className="mb-1 block text-xs font-medium text-muted">{t('截止時間')}</span>
           <input
+            autoComplete="off"
             type="datetime-local"
             value={close}
             onChange={(e) => setClose(e.target.value)}
@@ -52,42 +56,42 @@ export function AssignmentControls({ classId, assignmentId, closesAt, answers, p
         </label>
         {!closed && (
           <Button disabled={pending} onClick={() => save({ closesAt: new Date().toISOString() })}>
-            立刻截止
+            {t('立刻截止')}
           </Button>
         )}
         {closed && (
           <Button disabled={pending} onClick={() => save({ closesAt: null })}>
-            重新開放
+            {t('重新開放')}
           </Button>
         )}
       </div>
       {/* Practice shows each answer as soon as it is written. */}
       {!practice && (
         <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted">公布答案</p>
+          <p className="text-xs font-medium text-muted">{t('公布答案')}</p>
           <Segmented
             value={release}
-            options={ANSWERS}
+            options={ANSWERS.map(([v, l]) => [v, t(l)] as const)}
             onChange={(next) => {
               setRelease(next)
               save({ answers: next })
             }}
           />
-          <p className="text-xs text-muted">改了馬上生效，已經交卷的學生也照新的設定。</p>
+          <p className="text-xs text-muted">{t('改了馬上生效，已經交卷的學生也照新的設定。')}</p>
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2 border-t border-line/70 pt-3">
         <Button loading={trying} disabled={trying} onClick={() => startTrying(async () => void (await startAssignment(assignmentId)))}>
-          自己試做
+          {t('自己試做')}
         </Button>
-        <span className="flex-1 text-xs text-muted">試做不算成績，也不會出現在學生名單。</span>
+        <span className="flex-1 text-xs text-muted">{t('試做不算成績，也不會出現在學生名單。')}</span>
         <Button
           variant="ghost"
-          aria-label="刪除作業"
+          aria-label={t('刪除作業')}
           className="px-2.5 text-muted hover:bg-bad-soft hover:text-bad"
           icon={<IconTrash size={17} />}
           onClick={() => {
-            remove({ id: assignmentId, note: '已刪除作業', commit: () => deleteAssignment(assignmentId) })
+            remove({ id: assignmentId, note: t('已刪除作業'), commit: () => deleteAssignment(assignmentId) })
             router.push(`/classes/${classId}`)
           }}
         />

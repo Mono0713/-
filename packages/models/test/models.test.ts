@@ -16,7 +16,8 @@ describe('route', () => {
   it('puts the cheapest provider first and keeps the others as fallbacks', () => {
     const r = route('grading', 'save', [builtin('claude'), builtin('gemini'), builtin('openai')])!
     expect(r.primary).toEqual({ provider: 'openai', model: 'gpt-5-nano' })
-    expect(r.fallbacks.map((f) => f.provider)).toEqual(['gemini', 'claude'])
+    // Gemini's fast model has no known price yet, so it comes after the ones that do
+    expect(r.fallbacks.map((f) => f.provider)).toEqual(['claude', 'gemini'])
   })
 
   it('skips providers without a key and returns null when none is left', () => {
@@ -45,6 +46,24 @@ describe('route', () => {
     }
     expect(route('recognition', 'save', [custom])?.primary.model).toBe('sees')
     expect(route('grading', 'save', [custom])?.primary.model).toBe('text-only')
+  })
+
+  it('sends a question with pictures only to a model that sees them, passing over a text-only pick', () => {
+    const relay: ProviderInfo = {
+      id: 'c-1',
+      label: 'Relay',
+      ready: true,
+      models: [
+        { id: 'qwen', label: 'qwen', tier: 'fast', vision: false, price: null },
+        { id: 'gemini', label: 'gemini', tier: 'fast', vision: true, price: null },
+      ],
+    }
+    const pick = { provider: 'c-1', model: 'qwen' }
+    expect(route('solving', 'save', [relay], { override: pick })?.primary.model).toBe('qwen')
+    expect(route('solving', 'save', [relay], { override: pick, pictures: true })?.primary.model).toBe('gemini')
+    expect(route('solving', 'save', [relay], { override: { provider: 'c-1', model: 'gemini' }, pictures: true })?.primary.model).toBe('gemini')
+    // a model typed in by hand that the list does not know is trusted to see
+    expect(route('explaining', 'save', [relay], { override: { provider: 'c-1', model: 'typed' }, pictures: true })?.primary.model).toBe('typed')
   })
 })
 

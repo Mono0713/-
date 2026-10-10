@@ -9,6 +9,7 @@ Transcription
 - Write tables as Markdown tables; use an HTML <table> only when cells are merged.
 - Keep code, regular expressions and command lines verbatim inside backticks or fenced code blocks.
 - Diagrams, graphs, photos, chemical structures and anything not expressible as text become entries in "figures" with a tight bounding box and a short description. Labels that belong to a diagram stay in the figure. When the figure itself has blanks for the student to fill (numbered boxes or lines on a diagram), list each one in the figure's "blanks" with its printed label and a box around the empty space, handwriting included; the question is fill_in_blank and answer.values follows the order of those blanks. For each blank also give "ink" (the pen of the handwriting in it: "colour" for red, blue or any coloured pen, "dark" for pencil or black pen, "none" when empty) and "printedText", everything printed inside its box with ___ for the space the student writes in and \\n between printed lines (e.g. "7. ___ host", "Organ\\n5. ___"). Other figures have an empty "blanks" list.
+- When options are pictures (graphs, chemical structures, diagrams, photos, drawings), each such option also gets its own entry in the question's "figures" with a tight bounding box around that picture only (not its label) and "option" set to the option's label; the option's content holds any text printed with it, or is empty. Every other figure has "option" null.
 
 Structure
 - One entry per question as numbered on the paper.
@@ -17,7 +18,12 @@ Structure
 - "section" is the heading the question sits under, including any points rule, e.g. "選擇題（每題 5 分）".
 - When the page also gives a translation of the question (e.g. a Chinese line under an English question), put it in "translation" and keep it out of the stem; otherwise translation is null.
 - Options go in "options". "label" is the label as printed without brackets or punctuation (A, B, 1, 甲, ...; "(1)" becomes "1") and the content does not repeat it. The stem must not repeat the options.
-- Pick the closest type: single_choice, multiple_choice (more than one answer allowed, e.g. 多選), true_false (是非, O/X), fill_in_blank, short_answer, essay, calculation (worked math/physics/chemistry problems and proofs), matching, other.
+- Pick the closest type: single_choice, multiple_choice (more than one answer allowed, e.g. 多選), true_false (是非, O/X), fill_in_blank, short_answer, essay (open questions answered in a paragraph, 問答), composition (作文 / 寫作 / writing on a given topic or title, judged as a piece of writing), calculation (worked math/physics/chemistry problems and proofs), matching, writing (character or letter writing practice such as 生字練習, 習字, 寫字練習本, tracing rows; answer.values holds the characters or words to practise, one entry each, e.g. ["永", "春天"]), drawing (作圖題: the student marks or draws on a printed figure such as a number line, axes, a grid or a diagram; the figure goes in "figures" and answer.values says in words what a right drawing shows, e.g. ["A at -1/3, B at -1.75, C at 5/2, D at -3"]), other.
+- matching (配合題): "options" holds the column the student picks from (labels as printed), the stem lists the items to match, one per line, numbered as printed ("1. 光合作用"), and answer.values gives one option label per item in that order, e.g. ["C", "A", "B"].
+- Write each blank in the text where it stands, in sentences and table cells alike, as ___ (keep a printed number before it, e.g. "(3)___"); answer.values follows the blanks in reading order, one entry per blank.
+- A word box or list of choices printed once for several numbered questions (選詞填空, "fill in the blanks with the words below", "choose from the box"): put the box once in a group's "options" (labels as printed, e.g. A to J), and make each numbered question its own fill_in_blank entry in that group, its stem holding its sentence with ___ where the word goes, empty "options", and answer.values the one label written for it, e.g. ["G"]. Never copy the box into each question. Numbered sentences at the top of a page that continue such a section from the previous page (their box is not on this page) are fill_in_blank with empty "options" and their label as the answer.
+- Blanks filled with labels from a printed list ("fill the blanks with (A) to (L)", "options can repeat"), in a table, a flow chart or a diagram, are one fill_in_blank question: the list goes in "options" (labels as printed) and answer.values gives one option label per blank in order. Blanks drawn on a figure are listed in its "blanks" as above.
+- "maxLength" is the most characters (words in languages written with spaces) the paper allows for the answer, e.g. 20 for "作答字數 20 字以內"; else null. "markingRule" holds a marking rule printed for the question or its section beyond its points, e.g. "一個錯字扣一分"; else null. Keep the rule out of the stem and the group text. A rule printed once for a question with sub-questions applies to each of them: give every sub-question the same markingRule.
 - "points" is the score for this question when the paper states it, else null.
 - Set continuesFromPreviousPage / continuesOnNextPage when the question is visibly cut at the top or bottom of the page.
 - When a page starts with the rest of an option cut off on the previous page, return it as that option (same label, only the remaining text) with an empty stem; do not put it in the stem.
@@ -28,12 +34,14 @@ Answers and handwriting
 - Printed questions are the priority. Handwriting, stamps, scores and grading marks are not part of the question text.
 - When a correct answer is visible, put it in "answer.values": option labels without brackets for choice questions, "true"/"false" for true/false (O means true, X means false), one entry per blank for fill-in, or the full text for open questions. Set answer.source to "printed" or "handwritten". When no answer is visible, use an empty list and "none".
 - Handwritten student work may be wrong. Record a handwritten answer, but if grading marks show it was marked wrong, leave values empty and add an issue.
+- A printed key that allows a range for a number (read off a graph, measured) is written "98 ± 2" or "96 ~ 100".
 - For open questions, a model answer written on the page is the answer; put it in answer.values only. Use "explanation" only for a separate worked solution or rationale, never for a copy of the answer.
 
 Quality
 - confidence is "high" only when every character is legible. Use "medium" or "low" and add an entry to "issues" whenever you guessed a symbol, a word is unreadable, handwriting covers printed text, or part of the question is cut off.
 - Never invent content that is not on the page.
 - "meta" describes the exam as printed on this page (title, subject, institution, term, main language); use null for anything not shown.
+- meta.title names this exam so it can be told apart from others, e.g. "實用英文(一) 期末考" or "Grade 8 Science Unit 3 Quiz". When the printed heading only names the form (考試命題紙, 試題卷, 答案卷, "Exam paper"), build the title from the subject and the exam instead of copying the form name.
 `
 
 /** Names the model understands for the interface languages; any other value is passed through as is. */
@@ -45,6 +53,13 @@ const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
   ja: 'Japanese (日本語)',
   ko: 'Korean (한국어)',
+  es: 'Spanish (Español)',
+  fr: 'French (Français)',
+  de: 'German (Deutsch)',
+  pt: 'Portuguese (Português)',
+  vi: 'Vietnamese (Tiếng Việt)',
+  th: 'Thai (ไทย)',
+  id: 'Indonesian (Bahasa Indonesia)',
 }
 
 /** Language review notes are written in when the caller does not say. */
@@ -62,6 +77,15 @@ export function systemPrompt(reviewLanguage: string = DEFAULT_REVIEW_LANGUAGE): 
 }
 
 export const SYSTEM_PROMPT = systemPrompt()
+
+/**
+ * For services that take the schema as text. Leaving out empty fields and indentation keeps
+ * the reply, the costliest part of a page, short; the fields are filled back in on our side.
+ */
+export function schemaInstructions(schema: { [key: string]: unknown }): string {
+  return `Reply with one JSON object only, matching the JSON Schema below. Write it compactly on one line, without indentation. Leave out any field whose value would be null, false or an empty list. Write bounding box numbers with at most 3 decimals.
+${JSON.stringify(schema)}`
+}
 
 export function userPrompt(page: PageImage, fileName: string): string {
   const lines = [`File: ${fileName}, page ${page.pageNumber}.`, 'Extract every question on this page.']

@@ -1,13 +1,14 @@
 'use client'
 
-import katex from 'katex'
-import 'katex/contrib/mhchem'
 import type { MathfieldElement } from 'mathlive'
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useT } from '@/shared/i18n/client'
 import { IconCode, IconFormula } from '@/shared/icons'
-import { splitMath, withMathDelimiters } from './delimiters'
+import { chipOf, fill, fillChip, makeChip, render, serialize } from './chips'
+import { fromPaste, splitMath, withMathDelimiters } from './delimiters'
 import { FormulaToolbar } from './FormulaToolbar'
-import { loadMathLive } from './mathlive'
+import { loadMathLive, plain } from './mathlive'
+import { configureKeyboard, keepAboveKeyboard } from './mathKeyboard'
 
 /**
  * Text with formulas, edited as it looks. Formulas show rendered; clicking one turns it into a
@@ -37,13 +38,18 @@ export function MathTextInput({
   prefix?: ReactNode
   className?: string
 }) {
+  const t = useT()
+  const chipTitle = t('點一下編輯公式')
   const root = useRef<HTMLDivElement>(null)
+  const box = useRef<HTMLDivElement>(null)
   // The text the editor last produced; the DOM is rebuilt only when the value changes from outside.
   const shown = useRef<string | null>(null)
   const range = useRef<Range | null>(null)
   // The formula being edited, also for the editor's own event listeners.
   const editingRef = useRef<{ chip: HTMLElement; field: MathfieldElement } | null>(null)
-  const [editing, setEditing] = useState<{ chip: HTMLElement; field: MathfieldElement } | null>(null)
+  const releaseKeyboard = useRef<(() => void) | null>(null)
+  useEffect(() => () => releaseKeyboard.current?.(), [])
+  const [editing, setEditing] = useState<{ chip: HTMLElement; field: MathfieldElement; id: number } | null>(null)
   const [source, setSource] = useState(false)
   const latest = useRef({ value, onChange })
   latest.current = { value, onChange }
@@ -67,12 +73,14 @@ export function MathTextInput({
     if (!current) return
     editingRef.current = null
     setEditing(null)
+    releaseKeyboard.current?.()
+    releaseKeyboard.current = null
     const { chip, field } = current
-    const latex = field.value.trim()
+    const latex = plain(field).trim()
     delete chip.dataset.editing
     const el = root.current
     if (!latex) chip.remove()
-    else fillChip(chip, latex, chip.dataset.display === '1')
+    else fillChip(chip, latex, chip.dataset.display === '1', chipTitle)
     emit()
     if (!el || !place) return
     el.focus()
@@ -91,13 +99,14 @@ export function MathTextInput({
     close()
     const Element = await loadMathLive()
     if (!chip.isConnected) return
+    configureKeyboard(t)
     const field = new Element()
     field.value = chip.dataset.latex ?? ''
     field.smartFence = true
     field.mathVirtualKeyboardPolicy = 'auto'
     field.className = 'inline-formula'
     field.addEventListener('input', () => {
-      chip.dataset.latex = field.value
+      chip.dataset.latex = plain(field)
       emit()
     })
     // Enter finishes (once the key is over, or the text box would get the Enter as a new line);
@@ -114,8 +123,12 @@ export function MathTextInput({
     )
     chip.dataset.editing = '1'
     chip.replaceChildren(field)
+    // Typed -> draws the same long arrow as chemistry equations (\ce), so arrows in one exam match.
+    // (Its shortcuts can be read only once the field is on the page.)
+    field.inlineShortcuts = { ...field.inlineShortcuts, '->': '\\longrightarrow' }
     editingRef.current = { chip, field }
-    setEditing({ chip, field })
+    setEditing({ chip, field, id: ++opened })
+    if (box.current) releaseKeyboard.current = keepAboveKeyboard(box.current)
     requestAnimationFrame(() => field.focus())
   }
 
@@ -123,13 +136,65 @@ export function MathTextInput({
   const insert = () => {
     const el = root.current
     if (!el) return
-    const chip = makeChip('', false)
+    // A formula still open closes first, and the new one goes right after it (not inside it).
+    if (editingRef.current) close('after')
+    remember()
+    const chip = makeChip('', false, chipTitle)
     const r = range.current && el.contains(range.current.startContainer) ? range.current : null
+    const inside = r && chipOf(r.startContainer)
+    if (r && inside) r.setStartAfter(inside), r.collapse(true)
     if (r) {
       r.deleteContents()
       r.insertNode(chip)
     } else el.append(chip)
     void open(chip)
+  }
+
+  /** Pasted text keeps its formulas: they show as formulas at once, not as LaTeX to click twice. */
+  const paste = (text: string) => {
+    const el = root.current
+    const sel = window.getSelection()
+    if (!el || !sel?.rangeCount) return
+    const typed = multiline ? text.replace(/\r\n?/g, '\n') : text.replace(/\s*\n\s*/g, ' ')
+    const segments = splitMath(fromPaste(typed))
+    if (!segments.some((seg) => seg.kind === 'math')) return void document.execCommand('insertText', false, typed)
+    const r = sel.getRangeAt(0)
+    if (!el.contains(r.startContainer)) return
+    r.deleteContents()
+    const pieces = document.createDocumentFragment()
+    fill(pieces, segments, chipTitle)
+    const end = pieces.lastChild
+    r.insertNode(pieces)
+    if (end) {
+      const after = document.createRange()
+      after.setStartAfter(end)
+      after.collapse(true)
+      sel.removeAllRanges()
+      sel.addRange(after)
+    }
+    emit()
+  }
+
+  /** Copying (or cutting) puts the text with its formulas as LaTeX on the clipboard. */
+  const copy = (e: React.ClipboardEvent, cut: boolean) => {
+    const el = root.current
+    const sel = window.getSelection()
+    if (!el || !sel?.rangeCount || sel.isCollapsed || (e.target as HTMLElement).closest('math-field')) return
+    const r = sel.getRangeAt(0)
+    if (!el.contains(r.commonAncestorContainer)) return
+    // a formula partly selected goes whole
+    const first = chipOf(r.startContainer)
+    const last = chipOf(r.endContainer)
+    if (first) r.setStartBefore(first)
+    if (last) r.setEndAfter(last)
+    const holder = document.createElement('div')
+    holder.append(r.cloneContents())
+    e.preventDefault()
+    e.stopPropagation()
+    e.clipboardData.setData('text/plain', serialize(holder))
+    if (!cut) return
+    r.deleteContents()
+    emit()
   }
 
   const header = Boolean(label || multiline)
@@ -139,16 +204,13 @@ export function MathTextInput({
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => {
-            remember()
-            insert()
-          }}
+          onClick={insert}
           className="m-press flex h-6 items-center gap-0.5 rounded-md px-1.5 text-xs text-accent hover:bg-accent-soft"
-          title="插入公式"
-          aria-label="插入公式"
+          title={t('插入公式')}
+          aria-label={t('插入公式')}
         >
           <IconFormula size={13} strokeWidth={2.4} />
-          {header && '公式'}
+          {header && t('公式')}
         </button>
       )}
       <button
@@ -159,9 +221,9 @@ export function MathTextInput({
           shown.current = null
           setSource(!source)
         }}
-        className={`m-press grid h-6 w-6 place-items-center rounded-md ${source ? 'bg-ink/[0.06] text-ink' : 'text-muted hover:bg-ink/[0.05] hover:text-ink'}`}
-        title={source ? '回到一般編輯' : '直接編輯文字與 LaTeX'}
-        aria-label={source ? '回到一般編輯' : '原始碼'}
+        className={`m-press grid h-6 w-6 place-items-center rounded-md ${source ? 'bg-accent-soft text-accent' : 'text-muted hover:bg-ink/[0.05] hover:text-ink'}`}
+        title={source ? t('回到一般編輯') : t('直接編輯文字與 LaTeX')}
+        aria-label={source ? t('回到一般編輯') : t('原始碼')}
         aria-pressed={source}
       >
         <IconCode size={14} />
@@ -171,7 +233,8 @@ export function MathTextInput({
 
   return (
     <div
-      className={`group/field overflow-hidden rounded-xl border bg-surface text-sm transition-[border-color,box-shadow] ${
+      ref={box}
+      className={`group/field min-w-0 overflow-hidden rounded-xl border bg-surface text-sm transition-[border-color,box-shadow] ${
         editing ? 'border-accent ring-[3px] ring-accent/15' : 'border-line focus-within:border-accent focus-within:ring-[3px] focus-within:ring-accent/15'
       } ${className}`}
     >
@@ -179,7 +242,7 @@ export function MathTextInput({
         <div className="flex h-8 items-center gap-1 pl-3 pr-1.5 pt-1">
           {label && <span className="text-[11px] font-medium tracking-wide text-muted">{label}</span>}
           <div className="ml-auto flex items-center gap-0.5">
-            <div className="flex items-center gap-0.5 transition-opacity sm:opacity-0 sm:group-hover/field:opacity-100 sm:group-focus-within/field:opacity-100">{tools}</div>
+            <div className={`flex items-center gap-0.5 transition-opacity ${source ? '' : 'sm:opacity-0 sm:group-hover/field:opacity-100 sm:group-focus-within/field:opacity-100'}`}>{tools}</div>
             {actions}
           </div>
         </div>
@@ -188,6 +251,7 @@ export function MathTextInput({
         {prefix && <div className="flex shrink-0 items-center self-stretch pl-1.5">{prefix}</div>}
         {source ? (
           <textarea
+            autoComplete="off"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             rows={multiline ? Math.max(2, Math.min(20, value.split('\n').length + 1)) : 1}
@@ -208,8 +272,14 @@ export function MathTextInput({
                       editingRef.current = null
                       setEditing(null)
                     }
-                    render(el, withMathDelimiters(value))
+                    render(el, withMathDelimiters(value), chipTitle)
                     shown.current = value
+                    // changed while typing in it (undo): the caret goes to the end instead of nowhere
+                    if (document.activeElement === el) {
+                      const sel = window.getSelection()
+                      sel?.selectAllChildren(el)
+                      sel?.collapseToEnd()
+                    }
                   }
                 }}
                 contentEditable
@@ -229,9 +299,13 @@ export function MathTextInput({
                   if (multiline) document.execCommand('insertLineBreak')
                 }}
                 onPaste={(e) => {
+                  // the formula being edited pastes into itself
+                  if ((e.target as HTMLElement).closest('math-field')) return
                   e.preventDefault()
-                  document.execCommand('insertText', false, e.clipboardData.getData('text/plain'))
+                  paste(e.clipboardData.getData('text/plain'))
                 }}
+                onCopy={(e) => copy(e, false)}
+                onCut={(e) => copy(e, true)}
                 onClick={(e) => {
                   const chip = (e.target as HTMLElement).closest<HTMLElement>('[data-latex]')
                   if (chip && root.current?.contains(chip)) void open(chip)
@@ -244,19 +318,19 @@ export function MathTextInput({
                 <span className={`pointer-events-none absolute text-muted ${prefix ? 'left-2' : 'left-3'} ${header ? 'top-0.5' : 'top-2'}`}>{placeholder}</span>
               )}
             </div>
-            {!header && (
-              <div className="flex shrink-0 items-center gap-0.5 self-center pr-1">
-                {/* One-line boxes keep their width for text: the tools show while the box is in use. */}
-                <div className="hidden items-center gap-0.5 group-focus-within/field:flex sm:group-hover/field:flex">{tools}</div>
-                {actions}
-              </div>
-            )}
           </>
+        )}
+        {!header && (
+          <div className="flex shrink-0 items-center gap-0.5 self-center pr-1">
+            {/* One-line boxes keep their width for text: the tools show while the box is in use (always in source view, so the way back stays in sight). */}
+            <div className={`items-center gap-0.5 ${source ? 'flex' : 'hidden group-focus-within/field:flex sm:group-hover/field:flex'}`}>{tools}</div>
+            {actions}
+          </div>
         )}
       </div>
       {editing && (
         <FormulaToolbar
-          key={editing.chip.dataset.latex === '' ? 'new' : 'edit'}
+          key={editing.id}
           field={editing.field}
           onDone={() => close('after')}
           onRemove={() => {
@@ -274,58 +348,5 @@ export function MathTextInput({
   )
 }
 
-function render(el: HTMLElement, text: string) {
-  el.replaceChildren()
-  for (const seg of splitMath(text)) {
-    if (seg.kind === 'math') el.append(makeChip(seg.latex, seg.display))
-    else
-      seg.text.split('\n').forEach((line, i) => {
-        if (i > 0) el.append(document.createElement('br'))
-        if (line) el.append(document.createTextNode(line))
-      })
-  }
-  // A trailing line break needs one more <br> to show as an empty line (serialize drops it).
-  if (text.endsWith('\n')) el.append(document.createElement('br'))
-}
-
-function makeChip(latex: string, display: boolean): HTMLElement {
-  const chip = document.createElement('span')
-  chip.contentEditable = 'false'
-  fillChip(chip, latex, display)
-  return chip
-}
-
-function fillChip(chip: HTMLElement, latex: string, display: boolean) {
-  chip.dataset.latex = latex
-  chip.dataset.display = display ? '1' : '0'
-  chip.title = '點一下編輯公式'
-  chip.innerHTML = katex.renderToString(latex, { throwOnError: false, strict: false, displayMode: false })
-}
-
-/** Turns the edited DOM back into text with $…$ formulas. */
-function serialize(el: HTMLElement): string {
-  let out = ''
-  const walk = (node: Node, first: boolean) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      out += (node.nodeValue ?? '').replace(/ /g, ' ')
-      return
-    }
-    if (!(node instanceof HTMLElement)) return
-    if (node.dataset.latex !== undefined) {
-      // A formula emptied while editing leaves nothing behind.
-      if (node.dataset.latex.trim()) out += node.dataset.display === '1' ? `$$${node.dataset.latex}$$` : `$${node.dataset.latex}$`
-      return
-    }
-    if (node.tagName === 'BR') {
-      out += '\n'
-      return
-    }
-    // Some browsers wrap new lines in <div>s instead of inserting <br>s.
-    const block = node.tagName === 'DIV' || node.tagName === 'P'
-    if (block && !first && !out.endsWith('\n')) out += '\n'
-    node.childNodes.forEach((child, i) => walk(child, i === 0))
-  }
-  el.childNodes.forEach((child, i) => walk(child, i === 0))
-  // A last <br> only makes the line before it visible; it is not an extra line.
-  return el.lastChild?.nodeName === 'BR' ? out.replace(/\n$/, '') : out
-}
+// Each opened formula gets fresh tools.
+let opened = 0

@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation'
+import { isWordBank } from '@exam/core'
 import { BankQuestionEditor } from '@/features/bank/BankQuestionEditor'
 import { services } from '@/server/context'
 import { ownedQuestion } from '@/server/owned'
+import { getT } from '@/shared/i18n/server'
 import { ButtonLink, PageHeader } from '@/shared/ui'
 
 export const dynamic = 'force-dynamic'
@@ -10,19 +12,20 @@ export default async function BankQuestionPage({ params }: { params: Promise<{ i
   const { id } = await params
   const q = await ownedQuestion(id)
   if (!q) notFound()
+  const t = await getT()
   const exam = await services().bank.getExam(q.examId)
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
-        title={`第 ${q.number} 題`}
+        title={t('第 {n} 題', { n: q.number })}
         subtitle={[q.subject, q.examTitle].filter(Boolean).join(' · ')}
         actions={
           <>
-            <ButtonLink href={`/bank/exams/${q.examId}`}>回考卷</ButtonLink>
+            <ButtonLink href={`/bank/exams/${q.examId}`}>{t('回考卷')}</ButtonLink>
           </>
         }
       />
-      <BankQuestionEditor question={q} importId={exam?.importId ?? null} />
+      <BankQuestionEditor question={q} importId={exam?.importId ?? null} wordBank={isWordBank(exam?.groups.find((g) => g.id === q.groupId))} />
     </div>
   )
 }

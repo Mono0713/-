@@ -2,8 +2,9 @@ import type { Strength as StrengthId, Task as TaskId, Tier } from '@exam/models'
 import { z } from 'zod'
 
 const Strength = z.enum(['save', 'balanced', 'best'] as const satisfies readonly StrengthId[])
-const Task = z.enum(['recognition', 'handwriting', 'grading', 'tutoring', 'translation'] as const satisfies readonly TaskId[])
+const Task = z.enum(['recognition', 'handwriting', 'grading', 'tutoring', 'translation', 'solving', 'explaining', 'generating'] as const satisfies readonly TaskId[])
 const TierEnum = z.enum(['fast', 'balanced', 'best'] as const satisfies readonly Tier[])
+const Choice = z.object({ provider: z.string(), model: z.string() })
 
 /** A service the person added: anything that speaks the OpenAI Chat Completions format. Its key is in apiKeys under `id`. */
 export const CustomProvider = z.object({
@@ -26,24 +27,36 @@ export type CustomProvider = z.infer<typeof CustomProvider>
 
 /** One user's preferences. Every field has a default, so an old or partial file still loads. */
 export const Settings = z.object({
+  /** Name and picture the person chose; null keeps the ones from their Google account. The picture is a small data URL. */
+  profile: z
+    .object({ name: z.string().max(40).nullable().default(null), avatar: z.string().max(100_000).nullable().default(null) })
+    .default({ name: null, avatar: null }),
   /** Interface language; the model also writes its review notes in it. null: not chosen yet. */
   locale: z.string().nullable().default(null),
   /** Recognition method preselected when uploading ("auto", "manual", "claude", …). */
   defaultProvider: z.string().default('auto'),
   /** Model preselected for each provider, e.g. { claude: "claude-sonnet-5-5" }. */
   models: z.record(z.string(), z.string()).default({}),
-  /** API keys per provider. Secret: never sent to the browser, see `publicView`. */
+  /**
+   * API keys per provider. Secret: never sent to the browser, see `publicView`. A provider may have
+   * several: the first under its id, more under `<id>#<slot>` (see `keysOf`), stored like any other key.
+   */
   apiKeys: z.record(z.string(), z.string()).default({}),
   /** The AI teacher that marks answers the program cannot check itself. null provider or model: pick automatically. */
   aiGrading: z
     .object({ enabled: z.boolean().default(true), provider: z.string().nullable().default(null), model: z.string().nullable().default(null) })
     .default({ enabled: true, provider: null, model: null }),
-  /** How hard the AI tries, for every task: save money, balanced, or most accurate. */
+  /** How questions get translated: free services with no key, or the AI on the translation route. */
+  translationEngine: z.enum(['free', 'ai']).default('free'),
+  /** Which models 自動 picks for every task: the cheapest, balanced, or the most accurate. */
   strength: Strength.default('balanced'),
-  /** Per-task strength that differs from `strength` (advanced settings). */
-  taskStrength: z.partialRecord(Task, Strength).default({}),
   /** Per-task model picked by hand; it wins over the strength while its provider has a key. */
-  taskModels: z.partialRecord(Task, z.object({ provider: z.string(), model: z.string() })).default({}),
+  taskModels: z.partialRecord(Task, Choice).default({}),
+  /**
+   * For tasks about one question (AI 作答, 詳解, 問 AI): the model for questions with pictures, when the
+   * one in `taskModels` cannot see them or the person wants another. Unset: a model that sees, picked as 自動.
+   */
+  pictureModels: z.partialRecord(Task, Choice).default({}),
   /** Services added by the person, beside Claude, OpenAI and Gemini. */
   customProviders: z.array(CustomProvider).default([]),
   /** Model ids the provider's API reported last time they were fetched. */
@@ -64,4 +77,16 @@ export type PublicSettings = Omit<Settings, 'apiKeys'> & { apiKeys: Record<strin
 export function publicView(s: Settings): PublicSettings {
   const apiKeys = Object.fromEntries(Object.entries(s.apiKeys).map(([id, key]) => [id, { saved: true, hint: key.length > 8 ? key.slice(-4) : null }]))
   return { ...s, apiKeys }
+}
+
+/** The saved keys of one provider as `apiKeys` entries, in the order they were added. */
+export function keySlots<T>(apiKeys: Record<string, T>, provider: string): [string, T][] {
+  return Object.entries(apiKeys).filter(([id]) => id === provider || id.startsWith(`${provider}#`))
+}
+
+/** Every key saved for a provider, in the order they were added. */
+export function keysOf(apiKeys: Record<string, string>, provider: string): string[] {
+  return keySlots(apiKeys, provider)
+    .map(([, key]) => key)
+    .filter(Boolean)
 }

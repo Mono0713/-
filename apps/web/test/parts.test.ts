@@ -1,6 +1,6 @@
 import type { DraftQuestion } from '@exam/core'
 import { describe, expect, it } from 'vitest'
-import { mergeParts, splitNumber, splitParts } from '../src/features/review/parts.ts'
+import { attachToPrevious, canMerge, detachPart, groupLooseParts, mergeParts, nextPart, splitNumber, splitParts } from '../src/features/review/parts.ts'
 
 const q = (overrides: Partial<DraftQuestion>): DraftQuestion => ({
   number: '11', section: null, groupId: null, type: 'calculation', stem: '', translation: null, options: [],
@@ -58,5 +58,109 @@ describe('mergeParts', () => {
     expect(merged).toMatchObject({ confidence: 'low', issues: [], answer: { values: ['(1) both'] } })
     expect(mergeParts(group, [parts[0]!, { ...parts[1]!, number: '12(b)' }])).toBeNull()
     expect(mergeParts(group, [{ ...parts[0]!, number: '11' }])).toBeNull()
+  })
+
+  it('offers a merge only for parts that split again', () => {
+    const { parts } = splitParts(q({ stem: '(1) x (2) y' }), 'g4')!
+    expect(canMerge(parts)).toBe(true)
+    expect(canMerge([parts[0]!, { ...parts[1]!, type: 'single_choice' }])).toBe(false)
+    expect(canMerge([])).toBe(false)
+  })
+})
+
+describe('sub-questions set by hand', () => {
+  const numbers = (d: { questions: DraftQuestion[] }) => d.questions.map((x) => [x.number, x.groupId])
+
+  it('groups sub-questions read as separate questions', () => {
+    const d = groupLooseParts({ groups: [], questions: [q({ number: '1(1)' }), q({ number: '1(2)' }), q({ number: '2' }), q({ number: '3(a)' })] }, (n) => `g${n}`)
+    expect(numbers(d)).toEqual([['1(1)', 'g0'], ['1(2)', 'g0'], ['2', null], ['3(a)', null]])
+    expect(d.groups).toEqual([{ id: 'g0', stem: '', figures: [], pageNumber: 2 }])
+    expect(mergeParts(d.groups[0]!, d.questions.slice(0, 2))?.number).toBe('1')
+    const same = { groups: [], questions: [q({ number: '1' })] }
+    expect(groupLooseParts(same, () => 'x')).toBe(same)
+  })
+
+  it('makes a question a sub-question of the one before', () => {
+    const d = attachToPrevious({ groups: [], questions: [q({ number: '5' }), q({ number: '6' }), q({ number: '7' })] }, 1, 'g')!
+    expect(numbers(d)).toEqual([['5(1)', 'g'], ['5(2)', 'g'], ['7', null]])
+    const more = attachToPrevious(d, 2, 'other')!
+    expect(numbers(more)).toEqual([['5(1)', 'g'], ['5(2)', 'g'], ['5(3)', 'g']])
+    expect(more.groups.map((g) => g.id)).toEqual(['g'])
+    expect(attachToPrevious(more, 1, 'x')).toBeNull()
+    expect(nextPart('a')).toBe('b')
+    expect(nextPart('ii')).toBe('iii')
+  })
+
+  it('takes a sub-question out, ending a group left with one part', () => {
+    const d = { groups: [{ id: 'g', stem: 'Shared', figures: [], pageNumber: 1 }], questions: [q({ number: '5(1)', groupId: 'g', stem: 'one' }), q({ number: '5(2)', groupId: 'g', stem: 'two' }), q({ number: '5(3)', groupId: 'g' })] }
+    const out = detachPart(d, 0)!
+    expect(numbers(out.draft)).toEqual([['5(2)', 'g'], ['5(3)', 'g'], ['6', null]])
+    expect(out.at).toBe(2)
+    const last = detachPart(out.draft, 1)!
+    expect(numbers(last.draft)).toEqual([['5', null], ['6', null], ['6', null]])
+    expect(last.draft.questions[0]!.stem).toBe('Shared\n\ntwo')
+    expect(last.draft.groups).toEqual([])
+  })
+})
+
+describe('splitting translations and answers', () => {
+  it('shares the translation, and an answer written one paragraph per part', () => {
+    const r = splitParts(q({
+      type: 'short_answer',
+      stem: '(1) What is epigenetic inheritance? (2) How to prove it?',
+      translation: '(1)什麼是表觀遺傳？ （2）如何證明？',
+      answer: { values: ['表觀遺傳指不改變DNA序列的遺傳。\n進行動物實驗。'], source: 'handwritten' },
+    }), 'g')!
+    expect(r.parts.map((p) => [p.translation, p.answer.values, p.issues])).toEqual([
+      ['什麼是表觀遺傳？', ['表觀遺傳指不改變DNA序列的遺傳。'], []],
+      ['如何證明？', ['進行動物實驗。'], []],
+    ])
+    // merging and splitting again gives the same parts, with no labels piling up
+    const merged = mergeParts(r.group, r.parts)!
+    expect(merged.translation).toBe('(1) 什麼是表觀遺傳？\n\n(2) 如何證明？')
+    const again = splitParts(merged, 'g')!
+    expect(again.parts.map((p) => [p.translation, p.answer.values])).toEqual(r.parts.map((p) => [p.translation, p.answer.values]))
+  })
+
+  it('repairs an answer whose labels piled up', () => {
+    const r = splitParts(q({ type: 'short_answer', stem: '(1) a? (2) b?', answer: { values: ['(1) (1) (1) one\ntwo'], source: 'handwritten' } }), 'g')!
+    expect(r.parts.map((p) => p.answer.values)).toEqual([['one'], ['two']])
+  })
+})
+
+describe('word box (選詞填空)', () => {
+  const box = [{ label: 'A', content: 'memorial' }, { label: 'B', content: 'diligent' }]
+  const draft = {
+    groups: [{ id: 'w', stem: '', figures: [], options: box, pageNumber: 1 }],
+    questions: [q({ number: '1', groupId: 'w', type: 'fill_in_blank', options: box }), q({ number: '2', groupId: 'w', type: 'fill_in_blank', options: box }), q({ number: '3', type: 'fill_in_blank' })],
+  }
+
+  it('takes the next question in as one more sentence, keeping its number', () => {
+    const next = attachToPrevious(draft, 2, 'new')!
+    expect(next.groups).toHaveLength(1)
+    expect(next.questions.map((x) => [x.number, x.groupId])).toEqual([['1', 'w'], ['2', 'w'], ['3', 'w']])
+  })
+
+  it('lets a sentence leave with its number, the box staying for the rest', () => {
+    const { draft: next } = detachPart(draft, 0)!
+    expect(next.groups).toHaveLength(1)
+    expect(next.questions.map((x) => [x.number, x.groupId])).toEqual([['2', 'w'], ['1', null], ['3', null]])
+  })
+})
+
+describe('passage shared by plainly numbered questions (閱讀題組)', () => {
+  const draft = {
+    groups: [{ id: 'p', stem: 'A passage', figures: [], pageNumber: 1 }],
+    questions: [q({ number: '3', groupId: 'p', type: 'single_choice' }), q({ number: '4', groupId: 'p', type: 'single_choice' }), q({ number: '5', type: 'single_choice' })],
+  }
+
+  it('takes the next question in, keeping its number', () => {
+    expect(attachToPrevious(draft, 2, 'new')!.questions.map((x) => [x.number, x.groupId])).toEqual([['3', 'p'], ['4', 'p'], ['5', 'p']])
+  })
+
+  it('lets a question leave with its number, the passage staying for the rest', () => {
+    const { draft: next } = detachPart(draft, 1)!
+    expect(next.groups).toHaveLength(1)
+    expect(next.questions.map((x) => [x.number, x.groupId])).toEqual([['3', 'p'], ['4', null], ['5', null]])
   })
 })

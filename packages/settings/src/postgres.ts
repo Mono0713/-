@@ -27,6 +27,10 @@ export class PostgresSettingsStore implements SettingsStore {
     return parsed.success ? parsed.data : defaultSettings()
   }
 
+  async remove(ownerId: string): Promise<void> {
+    await this.sql`delete from user_settings where owner_id = ${ownerId}`
+  }
+
   async update(ownerId: string, patch: Partial<Settings>): Promise<Settings> {
     const next = Settings.parse({ ...(await this.get(ownerId)), ...patch })
     const { apiKeys, ...rest } = next

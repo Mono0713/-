@@ -53,8 +53,8 @@ export function Badge({ tone = 'neutral', children }: { tone?: Tone; children: R
   return <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-xs font-medium whitespace-nowrap ${TONES[tone]}`}>{children}</span>
 }
 
-export function Card({ children, className = '', interactive = false }: { children: ReactNode; className?: string; interactive?: boolean }) {
-  return <div className={`rounded-2xl bg-surface shadow-sheet ${interactive ? 'm-lift' : ''} ${className}`}>{children}</div>
+export function Card({ children, className = '', interactive = false, id }: { children: ReactNode; className?: string; interactive?: boolean; id?: string }) {
+  return <div id={id} className={`rounded-2xl bg-surface shadow-sheet ${interactive ? 'm-lift' : ''} ${className}`}>{children}</div>
 }
 
 export function PageHeader({ title, subtitle, actions }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode }) {

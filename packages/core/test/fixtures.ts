@@ -15,6 +15,8 @@ export function question(overrides: Partial<ExtractedQuestion> = {}): ExtractedQ
     answer: { values: ['B'], source: 'handwritten' },
     explanation: null,
     points: 5,
+    maxLength: null,
+    markingRule: null,
     figures: [],
     bbox: { x: 0.1, y: 0.2, width: 0.8, height: 0.1 },
     continuesFromPreviousPage: false,

@@ -1,4 +1,4 @@
-import type { DraftFigure, DraftQuestion } from '@exam/core'
+import type { DraftFigure, DraftQuestion, Option } from '@exam/core'
 import type { InkDoc } from '@exam/ink'
 
 /** exam: answer everything, then submit for a score. practice: see the answer after each question. */
@@ -11,6 +11,8 @@ export interface QuizSettings {
   shuffleOptions: boolean
   /** Exam mode only; null means no limit. */
   timeLimitMinutes: number | null
+  /** Multiple-choice questions earn part of their points when partly right (see grade). */
+  multiplePartial?: boolean
   /** The answer key and explanations are never shown, e.g. a shared exam whose owner keeps them private. */
   keyHidden?: boolean
   /** The answer key stays hidden until this moment, e.g. a class assignment that shows answers once it closes. */
@@ -22,11 +24,13 @@ export interface QuizItem {
   questionId: string
   question: DraftQuestion
   /** Shared passage and figures of the question's group, if it has one. */
-  group: { stem: string; figures: DraftFigure[] } | null
+  group: { stem: string; figures: DraftFigure[]; options?: Option[] | null } | null
   /** Option labels as stored, in the order shown. */
   optionOrder: string[]
   /** Label shown for each entry of optionOrder. */
   displayLabels: string[]
+  /** A multiple-choice question that earns part of its points when partly right. */
+  partial?: boolean
 }
 
 /**
@@ -115,6 +119,10 @@ export interface QuizAttempt {
   teacher?: TeacherState
   /** Conversations with the AI tutor, by question position. */
   tutoring?: Record<number, TutorTurn[]>
+  /** What the browser noticed during a class exam: leaving the page, the window or full screen, screenshot keys. */
+  integrity?: IntegrityEvent[]
+  /** Translations asked for, by question position: the stem and each option in its stored order, and which way made them. */
+  translations?: Record<number, { stem: string; options: string[]; engine?: 'free' | 'ai' }>
 }
 
 /** One message in a conversation with the AI tutor about a question. */
@@ -122,4 +130,17 @@ export interface TutorTurn {
   from: 'student' | 'tutor'
   text: string
   at: string
+}
+
+/**
+ * Something the exam page saw that may mean looking elsewhere. hidden: the page left the screen
+ * (another tab or app, the home screen); blur: the window lost focus while still showing (another
+ * window, a screenshot or Lens overlay); fullscreen: full screen was left; screenshot: a
+ * screenshot key was pressed; copy: text was copied or cut; paste: something was pasted in.
+ */
+export interface IntegrityEvent {
+  kind: 'hidden' | 'blur' | 'fullscreen' | 'screenshot' | 'copy' | 'paste'
+  at: string
+  /** How long it lasted, for leaving the page or the window. */
+  ms?: number
 }

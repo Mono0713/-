@@ -35,3 +35,5 @@ export async function ingestBuffer(fileName: string, data: Buffer, opts: IngestO
   }
   throw new Error(`Unsupported file type "${ext}". Use a PDF or an image (${[...IMAGE_EXTENSIONS].join(', ')}).`)
 }
+export { findPage, flattenPage } from './crop.ts'
+export { imagesToPdf } from './pdfWrite.ts'

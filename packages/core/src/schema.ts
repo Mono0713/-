@@ -19,8 +19,14 @@ export const QuestionType = z.enum([
   'fill_in_blank',
   'short_answer',
   'essay',
+  /** A composition (作文): free writing on a topic, judged as a whole rather than against key points. */
+  'composition',
   'calculation',
   'matching',
+  /** Character or letter writing practice (生字練習): the answer holds the characters to write. */
+  'writing',
+  /** A drawing question (作圖題): marks drawn on the question's figure (a number line, axes, a diagram); the answer says what a right drawing shows. */
+  'drawing',
   'other',
 ])
 export type QuestionType = z.infer<typeof QuestionType>
@@ -32,6 +38,8 @@ export const AnswerSource = z.enum([
   'handwritten',
   /** No answer visible. */
   'none',
+  /** Worked out by the AI because the paper printed none; for the person to check. */
+  'ai',
 ])
 export type AnswerSource = z.infer<typeof AnswerSource>
 
@@ -69,8 +77,14 @@ export const Figure = z.object({
   description: z.string().describe('What the figure shows, in the language of the exam'),
   bbox: BoundingBox,
   blanks: z.array(FigureBlank).describe('Blanks drawn on the figure for the student to fill in; empty for most figures'),
+  option: z
+    .string()
+    .nullable()
+    .default(null)
+    .describe('Label of the option this figure is, when an option is a picture (graph, structure, diagram, photo); null for figures in the question itself'),
 })
-export type Figure = z.infer<typeof Figure>
+/** `option` is missing on figures saved before picture options existed. */
+export type Figure = Omit<z.infer<typeof Figure>, 'option'> & { option?: string | null }
 
 export const Option = z.object({
   label: z.string().describe('Label as printed, without brackets or punctuation, e.g. "A", "1", "甲"'),
@@ -108,6 +122,16 @@ export const ExtractedQuestion = z.object({
   answer: Answer,
   explanation: z.string().nullable().describe('Printed or typed worked solution, if any'),
   points: z.number().nullable(),
+  maxLength: z
+    .number()
+    .nullable()
+    .default(null)
+    .describe('Most characters (words, for languages written with spaces) the answer may have when the paper sets a limit, e.g. 20 for "作答字數 20 字以內"; else null'),
+  markingRule: z
+    .string()
+    .nullable()
+    .default(null)
+    .describe('How this answer is marked when the paper says more than its points, e.g. "一個錯字扣一分" or "列式 2 分，答案 1 分", from the question or its section; else null'),
   figures: z.array(Figure),
   bbox: BoundingBox.describe('Area of the whole question on the page'),
   continuesFromPreviousPage: z.boolean(),
@@ -117,14 +141,21 @@ export const ExtractedQuestion = z.object({
     .array(z.string())
     .describe('Anything a reviewer should check: unreadable text, guessed symbols, cut-off parts'),
 })
-export type ExtractedQuestion = z.infer<typeof ExtractedQuestion>
+/** `maxLength` and `markingRule` are missing on questions saved before they existed. */
+export type ExtractedQuestion = Omit<z.infer<typeof ExtractedQuestion>, 'maxLength' | 'markingRule'> & { maxLength?: number | null; markingRule?: string | null }
 
 export const QuestionGroup = z.object({
   id: z.string(),
   stem: z.string().describe('Shared passage, data or instructions in Markdown'),
   figures: z.array(Figure),
+  options: z
+    .array(Option)
+    .nullable()
+    .default(null)
+    .describe('A word box or list of choices printed once for all the questions of the group, each of which fills its blank with one label from it (選詞填空); else null'),
 })
-export type QuestionGroup = z.infer<typeof QuestionGroup>
+/** `options` is missing on groups saved before word boxes existed. */
+export type QuestionGroup = Omit<z.infer<typeof QuestionGroup>, 'options'> & { options?: z.infer<typeof Option>[] | null }
 
 export const ExamMeta = z.object({
   title: z.string().nullable(),
@@ -144,4 +175,4 @@ export const ExtractedPage = z.object({
     .nullable()
     .describe('Page-level remarks, e.g. "photo shows two exam pages side by side"'),
 })
-export type ExtractedPage = z.infer<typeof ExtractedPage>
+export type ExtractedPage = Omit<z.infer<typeof ExtractedPage>, 'questions' | 'groups'> & { questions: ExtractedQuestion[]; groups: QuestionGroup[] }

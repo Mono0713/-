@@ -47,7 +47,8 @@ export const BUILTIN_MODELS: Record<string, ModelInfo[]> = {
   gemini: [
     { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (preview)', tier: 'best', vision: true, price: { input: 2, output: 12 } },
     { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', tier: 'balanced', vision: true, price: { input: 1.25, output: 10 } },
-    { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', tier: 'fast', vision: true, price: { input: 0.3, output: 2.5 } },
+    // 2.5 Flash is closed to new users (Google's 404 names 3.8 Flash instead); its list price is not known here yet.
+    { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash', tier: 'fast', vision: true, price: null },
   ],
 }
 

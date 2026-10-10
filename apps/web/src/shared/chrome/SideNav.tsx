@@ -4,12 +4,14 @@ import type { ImportRecord } from '@exam/bank'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useLayoutEffect, useRef, useState } from 'react'
+import { useT } from '@/shared/i18n/client'
 import { STATUS_LABELS } from '@/shared/labels'
 import { NAV, activeNav } from './nav'
 
 /** Vertical navigation for the dark sidebar; a highlight slides to the current section. */
 export function SideNav() {
   const active = activeNav(usePathname())
+  const t = useT()
   const refs = useRef<(HTMLAnchorElement | null)[]>([])
   const [bar, setBar] = useState<{ top: number; height: number } | null>(null)
   const [ready, setReady] = useState(false)
@@ -43,10 +45,11 @@ export function SideNav() {
               refs.current[i] = el
             }}
             aria-current={on ? 'page' : undefined}
-            className={`m-press relative flex items-center gap-3 rounded-lg px-3 py-2.5 ${on ? 'font-medium text-white' : 'hover:text-white'} ${on && !bar ? 'bg-white/[0.08]' : ''}`}
+            title={t(item.label)}
+            className={`m-press relative flex items-center gap-3 rounded-lg px-[15px] py-2.5 ${on ? 'font-medium text-white' : 'hover:text-white'} ${on && !bar ? 'bg-white/[0.08]' : ''}`}
           >
-            <I size={18} strokeWidth={1.9} className={on ? 'text-night-accent' : 'opacity-70'} />
-            {item.label}
+            <I size={18} strokeWidth={1.9} className={`shrink-0 ${on ? 'text-night-accent' : 'opacity-70'}`} />
+            <span className="whitespace-nowrap transition-opacity duration-200 rail:opacity-0">{t(item.label)}</span>
           </Link>
         )
       })}
@@ -65,10 +68,11 @@ const DOT: Record<ImportRecord['status'], string> = {
 /** One recent import in the sidebar, with a status dot; highlighted while it is open. */
 export function RecentLink({ href, title, status }: { href: string; title: string; status: ImportRecord['status'] }) {
   const on = usePathname() === href
+  const t = useT()
   return (
     <Link
       href={href}
-      title={`${title} · ${STATUS_LABELS[status]}`}
+      title={`${title} · ${t(STATUS_LABELS[status])}`}
       className={`flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors ${on ? 'bg-white/[0.08] text-white' : 'text-white/55 hover:bg-white/[0.04] hover:text-white/85'}`}
     >
       <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${DOT[status]}`} aria-hidden />

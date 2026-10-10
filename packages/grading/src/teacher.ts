@@ -9,6 +9,13 @@ export const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
   ja: 'Japanese (日本語)',
   ko: 'Korean (한국어)',
+  es: 'Spanish (Español)',
+  fr: 'French (Français)',
+  de: 'German (Deutsch)',
+  pt: 'Portuguese (Português)',
+  vi: 'Vietnamese (Tiếng Việt)',
+  th: 'Thai (ไทย)',
+  id: 'Indonesian (Bahasa Indonesia)',
 }
 
 const Reply = z.object({
@@ -73,6 +80,7 @@ function systemPrompt(language: string): string {
 - Blanks: each blank is an equal share; credit is the share of blanks answered correctly.
 - Calculations: a correct final answer earns full credit. With a wrong final answer, give partial credit for correct method only when the working is shown.
 - Short answers and essays: compare with the key points of the reference answer and give credit in proportion to the points covered. Do not reward length or restating the question.
+- Compositions: judge the piece as a whole (relevance to the topic, content, organisation, language) against any marking scheme in the reference answer; length alone earns nothing.
 - No reference answer: work out the correct answer yourself first (use the explanation if there is one), then mark against it.
 - If you cannot judge an answer, for example because it depends on a figure you cannot see, set "credit" to null.
 - "feedback": in ${language}, one or two sentences the student can act on: what is wrong or missing, and the right idea. Use $...$ for maths. Empty when the answer is fully right.
@@ -99,6 +107,8 @@ export function questionLines(item: QuizItem): string[] {
   const key = q.answer.values.filter((v) => v.trim())
   lines.push(key.length ? `Reference answer:\n${numbered(key)}` : 'Reference answer: none given.')
   if (q.explanation) lines.push(`Explanation:\n${q.explanation}`)
+  if (q.markingRule?.trim()) lines.push(`Marking rule printed on the paper (apply it to the credit): ${q.markingRule.trim()}`)
+  if (q.maxLength) lines.push(`Length limit: ${q.maxLength} characters (words for languages written with spaces).`)
   return lines
 }
 

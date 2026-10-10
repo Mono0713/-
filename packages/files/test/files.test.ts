@@ -16,6 +16,8 @@ function fakeS3(): Promise<{ server: Server; endpoint: string; requests: string[
     const key = rest.map(decodeURIComponent).join('/')
     if (bucket !== 'exams') return void res.writeHead(404).end()
     if (req.method === 'PUT') {
+      // R2 refuses chunked uploads.
+      if (!req.headers['content-length']) return void res.writeHead(411).end('<Error><Code>MissingContentLength</Code></Error>')
       const chunks: Buffer[] = []
       for await (const c of req) chunks.push(c as Buffer)
       objects.set(key, Buffer.concat(chunks))
@@ -78,6 +80,18 @@ describe('S3FileStore', () => {
     expect(link.pathname).toBe('/exams/u/a/page-1.png')
     expect(link.searchParams.get('X-Amz-Expires')).toBe('60')
     expect(link.searchParams.get('X-Amz-Signature')).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('gives up on a bucket that never answers instead of waiting forever', async () => {
+    const silent = createServer(() => {})
+    await new Promise<void>((done) => silent.listen(0, done))
+    try {
+      const store = new S3FileStore({ endpoint: `http://127.0.0.1:${(silent.address() as { port: number }).port}`, bucket: 'exams', accessKeyId: 'id', secretAccessKey: 'secret', timeoutMs: 1000 })
+      await expect(store.write('u/a/figures/f1.png', Buffer.from([1]))).rejects.toThrow('could not write u/a/figures/f1.png: no answer within 1 s')
+    } finally {
+      silent.closeAllConnections()
+      silent.close()
+    }
   })
 })
 

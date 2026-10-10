@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useT } from '@/shared/i18n/client'
 import { IconClass, IconPlus } from '@/shared/icons'
 import { Button, Card, inputClass } from '@/shared/ui'
 import { createClass, joinClass } from './actions'
 
 /** Join a class with the code from the teacher, or start one of your own. */
 export function ClassHome() {
+  const t = useT()
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [error, setError] = useState<{ join?: string; create?: string }>({})
@@ -28,7 +30,7 @@ export function ClassHome() {
       <Card className="space-y-3 p-5">
         <h2 className="flex items-center gap-2 font-semibold">
           <IconClass size={17} className="text-muted" />
-          加入班級
+          {t('加入班級')}
         </h2>
         <form
           className="flex gap-2"
@@ -40,14 +42,14 @@ export function ClassHome() {
           <input
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="老師給的加入碼"
-            aria-label="加入碼"
+            placeholder={t('老師給的加入碼')}
+            aria-label={t('加入碼')}
             autoComplete="off"
             maxLength={8}
             className={`${inputClass} font-mono tracking-[0.2em] uppercase placeholder:font-sans placeholder:tracking-normal`}
           />
           <Button type="submit" variant="primary" loading={busy === 'join'} disabled={pending || !code.trim()} className="shrink-0 whitespace-nowrap">
-            加入
+            {t('加入')}
           </Button>
         </form>
         {error.join && <p className="m-shake text-sm text-bad">{error.join}</p>}
@@ -56,7 +58,7 @@ export function ClassHome() {
       <Card className="space-y-3 p-5">
         <h2 className="flex items-center gap-2 font-semibold">
           <IconPlus size={17} className="text-muted" />
-          開一個班級
+          {t('開一個班級')}
         </h2>
         <form
           className="flex gap-2"
@@ -65,9 +67,9 @@ export function ClassHome() {
             if (name.trim()) run('create', () => createClass(name))
           }}
         >
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="例如：三年二班 生物" aria-label="班級名稱" maxLength={80} className={inputClass} />
+          <input autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('例如：三年二班 生物')} aria-label={t('班級名稱')} maxLength={80} className={inputClass} />
           <Button type="submit" loading={busy === 'create'} disabled={pending || !name.trim()} className="shrink-0 whitespace-nowrap">
-            建立
+            {t('建立')}
           </Button>
         </form>
         {error.create && <p className="m-shake text-sm text-bad">{error.create}</p>}

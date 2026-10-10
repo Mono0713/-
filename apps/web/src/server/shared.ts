@@ -22,16 +22,21 @@ export async function openShare(token: string): Promise<OpenShare | null> {
 }
 
 const IMPORT_FILE = /^u\/([^/]+)\/imports\/([^/]+)\/(figures|pages)\//
+// Figures of an exam copied from someone's link live in a folder named after the copy.
+const COPY_FILE = /^u\/([^/]+)\/copies\/([^/]+)\//
 
 /**
- * Whether a file of someone else may be served: figures and page images of an import
- * whose exam is shared by an open link. Anyone signed in with the link sees them anyway.
+ * Whether a file of someone else may be served: figures and page images of an exam
+ * shared by an open link, whether it was imported or copied from another link.
+ * Anyone signed in with the link sees them anyway.
  */
 export async function sharedFile(key: string): Promise<boolean> {
-  const m = IMPORT_FILE.exec(key)
-  if (!m) return false
   const { bank, shares } = services()
-  const exam = await bank.examForImport(m[2]!)
+  const imported = IMPORT_FILE.exec(key)
+  const copied = !imported && COPY_FILE.exec(key)
+  const m = imported || copied
+  if (!m) return false
+  const exam = imported ? await bank.examForImport(m[2]!) : await bank.getExam(m[2]!)
   if (!exam || exam.ownerId !== m[1]) return false
   return (await shares.forExam(exam.id)) !== null
 }

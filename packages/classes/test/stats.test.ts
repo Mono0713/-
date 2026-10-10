@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { DraftQuestion } from '@exam/core'
 import { buildItems, type QuizAttempt, type QuizSettings, type QuizSource } from '@exam/quiz'
-import { assignmentStats, type Member } from '../src/index.ts'
+import { answerGrid, assignmentStats, distribution, missedQuestions, optionStats, typeRates, type Member } from '../src/index.ts'
 
 function q(number: string, overrides: Partial<DraftQuestion> = {}): DraftQuestion {
   return {
@@ -77,8 +77,73 @@ describe('assignmentStats', () => {
 
   it('lists students who have not started', () => {
     const stats = assignmentStats(sources, [member('amy')], [])
-    expect(stats.students).toEqual([{ userId: 'amy', name: 'AMY', tries: 0, counted: null }])
+    expect(stats.students).toEqual([{ userId: 'amy', name: 'AMY', left: false, tries: 0, counted: null }])
     expect(stats.average).toBeNull()
     expect(stats.questions[0]!.rate).toBeNull()
+  })
+
+  it('keeps the work of students who left the class', () => {
+    const stats = assignmentStats(sources, [member('amy')], [attempt('dee', '2026-10-02T01:00:00Z', [['A'], ['sugar']], true)])
+    expect(stats.students.map((s) => [s.userId, s.name, s.left, s.counted?.handedIn])).toEqual([
+      ['amy', 'AMY', false, undefined],
+      ['dee', '', true, true],
+    ])
+    expect(stats.handedIn).toBe(1)
+  })
+})
+
+describe('charts', () => {
+  const attempts = [
+    attempt('amy', '2026-10-02T02:00:00Z', [['A'], ['sugar']], true, [null, { credit: 1, by: 'teacher', feedback: null }]),
+    attempt('bo', '2026-10-02T03:00:00Z', [['B'], ['']], true),
+    attempt('cy', '2026-10-02T04:00:00Z', [[], ['x']], true, [null, { credit: 0.5, by: 'ai', feedback: null }]),
+  ]
+  const stats = assignmentStats(sources, [member('amy'), member('bo'), member('cy')], attempts)
+
+  it('spreads the scores into bands with the summary numbers', () => {
+    const d = distribution(stats.students)
+    expect(d.count).toBe(3)
+    expect([d.bands[0], d.bands[2], d.bands[9]]).toEqual([1, 1, 1])
+    expect([d.lowest, d.median, d.highest]).toEqual([0, 0.25, 1])
+  })
+
+  it('counts the options picked, by stored label, with blanks apart', () => {
+    expect(optionStats(sources, stats.counted)).toEqual([
+      {
+        questionId: 'q1',
+        number: '1',
+        stem: 'Pick one',
+        options: [
+          { label: 'A', content: 'A', picked: 1, correct: true },
+          { label: 'B', content: 'B', picked: 1, correct: false },
+        ],
+        blank: 1,
+      },
+    ])
+  })
+
+  it('rates each question type, weakest first', () => {
+    expect(typeRates(stats.counted)).toEqual([
+      { type: 'single_choice', score: 1, max: 3 },
+      { type: 'short_answer', score: 1.5, max: 3 },
+    ])
+  })
+
+  it('lays out each student against each question in the assignment order', () => {
+    const grid = answerGrid(sources, [...stats.students, { userId: 'dee', name: 'DEE', left: false, tries: 0, counted: null }], stats.counted)
+    expect(grid.map((r) => r.cells.map((c) => c?.status ?? null))).toEqual([
+      ['correct', 'correct'],
+      ['wrong', 'unanswered'],
+      ['unanswered', 'partial'],
+      [null, null],
+    ])
+    // the students saw the questions the other way round
+    expect(grid[0]!.cells.map((c) => c?.index)).toEqual([1, 0])
+  })
+
+  it('picks the questions that lost points to practise again', () => {
+    expect(missedQuestions(attempts[0]!)).toEqual([])
+    expect(missedQuestions(attempts[1]!).sort()).toEqual(['q1', 'q2'])
+    expect(missedQuestions(attempts[2]!).sort()).toEqual(['q1', 'q2'])
   })
 })

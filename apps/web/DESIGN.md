@@ -37,7 +37,7 @@ Rules:
 | --- | --- | --- |
 | Display | Bricolage Grotesque (`font-display`) | page titles, the wordmark, numbers (`.num`) |
 | Body | Atkinson Hyperlegible Next, then the system Chinese face (`font-sans`) | everything else |
-| Hand | LXGW WenKai TC (`font-hand`, `.pen`) | short AI/teacher comments only |
+| Hand | LXGW WenKai TC (`font-hand`, `.pen`) | short AI/teacher comments only; on the product page's sample exams also the student's pencil, in muted grey |
 | Code | JetBrains Mono (`font-mono`) | code in questions |
 
 All fonts are served by the app itself (SIL Open Font License).
@@ -50,6 +50,8 @@ All fonts are served by the app itself (SIL Open Font License).
   teacher" (AI grading feedback). Never for buttons, labels or running UI text.
 - Graph paper only on the page background. Cards stay plain white (navy in dark mode).
   Too much grid or handwriting makes it look like children's material.
+- Every text field the app draws sets `autoComplete="off"` (sign-in and API keys aside), so the
+  browser does not offer to fill or save it: Chrome took the question number for a licence plate.
 
 ## Motion
 
@@ -59,8 +61,8 @@ to an instant change under `prefers-reduced-motion`.
 
 | What | Borrowed from | Where | How |
 | --- | --- | --- | --- |
-| Highlighter sweep | Apple Notes | revealed answers | `.hl.m-sweep` / `.hl-md.m-sweep`, 520 ms ease-out |
-| Pen tick | Duolingo | right option | `PenTick` (draws in 560 ms). A wrong pick only gets its red tint and a nudge: no red-pen ring, it was too loud while answering |
+| Highlighter sweep | Apple Notes | revealed answers | `.hl.m-sweep` / `.hl-md.m-sweep`, 340 ms ease-out (sped up 2026-10-04: revealing felt slow) |
+| Pen tick | Duolingo | right option | `PenTick` (draws in 360 ms). A wrong pick only gets its red tint and a nudge: no red-pen ring, it was too loud while answering |
 | Pressable buttons | Duolingo | primary and secondary `Button` | `.m-push` / `.m-push-quiet`: a solid bottom edge that collapses while held |
 | Rolling digits | Stripe | quiz results | `Odometer`, 900 ms spring, 80 ms per column |
 | Gliding hover | Linear, Vercel | review outline | `Glide` + `data-glide` rows, 260 ms |
@@ -75,6 +77,7 @@ to an instant change under `prefers-reduced-motion`.
 | Pen checkbox | Things 3, Todoist | quiz setup | `input.m-check`: tick drawn in 320 ms, unticked in 120 ms |
 | Last-minute timer | Duolingo | timed exams, last 60 s | `.m-last-minute`: red pen, beats once a second, colon blinks |
 | Corner curl | iBooks, the logo | exam cards in the bank | `.m-curl` lifts on hover to show `開始練習 →`; the corner itself also opens the practice setup (always shown on touch). The rest of the card opens the exam |
+| Product page | Linear, Stripe | `/` for signed-out visitors, `/welcome` | A pile of ten sample exams; each visit opens on one this browser has not seen yet and 換一張 brings another (`.m-leaf-out`, then `.m-leaf-in`). A sheet is printed twice in one place: the copy with the student's pencil on top, wiped away by `.m-wipe` in step with the `.m-scan-once` line, then the clean copy's `.m-box-in` boxes 200 ms apart, the highlighter on the answer and the found note. Every sheet is as tall as the longest (a short one spreads its questions a little), so nothing moves when it changes. 試一題 is a real question to answer: marked at once like single-question practice, with 翻譯 and 下一題; every question shares one grid cell with room for its explanation, so answering never moves the page. The papers on the 適合誰 cards slide out of one pile as they scroll in and fan out a little on hover (`.m-fan`). Pictures play once they scroll in (`.m-play`), sections fade up 14 px once (`.m-reveal` + `RevealObserver`). Nothing loops. 看介紹影片 opens the product tour full screen on graph paper: one chapter per step with its caption beside the picture (above it on an upright phone), drawn from one clock (`demo/tween.ts`) so it pauses, jumps by chapter and shows finished pictures under reduced motion; chapters cross-fade in 350 ms, moves stay small (the photo's tilt is 3.5°), handwriting is swept on, the AI's marks are in red pen. The current logo and UI only |
 | Punch confetti | Stripe, Linear | 100% on quiz results | `Confetti`: one burst of binder-hole dots in the four ink colors |
 
 Controls with a moving part must not change the layout around them: the sliding pill of
@@ -99,6 +102,10 @@ A zoomed exam page can be grabbed and moved with the mouse; a press that does no
 click on a question's box. The selected question's box can be moved by its body and resized by
 its edges and corners; a moved box is marked `manual` and never trimmed again, and Ctrl+Z puts it back.
 
+The printed exam (A4 preview, 匯出 PDF) is real paper: black ink on white in both themes, no
+accent color except the outline of the picked question on screen; 教師版 writes the answers in red
+handwriting where the student would. Its styles are the `.a4-*` and `.sheet-*` rules in `globals.css`.
+
 Tables that follow one another in a question sit side by side (`.table-row`), wrapping when the
 column is too narrow. The ink pad's pen is the ink color (white in dark mode) and its width is a
 wedge slider (`.m-wedge`) with a live dot preview.
@@ -121,3 +128,11 @@ sidebar. The wordmark is lowercase `sheetloop` in Bricolage Grotesque ExtraBold.
 `data-theme="light" | "dark"` on `<html>` forces a theme; without it the device setting
 decides. The choice is made on the settings page (外觀) and remembered in the browser
 (`src/shared/theme`). An inline script applies it before the first paint.
+
+## Phones and touch
+
+- Under 640px the main sections sit in a bottom bar (`shared/chrome/BottomNav.tsx`), within thumb reach. The header keeps only the logo and the account.
+- While a quiz is being taken (`.quiz-play`), the bottom bar steps aside. The quiz pins its own 上一題 / 看答案 / 下一題 row to the bottom edge instead.
+- Swiping the question sheet left goes to the next question and right goes back (`shared/motion/useSwipe.ts`). Strokes that start on writing, typing, formulas, tables, or within 24px of a screen edge never count as swipes, because those belong to the element or to the phone's own back gesture. The sheet follows the finger at most 28px.
+- List rows a person can delete also delete with a left drag (`shared/motion/SwipeToDelete.tsx`). Past a third of the width it slides away and the usual 復原 note appears; short of that it springs back. Desktop keeps the trash button.
+- Gestures are touch-only. Mouse and pen never trigger them, so desktop and stylus writing behave as before.

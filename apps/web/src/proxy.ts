@@ -2,8 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import './server/env'
 
-/** Pages anyone may open without signing in. */
-const PUBLIC = ['/login', '/auth/']
+/** Pages anyone may open without signing in (and `/`, the product page). */
+const PUBLIC = ['/welcome', '/login', '/auth/', '/privacy', '/terms', '/manifest.webmanifest']
 
 /**
  * With sign-in on: keeps the Supabase session cookie fresh on every request (server
@@ -28,7 +28,7 @@ export async function proxy(request: NextRequest) {
   })
   const { data } = await supabase.auth.getClaims()
   const path = request.nextUrl.pathname
-  if (!data?.claims && !PUBLIC.some((p) => path === p || path.startsWith(p))) {
+  if (!data?.claims && path !== '/' && !PUBLIC.some((p) => path === p || path.startsWith(p))) {
     if (path.startsWith('/api/')) return new NextResponse('Sign in first', { status: 401 })
     const login = request.nextUrl.clone()
     login.pathname = '/login'
@@ -40,5 +40,5 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // Everything except Next's own files and static assets.
-  matcher: ['/((?!_next/static|_next/image|icon.svg|favicon.ico|fonts/|.*\\.(?:png|jpg|jpeg|svg|webp|woff2?)$).*)'],
+  matcher: ['/((?!_next/static|_next/image|icon.svg|favicon.ico|fonts/|icons/|sw\\.js|offline\\.html|.*\\.(?:png|jpg|jpeg|svg|webp|woff2?)$).*)'],
 }

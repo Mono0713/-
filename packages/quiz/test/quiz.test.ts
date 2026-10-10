@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest'
 import type { DraftQuestion } from '@exam/core'
-import { answerKind, buildItems, displayLabel, grade, gradeItem, isOver, matches, PostgresQuizStore, SqliteQuizStore, summarize, toQuizLabels, type QuizSettings, type QuizStore } from '../src/index.ts'
+import { answerKind, buildItems, displayLabel, grade, gradeItem, groupRange, inOtherLanguage, isOver, matches, needsTeacher, PostgresQuizStore, SqliteQuizStore, summarize, toQuizLabels, type QuizSettings, type QuizStore } from '../src/index.ts'
 import { testDatabase } from '@exam/db'
 
 function q(overrides: Partial<DraftQuestion> = {}): DraftQuestion {
@@ -85,6 +85,35 @@ describe('answerKind', () => {
     expect(answerKind(q({ type: 'calculation', options: [] }))).toEqual({ kind: 'text' })
     expect(answerKind(q({ type: 'single_choice', options: [] }))).toEqual({ kind: 'text' })
   })
+
+  it('answers matching by picking one label per item', () => {
+    expect(answerKind(q({ type: 'matching', answer: { values: ['C', 'A'], source: 'printed' } }))).toEqual({ kind: 'blanks', count: 2, figureBlanks: 0, pick: true })
+    // without a key, one item per numbered line of the stem
+    const stem = '配合下列各題：\n1. 光合作用\n(2) 呼吸作用\n3、發酵'
+    expect(answerKind(q({ type: 'matching', stem, answer: { values: [], source: 'none' } }))).toEqual({ kind: 'blanks', count: 3, figureBlanks: 0, pick: true })
+  })
+
+  it('fills blanks from a list of labels by picking, labels may repeat', () => {
+    const bank = ['A', 'B', 'C', 'D', 'E'].map((label) => ({ label, content: `word ${label}` }))
+    const fill = q({ type: 'fill_in_blank', stem: 'Th1: (1)____ (2)____ Th2: (3)____', options: bank, points: 3, answer: { values: ['C', 'C', 'A'], source: 'printed' } })
+    expect(answerKind(fill)).toEqual({ kind: 'blanks', count: 3, figureBlanks: 0, pick: true })
+    expect(grade(fill, { values: ['C', 'C', 'B'] })).toEqual({ status: 'partial', score: 2, max: 3 })
+    // blanks on a figure are picked there
+    const blank = (label: string) => ({ label, bbox: { x: 0, y: 0, width: 0.1, height: 0.1 }, ink: null, printedText: null })
+    const figure = { description: 'flow chart', bbox: { x: 0, y: 0, width: 1, height: 1 }, blanks: [blank('1'), blank('2')], pageNumber: 1, image: null }
+    expect(answerKind({ ...fill, answer: { values: ['A', 'B'], source: 'printed' }, figures: [figure] })).toEqual({ kind: 'blanks', count: 2, figureBlanks: 2, pick: true })
+    // a key that is not made of labels is typed; a key hidden until the answer is shown is still picked
+    expect(answerKind({ ...fill, answer: { values: ['IL-4'], source: 'printed' } })).toEqual({ kind: 'blanks', count: 1, figureBlanks: 0 })
+    expect(answerKind({ ...fill, answer: { values: ['', '', ''], source: 'none' } })).toEqual({ kind: 'blanks', count: 3, figureBlanks: 0, pick: true })
+  })
+
+  it('marks picked matching items, also with shuffled labels', () => {
+    const match = q({ type: 'matching', points: 3, answer: { values: ['C', 'A', 'B'], source: 'printed' } })
+    expect(grade(match, { values: ['C', 'A', 'D'] })).toEqual({ status: 'partial', score: 2, max: 3 })
+    const [item] = buildItems([{ questionId: 'q', question: match, group: null }], { ...settings, shuffleOptions: true }, sequence(0))
+    const shown = match.answer.values.map((v) => toQuizLabels(item!, v))
+    expect(gradeItem(item!, { values: shown }).status).toBe('correct')
+  })
 })
 
 describe('buildItems', () => {
@@ -93,6 +122,13 @@ describe('buildItems', () => {
     question,
     group: null,
   }))
+
+  it('never shuffles a word box (選詞填空), printed once for all its sentences', () => {
+    const box = [{ label: 'A', content: 'x' }, { label: 'B', content: 'y' }]
+    const [item] = buildItems([{ questionId: 'w', question: sources[1]!.question, group: { stem: '', figures: [], options: box } }], { ...settings, shuffleOptions: true }, sequence(0, 0))
+    expect(item!.displayLabels).toEqual(['A', 'B'])
+    expect(item!.optionOrder).toEqual(['A', 'B'])
+  })
 
   it('keeps the paper order unless asked to shuffle', () => {
     const items = buildItems(sources, settings)
@@ -178,5 +214,88 @@ describe.each(stores)('%s', (_name, open) => {
     expect((await store.get(attempt.id))!.responses).toEqual([{ values: ['0'] }, { values: ['1'] }, { values: ['2'] }])
     expect(await store.update(attempt.id, () => null)).toMatchObject({ id: attempt.id })
     expect(await store.update('missing', (a) => a)).toBeNull()
+  })
+})
+
+describe('inOtherLanguage', () => {
+  const q = (stem: string, options: string[] = []) => ({ stem, options: options.map((content, i) => ({ label: String(i + 1), content })) })
+  it('offers a translation for English to a Chinese reader, and the other way round', () => {
+    expect(inOtherLanguage(q('What are euchromatin and heterochromatin?'), 'zh-Hant')).toBe(true)
+    expect(inOtherLanguage(q('什麼是表觀遺傳？'), 'zh-Hant')).toBe(false)
+    expect(inOtherLanguage(q('什麼是表觀遺傳？'), 'en')).toBe(true)
+    expect(inOtherLanguage(q('What is DNA?'), 'en')).toBe(false)
+  })
+  it('ignores formulas and single letters', () => {
+    expect(inOtherLanguage(q('計算 $\\sin x + \\cos x$', ['$x = 1$', '$x = 2$']), 'zh-Hant')).toBe(false)
+    expect(inOtherLanguage(q('$2x + 3 = 7$'), 'zh-Hant')).toBe(false)
+  })
+})
+
+describe('writing practice', () => {
+  const writing = q({ type: 'writing', options: [], points: 3, answer: { values: ['永', '春天'], source: 'printed' } })
+
+  it('practises each character on its own row, written by hand only', () => {
+    expect(answerKind(writing)).toEqual({ kind: 'writing', rows: ['永', '春', '天'] })
+  })
+
+  it('waits for the handwriting to be read, then counts the rows written right', () => {
+    const ink = { strokes: [{ points: [[0.1, 0.1, 0.5]] as [number, number, number][], color: '#000', size: 0.004 }], height: 0.4 }
+    expect(grade(writing, { values: [], handwriting: ink }).status).toBe('pending')
+    expect(grade(writing, { values: ['永永永', '春春', '天'] })).toEqual({ status: 'correct', score: 3, max: 3 })
+    expect(grade(writing, { values: ['永?永', '春', ''] })).toEqual({ status: 'partial', score: 1, max: 3 })
+    expect(grade(writing, { values: ['?', '', '夫'] }).status).toBe('wrong')
+  })
+})
+
+describe('reading passages', () => {
+  const passage = { stem: 'A long passage', figures: [] }
+  const sources = [
+    { questionId: 'a', question: q({ number: '1' }), group: null },
+    { questionId: 'b', question: q({ number: '2', groupId: 'g1' }), group: passage },
+    { questionId: 'c', question: q({ number: '3', groupId: 'g1' }), group: passage },
+    { questionId: 'd', question: q({ number: '4', groupId: 'g1' }), group: passage },
+    { questionId: 'e', question: q({ number: '5' }), group: null },
+  ]
+
+  it('keeps a passage and its questions together when shuffling', () => {
+    for (const r of [0, 0.3, 0.6, 0.9]) {
+      const ids = buildItems(sources, { ...settings, shuffleQuestions: true }, sequence(r, 0.1, 0.7)).map((i) => i.questionId).join('')
+      expect(ids).toContain('bcd')
+    }
+  })
+
+  it('finds the questions sharing a passage', () => {
+    expect(groupRange(sources, 2)).toEqual([1, 3])
+    expect(groupRange(sources, 0)).toBeNull()
+  })
+})
+
+describe('multiple choice partial credit', () => {
+  const multi = q({ type: 'multiple_choice', points: 5, options: ['A', 'B', 'C', 'D', 'E'].map((label) => ({ label, content: label })), answer: { values: ['A', 'C'], source: 'printed' } })
+
+  it('takes 2/n of the points for each option picked wrongly or missed', () => {
+    expect(grade(multi, { values: ['A', 'C'] }, null, true)).toEqual({ status: 'correct', score: 5, max: 5 })
+    expect(grade(multi, { values: ['A'] }, null, true)).toEqual({ status: 'partial', score: 3, max: 5 })
+    expect(grade(multi, { values: ['A', 'B'] }, null, true)).toEqual({ status: 'partial', score: 1, max: 5 })
+    expect(grade(multi, { values: ['B', 'D', 'E'] }, null, true)).toEqual({ status: 'wrong', score: 0, max: 5 })
+    expect(grade(multi, { values: ['A'] })).toEqual({ status: 'wrong', score: 0, max: 5 })
+  })
+
+  it('applies only when the quiz asks for it', () => {
+    const [on] = buildItems([{ questionId: 'm', question: multi, group: null }], { ...settings, multiplePartial: true })
+    const [off] = buildItems([{ questionId: 'm', question: multi, group: null }], settings)
+    expect(gradeItem(on!, { values: ['A'] }).score).toBe(3)
+    expect(gradeItem(off!, { values: ['A'] }).score).toBe(0)
+  })
+})
+
+describe('marking rules', () => {
+  it('sends an answer the key calls wrong to the teacher when the paper has a marking rule', () => {
+    const calc = q({ type: 'fill_in_blank', options: [], answer: { values: ['156'], source: 'printed' } })
+    const [item] = buildItems([{ questionId: 'q', question: calc, group: null }], settings)
+    expect(needsTeacher(item!, { values: ['150'] }, null)).toBe(false)
+    const [ruled] = buildItems([{ questionId: 'q', question: { ...calc, markingRule: '列式 1 分，答案 1 分' }, group: null }], settings)
+    expect(needsTeacher(ruled!, { values: ['150'] }, null)).toBe(true)
+    expect(needsTeacher(ruled!, { values: ['156'] }, null)).toBe(false)
   })
 })

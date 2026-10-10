@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DraftQuestion } from '@exam/core'
-import { buildItems, grade, needsTeacher, sameMath } from '../src/index.ts'
+import { buildItems, grade, matches, needsTeacher, sameMath, withinTolerance } from '../src/index.ts'
 
 describe('sameMath', () => {
   it('accepts every way of writing the same number', () => {
@@ -91,5 +91,25 @@ describe('grade with equivalent answers and markings', () => {
     expect(needsTeacher(number!, { values: ['8 million'] }, null)).toBe(true)
     expect(needsTeacher(calc!, { values: ['41'] }, null)).toBe(false)
     expect(needsTeacher(calc!, { values: ['x = 6 × 7, so 42 apples'] }, null)).toBe(true)
+  })
+})
+
+describe('withinTolerance', () => {
+  it('accepts a number inside a ± or ~ range, with or without the unit', () => {
+    expect(withinTolerance('98 ± 2', '97')).toBe(true)
+    expect(withinTolerance('98 ± 2 %', '99.5%')).toBe(true)
+    expect(withinTolerance('$75 \\pm 3$', '78')).toBe(true)
+    expect(withinTolerance('98 ± 2', '95')).toBe(false)
+    expect(withinTolerance('43 ~ 47 mmHg', '45 mmHg')).toBe(true)
+    expect(withinTolerance('43～47', '48')).toBe(false)
+    expect(withinTolerance('0.5 到 0.7', '0.6')).toBe(true)
+    // not a range: left to the other rules
+    expect(withinTolerance('45', '45')).toBe(false)
+    expect(withinTolerance('increase', '45')).toBe(false)
+  })
+
+  it('counts in marking', () => {
+    expect(matches('98 ± 2', '96.5')).toBe(true)
+    expect(matches('98 ± 2', 'about 90')).toBe(false)
   })
 })

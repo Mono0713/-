@@ -1,47 +1,34 @@
 'use client'
 
 import { untangleBoxes, type DraftQuestion } from '@exam/core'
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
-import { fileUrl } from '@/shared/files'
-import { IconChevronLeft, IconChevronRight, IconExternal, IconLoader, IconMinus, IconPlus } from '@/shared/icons'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { PageBadge, PageControls, pill, usePageControls, ZOOMS } from '@/shared/PageControls'
+import { useT } from '@/shared/i18n/client'
+import { IconCrop, IconExternal, IconLoader, IconPageOrder, IconPlus } from '@/shared/icons'
+import { clamp, GRIPS, type Box } from './boxGeometry'
+import { FramingBar } from './FramingBar'
+import { PageCropper } from './PageCropper'
+import { PageOrderGrid } from './PageOrderGrid'
+import { useBoxEditing } from './useBoxEditing'
+import type { Framing } from './useFigureFraming'
+import { pageUrl, type Cropping, type SourcePage } from './usePageCrops'
+import type { Arranging } from './usePageOrder'
 
-const ZOOMS = [1, 1.25, 1.5, 2, 2.5]
-
-type Box = DraftQuestion['locations'][number]['bbox']
-/** What a press on the selected box changes: the whole box, or the edges named (n s e w). */
-type Grip = 'move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
-const GRIPS: { grip: Grip; className: string }[] = [
-  { grip: 'n', className: '-top-1 inset-x-2 h-2 cursor-ns-resize' },
-  { grip: 's', className: '-bottom-1 inset-x-2 h-2 cursor-ns-resize' },
-  { grip: 'w', className: '-left-1 inset-y-2 w-2 cursor-ew-resize' },
-  { grip: 'e', className: '-right-1 inset-y-2 w-2 cursor-ew-resize' },
-  // corners: an invisible 14px target
-  { grip: 'nw', className: '-left-[7px] -top-[7px] cursor-nwse-resize' },
-  { grip: 'ne', className: '-right-[7px] -top-[7px] cursor-nesw-resize' },
-  { grip: 'sw', className: '-bottom-[7px] -left-[7px] cursor-nesw-resize' },
-  { grip: 'se', className: '-bottom-[7px] -right-[7px] cursor-nwse-resize' },
-]
-const MIN = 0.012
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
-
-/** The box after a grip moved by (dx, dy), as fractions of the page; it never leaves the page or turns inside out. */
-function dragged(b: Box, grip: Grip, dx: number, dy: number): Box {
-  if (grip === 'move') return { ...b, x: clamp(b.x + dx, 0, 1 - b.width), y: clamp(b.y + dy, 0, 1 - b.height) }
-  let { x, y } = b
-  let right = b.x + b.width
-  let bottom = b.y + b.height
-  if (grip.includes('n')) y = clamp(y + dy, 0, bottom - MIN)
-  if (grip.includes('s')) bottom = clamp(bottom + dy, y + MIN, 1)
-  if (grip.includes('w')) x = clamp(x + dx, 0, right - MIN)
-  if (grip.includes('e')) right = clamp(right + dx, x + MIN, 1)
-  return { x, y, width: right - x, height: bottom - y }
-}
+// The box of a picture being framed, told apart from the questions' boxes.
+const FRAME = -1
+const spot = ({ x, y, width, height }: Box) => ({ left: `${x * 100}%`, top: `${y * 100}%`, width: `${width * 100}%`, height: `${height * 100}%` })
 
 /**
  * Every source page, one under the other, with a box around each question: the selected one is
  * highlighted and scrolled into view, clicking a box selects it. Page and zoom controls float
  * over the bottom of the pages, so the pages get all the room. The root is the scroll container
  * where the layout gives it a height (`className`); otherwise the pages flow with the window.
+ * While a picture is `framing`, the pages show only its box, the same box as a selected question's:
+ * moved and resized the same way, or drawn anew anywhere on a page. A selected question with no box
+ * yet (added by hand) gets one drawn on a page, or placed on the page in view. With `onCrop`, the
+ * controls cut the page in view again (`cropping`: that page shows its photo and the paper's outline).
+ * With `onArrange`, they put the pages in another order (`arranging`: the pages show small, to drag);
+ * `tools` are more buttons there (加入頁面).
  */
 export function PageViewer({
   pages,
@@ -49,22 +36,49 @@ export function PageViewer({
   selected,
   onSelect,
   onBoxChange,
+  framing,
+  cropping,
+  onCrop,
+  arranging,
+  onArrange,
+  tools,
   className = '',
 }: {
-  pages: { pageNumber: number; image: string }[]
+  pages: SourcePage[]
   questions: DraftQuestion[]
   selected: number | null
   onSelect: (index: number) => void
-  /** Given, the selected question's box can be moved and resized on the page. */
-  onBoxChange?: (index: number, location: number, bbox: Box) => void
+  /** Given, the selected question's box can be moved and resized, and dragged onto another page (`pageNumber`). */
+  onBoxChange?: (index: number, location: number, bbox: Box, pageNumber?: number) => void
+  framing?: Framing | null
+  cropping?: Cropping | null
+  onCrop?: (pageNumber: number) => void
+  arranging?: Arranging | null
+  onArrange?: () => void
+  tools?: ReactNode
   className?: string
 }) {
+  const t = useT()
   const scroller = useRef<HTMLDivElement>(null)
   const [zoom, setZoom] = useState(0)
   const [current, setCurrent] = useState(pages[0]?.pageNumber ?? 1)
   // Pages that have finished loading; until then each shows a page-shaped placeholder with a spinner.
   const [loaded, setLoaded] = useState<Record<number, 'ok' | 'error'>>({})
   const done = (pageNumber: number, state: 'ok' | 'error') => setLoaded((l) => (l[pageNumber] === state ? l : { ...l, [pageNumber]: state }))
+  // Boxes are outlined one by one once, when their page first shows. After that the class is dropped,
+  // so nothing that re-renders or remounts a box (editing it, reordering questions) replays the reveal.
+  const [revealed, setRevealed] = useState<Record<number, true>>({})
+  useEffect(() => {
+    const timers = Object.entries(loaded)
+      .filter(([n, state]) => state === 'ok' && !revealed[Number(n)])
+      .map(([n]) => {
+        const count = questions.reduce((c, q) => c + q.locations.filter((l) => l.pageNumber === Number(n)).length, 0)
+        return setTimeout(() => setRevealed((r) => ({ ...r, [n]: true })), 250 + count * 140 + 1400)
+      })
+    return () => timers.forEach(clearTimeout)
+    // counted when the page loads; later edits do not restart the wait
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded])
   // Boxes drawn over the start of the next question are trimmed where it begins.
   const boxes = useMemo(() => untangleBoxes(questions), [questions])
   const scrolls = () => {
@@ -105,30 +119,8 @@ export function PageViewer({
     return () => removeEventListener('scroll', onScroll)
   })
 
-  // The page controls fade to see-through when the pointer has been away from them for a moment,
-  // and come back as it nears them (or on any tap, for touch screens).
-  const controls = useRef<HTMLDivElement>(null)
-  const [idle, setIdle] = useState(false)
-  const idleTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const wake = () => {
-    setIdle(false)
-    clearTimeout(idleTimer.current)
-    idleTimer.current = setTimeout(() => {
-      if (!controls.current?.matches(':hover, :focus-within')) setIdle(true)
-    }, 2200)
-  }
-  useEffect(() => {
-    wake()
-    return () => clearTimeout(idleTimer.current)
-  }, [])
-  const nearControls = (e: ReactPointerEvent) => {
-    if (e.pointerType === 'touch') return wake()
-    const r = controls.current?.firstElementChild?.getBoundingClientRect()
-    if (!r) return
-    const dx = Math.max(r.left - e.clientX, 0, e.clientX - r.right)
-    const dy = Math.max(r.top - e.clientY, 0, e.clientY - r.bottom)
-    if (Math.hypot(dx, dy) < 90) wake()
-  }
+  const controlState = usePageControls()
+  const nearControls = controlState.near
 
   const goTo = (pageNumber: number) => {
     const el = scroller.current?.querySelector<HTMLElement>(`[data-page="${pageNumber}"]`)
@@ -181,43 +173,75 @@ export function PageViewer({
     setPanning(false)
   }
 
-  // The selected box: dragged by its body to move, by its edges and corners to resize.
-  const [live, setLive] = useState<{ index: number; location: number; bbox: Box } | null>(null)
-  const edit = useRef<{ index: number; location: number; grip: Grip; start: Box; x: number; y: number; w: number; h: number } | null>(null)
-  const startEdit = (e: ReactPointerEvent, index: number, location: number, bbox: Box, grip: Grip) => {
-    if (!onBoxChange || e.button !== 0) return
-    const page = (e.currentTarget as HTMLElement).closest('figure')?.getBoundingClientRect()
-    if (!page) return
-    e.stopPropagation() // not a pan
-    e.preventDefault()
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    edit.current = { index, location, grip, start: bbox, x: e.clientX, y: e.clientY, w: page.width, h: page.height }
+  const { live, carried, startEdit } = useBoxEditing({
+    scroller,
+    scrolls,
+    onBoxChange: framing ? (index, _location, bbox, pageNumber) => index === FRAME && framing.onChange(bbox, pageNumber ?? framing.pageNumber) : onBoxChange,
+  })
+  // Each picture framed comes into view once.
+  useEffect(() => {
+    if (framing) requestAnimationFrame(() => scroller.current?.querySelector('[data-frame]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [framing?.id])
+  const frameLive = live?.index === FRAME ? live : null
+  // The selected question has no box yet: a press on a page draws one, or the bar places one.
+  const boxless = !framing && !cropping && onBoxChange && selected !== null && questions[selected]?.locations.length === 0 ? selected : null
+  const drawLive = boxless !== null && live?.index === boxless ? live : null
+  const placeBox = () => {
+    if (boxless === null) return
+    const r = scroller.current?.querySelector<HTMLElement>(`figure[data-page="${current}"]`)?.getBoundingClientRect()
+    const view = scrolls() ? scroller.current!.getBoundingClientRect() : { top: 0, bottom: innerHeight }
+    // across the middle of what shows of the page
+    const middle = r ? ((view.top + view.bottom) / 2 - r.top) / r.height : 0.15
+    onBoxChange!(boxless, 0, { x: 0.08, y: clamp(middle - 0.05, 0, 0.9), width: 0.84, height: 0.1 }, current)
   }
-  const moveEdit = (e: ReactPointerEvent) => {
-    const d = edit.current
-    if (!d) return
-    e.stopPropagation()
-    setLive({ index: d.index, location: d.location, bbox: dragged(d.start, d.grip, (e.clientX - d.x) / d.w, (e.clientY - d.y) / d.h) })
-  }
-  const endEdit = (e: ReactPointerEvent) => {
-    const d = edit.current
-    if (!d) return
-    e.stopPropagation()
-    edit.current = null
-    const bbox = dragged(d.start, d.grip, (e.clientX - d.x) / d.w, (e.clientY - d.y) / d.h)
-    setLive(null)
-    if (Math.abs(bbox.x - d.start.x) + Math.abs(bbox.y - d.start.y) + Math.abs(bbox.width - d.start.width) + Math.abs(bbox.height - d.start.height) > 0.001) onBoxChange?.(d.index, d.location, bbox)
-  }
-  const editHandlers = { onPointerMove: moveEdit, onPointerUp: endEdit, onPointerCancel: endEdit }
 
   if (!pages.length) return null
+  if (arranging)
+    return (
+      <div className={`relative flex flex-col ${className}`}>
+        <FramingBar
+          hint={arranging.note ?? t('拖曳頁面排好順序，題目會跟著頁面重排。')}
+          busy={arranging.busy}
+          onApply={arranging.onApply}
+          onCancel={arranging.onCancel}
+        />
+        <PageOrderGrid pages={pages} order={arranging.order} onChange={arranging.onChange} />
+      </div>
+    )
   const scale = ZOOMS[zoom]!
   const index = Math.max(0, pages.findIndex((p) => p.pageNumber === current))
-  const pill = 'm-press grid h-8 w-8 place-items-center rounded-full hover:bg-white/15 disabled:opacity-35 disabled:hover:bg-transparent'
 
   return (
     // A column, so the controls sit at the bottom of the viewer even before the pages fill it.
     <div ref={scroller} onScroll={onScroll} onPointerMove={nearControls} onPointerDown={nearControls} className={`relative flex flex-col ${className}`}>
+      {framing && <FramingBar hint={t('拖曳框線調整圖片範圍，或在頁面上重畫一個框。')} onApply={framing.onApply} onCancel={framing.onCancel} />}
+      {cropping && (
+        <FramingBar
+          hint={cropping.note ?? t('拖曳四個角或四條邊對齊考卷，套用後自動拉正。')}
+          busy={cropping.busy}
+          extra={
+            <>
+              <button type="button" onClick={cropping.onAuto} disabled={cropping.busy} className="m-press h-8 shrink-0 rounded-full px-3 hover:bg-white/15">
+                {t('自動')}
+              </button>
+              <button type="button" onClick={cropping.onFull} disabled={cropping.busy} className="m-press h-8 shrink-0 rounded-full px-3 hover:bg-white/15">
+                {t('整張')}
+              </button>
+            </>
+          }
+          onApply={cropping.onApply}
+          onCancel={cropping.onCancel}
+        />
+      )}
+      {boxless !== null && (
+        <FramingBar
+          hint={t('第 {n} 題還沒有框：在頁面上拖曳畫一個。', { n: questions[boxless]!.number })}
+          apply={t('放一個框')}
+          icon={<IconPlus size={14} strokeWidth={2.6} />}
+          onApply={placeBox}
+        />
+      )}
       {/* Zoomed pages scroll sideways here on phones; wider screens scroll the whole viewer. */}
       <div ref={strip} className="flex-1 overflow-x-auto lg:overflow-visible">
         <div
@@ -229,135 +253,158 @@ export function PageViewer({
           onPointerCancel={endPan}
           onDragStart={(e) => zoom > 0 && e.preventDefault()}
         >
-          {pages.map((page) => (
-            <figure
-              key={page.pageNumber}
-              data-page={page.pageNumber}
-              className="group relative overflow-hidden rounded-lg bg-surface shadow-sheet"
-              // An A4-shaped page holds the place until the image arrives, so nothing jumps around much.
-              style={loaded[page.pageNumber] ? undefined : { aspectRatio: '1 / 1.414' }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                ref={(img) => {
-                  // A cached image may have loaded before React attached onLoad.
-                  if (img?.complete && img.naturalWidth) done(page.pageNumber, 'ok')
-                }}
-                src={fileUrl(page.image)}
-                alt={`第 ${page.pageNumber} 頁`}
-                onLoad={() => done(page.pageNumber, 'ok')}
-                onError={() => done(page.pageNumber, 'error')}
-                className={`block h-auto w-full transition-opacity duration-300 ${loaded[page.pageNumber] === 'ok' ? 'opacity-100' : 'absolute inset-0 opacity-0'}`}
-              />
-              {!loaded[page.pageNumber] && (
-                // The spinner sits in the upper part of the page, where it is in view.
-                <div className="absolute inset-0 flex justify-center pt-[38%]" role="status" aria-label={`第 ${page.pageNumber} 頁載入中`}>
-                  <div className="flex flex-col items-center gap-2 text-muted">
-                    <IconLoader size={26} className="m-spin text-accent" />
-                    <span className="text-xs">載入考卷中…</span>
+          {pages.map((page) =>
+            cropping?.pageNumber === page.pageNumber ? (
+              // the page being cut shows its photo as taken, with the paper's outline
+              <figure key={page.pageNumber} data-page={page.pageNumber} className="relative rounded-lg bg-surface shadow-sheet">
+                <PageCropper image={cropping.image} quad={cropping.quad} onChange={cropping.onChange} />
+              </figure>
+            ) : (
+              <figure
+                key={page.pageNumber}
+                data-page={page.pageNumber}
+                className={`group relative overflow-hidden rounded-lg bg-surface shadow-sheet ${framing || boxless !== null ? 'cursor-crosshair' : ''}`}
+                // a press on the page (mouse or pen) draws the picture's box anew, or the box of a question without one
+                {...(framing && { onPointerDown: (e: ReactPointerEvent) => e.pointerType !== 'touch' && startEdit(e, FRAME, 0, framing.bbox, 'draw') })}
+                {...(boxless !== null && { onPointerDown: (e: ReactPointerEvent) => e.pointerType !== 'touch' && startEdit(e, boxless, 0, { x: 0, y: 0, width: 0, height: 0 }, 'draw') })}
+                // An A4-shaped page holds the place until the image arrives, so nothing jumps around much.
+                style={loaded[page.pageNumber] ? undefined : { aspectRatio: '1 / 1.414' }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  ref={(img) => {
+                    // A cached image may have loaded before React attached onLoad.
+                    if (img?.complete && img.naturalWidth) done(page.pageNumber, 'ok')
+                  }}
+                  src={pageUrl(page)}
+                  alt={t('第 {n} 頁', { n: page.pageNumber })}
+                  onLoad={() => done(page.pageNumber, 'ok')}
+                  onError={() => done(page.pageNumber, 'error')}
+                  className={`block h-auto w-full transition-opacity duration-300 ${loaded[page.pageNumber] === 'ok' ? 'opacity-100' : 'absolute inset-0 opacity-0'}`}
+                />
+                {!loaded[page.pageNumber] && (
+                  // The spinner sits in the upper part of the page, where it is in view.
+                  <div className="absolute inset-0 flex justify-center pt-[38%]" role="status" aria-label={t('第 {n} 頁載入中', { n: page.pageNumber })}>
+                    <div className="flex flex-col items-center gap-2 text-muted">
+                      <IconLoader size={26} className="m-spin text-accent" />
+                      <span className="text-xs">{t('載入考卷中…')}</span>
+                    </div>
                   </div>
-                </div>
-              )}
-              {loaded[page.pageNumber] === 'error' && (
-                <div className="absolute inset-0 grid place-items-center text-sm text-muted" role="alert">
-                  這一頁的圖片載入失敗
-                </div>
-              )}
-              {loaded[page.pageNumber] === 'ok' &&
-                boxes
-                  .flatMap((q, index) => q.locations.map((l, location) => ({ l, location, index })).filter(({ l }) => l.pageNumber === page.pageNumber))
-                  .map(({ l, location, index }, order) => {
-                    const box = live && live.index === index && live.location === location ? live.bbox : l.bbox
-                    const place = { '--i': order, left: `${box.x * 100}%`, top: `${box.y * 100}%`, width: `${box.width * 100}%`, height: `${box.height * 100}%` } as CSSProperties
-                    const editing = index === selected && !!onBoxChange
-                    // Every box is the same element whether or not it is selected, so selecting one never
-                    // remounts another and replays its reveal (m-found plays once, when the page shows).
-                    return (
-                      <div
-                        key={`${index}-${location}`}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`第 ${questions[index]!.number} 題`}
-                        aria-pressed={index === selected}
-                        data-q={index}
-                        style={place}
-                        onClick={() => index !== selected && onSelect(index)}
-                        onKeyDown={(e) => {
-                          if (e.key !== 'Enter' && e.key !== ' ') return
-                          e.preventDefault()
-                          onSelect(index)
-                        }}
-                        {...(editing && { onPointerDown: (e: ReactPointerEvent) => startEdit(e, index, location, l.bbox, 'move'), ...editHandlers })}
-                        className={`m-found absolute rounded-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${
-                          index === selected ? 'z-[1] bg-accent/15 ring-2 ring-accent' : 'cursor-pointer ring-1 ring-accent/0 hover:bg-accent/5 hover:ring-accent/40'
-                        } ${editing ? `touch-none ${live?.index === index ? 'cursor-grabbing' : 'cursor-move'}` : ''}`}
-                      >
-                        {/* invisible grab areas on the edges and corners; nothing drawn over the text */}
-                        {editing &&
-                          GRIPS.map(({ grip, className }) => (
-                            <span
-                              key={grip}
-                              aria-hidden
-                              onPointerDown={(e) => startEdit(e, index, location, l.bbox, grip)}
-                              {...editHandlers}
-                              className={`absolute ${className} ${grip.length === 2 ? 'h-3.5 w-3.5' : ''}`}
-                            />
-                          ))}
-                      </div>
+                )}
+                {loaded[page.pageNumber] === 'error' && (
+                  <div className="absolute inset-0 grid place-items-center text-sm text-muted" role="alert">
+                    {t('這一頁的圖片載入失敗')}
+                  </div>
+                )}
+                {loaded[page.pageNumber] === 'ok' && framing && (frameLive ? frameLive.pageNumber : framing.pageNumber) === page.pageNumber && (
+                  <div
+                    data-frame
+                    style={spot(frameLive ? frameLive.bbox : framing.bbox)}
+                    onPointerDown={(e) => startEdit(e, FRAME, 0, framing.bbox, 'move')}
+                    className={`absolute z-[1] touch-none rounded-sm bg-accent/15 ring-2 ring-accent ${frameLive ? 'cursor-grabbing' : 'cursor-move'}`}
+                  >
+                    {GRIPS.map(({ grip, className }) => (
+                      <span key={grip} aria-hidden onPointerDown={(e) => startEdit(e, FRAME, 0, framing.bbox, grip)} className={`absolute ${className} ${grip.length === 2 ? 'h-3.5 w-3.5' : ''}`} />
+                    ))}
+                  </div>
+                )}
+                {drawLive?.pageNumber === page.pageNumber && (
+                  <div
+                    style={spot(drawLive.bbox)}
+                    className="pointer-events-none absolute z-[1] rounded-sm bg-accent/15 ring-2 ring-accent"
+                  />
+                )}
+                {loaded[page.pageNumber] === 'ok' &&
+                  !framing &&
+                  boxes
+                    .flatMap((q, index) =>
+                      q.locations
+                        .map((l, location) => ({ l, location, index, moving: live !== null && live.index === index && live.location === location }))
+                        // a box being carried shows on the page under the pointer
+                        .filter(({ l, moving }) => (moving ? live!.pageNumber : l.pageNumber) === page.pageNumber),
                     )
-                  })}
-              {pages.length > 1 && (
-                <span className="num pointer-events-none absolute left-2 top-2 rounded-md bg-night/70 px-1.5 py-0.5 text-[11px] text-white backdrop-blur">{page.pageNumber}</span>
-              )}
-            </figure>
-          ))}
+                    .map(({ l, location, index, moving }, order) => {
+                      const box = moving ? live!.bbox : l.bbox
+                      const place = {
+                        '--i': order,
+                        left: `${box.x * 100}%`,
+                        top: `${box.y * 100}%`,
+                        width: `${box.width * 100}%`,
+                        height: `${box.height * 100}%`,
+                        ...((moving || carried.current.has(`${index}-${location}`)) && { animation: 'none' }),
+                      } as CSSProperties
+                      const editing = index === selected && !!onBoxChange
+                      // Every box is the same element whether or not it is selected, so selecting one never
+                      // remounts another and replays its reveal (m-found plays once, when the page shows).
+                      return (
+                        <div
+                          key={`${index}-${location}`}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={t('第 {n} 題', { n: questions[index]!.number })}
+                          aria-pressed={index === selected}
+                          data-q={index}
+                          style={place}
+                          onClick={() => index !== selected && onSelect(index)}
+                          onKeyDown={(e) => {
+                            if (e.key !== 'Enter' && e.key !== ' ') return
+                            e.preventDefault()
+                            onSelect(index)
+                          }}
+                          {...(editing && { onPointerDown: (e: ReactPointerEvent) => startEdit(e, index, location, l.bbox, 'move') })}
+                          className={`${revealed[page.pageNumber] ? '' : 'm-found'} absolute rounded-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-accent ${
+                            index === selected ? 'z-[1] bg-accent/15 ring-2 ring-accent' : 'cursor-pointer ring-1 ring-accent/0 hover:bg-accent/5 hover:ring-accent/40'
+                          } ${editing ? `touch-none ${live?.index === index ? 'cursor-grabbing' : 'cursor-move'}` : ''}`}
+                        >
+                          {/* invisible grab areas on the edges and corners; nothing drawn over the text */}
+                          {editing &&
+                            GRIPS.map(({ grip, className }) => (
+                              <span
+                                key={grip}
+                                aria-hidden
+                                onPointerDown={(e) => startEdit(e, index, location, l.bbox, grip)}
+                                className={`absolute ${className} ${grip.length === 2 ? 'h-3.5 w-3.5' : ''}`}
+                              />
+                            ))}
+                        </div>
+                      )
+                    })}
+                {pages.length > 1 && (
+                  <PageBadge n={page.pageNumber} />
+                )}
+              </figure>
+            ),
+          )}
         </div>
       </div>
 
       {/* Controls float over the bottom of the pages. */}
-      <div
-        ref={controls}
-        onPointerEnter={wake}
-        onPointerLeave={wake}
-        onFocus={wake}
-        className="pointer-events-none sticky bottom-3 left-0 z-10 flex justify-start pt-2 sm:justify-center"
-      >
-        <div
-          data-idle={idle || undefined}
-          className="pointer-events-auto flex translate-y-0 items-center transition-[opacity,translate] duration-300 data-[idle]:translate-y-1 data-[idle]:opacity-30 data-[idle]:duration-700"
-        >
-          <div className="flex items-center gap-0.5 rounded-full bg-night/85 px-1 py-1 text-xs text-white shadow-[0_10px_30px_-12px_rgb(22_24_43/0.6)] backdrop-blur-md">
-            {pages.length > 1 && (
-              <>
-                <button type="button" className={pill} onClick={() => goTo(pages[index - 1]!.pageNumber)} disabled={index === 0} aria-label="上一頁" title="上一頁">
-                  <IconChevronLeft size={15} />
-                </button>
-                <span className="num min-w-10 text-center tabular-nums" aria-live="polite">
-                  {current}
-                  <span className="text-white/50">/{pages.length}</span>
-                </span>
-                <button type="button" className={pill} onClick={() => goTo(pages[index + 1]!.pageNumber)} disabled={index === pages.length - 1} aria-label="下一頁" title="下一頁">
-                  <IconChevronRight size={15} />
-                </button>
-                <span className="mx-0.5 h-4 w-px bg-white/20" />
-              </>
+      <PageControls
+        state={controlState}
+        current={index + 1}
+        total={pages.length}
+        onPage={(n) => pages[n - 1] && goTo(pages[n - 1]!.pageNumber)}
+        zoom={zoom}
+        onZoom={setZoom}
+        extra={
+          <>
+            {onArrange && pages.length > 1 && !framing && !cropping && (
+              <button type="button" onClick={onArrange} className={pill} aria-label={t('調整頁面順序')} title={t('調整頁面順序')}>
+                <IconPageOrder size={14} />
+              </button>
             )}
-            <button type="button" className={pill} onClick={() => setZoom(Math.max(0, zoom - 1))} disabled={zoom === 0} aria-label="縮小" title="縮小">
-              <IconMinus size={14} />
-            </button>
-            <button type="button" onClick={() => setZoom(0)} className="num min-w-11 rounded-full py-1.5 text-center tabular-nums hover:bg-white/15" title="符合寬度">
-              {Math.round(scale * 100)}%
-            </button>
-            <button type="button" className={pill} onClick={() => setZoom(Math.min(ZOOMS.length - 1, zoom + 1))} disabled={zoom === ZOOMS.length - 1} aria-label="放大" title="放大">
-              <IconPlus size={14} />
-            </button>
-            <span className="mx-0.5 h-4 w-px bg-white/20" />
-            <a href={fileUrl(pages[index]!.image)} target="_blank" rel="noreferrer" className={pill} aria-label="在新分頁開啟這一頁" title="在新分頁開啟這一頁">
+            {!framing && !cropping && tools}
+            {onCrop && !framing && !cropping && (
+              <button type="button" onClick={() => onCrop(pages[index]!.pageNumber)} className={pill} aria-label={t('裁切並拉正這一頁')} title={t('裁切並拉正這一頁')}>
+                <IconCrop size={14} />
+              </button>
+            )}
+            <a href={pageUrl(pages[index]!)} target="_blank" rel="noreferrer" className={pill} aria-label={t('在新分頁開啟這一頁')} title={t('在新分頁開啟這一頁')}>
               <IconExternal size={14} />
             </a>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
     </div>
   )
 }

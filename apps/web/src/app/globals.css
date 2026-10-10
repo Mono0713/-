@@ -7,6 +7,8 @@
  * Every color is a token; dark mode redefines the tokens only.
  */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+/* The sidebar folded into a rail of icons (shared/chrome/rail.ts). */
+@custom-variant rail (&:where([data-sidebar='rail'], [data-sidebar='rail'] *));
 
 @theme {
   --font-sans: var(--font-body), 'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
@@ -245,13 +247,41 @@ h2 {
 
 /* The review workspace needs the whole screen for the exam and its questions;
    its own toolbar links back to the rest of the app. */
-body:has(.workspace) :is(.app-sidebar, .app-header) {
+body:has(.workspace) :is(.app-sidebar, .app-header, .app-bottomnav) {
   display: none;
 }
 
+/* Phones: room under the page for the bottom bar, and none of it while a quiz is being taken
+   (the quiz pins its own buttons there instead). */
+@media (max-width: 639.98px) {
+  body:has(.app-bottomnav) main {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  }
+  body:has(.quiz-play) .app-bottomnav {
+    display: none;
+  }
+  body:has(.quiz-play) main {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+}
+
 /* The sign-in page stands alone: nothing to navigate to before signing in. */
-body:has(.auth-screen) :is(.app-sidebar, .app-header) {
+body:has(.auth-screen) :is(.app-sidebar, .app-header, .app-bottomnav) {
   display: none;
+}
+
+/* The product page (features/landing) has its own header and uses the full width. */
+body:has(.landing) :is(.app-sidebar, .app-header, .app-bottomnav) {
+  display: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html:has(.landing) {
+    scroll-behavior: smooth;
+  }
+}
+body main:has(.landing) {
+  max-width: none;
+  padding: 0;
 }
 
 /* A formula being edited inside a text box: sits in the line like the rendered formula did. */
@@ -273,4 +303,237 @@ math-field.inline-formula {
 math-field.inline-formula::part(menu-toggle),
 math-field.inline-formula::part(virtual-keyboard-toggle) {
   display: none;
+}
+
+/* The on-screen math keyboard (phones and tablets) in the study-desk colors, light and dark. */
+body {
+  --keyboard-background: var(--color-paper);
+  --keyboard-border: var(--color-line);
+  --keyboard-accent-color: var(--color-accent);
+  --keyboard-toolbar-text: var(--color-muted);
+  --keyboard-toolbar-font-size: 14px;
+  --keyboard-toolbar-text-active: var(--color-accent);
+  --keyboard-toolbar-background-hover: var(--color-accent-soft);
+  --keyboard-toolbar-background-selected: transparent;
+  --keyboard-horizontal-rule: 1px solid var(--color-line);
+  --keycap-background: var(--color-surface);
+  --keycap-background-hover: var(--color-accent-soft);
+  --keycap-background-active: var(--color-accent);
+  --keycap-background-pressed: var(--color-accent);
+  --keycap-border: var(--color-line);
+  --keycap-border-bottom: var(--color-line);
+  --keycap-text: var(--color-ink);
+  --keycap-text-active: var(--color-on-accent);
+  --keycap-text-pressed: var(--color-on-accent);
+  --keycap-shift-text: var(--color-accent);
+  --keycap-shift-color: var(--color-accent);
+  --keycap-primary-background: var(--color-accent);
+  --keycap-primary-text: var(--color-on-accent);
+  --keycap-primary-background-hover: var(--color-accent-deep);
+  --keycap-secondary-background: color-mix(in srgb, var(--color-ink) 7%, var(--color-paper));
+  --keycap-secondary-background-hover: color-mix(in srgb, var(--color-ink) 12%, var(--color-paper));
+  --keycap-secondary-text: var(--color-ink);
+  --keycap-secondary-border: var(--color-line);
+  --keycap-secondary-border-bottom: var(--color-line);
+  --variant-panel-background: var(--color-surface);
+  --box-placeholder-color: var(--color-accent);
+}
+
+/* Korean breaks lines between words, not inside them. */
+:lang(ko) {
+  word-break: keep-all;
+}
+
+/* ---- The printed exam (features/sheet): A4 pages, always black ink on white paper, in both themes. ---- */
+.a4-page {
+  --color-ink: #111111;
+  --color-muted: #555555;
+  --color-line: #9a9a9a;
+  --color-paper: #f2f2f2;
+  --color-surface: #ffffff;
+  color-scheme: light;
+  box-sizing: border-box;
+  width: 210mm;
+  height: 297mm;
+  padding: 10mm 14mm 6mm;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background: #ffffff;
+  color: var(--color-ink);
+  font-size: 11pt;
+  line-height: 1.65;
+  box-shadow: var(--shadow-sheet);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.a4-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.a4-body > * {
+  flex-shrink: 0;
+}
+.a4-foot {
+  padding-top: 2mm;
+  text-align: center;
+  font-size: 8.5pt;
+  color: var(--color-muted);
+}
+.a4-page figure img {
+  max-height: 85mm;
+  width: auto;
+}
+/* on screen: a question can be picked; the picked one is outlined in ballpoint blue */
+.a4-block {
+  position: relative;
+  border-radius: 4px;
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+  transition: outline-color var(--m-fast, 140ms) ease-out;
+}
+.a4-block:hover {
+  outline-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
+}
+.a4-block[data-selected] {
+  outline-color: var(--color-accent);
+}
+.sheet-blank {
+  display: inline-block;
+  min-width: 5.5em;
+  height: 1.35em;
+  margin: 0 0.15em;
+  border-bottom: 1px solid currentColor;
+  text-align: center;
+  vertical-align: bottom;
+}
+.sheet-bracket {
+  display: inline-flex;
+  flex-shrink: 0;
+  justify-content: space-between;
+  gap: 0.2em;
+  min-width: 3.2em;
+}
+.sheet-bracket::before {
+  content: '(';
+}
+.sheet-bracket::after {
+  content: ')';
+}
+.sheet-key {
+  color: #d63a2f;
+  font-family: var(--font-hand);
+}
+.sheet-ruled {
+  background-image: linear-gradient(transparent calc(2em - 1px), #b5b5b5 calc(2em - 1px));
+  background-size: 100% 2em;
+}
+.sheet-square {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4em;
+  height: 2.4em;
+  margin-left: -1px;
+  border: 1px solid #777;
+  color: #c8c8c8;
+  font-family: var(--font-hand);
+  font-size: 1.15em;
+  background-image: linear-gradient(90deg, transparent calc(50% - 0.5px), #ddd calc(50% - 0.5px), #ddd calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    linear-gradient(transparent calc(50% - 0.5px), #ddd calc(50% - 0.5px), #ddd calc(50% + 0.5px), transparent calc(50% + 0.5px));
+}
+.sheet-figure-blank {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  height: 100%;
+  padding: 0 2px;
+  border: 1px solid #111;
+  background: #fff;
+  font-size: 7pt;
+  line-height: 1.2;
+}
+.sheet-score {
+  display: flex;
+  flex-shrink: 0;
+  width: 7.5em;
+  padding: 2px 6px;
+  border: 1.5px solid currentColor;
+}
+.sheet-rule {
+  border-top: 3px double currentColor;
+}
+.sheet-passage {
+  padding: 2.5mm 3.5mm;
+  border: 1px solid var(--color-line);
+}
+/* 匯出 PDF: only the pages print, one per sheet of paper, edge to edge (they carry their own margins) */
+.a4-print {
+  display: none;
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  html,
+  body {
+    background: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body > :not(.a4-print) {
+    display: none !important;
+  }
+  .a4-print {
+    display: block;
+  }
+  .a4-print .a4-page {
+    box-shadow: none;
+    break-after: page;
+  }
+  .a4-print .a4-page:last-child {
+    break-after: auto;
+  }
+}
+/* the bottom edge of a question's own box on the preview: drag it to make the answer room taller or shorter.
+   It sits on the box's outline (3px below the question) and shows only with that outline. */
+.sheet-grip {
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  bottom: calc(-3px - 0.45em);
+  z-index: 1;
+  cursor: ns-resize;
+  touch-action: none;
+}
+.sheet-grip::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2.4em;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  opacity: 0;
+  transform: translate(-50%, -50%);
+  transition: opacity var(--m-fast, 140ms) ease-out;
+}
+.a4-block:hover .sheet-grip::after,
+.a4-block[data-selected] .sheet-grip::after,
+.sheet-room-active .sheet-grip::after {
+  opacity: 1;
+}
+/* while dragged, the question's own box stays outlined */
+.a4-block:has(.sheet-room-active) {
+  outline-color: var(--color-accent);
+}
+@media print {
+  .sheet-grip {
+    display: none;
+  }
 }
