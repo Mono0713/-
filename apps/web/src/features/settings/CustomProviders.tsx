@@ -1,14 +1,14 @@
 'use client'
 
-import { TIERS, type Tier } from '@exam/models'
-import { useState, useTransition } from 'react'
+import { guessVision, TIERS, type Tier } from '@exam/models'
+import { useRef, useState, useTransition } from 'react'
 import { msg } from '@/shared/i18n/format'
 import { useT } from '@/shared/i18n/client'
 import { IconPlus, IconRefresh, IconX } from '@/shared/icons'
 import { Listbox } from '@/shared/Listbox'
 import { useRemoval } from '@/shared/removal'
 import { Button, inputBase, inputClass } from '@/shared/ui'
-import { addCustomProvider, refreshModels, removeCustomProvider, saveCustomModels } from './actions'
+import { addCustomProvider, detectVision, refreshModels, removeCustomProvider, saveCustomModels } from './actions'
 import { ApiKeys, type SavedKey } from './ApiKeys'
 import { TIER_LABELS } from './strengths'
 
@@ -102,9 +102,27 @@ export function CustomService({ provider: p }: { provider: CustomProviderView })
   const [message, setMessage] = useState<{ tone: 'good' | 'bad'; text: string } | null>(null)
   const [pending, start] = useTransition()
   const { remove } = useRemoval()
+  const [checking, setChecking] = useState<string[]>([])
+  // The list as last committed, for answers that arrive after other edits.
+  const latest = useRef(models)
   const commit = (next: CustomModel[]) => {
+    latest.current = next
     setModels(next)
     start(async () => void (await saveCustomModels(p.id, next)))
+  }
+  /** Adds a model with 看得懂圖 set from its name, or, when the name doesn't say, from a small test call. */
+  const addModel = (id: string) => {
+    const guess = guessVision(id)
+    commit([...latest.current, { id, tier: 'balanced', vision: guess ?? true, price: null }])
+    if (guess !== null) return
+    setChecking((ids) => [...ids, id])
+    void detectVision(p.id, id).then(({ vision }) => {
+      setChecking((ids) => ids.filter((x) => x !== id))
+      if (!latest.current.some((m) => m.id === id)) return
+      if (vision === null) return setMessage({ tone: 'bad', text: t('{model}：試不出看不看得懂圖，請自己確認「看得懂圖」。', { model: id }) })
+      commit(latest.current.map((m) => (m.id === id ? { ...m, vision } : m)))
+      setMessage({ tone: 'good', text: vision ? t('{model} 看得懂圖。', { model: id }) : t('{model} 看不懂圖，已關掉「看得懂圖」。', { model: id }) })
+    })
   }
   const change = (i: number, patch: Partial<CustomModel>) => commit(models.map((m, j) => (j === i ? { ...m, ...patch } : m)))
   const addable = p.known.filter((id) => !models.some((m) => m.id === id))
@@ -141,8 +159,8 @@ export function CustomService({ provider: p }: { provider: CustomProviderView })
                 </button>
                 <span className="flex basis-full flex-wrap items-center gap-x-3 gap-y-2 sm:basis-auto">
                   <label className="flex items-center gap-1.5 text-xs text-muted" title={t('勾了才會拿來讀考卷、手寫和有圖的題目')}>
-                    <input type="checkbox" className="m-check" checked={m.vision} onChange={(e) => change(i, { vision: e.target.checked })} />
-                    {t('看得懂圖')}
+                    <input type="checkbox" className="m-check" checked={m.vision} disabled={checking.includes(m.id)} onChange={(e) => change(i, { vision: e.target.checked })} />
+                    {checking.includes(m.id) ? t('判斷看不看得懂圖…') : t('看得懂圖')}
                   </label>
                   <select value={m.tier} onChange={(e) => change(i, { tier: e.target.value as Tier })} className={`${inputBase} py-1 text-xs`} aria-label={t('{model} 在自動時算哪一級', { model: m.id })} title={t('一鍵套用選這一級時，自動會挑它')}>
                     {TIERS.map((tier) => (
@@ -160,9 +178,9 @@ export function CustomService({ provider: p }: { provider: CustomProviderView })
           <p className="rounded-lg bg-ink/[0.035] px-3 py-2 text-sm text-muted">{t('還沒有加入模型。加入後就能在下面選它。')}</p>
         )}
         <div className="mt-2">
-          <AddModel known={addable} onAdd={(id) => commit([...models, { id, tier: 'balanced', vision: true, price: null }])} />
+          <AddModel known={addable} onAdd={addModel} />
         </div>
-        <p className="mt-2 text-xs text-muted">{t('「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。')}</p>
+        <p className="mt-2 text-xs text-muted">{t('「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目，加入時會自動判斷。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。')}</p>
       </div>
       {message && <p className={`text-sm ${message.tone === 'good' ? 'text-good' : 'text-bad'}`}>{message.text}</p>}
       <div>

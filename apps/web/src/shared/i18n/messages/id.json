@@ -1151,7 +1151,6 @@
   "{model} 在自動時算哪一級": "Tingkat {model} saat Otomatis",
   "一鍵套用選這一級時，自動會挑它": "Otomatis memilihnya saat Terapkan ke semua di tingkat ini",
   "還沒有加入模型。加入後就能在下面選它。": "Belum ada model. Tambahkan agar bisa dipilih di bawah.",
-  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Hanya model “Bisa membaca gambar” yang membaca lembar ujian, tulisan tangan, dan soal bergambar. Tingkat menentukan pilihan Otomatis saat Terapkan ke semua. Harga (US$ per juta token) opsional, hanya untuk perkiraan.",
   "移除這個服務": "Hapus layanan ini",
   "本月約 {usd}（不含沒填價格的模型）": "Sekitar {usd} bulan ini (tanpa model yang belum diberi harga)",
   "本月約 {usd}": "Sekitar {usd} bulan ini",
@@ -1307,5 +1306,10 @@
   "ancient 是「古老的」，和 thousands of years ago 對得上。": "“Ancient” berarti “kuno”, cocok dengan “thousands of years ago”.",
   "先生讀作せんせい，意思是「老師」。": "先生 dibaca せんせい, artinya “guru”.",
   "{eq}，所以 x = 2 或 x = 3。": "{eq}, jadi x = 2 atau x = 3.",
-  "range(1, 4) 是 1、2、3，加起來是 6。": "range(1, 4) adalah 1, 2, 3, jumlahnya 6."
+  "range(1, 4) 是 1、2、3，加起來是 6。": "range(1, 4) adalah 1, 2, 3, jumlahnya 6.",
+  "{model}：試不出看不看得懂圖，請自己確認「看得懂圖」。": "{model}: tidak bisa dipastikan apakah bisa membaca gambar. Periksa “Bisa membaca gambar” sendiri.",
+  "{model} 看得懂圖。": "{model} bisa membaca gambar.",
+  "{model} 看不懂圖，已關掉「看得懂圖」。": "{model} tidak bisa membaca gambar, “Bisa membaca gambar” dimatikan.",
+  "判斷看不看得懂圖…": "Memeriksa gambar…",
+  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目，加入時會自動判斷。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Hanya model “Bisa membaca gambar” yang membaca lembar ujian, tulisan tangan, dan soal bergambar; ini diperiksa otomatis saat ditambahkan. Tingkat menentukan pilihan Otomatis saat Terapkan ke semua. Harga (US$ per juta token) opsional, hanya untuk perkiraan."
 }
