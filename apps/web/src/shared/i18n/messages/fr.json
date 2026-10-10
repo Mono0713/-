@@ -1151,7 +1151,6 @@
   "{model} 在自動時算哪一級": "Niveau de {model} en mode Auto",
   "一鍵套用選這一級時，自動會挑它": "Auto le choisit quand Appliquer à tout est réglé sur ce niveau",
   "還沒有加入模型。加入後就能在下面選它。": "Aucun modèle pour l’instant. Ajoutez-en un pour le choisir plus bas.",
-  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Seuls les modèles « Voit les images » lisent les copies, l’écriture manuscrite et les questions avec images. Le niveau décide ce que choisit Auto avec Appliquer à tout. Le prix (US$ par million de jetons) est facultatif et ne sert qu’aux estimations.",
   "移除這個服務": "Retirer ce service",
   "本月約 {usd}（不含沒填價格的模型）": "Environ {usd} ce mois-ci (hors modèles sans prix)",
   "本月約 {usd}": "Environ {usd} ce mois-ci",
@@ -1307,5 +1306,10 @@
   "ancient 是「古老的」，和 thousands of years ago 對得上。": "« Ancient » veut dire « ancien », ce qui va avec « thousands of years ago ».",
   "先生讀作せんせい，意思是「老師」。": "先生 se lit せんせい et veut dire « professeur ».",
   "{eq}，所以 x = 2 或 x = 3。": "{eq}, donc x = 2 ou x = 3.",
-  "range(1, 4) 是 1、2、3，加起來是 6。": "range(1, 4) donne 1, 2, 3, dont la somme fait 6."
+  "range(1, 4) 是 1、2、3，加起來是 6。": "range(1, 4) donne 1, 2, 3, dont la somme fait 6.",
+  "{model}：試不出看不看得懂圖，請自己確認「看得懂圖」。": "{model} : impossible de savoir s’il voit les images. Vérifiez « Voit les images » vous-même.",
+  "{model} 看得懂圖。": "{model} voit les images.",
+  "{model} 看不懂圖，已關掉「看得懂圖」。": "{model} ne voit pas les images, « Voit les images » est désactivé.",
+  "判斷看不看得懂圖…": "Vérification des images…",
+  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目，加入時會自動判斷。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Seuls les modèles « Voit les images » lisent les copies, l’écriture manuscrite et les questions avec images ; c’est vérifié automatiquement à l’ajout. Le niveau décide ce que choisit Auto avec Appliquer à tout. Le prix (US$ par million de jetons) est facultatif et ne sert qu’aux estimations."
 }

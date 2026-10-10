@@ -1,8 +1,8 @@
 'use server'
 
 import { randomBytes } from 'node:crypto'
-import { listModels } from '@exam/extraction'
-import { PICTURE_TASKS, type Strength, type Task, type Tier } from '@exam/models'
+import { listModels, probeVision } from '@exam/extraction'
+import { guessVision, PICTURE_TASKS, type Strength, type Task, type Tier } from '@exam/models'
 import { keySlots, keysOf, type CustomProvider, type Settings } from '@exam/settings'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
@@ -221,6 +221,24 @@ export async function saveCustomModels(id: string, models: { id: string; tier: T
   const s = await mine()
   const customProviders = s.customProviders.map((c) => (c.id === id ? { ...c, models: models.filter((m) => m.id.trim()).slice(0, 50) } : c))
   await save({ customProviders })
+}
+
+/**
+ * Whether a model added to a service of one's own reads pictures: from its name when the name says,
+ * otherwise by showing it a small picture with the service's key. null when neither can tell.
+ */
+export async function detectVision(id: string, model: string): Promise<{ vision: boolean | null; tested: boolean }> {
+  const guess = guessVision(model)
+  if (guess !== null) return { vision: guess, tested: false }
+  const custom = (await mine()).customProviders.find((c) => c.id === id)
+  if (!custom) return { vision: null, tested: false }
+  try {
+    const baseUrl = await checkServiceUrl(custom.baseUrl, authEnabled(), await getT())
+    const apiKey = await apiKeyOf(await currentOwner(), id)
+    return { vision: await probeVision({ baseUrl, apiKey, model }), tested: true }
+  } catch {
+    return { vision: null, tested: false }
+  }
 }
 
 /** Removes a service the person added, with its key and every choice that used it. */

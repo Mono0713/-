@@ -1151,7 +1151,6 @@
   "{model} 在自動時算哪一級": "{model} thuộc mức nào khi Tự động",
   "一鍵套用選這一級時，自動會挑它": "Tự động sẽ chọn nó khi Áp dụng cho tất cả ở mức này",
   "還沒有加入模型。加入後就能在下面選它。": "Chưa có mô hình nào. Thêm vào để chọn ở bên dưới.",
-  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Chỉ mô hình “Đọc được hình” mới đọc đề, chữ viết tay và câu hỏi có hình. Mức quyết định Tự động chọn gì khi Áp dụng cho tất cả. Giá (USD mỗi triệu token) không bắt buộc, chỉ dùng để ước tính.",
   "移除這個服務": "Xóa dịch vụ này",
   "本月約 {usd}（不含沒填價格的模型）": "Khoảng {usd} tháng này (không tính mô hình chưa có giá)",
   "本月約 {usd}": "Khoảng {usd} tháng này",
@@ -1307,5 +1306,10 @@
   "ancient 是「古老的」，和 thousands of years ago 對得上。": "“Ancient” nghĩa là “cổ xưa”, khớp với “thousands of years ago”.",
   "先生讀作せんせい，意思是「老師」。": "先生 đọc là せんせい, nghĩa là “giáo viên”.",
   "{eq}，所以 x = 2 或 x = 3。": "{eq}, nên x = 2 hoặc x = 3.",
-  "range(1, 4) 是 1、2、3，加起來是 6。": "range(1, 4) là 1, 2, 3, cộng lại bằng 6."
+  "range(1, 4) 是 1、2、3，加起來是 6。": "range(1, 4) là 1, 2, 3, cộng lại bằng 6.",
+  "{model}：試不出看不看得懂圖，請自己確認「看得懂圖」。": "{model}: không xác định được có đọc được hình không. Hãy tự kiểm tra “Đọc được hình”.",
+  "{model} 看得懂圖。": "{model} đọc được hình.",
+  "{model} 看不懂圖，已關掉「看得懂圖」。": "{model} không đọc được hình, đã tắt “Đọc được hình”.",
+  "判斷看不看得懂圖…": "Đang kiểm tra đọc hình…",
+  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目，加入時會自動判斷。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Chỉ mô hình “Đọc được hình” mới đọc đề, chữ viết tay và câu hỏi có hình; điều này được kiểm tra tự động khi thêm. Mức quyết định Tự động chọn gì khi Áp dụng cho tất cả. Giá (USD mỗi triệu token) không bắt buộc, chỉ dùng để ước tính."
 }

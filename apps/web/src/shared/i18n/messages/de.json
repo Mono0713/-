@@ -1151,7 +1151,6 @@
   "{model} 在自動時算哪一級": "Stufe von {model} bei Automatisch",
   "一鍵套用選這一級時，自動會挑它": "Automatisch wählt es, wenn „Für alle“ auf dieser Stufe steht",
   "還沒有加入模型。加入後就能在下面選它。": "Noch keine Modelle. Füge eines hinzu, um es unten zu wählen.",
-  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Nur Modelle mit „Erkennt Bilder“ lesen Prüfungsseiten, Handschrift und Fragen mit Bildern. Die Stufe bestimmt, was Automatisch bei „Für alle“ wählt. Der Preis (US$ pro Million Token) ist optional und dient nur der Schätzung.",
   "移除這個服務": "Diesen Dienst entfernen",
   "本月約 {usd}（不含沒填價格的模型）": "Etwa {usd} diesen Monat (ohne Modelle ohne Preis)",
   "本月約 {usd}": "Etwa {usd} diesen Monat",
@@ -1307,5 +1306,10 @@
   "ancient 是「古老的」，和 thousands of years ago 對得上。": "„Ancient“ heißt „uralt“ und passt zu „thousands of years ago“.",
   "先生讀作せんせい，意思是「老師」。": "先生 wird せんせい gelesen und heißt „Lehrer“.",
   "{eq}，所以 x = 2 或 x = 3。": "{eq}, also x = 2 oder x = 3.",
-  "range(1, 4) 是 1、2、3，加起來是 6。": "range(1, 4) ist 1, 2, 3, zusammen 6."
+  "range(1, 4) 是 1、2、3，加起來是 6。": "range(1, 4) ist 1, 2, 3, zusammen 6.",
+  "{model}：試不出看不看得懂圖，請自己確認「看得懂圖」。": "{model}: Es ließ sich nicht feststellen, ob es Bilder erkennt. Bitte „Erkennt Bilder“ selbst prüfen.",
+  "{model} 看得懂圖。": "{model} erkennt Bilder.",
+  "{model} 看不懂圖，已關掉「看得懂圖」。": "{model} erkennt keine Bilder, „Erkennt Bilder“ ist jetzt aus.",
+  "判斷看不看得懂圖…": "Bilderkennung wird geprüft…",
+  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目，加入時會自動判斷。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Nur Modelle mit „Erkennt Bilder“ lesen Prüfungsseiten, Handschrift und Fragen mit Bildern; das wird beim Hinzufügen automatisch geprüft. Die Stufe bestimmt, was Automatisch bei „Für alle“ wählt. Der Preis (US$ pro Million Token) ist optional und dient nur der Schätzung."
 }
