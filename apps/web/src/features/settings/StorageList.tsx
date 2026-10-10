@@ -12,6 +12,8 @@ export interface StorageRow {
   title: string
   bytes: number
   originals: number
+  /** Saved to the bank: deleting takes only its files, and the exam stays editable. */
+  inBank: boolean
 }
 
 /** Rows shown before 顯示全部, so a long history never makes the card long. */
@@ -27,7 +29,8 @@ export function StorageList({ rows }: { rows: StorageRow[] }) {
   const t = useT()
   const { remove, isRemoved } = useRemoval()
   const [all, setAll] = useState(false)
-  const shown = rows.filter((r) => !isRemoved(r.id))
+  // a saved exam whose files are gone keeps only its question pictures, which stay with it
+  const shown = rows.filter((r) => !isRemoved(r.id) && r.bytes + r.originals > 0)
   if (!shown.length) return null
   const visible = all ? shown : shown.slice(0, FIRST)
   return (
@@ -52,7 +55,7 @@ export function StorageList({ rows }: { rows: StorageRow[] }) {
               <span className="num w-16 shrink-0 text-right text-xs text-muted">{mb(r.bytes + originals)}</span>
               <button
                 type="button"
-                onClick={() => remove({ id: r.id, note: t('已刪除匯入，存進題庫的題目都還在'), commit: () => deleteImport(r.id) })}
+                onClick={() => remove({ id: r.id, note: r.inBank ? t('已刪除原卷檔案，題目還能繼續編輯') : t('已刪除匯入，存進題庫的題目都還在'), commit: () => deleteImport(r.id) })}
                 aria-label={t('刪除「{title}」', { title: r.title })}
                 className="m-press grid h-7 w-7 shrink-0 place-items-center rounded-md text-muted transition-colors hover:bg-bad-soft hover:text-bad"
               >

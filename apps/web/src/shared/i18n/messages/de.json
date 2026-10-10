@@ -5,7 +5,6 @@
   "未命名考卷": "Unbenannte Prüfung",
   "{n} 題": "Fragen: {n}",
   "共 {points} 分": "Gesamt: {points} Pkt.",
-  "看原始考卷": "Originalprüfung ansehen",
   "用這份考卷測驗": "Mit dieser Prüfung üben",
   "編輯這題": "Frage bearbeiten",
   "題庫": "Fragenbank",
@@ -1311,5 +1310,9 @@
   "{model} 看得懂圖。": "{model} erkennt Bilder.",
   "{model} 看不懂圖，已關掉「看得懂圖」。": "{model} erkennt keine Bilder, „Erkennt Bilder“ ist jetzt aus.",
   "判斷看不看得懂圖…": "Bilderkennung wird geprüft…",
-  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目，加入時會自動判斷。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Nur Modelle mit „Erkennt Bilder“ lesen Prüfungsseiten, Handschrift und Fragen mit Bildern; das wird beim Hinzufügen automatisch geprüft. Die Stufe bestimmt, was Automatisch bei „Für alle“ wählt. Der Preis (US$ pro Million Token) ist optional und dient nur der Schätzung."
+  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目，加入時會自動判斷。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Nur Modelle mit „Erkennt Bilder“ lesen Prüfungsseiten, Handschrift und Fragen mit Bildern; das wird beim Hinzufügen automatisch geprüft. Die Stufe bestimmt, was Automatisch bei „Für alle“ wählt. Der Preis (US$ pro Million Token) ist optional und dient nur der Schätzung.",
+  "原卷已刪除": "Original gelöscht",
+  "編輯考卷": "Prüfung bearbeiten",
+  "已刪除原卷檔案，題目還能繼續編輯": "Originaldateien gelöscht. Die Fragen lassen sich weiter bearbeiten.",
+  "刪除原卷檔案": "Originaldateien löschen"
 }

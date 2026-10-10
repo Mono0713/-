@@ -2,6 +2,7 @@ import { canTeach } from '@exam/classes'
 import { isWordBank } from '@exam/core'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { EditExamButton } from '@/features/bank/EditExamButton'
 import { ExamMetaForm } from '@/features/bank/ExamMetaForm'
 import { QuestionView } from '@/features/questions/QuestionView'
 import { ShareMenu } from '@/features/sharing/ShareMenu'
@@ -37,7 +38,7 @@ export default async function ExamPage({ params }: { params: Promise<{ id: strin
         subtitle={[exam.subject, t('{n} 題', { n: questions.length }), points ? t('共 {points} 分', { points }) : null].filter(Boolean).join(' · ')}
         actions={
           <>
-            {exam.importId && <ButtonLink href={`/imports/${exam.importId}`}>{t('看原始考卷')}</ButtonLink>}
+            <EditExamButton examId={exam.id} />
             {teaches && questions.length > 0 && <ButtonLink href={`/classes/assign?exam=${exam.id}`}>{t('派給班級')}</ButtonLink>}
             <ShareMenu examId={exam.id} initial={share && { token: share.token, answers: share.answers, allowCopy: share.allowCopy }} />
             <ButtonLink href={`/quiz/new?exam=${exam.id}`} variant="primary">

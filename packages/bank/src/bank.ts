@@ -1,7 +1,7 @@
 import type { DraftExam, DraftQuestion } from '@exam/core'
 import type { BankExam, BankQuestion, ExamPatch, ExamQuery, ImportRecord, NewExam, NewImport, QuestionQuery } from './types.ts'
 
-export type ImportPatch = Partial<Pick<ImportRecord, 'status' | 'progress' | 'error' | 'title' | 'subject' | 'provider' | 'model' | 'keepOriginal' | 'originalDeletedAt'>>
+export type ImportPatch = Partial<Pick<ImportRecord, 'status' | 'progress' | 'error' | 'title' | 'subject' | 'provider' | 'model' | 'keepOriginal' | 'originalDeletedAt' | 'pageCount'>>
 
 /**
  * Storage for imports, exams and questions. SqliteBank keeps them in a local file;
@@ -27,6 +27,8 @@ export interface Bank {
   createExam(ownerId: string, exam: NewExam): Promise<BankExam>
   /** The exam an import was saved as, if any. */
   examForImport(importId: string): Promise<BankExam | null>
+  /** Makes an import the exam's draft, so saving it replaces the exam's questions; for an exam whose upload is gone. */
+  linkImport(examId: string, importId: string): Promise<void>
   listExams(query: ExamQuery): Promise<BankExam[]>
   getExam(id: string): Promise<BankExam | null>
   updateExam(id: string, patch: ExamPatch): Promise<BankExam | null>
