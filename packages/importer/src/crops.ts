@@ -51,8 +51,27 @@ export class PageCrops {
       crops[page.pageNumber] = quad
       out.push({ ...page, data: flat.data, width: flat.width, height: flat.height, mimeType: 'image/png' })
     }
-    if (Object.keys(crops).length) await this.save(imp, crops)
+    // pages added later join the cuts already saved
+    if (Object.keys(crops).length) await this.save(imp, { ...(await this.read(imp)), ...crops })
     return out
+  }
+
+  /** Cuts and photos as taken follow the pages into `order` (`order[i]`: the page now at i + 1). */
+  async reorder(imp: Imp, order: readonly number[]): Promise<void> {
+    const crops = await this.read(imp)
+    const moved = order.flatMap((from, i) => (from === i + 1 ? [] : [{ from, to: i + 1 }]))
+    const raws = await Promise.all(moved.map((m) => this.files.read(this.rawKey(imp, m.from))))
+    for (const [i, { to }] of moved.entries()) {
+      const raw = raws[i]
+      if (raw) await this.files.write(this.rawKey(imp, to), raw)
+      else await this.files.remove([this.rawKey(imp, to)])
+    }
+    if (!Object.keys(crops).length) return
+    const next: Record<number, Quad | null> = {}
+    order.forEach((from, i) => {
+      if (from in crops) next[i + 1] = crops[from] ?? null
+    })
+    await this.save(imp, next)
   }
 
   /** Pages rendered again from the upload, cut the way they were saved. */

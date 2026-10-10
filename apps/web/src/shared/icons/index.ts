@@ -6,6 +6,8 @@ export {
   ArrowDown as IconArrowDown,
   ArrowLeft as IconBack,
   ArrowUp as IconArrowUp,
+  ArrowDownUp as IconPageOrder,
+  FilePlus as IconFileAdd,
   ArrowUpToLine as IconTop,
   BookmarkCheck as IconSave,
   Camera as IconCamera,

@@ -2,7 +2,7 @@
 
 import type { DragEndEvent } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
-import { isWordBank, remapBox, remapDraftPage, sheetOf, syncWordBanks, withExamTitle, withWordBanks, type DraftExam, type DraftQuestion, type ExamSheet, type Option, type Quad } from '@exam/core'
+import { isWordBank, remapBox, remapDraftPage, reorderDraftPages, sheetOf, syncWordBanks, withExamTitle, withWordBanks, type DraftExam, type DraftQuestion, type ExamSheet, type Option, type Quad } from '@exam/core'
 import { useEffect, useRef, useState } from 'react'
 import { attachToPrevious, detachPart, groupLooseParts, mergeParts, nextPart, splitNumber, splitParts } from './parts'
 import { useHistory } from './useHistory'
@@ -173,6 +173,23 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
   const remapPage = (pageNumber: number, from: Quad | null, to: Quad | null) =>
     history.rewrite((s) => ({ ...s, draft: remapDraftPage(s.draft, pageNumber, (b) => remapBox(b, from, to)) }))
 
+  // The pages put in another order: page numbers and the order of questions follow, in every undo step
+  // too, since the pages themselves are not undone; selection and the open form stay on their question.
+  const reorderPages = (order: number[]) => {
+    const before = latest().keys
+    history.rewrite((s) => {
+      const { draft, questionOrder } = reorderDraftPages(s.draft, order)
+      return { draft, keys: questionOrder.map((i) => s.keys[i]!) }
+    })
+    const now = latest().keys
+    const follow = (i: number | null) => {
+      const at = i === null ? -1 : now.indexOf(before[i] ?? '')
+      return at >= 0 ? at : null
+    }
+    setSelected(follow)
+    setEditing(follow)
+  }
+
   // After undo or redo: the step's question is selected and brought into view; selection and the
   // open form stay on their question if it is still there.
   const land = (step: { focus?: string } | null, before: string[]) => {
@@ -323,6 +340,7 @@ export function useReviewDraft(initial: DraftExam, showQuestions: () => void) {
     removeQuestion,
     moveBox,
     remapPage,
+    reorderPages,
     undo,
     redo,
     canUndo: history.canUndo,

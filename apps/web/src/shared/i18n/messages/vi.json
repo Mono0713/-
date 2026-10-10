@@ -1314,5 +1314,12 @@
   "原卷已刪除": "Đã xóa bản gốc",
   "編輯考卷": "Sửa đề",
   "已刪除原卷檔案，題目還能繼續編輯": "Đã xóa tệp gốc, vẫn sửa được câu hỏi.",
-  "刪除原卷檔案": "Xóa tệp gốc"
+  "刪除原卷檔案": "Xóa tệp gốc",
+  "加入頁面（PDF 或照片）": "Thêm trang (PDF hoặc ảnh)",
+  "往前移": "Chuyển lên trước",
+  "原本第 {n} 頁": "Trước là trang {n}",
+  "往後移": "Chuyển ra sau",
+  "拖曳頁面排好順序，題目會跟著頁面重排。": "Kéo các trang theo đúng thứ tự; câu hỏi sẽ sắp lại theo trang.",
+  "調整頁面順序": "Sắp xếp lại trang",
+  "頁面順序已調整，題目也跟著重排": "Đã sắp lại trang, câu hỏi cũng theo"
 }

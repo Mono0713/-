@@ -1,6 +1,6 @@
 import { extname } from 'node:path'
 import type { Bank, BankExam, ImportRecord } from '@exam/bank'
-import type { DraftExam, DraftFigure, DraftQuestion, ExtractedPage, IngestedDocument, PageImage } from '@exam/core'
+import { guessPageOrder, isPageOrder, isSameOrder, reorderDraftPages, type DraftExam, type DraftFigure, type DraftQuestion, type ExtractedPage, type IngestedDocument, type PageImage, type Quad } from '@exam/core'
 import { createProvider, extractDocument, keepEdits, ManualProvider, mergePages, type PageResult, type ProviderConfig, type TextFiles } from '@exam/extraction'
 import type { FileStore } from '@exam/files'
 import { cleanFigure, cropExamFigures, figureFromUpload, snapBoxesToText } from '@exam/figures'
@@ -165,10 +165,10 @@ export class Importer {
   }
 
   /** Runs extraction for the given pages (all when omitted) unless a run is already going. */
-  async start(id: string, pages?: number[]): Promise<void> {
+  async start(id: string, pages?: number[], place = false): Promise<void> {
     await this.recovered
     const imp = await this.require(id)
-    this.launch(id, pages?.length || imp.pageCount, () => this.run(id, pages))
+    this.launch(id, pages?.length || imp.pageCount, () => this.run(id, pages, place))
   }
 
   /**
@@ -244,6 +244,84 @@ export class Importer {
   async rerun(id: string, opts: { provider?: string; model?: string | null; pages?: number[] } = {}): Promise<void> {
     if (opts.provider) await this.bank.updateImport(id, { provider: opts.provider, model: opts.model ?? null })
     await this.start(id, opts.pages)
+  }
+
+  /**
+   * More files for an import already read (a page forgotten, the back of a sheet): their pages go
+   * after the last one, or where their question numbers say once read, and only they are read, so
+   * the questions already edited stay as they are.
+   * Returns the new pages' numbers.
+   */
+  async addPages(id: string, files: UploadFile[]): Promise<number[]> {
+    if (!files.length) throw new Error('No file uploaded')
+    const imp = await this.require(id)
+    this.notBusy(imp)
+    if (imp.provider === BLANK || imp.provider === WRITTEN || imp.pageCount === 0) throw new Error('This exam has no pages to add to')
+    const offset = imp.pageCount
+    const pages = (await this.ingest(files)).pages.map((p) => ({ ...p, pageNumber: p.pageNumber + offset }))
+    const dir = `${this.base(imp)}/sources`
+    const names = await this.sourceNames(imp)
+    // kept with the upload, so reading again renders them too; once the upload is gone the page images are read
+    if (names) {
+      for (const [i, f] of files.entries()) await this.files.write(`${dir}/${names.length + i + 1}${sourceExt(f.name)}`, f.data)
+      await this.files.write(`${dir}/names.json`, JSON.stringify([...names, ...files.map((f) => f.name)]))
+      const order = await this.sourceOrder(imp)
+      if (order) await this.files.write(this.orderKey(imp), JSON.stringify([...order, ...pages.map((p) => p.pageNumber)]))
+    }
+    for (const page of await this.crops.frameNew(imp, pages)) await this.files.write(this.pageImage(imp, page.pageNumber), await storedPage(page.data))
+    await this.bank.updateImport(id, { pageCount: offset + pages.length })
+    const added = pages.map((p) => p.pageNumber)
+    await this.start(id, added, true)
+    return added
+  }
+
+  /**
+   * Puts the pages in `order` (`order[i]`: the page now at i + 1): page images, cuts, readings and the
+   * draft (`draft`, the editor's latest, or the saved one) all follow, and the questions go in the
+   * order of their pages. Reading again later keeps the order. Returns the draft as saved.
+   */
+  async reorderPages(id: string, order: number[], draft?: DraftExam): Promise<DraftExam | null> {
+    const imp = await this.require(id)
+    this.notBusy(imp)
+    if (!isPageOrder(order, imp.pageCount)) throw new Error('Not an order of the pages')
+    const current = draft ?? (await this.bank.getDraft(id))
+    if (isSameOrder(order)) return current
+    await this.movePages(imp, order)
+    if (!current) return null
+    const next = reorderDraftPages(current, order).draft
+    await this.bank.saveDraft(id, next)
+    return next
+  }
+
+  /** Page images, cuts, readings and the kept upload order follow the pages into `order`. */
+  private async movePages(imp: ImportRecord, order: readonly number[]): Promise<void> {
+    const moved = order.flatMap((from, i) => (from === i + 1 ? [] : [{ from, to: i + 1 }]))
+    const images = await Promise.all(moved.map((m) => this.files.read(this.pageImage(imp, m.from))))
+    for (const [i, { to }] of moved.entries()) if (images[i]) await this.files.write(this.pageImage(imp, to), images[i]!)
+    await this.crops.reorder(imp, order)
+    const to = new Map(order.map((n, i) => [n, i + 1]))
+    const results = await this.pageResults(imp.id)
+    if (results.length) {
+      const next = results.map((r) => ({ ...r, pageNumber: to.get(r.pageNumber) ?? r.pageNumber })).sort((a, b) => a.pageNumber - b.pageNumber)
+      await this.files.write(`${this.base(imp)}/results.json`, JSON.stringify(next, null, 2))
+    }
+    const rendered = (await this.sourceOrder(imp)) ?? Array.from({ length: order.length }, (_, i) => i + 1)
+    await this.files.write(this.orderKey(imp), JSON.stringify(order.map((n) => rendered[n - 1] ?? n)))
+  }
+
+  /** Pages can't be added or moved while they are being read, or wait for pasted replies. */
+  private notBusy(imp: ImportRecord): void {
+    if (this.running.has(imp.id) || imp.status === 'processing' || imp.status === 'waiting') throw new Error('The pages are being read')
+  }
+
+  /** The pages as the editor shows them: image, and for a page cut to its sheet, the photo as taken and the corners. */
+  async sourcePages(imp: ImportRecord): Promise<{ pageNumber: number; image: string; raw?: string; quad?: Quad | null }[]> {
+    const crops = await this.crops.read(imp)
+    return Array.from({ length: imp.pageCount }, (_, i) => ({
+      pageNumber: i + 1,
+      image: this.pageImage(imp, i + 1),
+      ...(i + 1 in crops && { raw: this.crops.rawKey(imp, i + 1), quad: crops[i + 1] ?? null }),
+    }))
   }
 
   /** File key of a rendered page. */
@@ -392,10 +470,11 @@ export class Importer {
     await this.bank.updateImport(id, { pageCount: 0, originalDeletedAt: imp.originalDeletedAt ?? now.toISOString() })
   }
 
-  private async run(id: string, pages?: number[]): Promise<void> {
+  /** `place`: the pages were just added, and go where their question numbers say. */
+  private async run(id: string, pages?: number[], place = false): Promise<void> {
     const imp = await this.require(id)
     const doc = await this.load(imp)
-    const selected = pages?.length ? pages : doc.pages.map((p) => p.pageNumber)
+    let selected = pages?.length ? pages : doc.pages.map((p) => p.pageNumber)
     let done = 0
     await this.bank.updateImport(id, { status: 'processing', error: null, progress: { done, total: selected.length } })
 
@@ -438,7 +517,21 @@ export class Importer {
       if (doubtful.length) fresh = replaceRead(fresh, (await read(plan.escalate, doubtful, false)).results)
     }
     this.steps.set(id, { step: 'merging' })
-    const results = await this.saveResults(imp, fresh)
+    let results = await this.saveResults(imp, fresh)
+    let document = doc
+    // Photos uploaded in any order are put in the order their question numbers run: on the first
+    // reading, and pages added later go where their numbers belong.
+    const previous = await this.bank.getDraft(id)
+    const allRead = results.length === doc.pages.length && results.every((r) => r.page)
+    const guess = allRead && (!previous || place) ? guessPageOrder(results.map((r) => r.page!.questions.map((q) => q.number))) : null
+    if (guess) {
+      await this.movePages(imp, guess)
+      if (previous) await this.bank.saveDraft(id, reorderDraftPages(previous, guess).draft)
+      const to = new Map(guess.map((n, i) => [n, i + 1]))
+      selected = selected.map((n) => to.get(n) ?? n)
+      results = await this.pageResults(id)
+      document = { ...doc, pages: guess.map((n, i) => ({ ...doc.pages[n - 1]!, pageNumber: i + 1 })) }
+    }
 
     if (results.some((r) => r.error?.startsWith(WAITING))) {
       if (provider instanceof ManualProvider) await provider.writeBatchPrompt()
@@ -449,7 +542,7 @@ export class Importer {
       await this.bank.updateImport(id, { status: 'failed', error: results.find((r) => r.error)?.error ?? 'No page could be read' })
       return
     }
-    await withTimeout(this.assemble(imp, doc, results, selected), ASSEMBLE_MS, ASSEMBLE_TIMEOUT)
+    await withTimeout(this.assemble(imp, document, results, selected), ASSEMBLE_MS, ASSEMBLE_TIMEOUT)
   }
 
   /** Puts the questions together again from the pages already read, without the model. */
@@ -500,7 +593,7 @@ export class Importer {
    */
   private async load(imp: ImportRecord): Promise<IngestedDocument> {
     const dir = `${this.base(imp)}/sources`
-    const names = JSON.parse((await this.files.read(`${dir}/names.json`))?.toString('utf8') ?? 'null') as string[] | null
+    const names = await this.sourceNames(imp)
     if (!names) return this.loadPages(imp)
     const stored = await this.files.list(`${dir}/`)
     const files = await Promise.all(
@@ -511,7 +604,25 @@ export class Importer {
         return { name, data }
       }),
     )
-    return this.crops.apply(imp, await this.ingest(files))
+    const doc = await this.ingest(files)
+    // pages put in another order since the upload stay there
+    const order = await this.sourceOrder(imp)
+    const pages = order?.length === doc.pages.length ? order.map((n, i) => ({ ...doc.pages[n - 1]!, pageNumber: i + 1 })) : doc.pages
+    return this.crops.apply(imp, { ...doc, pages })
+  }
+
+  /** Names of the uploaded files in upload order; null once they were deleted. */
+  private async sourceNames(imp: ImportRecord): Promise<string[] | null> {
+    return JSON.parse((await this.files.read(`${this.base(imp)}/sources/names.json`))?.toString('utf8') ?? 'null') as string[] | null
+  }
+
+  /** Where the page order is kept: for each page, its number as rendered from the upload; none while unchanged. */
+  private orderKey(imp: ImportRecord): string {
+    return `${this.base(imp)}/pages/order.json`
+  }
+
+  private async sourceOrder(imp: ImportRecord): Promise<number[] | null> {
+    return JSON.parse((await this.files.read(this.orderKey(imp)))?.toString('utf8') ?? 'null') as number[] | null
   }
 
   private async loadPages(imp: ImportRecord): Promise<IngestedDocument> {

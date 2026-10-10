@@ -288,3 +288,66 @@ describe('a server restart', () => {
     expect(await bank.getImport(cut.id)).toMatchObject({ status: 'failed', error: INTERRUPTED })
   })
 })
+
+describe('page order', () => {
+  // each page tells by its width which question numbers are printed on it
+  const printed: Record<number, string[]> = { 200: ['11', '12'], 210: ['1', '2'], 220: ['21'] }
+  registerProvider('numbered', () => ({
+    id: 'numbered',
+    model: 'numbered-1',
+    complete: async ({ page: p }) => ({ text: JSON.stringify(page((printed[p.width] ?? ['99']).map((number) => question({ number })))), model: 'numbered-1', usage: { inputTokens: 1, outputTokens: 1 } }),
+  }))
+  const sized = (width: number) => sharp({ create: { width, height: 300, channels: 3, background: '#fff' } }).png().toBuffer()
+  const widths = async (imp: Parameters<Importer['pageImage']>[0], count: number) =>
+    Promise.all(Array.from({ length: count }, async (_, i) => (await sharp(await readFile(join(dataDir, importer.pageImage(imp, i + 1)))).metadata()).width))
+  const upload = async (sizes: number[]) => {
+    const imp = await importer.create({ ownerId: 'local', files: await Promise.all(sizes.map(async (w, i) => ({ name: `p${i + 1}.png`, data: await sized(w) }))), provider: 'numbered' })
+    await importer.settled(imp.id)
+    return (await bank.getImport(imp.id))!
+  }
+
+  it('puts photos uploaded in any order in the order their question numbers run', async () => {
+    const imp = await upload([200, 210, 220])
+    expect(await widths(imp, 3)).toEqual([210, 200, 220])
+    const draft = (await bank.getDraft(imp.id))!
+    expect(draft.questions.map((q) => [q.number, q.locations[0]!.pageNumber])).toEqual([['1', 1], ['2', 1], ['11', 2], ['12', 2], ['21', 3]])
+    expect((await importer.pageResults(imp.id)).map((r) => r.page!.questions[0]!.number)).toEqual(['1', '11', '21'])
+
+    // reading again renders the upload in the same order
+    await importer.rerun(imp.id)
+    await importer.settled(imp.id)
+    expect(await widths(imp, 3)).toEqual([210, 200, 220])
+    expect((await bank.getDraft(imp.id))!.questions.map((q) => q.number)).toEqual(['1', '2', '11', '12', '21'])
+  })
+
+  it('moves pages by hand, with the questions and the readings following', async () => {
+    const imp = await upload([210, 220])
+    const draft = (await bank.getDraft(imp.id))!
+    await importer.saveDraft(imp.id, { ...draft, questions: draft.questions.map((q) => ({ ...q, stem: `edited ${q.number}` })) })
+    const moved = (await importer.reorderPages(imp.id, [2, 1]))!
+    expect(moved.questions.map((q) => [q.number, q.stem, q.locations[0]!.pageNumber])).toEqual([['21', 'edited 21', 1], ['1', 'edited 1', 2], ['2', 'edited 2', 2]])
+    expect(await widths(imp, 2)).toEqual([220, 210])
+    expect((await importer.pageResults(imp.id)).map((r) => [r.pageNumber, r.page!.questions[0]!.number])).toEqual([[1, '21'], [2, '1']])
+    await expect(importer.reorderPages(imp.id, [1, 1])).rejects.toThrow()
+  })
+
+  it('adds files after the last page and reads only them, keeping the edits', async () => {
+    const imp = await upload([210])
+    const draft = (await bank.getDraft(imp.id))!
+    await importer.saveDraft(imp.id, { ...draft, questions: draft.questions.map((q) => ({ ...q, stem: 'edited' })) })
+    expect(await importer.addPages(imp.id, [{ name: 'more.png', data: await sized(200) }])).toEqual([2])
+    await importer.settled(imp.id)
+    const after = (await bank.getImport(imp.id))!
+    expect(after.pageCount).toBe(2)
+    expect((await importer.originals(imp.id)).map((f) => f.name)).toEqual(['p1.png', 'more.png'])
+    expect((await bank.getDraft(imp.id))!.questions.map((q) => [q.number, q.stem])).toEqual([['1', 'edited'], ['2', 'edited'], ['11', question().stem], ['12', question().stem]])
+  })
+
+  it('puts an added page where its question numbers belong', async () => {
+    const imp = await upload([200])
+    await importer.addPages(imp.id, [{ name: 'first.png', data: await sized(210) }])
+    await importer.settled(imp.id)
+    expect(await widths(imp, 2)).toEqual([210, 200])
+    expect((await bank.getDraft(imp.id))!.questions.map((q) => [q.number, q.locations[0]!.pageNumber])).toEqual([['1', 1], ['2', 1], ['11', 2], ['12', 2]])
+  })
+})

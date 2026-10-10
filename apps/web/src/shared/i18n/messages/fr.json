@@ -1314,5 +1314,12 @@
   "原卷已刪除": "Original supprimé",
   "編輯考卷": "Modifier l’examen",
   "已刪除原卷檔案，題目還能繼續編輯": "Fichiers d’origine supprimés. Vous pouvez toujours modifier les questions.",
-  "刪除原卷檔案": "Supprimer les fichiers d’origine"
+  "刪除原卷檔案": "Supprimer les fichiers d’origine",
+  "加入頁面（PDF 或照片）": "Ajouter des pages (PDF ou photos)",
+  "往前移": "Avancer",
+  "原本第 {n} 頁": "Était la page {n}",
+  "往後移": "Reculer",
+  "拖曳頁面排好順序，題目會跟著頁面重排。": "Faites glisser les pages dans l'ordre ; les questions suivent leurs pages.",
+  "調整頁面順序": "Réordonner les pages",
+  "頁面順序已調整，題目也跟著重排": "Pages réordonnées, questions comprises"
 }
