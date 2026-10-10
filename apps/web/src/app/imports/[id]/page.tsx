@@ -100,7 +100,8 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
   }
 
   const draft = await bank.getDraft(id)
-  if (imp.status === 'failed' || !draft) {
+  // a reading that failed after the exam was first put together (more pages added, read again) leaves the draft editable
+  if (!draft) {
     return (
       <div>
         {header}
@@ -113,15 +114,11 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
   }
 
   const results = await importer.pageResults(id)
-  const failed = results.filter((r) => !r.page).map((r) => r.pageNumber)
-  const failedWhy = results.find((r) => !r.page && r.error)?.error
+  // pages never read count too: pages added whose reading could not start
+  const failed = Array.from({ length: imp.pageCount }, (_, i) => i + 1).filter((n) => !results.some((r) => r.pageNumber === n && r.page))
+  const failedWhy = results.find((r) => !r.page && r.error)?.error ?? (imp.status === 'failed' ? imp.error : null)
   // a page cut to its sheet keeps the photo as taken, to cut again from the page viewer
-  const crops = await importer.crops.read(imp)
-  const pages = Array.from({ length: imp.pageCount }, (_, i) => ({
-    pageNumber: i + 1,
-    image: importer.pageImage(imp, i + 1),
-    ...(i + 1 in crops && { raw: importer.crops.rawKey(imp, i + 1), quad: crops[i + 1] ?? null }),
-  }))
+  const pages = await importer.sourcePages(imp)
   const [savedExam, originals] = await Promise.all([bank.examForImport(id), importer.originals(id)])
   // a scanned exam whose files were deleted keeps its draft, shown on the A4 sheet
   const scanned = imp.provider !== BLANK && imp.provider !== WRITTEN && imp.pageCount > 0
@@ -138,6 +135,7 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         initial={draft}
         pages={pages}
         savedExam={savedExam}
+        addPages={scanned}
         strength={(await services().settings.get(imp.ownerId)).strength}
         models={await modelsByStrength(imp.ownerId, ['recognition', 'solving', 'explaining'])}
         heading={{

@@ -33,6 +33,8 @@ import { useDraftSaving } from './useDraftSaving'
 import { useFigureFraming } from './useFigureFraming'
 import { SolveStatus } from './SolveStatus'
 import { usePageCrops, type SourcePage } from './usePageCrops'
+import { usePageOrder } from './usePageOrder'
+import { AddPagesButton } from './AddPagesButton'
 import { useReviewFab } from './useReviewFab'
 import { useSolver } from './useSolver'
 import { isFlagged, useReviewDraft } from './useReviewDraft'
@@ -56,6 +58,7 @@ export function ReviewEditor({
   heading,
   strength,
   models,
+  addPages = false,
 }: {
   importId: string
   initial: DraftExam
@@ -69,6 +72,8 @@ export function ReviewEditor({
   strength?: Strength
   /** The models each strength would use, shown beside it. */
   models?: StrengthModels
+  /** More files can be added to the original's pages (an import read from pages). */
+  addPages?: boolean
 }) {
   const t = useT()
   // Phones show one side at a time.
@@ -113,6 +118,8 @@ export function ReviewEditor({
   } = reviewDraft
   // The original's pages, cut again from the page viewer (裁切); the draft's boxes move with the paper.
   const crops = usePageCrops(importId, pages, reviewDraft.remapPage)
+  // The pages put in the order they belong in (頁面順序); the questions follow their pages.
+  const pageOrder = usePageOrder(importId, crops.pages, crops.replace, reviewDraft.reorderPages)
   // An exam written from scratch has no original pages: the A4 paper it prints as takes their place.
   const paper = pages.length === 0
   // a question's answer room dragged on the paper; stable, so the paper is not laid out again on every render
@@ -244,6 +251,9 @@ export function ReviewEditor({
                 framing={framing}
                 cropping={framing ? null : crops.cropping}
                 onCrop={crops.start}
+                arranging={pageOrder.arranging}
+                onArrange={pageOrder.start}
+                tools={addPages && <AddPagesButton importId={importId} />}
                 className="lg:h-full lg:overflow-auto lg:pr-1 [scrollbar-gutter:stable]"
               />
             )}
@@ -408,6 +418,7 @@ export function ReviewEditor({
       </div>
 
       {crops.toast}
+      {pageOrder.toast}
       <Toast show={deletedNote !== null} action={t('復原')} onAction={undo}>
         {t('已刪除第 {n} 題', { n: deletedNote ?? '' })}
       </Toast>

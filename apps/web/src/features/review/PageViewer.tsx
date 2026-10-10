@@ -1,22 +1,21 @@
 'use client'
 
 import { untangleBoxes, type DraftQuestion } from '@exam/core'
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
-import { fileUrl } from '@/shared/files'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { PageBadge, PageControls, pill, usePageControls, ZOOMS } from '@/shared/PageControls'
 import { useT } from '@/shared/i18n/client'
-import { IconCrop, IconExternal, IconLoader, IconPlus } from '@/shared/icons'
+import { IconCrop, IconExternal, IconLoader, IconPageOrder, IconPlus } from '@/shared/icons'
 import { clamp, GRIPS, type Box } from './boxGeometry'
 import { FramingBar } from './FramingBar'
 import { PageCropper } from './PageCropper'
+import { PageOrderGrid } from './PageOrderGrid'
 import { useBoxEditing } from './useBoxEditing'
 import type { Framing } from './useFigureFraming'
-import type { Cropping, SourcePage } from './usePageCrops'
+import { pageUrl, type Cropping, type SourcePage } from './usePageCrops'
+import type { Arranging } from './usePageOrder'
 
 // The box of a picture being framed, told apart from the questions' boxes.
 const FRAME = -1
-// The page image, again from the server once it was cut anew.
-const pageUrl = (p: SourcePage) => fileUrl(p.image) + (p.version ? `?v=${p.version}` : '')
 const spot = ({ x, y, width, height }: Box) => ({ left: `${x * 100}%`, top: `${y * 100}%`, width: `${width * 100}%`, height: `${height * 100}%` })
 
 /**
@@ -28,6 +27,8 @@ const spot = ({ x, y, width, height }: Box) => ({ left: `${x * 100}%`, top: `${y
  * moved and resized the same way, or drawn anew anywhere on a page. A selected question with no box
  * yet (added by hand) gets one drawn on a page, or placed on the page in view. With `onCrop`, the
  * controls cut the page in view again (`cropping`: that page shows its photo and the paper's outline).
+ * With `onArrange`, they put the pages in another order (`arranging`: the pages show small, to drag);
+ * `tools` are more buttons there (加入頁面).
  */
 export function PageViewer({
   pages,
@@ -38,6 +39,9 @@ export function PageViewer({
   framing,
   cropping,
   onCrop,
+  arranging,
+  onArrange,
+  tools,
   className = '',
 }: {
   pages: SourcePage[]
@@ -49,6 +53,9 @@ export function PageViewer({
   framing?: Framing | null
   cropping?: Cropping | null
   onCrop?: (pageNumber: number) => void
+  arranging?: Arranging | null
+  onArrange?: () => void
+  tools?: ReactNode
   className?: string
 }) {
   const t = useT()
@@ -190,6 +197,18 @@ export function PageViewer({
   }
 
   if (!pages.length) return null
+  if (arranging)
+    return (
+      <div className={`relative flex flex-col ${className}`}>
+        <FramingBar
+          hint={arranging.note ?? t('拖曳頁面排好順序，題目會跟著頁面重排。')}
+          busy={arranging.busy}
+          onApply={arranging.onApply}
+          onCancel={arranging.onCancel}
+        />
+        <PageOrderGrid pages={pages} order={arranging.order} onChange={arranging.onChange} />
+      </div>
+    )
   const scale = ZOOMS[zoom]!
   const index = Math.max(0, pages.findIndex((p) => p.pageNumber === current))
 
@@ -369,6 +388,12 @@ export function PageViewer({
         onZoom={setZoom}
         extra={
           <>
+            {onArrange && pages.length > 1 && !framing && !cropping && (
+              <button type="button" onClick={onArrange} className={pill} aria-label={t('調整頁面順序')} title={t('調整頁面順序')}>
+                <IconPageOrder size={14} />
+              </button>
+            )}
+            {!framing && !cropping && tools}
             {onCrop && !framing && !cropping && (
               <button type="button" onClick={() => onCrop(pages[index]!.pageNumber)} className={pill} aria-label={t('裁切並拉正這一頁')} title={t('裁切並拉正這一頁')}>
                 <IconCrop size={14} />

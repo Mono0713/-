@@ -1314,5 +1314,12 @@
   "原卷已刪除": "Asli sudah dihapus",
   "編輯考卷": "Edit ujian",
   "已刪除原卷檔案，題目還能繼續編輯": "File asli dihapus. Soal masih bisa diedit.",
-  "刪除原卷檔案": "Hapus file asli"
+  "刪除原卷檔案": "Hapus file asli",
+  "加入頁面（PDF 或照片）": "Tambah halaman (PDF atau foto)",
+  "往前移": "Pindah ke depan",
+  "原本第 {n} 頁": "Semula halaman {n}",
+  "往後移": "Pindah ke belakang",
+  "拖曳頁面排好順序，題目會跟著頁面重排。": "Seret halaman sesuai urutan; soal ikut halamannya.",
+  "調整頁面順序": "Atur ulang urutan halaman",
+  "頁面順序已調整，題目也跟著重排": "Halaman diurutkan ulang, soal ikut berpindah"
 }

@@ -199,8 +199,8 @@ export function QuizSetup({ exams, preselected }: { exams: SetupExam[]; preselec
         </Card>
       </aside>
 
-      {/* On phones the settings sit below a long list, so starting stays in reach at the bottom. */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-paper/95 p-3 backdrop-blur lg:hidden">
+      {/* On phones the settings sit below a long list, so starting stays in reach at the bottom, just above the bottom nav. */}
+      <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 sm:bottom-0 border-t border-line bg-paper/95 p-3 backdrop-blur lg:hidden">
         <Button variant="primary" className="w-full" onClick={submit} disabled={!count || pending}>
           {pending ? t('準備中…') : count ? t('開始（{n} 題）', { n: drawn }) : t('請先選題目')}
         </Button>

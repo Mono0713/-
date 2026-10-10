@@ -1314,5 +1314,12 @@
   "原卷已刪除": "Original deleted",
   "編輯考卷": "Edit exam",
   "已刪除原卷檔案，題目還能繼續編輯": "Original files deleted. You can still edit the questions.",
-  "刪除原卷檔案": "Delete original files"
+  "刪除原卷檔案": "Delete original files",
+  "加入頁面（PDF 或照片）": "Add pages (PDF or photos)",
+  "往前移": "Move earlier",
+  "原本第 {n} 頁": "Was page {n}",
+  "往後移": "Move later",
+  "拖曳頁面排好順序，題目會跟著頁面重排。": "Drag the pages into order; the questions follow their pages.",
+  "調整頁面順序": "Reorder pages",
+  "頁面順序已調整，題目也跟著重排": "Pages reordered, and the questions with them"
 }

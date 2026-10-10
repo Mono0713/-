@@ -10,3 +10,4 @@ export { asWordBankQuestion, isWordBank, syncWordBanks, withWordBanks } from './
 export { FULL_QUAD, invert, isFullQuad, isUsableQuad, mapPoint, quadArea, remapBox, remapBoxes, remapDraftPage, squareToQuad, type Point, type Quad } from './quad.ts'
 export { joinCarriedGroups } from './carried.ts'
 export { isFormName, withExamTitle } from './title.ts'
+export { guessPageOrder, inverseOrder, isPageOrder, isSameOrder, pageMap, reorderDraftPages } from './pageOrder.ts'

@@ -2,6 +2,7 @@
 
 import { FULL_QUAD, isUsableQuad, type Quad } from '@exam/core'
 import { useRef, useState } from 'react'
+import { fileUrl } from '@/shared/files'
 import { useT } from '@/shared/i18n/client'
 import { UNDO_MS } from '@/shared/removal'
 import { Toast } from '@/shared/Toast'
@@ -17,6 +18,9 @@ export interface SourcePage {
   /** Changes when the page image is saved again, so the browser shows the new one. */
   version?: number
 }
+
+/** The page image, again from the server once it was saved anew. */
+export const pageUrl = (p: SourcePage) => fileUrl(p.image) + (p.version ? `?v=${p.version}` : '')
 
 /** The page being cut on the page viewer. */
 export interface Cropping {
@@ -97,6 +101,8 @@ export function usePageCrops(importId: string, initial: SourcePage[], remapPage:
 
   return {
     pages,
+    /** The pages saved again (put in another order): every image is fetched anew. */
+    replace: (next: SourcePage[]) => setPages(next.map((p) => ({ ...p, version: Date.now() }))),
     cropping,
     /** Starts cutting a page, from where the paper was last found (the whole photo when never cut). */
     start: (n: number) => setCut({ pageNumber: n, quad: page(n)?.quad ?? FULL_QUAD, busy: false, note: null }),
