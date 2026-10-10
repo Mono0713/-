@@ -36,6 +36,8 @@ export interface StorageItem {
   bytes: number
   /** Of those, the uploaded originals; 0 once deleted. */
   originals: number
+  /** Saved to the bank: deleting it takes only its files, the exam stays editable. */
+  inBank: boolean
 }
 
 /** The biggest imports first; up to `limit` of them. */
@@ -61,7 +63,7 @@ export async function storageItems(ownerId: string, limit = 30): Promise<Storage
     biggest.map(async ({ imp, own }) => {
       // pictures of questions already saved stay when the import goes
       const inBank = (await bank.examForImport(imp.id)) !== null
-      return { id: imp.id, title: imp.title ?? imp.fileName, bytes: own.all - own.originals - (inBank ? own.figures : 0), originals: own.originals }
+      return { id: imp.id, title: imp.title ?? imp.fileName, bytes: own.all - own.originals - (inBank ? own.figures : 0), originals: own.originals, inBank }
     }),
   )
 }

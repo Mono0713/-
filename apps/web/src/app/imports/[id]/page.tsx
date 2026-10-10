@@ -123,6 +123,8 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
     ...(i + 1 in crops && { raw: importer.crops.rawKey(imp, i + 1), quad: crops[i + 1] ?? null }),
   }))
   const [savedExam, originals] = await Promise.all([bank.examForImport(id), importer.originals(id)])
+  // a scanned exam whose files were deleted keeps its draft, shown on the A4 sheet
+  const scanned = imp.provider !== BLANK && imp.provider !== WRITTEN && imp.pageCount > 0
   const original = {
     files: originals.map((f) => f.name),
     keep: imp.keepOriginal,
@@ -140,10 +142,12 @@ export default async function ImportPage({ params }: { params: Promise<{ id: str
         models={await modelsByStrength(imp.ownerId, ['recognition', 'solving', 'explaining'])}
         heading={{
           title: imp.title ?? imp.fileName,
-          meta: imp.provider === BLANK ? t('從零建立') : imp.provider === WRITTEN ? t('AI 出題 · {model}', { model: imp.model ?? '' }) : t('{n} 頁 · {provider}', { n: imp.pageCount, provider: readBy(imp, results, t) }),
-          menu: imp.provider === BLANK || imp.provider === WRITTEN
-            ? [<DeleteImportButton key="menu" importId={id} menu />]
-            : [<OriginalFiles key="original" importId={id} state={original} />, <DeleteImportButton key="menu" importId={id} menu />],
+          meta: imp.provider === BLANK ? t('從零建立') : imp.provider === WRITTEN ? t('AI 出題 · {model}', { model: imp.model ?? '' }) : scanned ? t('{n} 頁 · {provider}', { n: imp.pageCount, provider: readBy(imp, results, t) }) : t('原卷已刪除'),
+          menu: [
+            ...(scanned ? [<OriginalFiles key="original" importId={id} state={original} />] : []),
+            // saved to the bank, only the files go and the exam stays editable here; nothing to delete once they are gone
+            ...(!savedExam ? [<DeleteImportButton key="menu" importId={id} menu />] : scanned || originals.length > 0 ? [<DeleteImportButton key="menu" importId={id} menu saved />] : []),
+          ],
         }}
         notice={
           failed.length > 0 && (

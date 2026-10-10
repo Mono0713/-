@@ -128,13 +128,16 @@ describe('Importer', () => {
     expect(second.image!.file).toMatch(/^imports\/[\w-]+\/figures\/figure-r\d+\.png$/)
   })
 
-  it('keeps figure images of saved questions when the import is deleted', async () => {
+  it('keeps the draft and figure images of a saved exam when its files are deleted', async () => {
     const imp = await importer.create({ ownerId: 'local', files: [{ name: 'p1.png', data: await png() }], provider: 'fake' })
     await importer.settled(imp.id)
     const figure = await importer.recropFigure(imp.id, { description: 'd', pageNumber: 1, bbox: { x: 0, y: 0, width: 1, height: 1 }, blanks: [], image: null })
     await importer.publish(imp.id, (await bank.getDraft(imp.id))!)
     await importer.remove(imp.id)
-    expect(await bank.getImport(imp.id)).toBeNull()
+    // still editable, on the A4 sheet like an exam written from scratch
+    expect(await bank.getImport(imp.id)).toMatchObject({ pageCount: 0, originalDeletedAt: expect.any(String) })
+    expect(await bank.getDraft(imp.id)).not.toBeNull()
+    expect(await importer.originals(imp.id)).toEqual([])
     expect(existsSync(join(dataDir, figure.image!.file))).toBe(true)
     expect(existsSync(join(dataDir, importer.pageImage(imp, 1)))).toBe(false)
     expect(existsSync(join(dataDir, 'imports', imp.id, 'results.json'))).toBe(false)
@@ -220,8 +223,30 @@ describe('exams written from scratch', () => {
     const exam = await importer.publish(imp.id, { ...(await bank.getDraft(imp.id))!, meta: { title: '自己出的題', subject: null, institution: null, term: null, language: null }, questions: [{ ...question(), locations: [] } as never] })
     expect(exam.title).toBe('自己出的題')
     expect(await importer.originals(imp.id)).toEqual([])
+    // in the bank it stays editable; once the exam is gone it deletes cleanly
+    await importer.remove(imp.id)
+    expect(await bank.getDraft(imp.id)).not.toBeNull()
+    await bank.deleteExam(exam.id)
     await importer.remove(imp.id)
     expect(await bank.getImport(imp.id)).toBeNull()
+  })
+
+  it('opens an exam that lost its upload in a new draft saved back to it', async () => {
+    const exam = await bank.createExam('local', { meta: { title: '分享來的考卷', subject: '英文' }, groups: [], questions: [question() as never] })
+    const imp = await importer.editExam(exam, [{ ...question(), locations: [] } as never])
+    expect(imp).toMatchObject({ provider: BLANK, pageCount: 0, status: 'saved' })
+    expect((await bank.getDraft(imp.id))?.meta.title).toBe('分享來的考卷')
+    expect((await bank.examForImport(imp.id))?.id).toBe(exam.id)
+    const saved = await importer.publish(imp.id, { ...(await bank.getDraft(imp.id))!, questions: [] })
+    expect(saved.id).toBe(exam.id)
+  })
+
+  it('deletes an import never saved to the bank with everything in it', async () => {
+    const imp = await importer.create({ ownerId: 'local', files: [{ name: 'p1.png', data: await png() }], provider: 'fake' })
+    await importer.settled(imp.id)
+    await importer.remove(imp.id)
+    expect(await bank.getImport(imp.id)).toBeNull()
+    expect(existsSync(join(dataDir, importer.pageImage(imp, 1)))).toBe(false)
   })
 })
 

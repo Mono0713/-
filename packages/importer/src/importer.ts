@@ -1,6 +1,6 @@
 import { extname } from 'node:path'
-import type { Bank, ImportRecord } from '@exam/bank'
-import type { DraftExam, DraftFigure, ExtractedPage, IngestedDocument, PageImage } from '@exam/core'
+import type { Bank, BankExam, ImportRecord } from '@exam/bank'
+import type { DraftExam, DraftFigure, DraftQuestion, ExtractedPage, IngestedDocument, PageImage } from '@exam/core'
 import { createProvider, extractDocument, keepEdits, ManualProvider, mergePages, type PageResult, type ProviderConfig, type TextFiles } from '@exam/extraction'
 import type { FileStore } from '@exam/files'
 import { cleanFigure, cropExamFigures, figureFromUpload, snapBoxesToText } from '@exam/figures'
@@ -132,6 +132,20 @@ export class Importer {
     }
     await this.bank.saveDraft(record.id, draft)
     await this.bank.updateImport(record.id, { status: 'review' })
+    return (await this.bank.getImport(record.id)) ?? record
+  }
+
+  /**
+   * A draft for an exam in the bank that has none (its upload was deleted, or it was copied from a
+   * share link): its questions on the A4 sheet, like an exam written from scratch, saved back to it.
+   */
+  async editExam(exam: BankExam, questions: DraftQuestion[]): Promise<ImportRecord> {
+    const { id: _id, ownerId, importId: _import, groups, multiplePartial: _partial, questionCount: _count, createdAt: _created, updatedAt: _updated, ...meta } = exam
+    const fileName = meta.title ?? '新考卷'
+    const record = await this.bank.createImport({ ownerId, fileName, pageCount: 0, provider: BLANK, model: null })
+    await this.bank.saveDraft(record.id, { fileName, meta, groups, questions, pages: [] })
+    await this.bank.linkImport(exam.id, record.id)
+    await this.bank.updateImport(record.id, { status: 'saved' })
     return (await this.bank.getImport(record.id)) ?? record
   }
 
@@ -358,16 +372,24 @@ export class Importer {
     await this.bank.updateImport(id, { originalDeletedAt: now.toISOString() })
   }
 
-  /** Deletes the import and its files. Questions already in the bank stay, and so do the figure images they show. */
-  async remove(id: string): Promise<void> {
+  /**
+   * Deletes the import and its files. One already saved to the bank only loses its files (uploads,
+   * page images, readings): its draft stays, so the exam can still be edited, on the A4 sheet the
+   * way an exam written from scratch is, and the figure images its questions show stay too.
+   */
+  async remove(id: string, now = new Date()): Promise<void> {
     await this.settled(id)
     await this.written.settled(id)
     const imp = await this.require(id)
     const inBank = (await this.bank.examForImport(imp.id)) !== null
-    await this.bank.deleteImport(id)
     const base = this.base(imp)
     const keys = await this.files.list(`${base}/`)
-    await this.files.remove(inBank ? keys.filter((k) => !k.startsWith(`${base}/figures/`)) : keys)
+    if (!inBank) {
+      await this.bank.deleteImport(id)
+      return this.files.remove(keys)
+    }
+    await this.files.remove(keys.filter((k) => !k.startsWith(`${base}/figures/`)))
+    await this.bank.updateImport(id, { pageCount: 0, originalDeletedAt: imp.originalDeletedAt ?? now.toISOString() })
   }
 
   private async run(id: string, pages?: number[]): Promise<void> {

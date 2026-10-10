@@ -5,7 +5,6 @@
   "未命名考卷": "Đề thi chưa đặt tên",
   "{n} 題": "{n} câu",
   "共 {points} 分": "Tổng: {points} điểm",
-  "看原始考卷": "Xem đề thi gốc",
   "用這份考卷測驗": "Làm bài với đề thi này",
   "編輯這題": "Sửa câu hỏi",
   "題庫": "Ngân hàng câu hỏi",
@@ -1311,5 +1310,9 @@
   "{model} 看得懂圖。": "{model} đọc được hình.",
   "{model} 看不懂圖，已關掉「看得懂圖」。": "{model} không đọc được hình, đã tắt “Đọc được hình”.",
   "判斷看不看得懂圖…": "Đang kiểm tra đọc hình…",
-  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目，加入時會自動判斷。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Chỉ mô hình “Đọc được hình” mới đọc đề, chữ viết tay và câu hỏi có hình; điều này được kiểm tra tự động khi thêm. Mức quyết định Tự động chọn gì khi Áp dụng cho tất cả. Giá (USD mỗi triệu token) không bắt buộc, chỉ dùng để ước tính."
+  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目，加入時會自動判斷。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Chỉ mô hình “Đọc được hình” mới đọc đề, chữ viết tay và câu hỏi có hình; điều này được kiểm tra tự động khi thêm. Mức quyết định Tự động chọn gì khi Áp dụng cho tất cả. Giá (USD mỗi triệu token) không bắt buộc, chỉ dùng để ước tính.",
+  "原卷已刪除": "Đã xóa bản gốc",
+  "編輯考卷": "Sửa đề",
+  "已刪除原卷檔案，題目還能繼續編輯": "Đã xóa tệp gốc, vẫn sửa được câu hỏi.",
+  "刪除原卷檔案": "Xóa tệp gốc"
 }

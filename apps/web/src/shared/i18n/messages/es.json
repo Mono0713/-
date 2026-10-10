@@ -5,7 +5,6 @@
   "未命名考卷": "Examen sin título",
   "{n} 題": "Preguntas: {n}",
   "共 {points} 分": "Total: {points} pts",
-  "看原始考卷": "Ver examen original",
   "用這份考卷測驗": "Practicar con este examen",
   "編輯這題": "Editar pregunta",
   "題庫": "Banco de preguntas",
@@ -1311,5 +1310,9 @@
   "{model} 看得懂圖。": "{model} ve imágenes.",
   "{model} 看不懂圖，已關掉「看得懂圖」。": "{model} no ve imágenes; se desactivó «Ve imágenes».",
   "判斷看不看得懂圖…": "Comprobando imágenes…",
-  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目，加入時會自動判斷。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Solo los modelos con «Ve imágenes» leen exámenes, escritura a mano y preguntas con imágenes; se comprueba solo al añadirlos. El nivel decide qué elige Automático con Aplicar a todo. El precio (US$ por millón de tokens) es opcional y solo sirve para estimar."
+  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目，加入時會自動判斷。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Solo los modelos con «Ve imágenes» leen exámenes, escritura a mano y preguntas con imágenes; se comprueba solo al añadirlos. El nivel decide qué elige Automático con Aplicar a todo. El precio (US$ por millón de tokens) es opcional y solo sirve para estimar.",
+  "原卷已刪除": "Original eliminado",
+  "編輯考卷": "Editar examen",
+  "已刪除原卷檔案，題目還能繼續編輯": "Archivos originales eliminados. Puedes seguir editando las preguntas.",
+  "刪除原卷檔案": "Eliminar archivos originales"
 }

@@ -45,6 +45,7 @@ export class PostgresBank implements Bank {
     if (patch.model !== undefined) columns.model = patch.model
     if (patch.keepOriginal !== undefined) columns.keep_original = patch.keepOriginal
     if (patch.originalDeletedAt !== undefined) columns.original_deleted_at = patch.originalDeletedAt && new Date(patch.originalDeletedAt)
+    if (patch.pageCount !== undefined) columns.page_count = patch.pageCount
     await this.setColumns(this.sql, 'imports', id, columns)
   }
 
@@ -113,6 +114,10 @@ export class PostgresBank implements Bank {
       }
     })
     return (await this.getExam(id))!
+  }
+
+  async linkImport(examId: string, importId: string): Promise<void> {
+    if (isUuid(examId) && isUuid(importId)) await this.sql`update exams set import_id = ${importId} where id = ${examId}`
   }
 
   async examForImport(importId: string): Promise<BankExam | null> {

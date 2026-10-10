@@ -105,6 +105,7 @@ class SqliteBankSync {
     if (patch.model !== undefined) columns.model = patch.model
     if (patch.keepOriginal !== undefined) columns.keep_original = patch.keepOriginal ? 1 : 0
     if (patch.originalDeletedAt !== undefined) columns.original_deleted_at = patch.originalDeletedAt
+    if (patch.pageCount !== undefined) columns.page_count = patch.pageCount
     this.setColumns('imports', id, columns)
   }
 
@@ -172,6 +173,10 @@ class SqliteBankSync {
       throw err
     }
     return this.getExam(id)!
+  }
+
+  linkImport(examId: string, importId: string): void {
+    this.db.prepare('UPDATE exams SET import_id = ? WHERE id = ?').run(importId, examId)
   }
 
   examForImport(importId: string): BankExam | null {
@@ -431,6 +436,7 @@ export class SqliteBank implements Bank {
   async saveExam(importId: string, draft: DraftExam) { return this.db.saveExam(importId, draft) }
   async createExam(ownerId: string, exam: NewExam) { return this.db.createExam(ownerId, exam) }
   async examForImport(importId: string) { return this.db.examForImport(importId) }
+  async linkImport(examId: string, importId: string) { this.db.linkImport(examId, importId) }
   async listExams(query: ExamQuery) { return this.db.listExams(query) }
   async getExam(id: string) { return this.db.getExam(id) }
   async updateExam(id: string, patch: ExamPatch) { return this.db.updateExam(id, patch) }

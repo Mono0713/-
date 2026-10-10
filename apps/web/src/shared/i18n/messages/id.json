@@ -5,7 +5,6 @@
   "未命名考卷": "Ujian tanpa judul",
   "{n} 題": "{n} soal",
   "共 {points} 分": "Total {points} poin",
-  "看原始考卷": "Lihat ujian asli",
   "用這份考卷測驗": "Kuis dengan ujian ini",
   "編輯這題": "Edit soal ini",
   "題庫": "Bank soal",
@@ -1311,5 +1310,9 @@
   "{model} 看得懂圖。": "{model} bisa membaca gambar.",
   "{model} 看不懂圖，已關掉「看得懂圖」。": "{model} tidak bisa membaca gambar, “Bisa membaca gambar” dimatikan.",
   "判斷看不看得懂圖…": "Memeriksa gambar…",
-  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目，加入時會自動判斷。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Hanya model “Bisa membaca gambar” yang membaca lembar ujian, tulisan tangan, dan soal bergambar; ini diperiksa otomatis saat ditambahkan. Tingkat menentukan pilihan Otomatis saat Terapkan ke semua. Harga (US$ per juta token) opsional, hanya untuk perkiraan."
+  "「看得懂圖」的模型才會拿來讀考卷、手寫和有圖的題目，加入時會自動判斷。等級決定一鍵套用時自動挑哪個。價格（每百萬 token 的美元）選填，只用來估費用。": "Hanya model “Bisa membaca gambar” yang membaca lembar ujian, tulisan tangan, dan soal bergambar; ini diperiksa otomatis saat ditambahkan. Tingkat menentukan pilihan Otomatis saat Terapkan ke semua. Harga (US$ per juta token) opsional, hanya untuk perkiraan.",
+  "原卷已刪除": "Asli sudah dihapus",
+  "編輯考卷": "Edit ujian",
+  "已刪除原卷檔案，題目還能繼續編輯": "File asli dihapus. Soal masih bisa diedit.",
+  "刪除原卷檔案": "Hapus file asli"
 }
